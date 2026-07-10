@@ -34,6 +34,12 @@ export async function saveExpensesAction(
   const cycle = await getOrCreateDraftCycle(userId);
 
   await prisma.$transaction(async (tx) => {
+    // Replace-all: a resubmission (e.g. after going back to edit) must drop
+    // rows the user removed, not just upsert what's still present.
+    await tx.cycleBudgetGoal.deleteMany({
+      where: { cycleId: cycle.id, expenseCategory: { type: "EXPENSE" } },
+    });
+
     for (const item of parsed.data.items) {
       const category = await tx.expenseCategory.upsert({
         where: { userId_name: { userId, name: item.name } },
@@ -60,5 +66,5 @@ export async function saveExpensesAction(
     });
   });
 
-  redirect("/onboarding/accounts");
+  redirect("/onboarding/savings");
 }

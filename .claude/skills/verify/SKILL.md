@@ -21,13 +21,12 @@ Playwright is a devDependency. System Chrome works without downloading Chromium:
 ```js
 const browser = await chromium.launch({ channel: "chrome" });
 ```
-Flow to drive (4 steps): `/signup` -> `/onboarding/income` (fill name + grossMonthlyAmount,
-check live preview math in `.preview-box`) -> `/onboarding/expenses` (fixed expenses —
-starts with **zero rows**, click "+ Add a fixed expense" to add each one, no pre-added
-categories) -> `/onboarding/accounts` (fill checking + optionally "+ Add account" for a
-CREDIT_CARD/LOAN debt row) -> `/onboarding/savings` (savings goals — same zero-rows-allowed
-pattern as expenses, "+ Add a savings goal") -> `/dashboard`. Both expenses and savings can
-be submitted with zero rows and still advance.
+Flow to drive (3 steps, no accounts step): `/signup` -> `/onboarding/income` (fill name +
+grossMonthlyAmount, check live preview math in `.preview-box`) -> `/onboarding/expenses`
+(fixed expenses — starts with **zero rows**, click "+ Add a fixed expense" to add each
+one, no pre-added categories) -> `/onboarding/savings` (savings goals — same
+zero-rows-allowed pattern, "+ Add a savings goal") -> `/dashboard`. Both expenses and
+savings can be submitted with zero rows and still advance.
 
 `expenses` and `savings` share one client component, `_components/LineItemsForm.tsx` — each
 row is a `.field` div containing a name input and an amount input, **both `type="text"`**
@@ -36,20 +35,34 @@ row is a `.field` div containing a name input and an amount input, **both `type=
 `page.locator(".field").filter({ has: page.locator('input[inputMode="decimal"]') }).nth(i)`,
 then index into that row's own inputs.
 
+**Back-navigation**: the step-progress bar (`_components/StepProgress.tsx`) renders the
+current step and any earlier completed step as `<a aria-label="Go back to {step}">` — click
+those to jump back mid-flow. Steps ahead of the current one stay plain non-interactive
+`<span>`s (can't skip ahead). This only works *before* onboarding finishes — once
+`onboardingCompletedAt` is set, `onboarding/layout.tsx` redirects any `/onboarding/*` hit
+straight to `/dashboard` (by design — editing a finished cycle is future dashboard work,
+not onboarding). Revisiting an earlier step **pre-fills** it with what was last saved
+(income: name/gross/checkbox from the existing `IncomeSource`; expenses/savings: existing
+`CycleBudgetGoal` rows filtered by category type) — unsaved in-progress edits on the step
+you're leaving are discarded if you navigate away without submitting, same as any web form.
+
 Worth probing: duplicate signup email (clean `.error-text`), logged-out access to
 `/onboarding` or `/dashboard` (bounces to `/login`), jumping ahead to a later onboarding
 step before finishing an earlier one (bounces back to the earliest incomplete step),
 revisiting `/onboarding` after completion (bounces to `/dashboard`), **submitting
 expenses/savings with zero rows and then revisiting `/onboarding`** (must land on the
-next step, not bounce back — this is the resumability edge case the timestamp fields
-below exist to handle).
+next step, not bounce back), **editing income twice** (must update the same
+`IncomeSource`/`CycleIncomeEntry` in place — check DB for exactly one row, not two),
+**removing a row on expenses/savings and resubmitting** (the removed category's
+`CycleBudgetGoal` must actually be gone, not orphaned).
 
 ## Verify DB state
 ```bash
 psql -U "$USER" -d budgetapp_dev -c 'SELECT ... FROM "CycleIncomeEntry" ...'
 ```
-Debt account types (CREDIT_CARD/LOAN/OTHER_DEBT) are stored as a **negative**
-`CycleAccountBalance.amount` — the form takes a positive "amount owed" from the user.
+There is no accounts/balances step anymore — `FinancialAccount`/`CycleAccountBalance`
+models still exist in the schema (kept for a future proper multi-account dashboard
+feature) but nothing in onboarding writes to them; expect 0 rows there always.
 
 ## Gotchas
 - `expenses` and `savings` allow **zero rows** (fixed expenses / savings goals are both
@@ -57,8 +70,14 @@ Debt account types (CREDIT_CARD/LOAN/OTHER_DEBT) are stored as a **negative**
   cycle where the user submitted zero rows look identical by row count. Completion is
   tracked instead via `BudgetCycle.expensesConfirmedAt` / `savingsConfirmedAt`
   (nullable timestamps, set by each step's server action regardless of row count).
-  `income` and `accounts` still require ≥1 row, so they still use row-count presence.
+  `income` still requires ≥1 row, so it still uses row-count presence.
   See `app/(onboarding)/onboarding/_lib/getOnboardingState.ts`.
+- Editing a step must **overwrite**, not duplicate: `income/actions.ts` looks up the
+  cycle's existing `CycleIncomeEntry` and updates it + its `IncomeSource` in place if
+  found (onboarding only ever supports one income source per cycle). `expenses`/
+  `savings` actions do `deleteMany` on that cycle's goals (filtered by category type)
+  before re-upserting the submitted set, so a removed row actually disappears instead
+  of lingering.
 - Prisma 7's `prisma-client` generator requires an explicit driver adapter at
   runtime — `lib/prisma.ts` uses `@prisma/adapter-pg`'s `PrismaPg`. A bare
   `new PrismaClient()` throws "Expected 1 arguments, but got 0".

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { LineItemsForm } from "../_components/LineItemsForm";
@@ -11,7 +12,18 @@ export default async function ExpensesStepPage() {
     redirect("/login");
   }
 
-  await requireOnboardingStep(session.user.id, "expenses");
+  const state = await requireOnboardingStep(session.user.id, "expenses");
+
+  const existingGoals = await prisma.cycleBudgetGoal.findMany({
+    where: { cycleId: state.cycle.id, expenseCategory: { type: "EXPENSE" } },
+    include: { expenseCategory: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const initialItems = existingGoals.map((goal) => ({
+    name: goal.expenseCategory.name,
+    amount: goal.targetAmount.toString(),
+  }));
 
   return (
     <div className="card card--wide">
@@ -27,6 +39,7 @@ export default async function ExpensesStepPage() {
         itemNounSingular="fixed expense"
         amountLabel="Monthly amount (USD)"
         submitLabel="Continue"
+        initialItems={initialItems}
       />
     </div>
   );

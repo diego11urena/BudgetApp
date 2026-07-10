@@ -159,21 +159,33 @@ a {
   margin-bottom: 1.5rem;
 }
 
-.step-progress span {
+.step-progress span,
+.step-progress a {
   flex: 1;
+  display: block;
   height: 4px;
   border-radius: 2px;
   background: rgba(128, 128, 128, 0.3);
 }
 
+.step-progress a {
+  cursor: pointer;
+}
+
+.step-progress a:hover {
+  background: rgba(128, 128, 128, 0.5);
+}
+
 .step-progress span.is-complete,
-.step-progress span.is-active {
+.step-progress span.is-active,
+.step-progress a.is-complete {
   background: #171717;
 }
 
 @media (prefers-color-scheme: dark) {
   .step-progress span.is-complete,
-  .step-progress span.is-active {
+  .step-progress span.is-active,
+  .step-progress a.is-complete {
     background: #ededed;
   }
 }

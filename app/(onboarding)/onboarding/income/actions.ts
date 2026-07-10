@@ -40,24 +40,44 @@ export async function saveIncomeAction(
     isPanamaPayroll,
   });
 
-  const incomeSource = await prisma.incomeSource.create({
-    data: { userId, name, grossMonthlyAmount, isPanamaPayroll },
+  // Onboarding only supports one income source per cycle. If the user came
+  // back to edit this step, update the existing rows in place instead of
+  // creating a duplicate income source/entry.
+  const existingEntry = await prisma.cycleIncomeEntry.findFirst({
+    where: { cycleId: cycle.id },
   });
 
-  await prisma.cycleIncomeEntry.create({
-    data: {
-      cycleId: cycle.id,
-      incomeSourceId: incomeSource.id,
-      grossAmount: breakdown.grossAmount,
-      cssDeduction: breakdown.cssDeduction,
-      seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
-      isrDeduction: breakdown.isrDeduction,
-      decimoGrossAmount: breakdown.decimoGrossAmount,
-      decimoCssDeduction: breakdown.decimoCssDeduction,
-      decimoIsEstimated: breakdown.decimoIsEstimated,
-      netAmount: breakdown.netAmount,
-    },
-  });
+  const entryData = {
+    grossAmount: breakdown.grossAmount,
+    cssDeduction: breakdown.cssDeduction,
+    seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
+    isrDeduction: breakdown.isrDeduction,
+    decimoGrossAmount: breakdown.decimoGrossAmount,
+    decimoCssDeduction: breakdown.decimoCssDeduction,
+    decimoIsEstimated: breakdown.decimoIsEstimated,
+    netAmount: breakdown.netAmount,
+  };
+
+  if (existingEntry?.incomeSourceId) {
+    await prisma.$transaction([
+      prisma.incomeSource.update({
+        where: { id: existingEntry.incomeSourceId },
+        data: { name, grossMonthlyAmount, isPanamaPayroll },
+      }),
+      prisma.cycleIncomeEntry.update({
+        where: { id: existingEntry.id },
+        data: entryData,
+      }),
+    ]);
+  } else {
+    const incomeSource = await prisma.incomeSource.create({
+      data: { userId, name, grossMonthlyAmount, isPanamaPayroll },
+    });
+
+    await prisma.cycleIncomeEntry.create({
+      data: { cycleId: cycle.id, incomeSourceId: incomeSource.id, ...entryData },
+    });
+  }
 
   redirect("/onboarding/expenses");
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { computeNetIncomeForCycle } from "@/lib/panama-tax";
+import type { IncomeFormInitial } from "./IncomeForm";
 
 function formatUSD(amount: number): string {
   return amount.toLocaleString("en-US", {
@@ -10,9 +11,17 @@ function formatUSD(amount: number): string {
   });
 }
 
-export function IncomePreview({ cycleMonth }: { cycleMonth: number }) {
-  const [grossMonthlyAmount, setGrossMonthlyAmount] = useState("");
-  const [isPanamaPayroll, setIsPanamaPayroll] = useState(true);
+export function IncomePreview({
+  cycleMonth,
+  initial,
+}: {
+  cycleMonth: number;
+  initial?: IncomeFormInitial;
+}) {
+  const [grossMonthlyAmount, setGrossMonthlyAmount] = useState(
+    initial?.grossMonthlyAmount ?? "",
+  );
+  const [isPanamaPayroll, setIsPanamaPayroll] = useState(initial?.isPanamaPayroll ?? true);
 
   const breakdown = useMemo(() => {
     const gross = Number(grossMonthlyAmount);

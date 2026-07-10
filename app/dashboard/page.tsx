@@ -26,8 +26,7 @@ export default async function DashboardPage() {
                 {cycle.label} ({cycle.status})
               </span>
               <span>
-                {cycle.incomeEntries.length} income · {cycle.budgetGoals.length} goals ·{" "}
-                {cycle.accountBalances.length} balances
+                {cycle.incomeEntries.length} income · {cycle.budgetGoals.length} goals
               </span>
             </div>
           ))}

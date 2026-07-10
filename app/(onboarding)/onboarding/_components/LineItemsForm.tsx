@@ -1,13 +1,16 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 
 export type LineItemsFormState = { error?: string } | undefined;
 
-interface LineItemRow {
-  key: string;
+export interface LineItem {
   name: string;
   amount: string;
+}
+
+interface LineItemRow extends LineItem {
+  key: string;
 }
 
 interface LineItemsFormProps {
@@ -19,6 +22,7 @@ interface LineItemsFormProps {
   itemNounSingular: string;
   amountLabel: string;
   submitLabel: string;
+  initialItems?: LineItem[];
 }
 
 export function LineItemsForm({
@@ -27,16 +31,25 @@ export function LineItemsForm({
   itemNounSingular,
   amountLabel,
   submitLabel,
+  initialItems,
 }: LineItemsFormProps) {
   const [state, formAction, pending] = useActionState<LineItemsFormState, FormData>(
     action,
     undefined,
   );
   const genId = useId();
-  const [rows, setRows] = useState<LineItemRow[]>([]);
+  const nextKeyRef = useRef((initialItems ?? []).length);
+  const [rows, setRows] = useState<LineItemRow[]>(() =>
+    (initialItems ?? []).map((item, i) => ({
+      key: `${genId}-${i}`,
+      name: item.name,
+      amount: item.amount,
+    })),
+  );
 
   function addRow() {
-    setRows((prev) => [...prev, { key: `${genId}-${prev.length}`, name: "", amount: "" }]);
+    const key = `${genId}-${nextKeyRef.current++}`;
+    setRows((prev) => [...prev, { key, name: "", amount: "" }]);
   }
 
   function updateRow(key: string, patch: Partial<LineItemRow>) {

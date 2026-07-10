@@ -6,7 +6,19 @@ import { IncomePreview } from "./IncomePreview";
 
 const initialState: IncomeFormState = undefined;
 
-export function IncomeForm({ cycleMonth }: { cycleMonth: number }) {
+export interface IncomeFormInitial {
+  name: string;
+  grossMonthlyAmount: string;
+  isPanamaPayroll: boolean;
+}
+
+export function IncomeForm({
+  cycleMonth,
+  initial,
+}: {
+  cycleMonth: number;
+  initial?: IncomeFormInitial;
+}) {
   const [state, formAction, pending] = useActionState(saveIncomeAction, initialState);
 
   return (
@@ -18,11 +30,12 @@ export function IncomeForm({ cycleMonth }: { cycleMonth: number }) {
           name="name"
           type="text"
           placeholder="Main job salary"
+          defaultValue={initial?.name}
           required
         />
       </div>
 
-      <IncomePreview cycleMonth={cycleMonth} />
+      <IncomePreview cycleMonth={cycleMonth} initial={initial} />
 
       {state?.error && <p className="error-text">{state.error}</p>}
 
