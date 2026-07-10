@@ -3,30 +3,30 @@ import { auth } from "@/lib/auth";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { LineItemsForm } from "../_components/LineItemsForm";
-import { saveExpensesAction } from "./actions";
+import { saveSavingsAction } from "./actions";
 
-export default async function ExpensesStepPage() {
+export default async function SavingsStepPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  await requireOnboardingStep(session.user.id, "expenses");
+  await requireOnboardingStep(session.user.id, "savings");
 
   return (
     <div className="card card--wide">
-      <StepProgress current="expenses" />
-      <h1>Add your fixed expenses</h1>
+      <StepProgress current="savings" />
+      <h1>Set your savings goals</h1>
       <p className="field-hint">
-        Things you pay every cycle, like rent or subscriptions. Add as many as you need
-        — you can always change these later.
+        Anything you&apos;re saving toward this cycle. Optional — add as many as you
+        need, or skip for now.
       </p>
       <LineItemsForm
-        action={saveExpensesAction}
+        action={saveSavingsAction}
         fieldName="itemsJson"
-        itemNounSingular="fixed expense"
-        amountLabel="Monthly amount (USD)"
-        submitLabel="Continue"
+        itemNounSingular="savings goal"
+        amountLabel="Target amount (USD)"
+        submitLabel="Finish setup"
       />
     </div>
   );

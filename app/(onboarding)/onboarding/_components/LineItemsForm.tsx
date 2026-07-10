@@ -1,0 +1,113 @@
+"use client";
+
+import { useActionState, useId, useState } from "react";
+
+export type LineItemsFormState = { error?: string } | undefined;
+
+interface LineItemRow {
+  key: string;
+  name: string;
+  amount: string;
+}
+
+interface LineItemsFormProps {
+  action: (
+    prevState: LineItemsFormState,
+    formData: FormData,
+  ) => Promise<LineItemsFormState>;
+  fieldName: string;
+  itemNounSingular: string;
+  amountLabel: string;
+  submitLabel: string;
+}
+
+export function LineItemsForm({
+  action,
+  fieldName,
+  itemNounSingular,
+  amountLabel,
+  submitLabel,
+}: LineItemsFormProps) {
+  const [state, formAction, pending] = useActionState<LineItemsFormState, FormData>(
+    action,
+    undefined,
+  );
+  const genId = useId();
+  const [rows, setRows] = useState<LineItemRow[]>([]);
+
+  function addRow() {
+    setRows((prev) => [...prev, { key: `${genId}-${prev.length}`, name: "", amount: "" }]);
+  }
+
+  function updateRow(key: string, patch: Partial<LineItemRow>) {
+    setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+
+  function removeRow(key: string) {
+    setRows((prev) => prev.filter((r) => r.key !== key));
+  }
+
+  const itemsJson = JSON.stringify(
+    rows.map((r) => ({ name: r.name, targetAmount: r.amount })),
+  );
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name={fieldName} value={itemsJson} readOnly />
+
+      {rows.length === 0 && (
+        <p className="field-hint">
+          You haven&apos;t added any {itemNounSingular}s yet.
+        </p>
+      )}
+
+      {rows.map((row) => (
+        <div
+          className="field"
+          key={row.key}
+          style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end" }}
+        >
+          <div style={{ flex: 2 }}>
+            <label>Name</label>
+            <input
+              type="text"
+              value={row.name}
+              required
+              onChange={(e) => updateRow(row.key, { name: e.target.value })}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label>{amountLabel}</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={row.amount}
+              required
+              onChange={(e) => updateRow(row.key, { amount: e.target.value })}
+            />
+          </div>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => removeRow(row.key)}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <button type="button" className="button button--secondary" onClick={addRow}>
+        + Add {rows.length > 0 ? "another" : "a"} {itemNounSingular}
+      </button>
+
+      {state?.error && <p className="error-text">{state.error}</p>}
+
+      <div className="form-actions">
+        <button type="submit" className="button" disabled={pending}>
+          {pending ? "Saving..." : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}

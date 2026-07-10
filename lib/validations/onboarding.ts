@@ -22,15 +22,13 @@ export const incomeStepSchema = z.object({
   isPanamaPayroll: z.boolean(),
 });
 
-export const expenseCategoryInputSchema = z.object({
-  expenseCategoryId: z.string().optional(),
+export const budgetLineItemSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  type: z.enum(["EXPENSE", "SAVINGS"]),
   targetAmount: decimalString,
 });
 
-export const expensesStepSchema = z.object({
-  categories: z.array(expenseCategoryInputSchema).min(1, "Add at least one category"),
+export const budgetLineItemsSchema = z.object({
+  items: z.array(budgetLineItemSchema),
 });
 
 export const financialAccountTypeSchema = z.enum([
@@ -55,5 +53,5 @@ export const accountsStepSchema = z.object({
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type IncomeStepInput = z.infer<typeof incomeStepSchema>;
-export type ExpensesStepInput = z.infer<typeof expensesStepSchema>;
+export type BudgetLineItemsInput = z.infer<typeof budgetLineItemsSchema>;
 export type AccountsStepInput = z.infer<typeof accountsStepSchema>;

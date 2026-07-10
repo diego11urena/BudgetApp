@@ -65,6 +65,11 @@ model BudgetCycle {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  // Explicit "step submitted" markers — needed because the expenses and
+  // savings steps allow zero rows, so row presence can't signal completion.
+  expensesConfirmedAt DateTime?
+  savingsConfirmedAt  DateTime?
+
   incomeEntries   CycleIncomeEntry[]
   budgetGoals     CycleBudgetGoal[]
   accountBalances CycleAccountBalance[]

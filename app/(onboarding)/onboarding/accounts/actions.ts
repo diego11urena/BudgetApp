@@ -53,17 +53,7 @@ export async function saveAccountsAction(
         },
       });
     }
-
-    await tx.budgetCycle.update({
-      where: { id: cycle.id },
-      data: { status: "ACTIVE" },
-    });
-
-    await tx.user.update({
-      where: { id: userId },
-      data: { onboardingCompletedAt: new Date() },
-    });
   });
 
-  redirect("/dashboard");
+  redirect("/onboarding/savings");
 }

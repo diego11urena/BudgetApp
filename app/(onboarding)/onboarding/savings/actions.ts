@@ -6,12 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { budgetLineItemsSchema } from "@/lib/validations/onboarding";
 
-export type ExpensesFormState = { error?: string } | undefined;
+export type SavingsFormState = { error?: string } | undefined;
 
-export async function saveExpensesAction(
-  _prevState: ExpensesFormState,
+export async function saveSavingsAction(
+  _prevState: SavingsFormState,
   formData: FormData,
-): Promise<ExpensesFormState> {
+): Promise<SavingsFormState> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -37,8 +37,8 @@ export async function saveExpensesAction(
     for (const item of parsed.data.items) {
       const category = await tx.expenseCategory.upsert({
         where: { userId_name: { userId, name: item.name } },
-        create: { userId, name: item.name, type: "EXPENSE" },
-        update: { type: "EXPENSE" },
+        create: { userId, name: item.name, type: "SAVINGS" },
+        update: { type: "SAVINGS" },
       });
 
       await tx.cycleBudgetGoal.upsert({
@@ -56,9 +56,14 @@ export async function saveExpensesAction(
 
     await tx.budgetCycle.update({
       where: { id: cycle.id },
-      data: { expensesConfirmedAt: new Date() },
+      data: { savingsConfirmedAt: new Date(), status: "ACTIVE" },
+    });
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { onboardingCompletedAt: new Date() },
     });
   });
 
-  redirect("/onboarding/accounts");
+  redirect("/dashboard");
 }
