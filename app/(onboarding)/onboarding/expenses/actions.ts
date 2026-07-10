@@ -1,0 +1,64 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { expensesStepSchema } from "@/lib/validations/onboarding";
+
+export type ExpensesFormState = { error?: string } | undefined;
+
+export async function saveExpensesAction(
+  _prevState: ExpensesFormState,
+  formData: FormData,
+): Promise<ExpensesFormState> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const raw = formData.get("categoriesJson");
+  let rawCategories: unknown;
+  try {
+    rawCategories = JSON.parse(typeof raw === "string" ? raw : "[]");
+  } catch {
+    return { error: "Invalid submission" };
+  }
+
+  const parsed = expensesStepSchema.safeParse({ categories: rawCategories });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const cycle = await getOrCreateDraftCycle(userId);
+
+  await prisma.$transaction(async (tx) => {
+    for (const item of parsed.data.categories) {
+      const category = item.expenseCategoryId
+        ? await tx.expenseCategory.update({
+            where: { id: item.expenseCategoryId, userId },
+            data: { name: item.name, type: item.type },
+          })
+        : await tx.expenseCategory.upsert({
+            where: { userId_name: { userId, name: item.name } },
+            create: { userId, name: item.name, type: item.type },
+            update: { type: item.type },
+          });
+
+      await tx.cycleBudgetGoal.upsert({
+        where: {
+          cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: category.id },
+        },
+        create: {
+          cycleId: cycle.id,
+          expenseCategoryId: category.id,
+          targetAmount: item.targetAmount,
+        },
+        update: { targetAmount: item.targetAmount },
+      });
+    }
+  });
+
+  redirect("/onboarding/accounts");
+}

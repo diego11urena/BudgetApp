@@ -1,0 +1,168 @@
+// Prisma schema for BudgetApp
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  hashedPassword        String
+  name                  String?
+  onboardingCompletedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  incomeSources     IncomeSource[]
+  expenseCategories ExpenseCategory[]
+  financialAccounts FinancialAccount[]
+  budgetCycles      BudgetCycle[]
+}
+
+enum PayFrequency {
+  MONTHLY
+  BIWEEKLY
+  SEMIMONTHLY
+}
+
+model IncomeSource {
+  id                 String       @id @default(cuid())
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  grossMonthlyAmount Decimal      @db.Decimal(12, 2)
+  payFrequency       PayFrequency @default(MONTHLY)
+  isPanamaPayroll    Boolean      @default(true)
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  cycleEntries CycleIncomeEntry[]
+
+  @@index([userId])
+}
+
+enum CycleStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+model BudgetCycle {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label       String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      CycleStatus @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  incomeEntries   CycleIncomeEntry[]
+  budgetGoals     CycleBudgetGoal[]
+  accountBalances CycleAccountBalance[]
+
+  @@unique([userId, label])
+  @@index([userId, periodStart])
+}
+
+model CycleIncomeEntry {
+  id                       String        @id @default(cuid())
+  cycleId                  String
+  cycle                    BudgetCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  incomeSourceId           String?
+  incomeSource             IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
+  grossAmount              Decimal       @db.Decimal(12, 2)
+  cssDeduction             Decimal       @db.Decimal(12, 2)
+  seguroEducativoDeduction Decimal       @db.Decimal(12, 2)
+  isrDeduction             Decimal       @db.Decimal(12, 2)
+  decimoGrossAmount        Decimal?      @db.Decimal(12, 2)
+  decimoCssDeduction       Decimal?      @db.Decimal(12, 2)
+  decimoIsEstimated        Boolean       @default(false)
+  netAmount                Decimal       @db.Decimal(12, 2)
+  createdAt                DateTime      @default(now())
+
+  @@index([cycleId])
+  @@index([incomeSourceId])
+}
+
+enum CategoryType {
+  EXPENSE
+  SAVINGS
+}
+
+model ExpenseCategory {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      CategoryType @default(EXPENSE)
+  icon      String?
+  isDefault Boolean      @default(false)
+  createdAt DateTime     @default(now())
+
+  budgetGoals CycleBudgetGoal[]
+
+  @@unique([userId, name])
+}
+
+model CycleBudgetGoal {
+  id                String          @id @default(cuid())
+  cycleId           String
+  cycle             BudgetCycle     @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  expenseCategoryId String
+  expenseCategory   ExpenseCategory @relation(fields: [expenseCategoryId], references: [id], onDelete: Cascade)
+  targetAmount      Decimal         @db.Decimal(12, 2)
+  createdAt         DateTime        @default(now())
+
+  @@unique([cycleId, expenseCategoryId])
+  @@index([cycleId])
+}
+
+enum FinancialAccountType {
+  CHECKING
+  SAVINGS
+  CASH
+  CREDIT_CARD
+  LOAN
+  OTHER_DEBT
+}
+
+enum BalanceSnapshotType {
+  OPENING
+  CLOSING
+}
+
+model FinancialAccount {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      FinancialAccountType
+  createdAt DateTime             @default(now())
+
+  balances CycleAccountBalance[]
+
+  @@index([userId])
+}
+
+model CycleAccountBalance {
+  id                 String              @id @default(cuid())
+  cycleId            String
+  cycle              BudgetCycle         @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  financialAccountId String
+  financialAccount   FinancialAccount    @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
+  type               BalanceSnapshotType @default(OPENING)
+  amount             Decimal             @db.Decimal(12, 2)
+  recordedAt         DateTime            @default(now())
+
+  @@unique([cycleId, financialAccountId, type])
+  @@index([cycleId])
+}

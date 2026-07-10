@@ -18,6 +18,21 @@ __pycache__/
 # Environment variables
 .env
 .env.local
+.env*.local
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Testing
+/coverage
+
+/app/generated/prisma
