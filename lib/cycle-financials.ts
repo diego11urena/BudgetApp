@@ -25,23 +25,33 @@ export interface CycleFinancials {
   topCategories: CategoryTotal[];
 }
 
-/**
- * Aggregates a cycle's actual income/expenses/savings from logged
- * transactions (not the planned targets from onboarding) into the numbers
- * the dashboard KPI and chart need. Uses plain numbers, not Decimal — this
- * is a display-only aggregation over a handful of rows, not something
- * written back to the database.
- */
-export async function getCycleFinancials(cycleId: string): Promise<CycleFinancials> {
-  const [incomeEntries, rawTransactions] = await Promise.all([
-    prisma.cycleIncomeEntry.findMany({ where: { cycleId } }),
-    prisma.cycleTransaction.findMany({
-      where: { cycleId },
-      include: { expenseCategory: true },
-      orderBy: { occurredAt: "desc" },
-    }),
-  ]);
+interface DecimalLike {
+  toNumber(): number;
+}
 
+interface IncomeEntryLike {
+  netAmount: DecimalLike;
+}
+
+interface TransactionLike {
+  id: string;
+  type: "EXPENSE" | "INCOME" | "SAVINGS";
+  name: string;
+  amount: DecimalLike;
+  occurredAt: Date;
+  expenseCategory: { id: string; name: string } | null;
+}
+
+/**
+ * Pure aggregation over already-fetched rows — lets History reuse the same
+ * math on data getRecentCycles already pulled, without a query per cycle.
+ * Uses plain numbers, not Decimal: this is a display-only aggregation over
+ * a handful of rows, not something written back to the database.
+ */
+export function summarizeCycleFinancials(
+  incomeEntries: IncomeEntryLike[],
+  rawTransactions: TransactionLike[],
+): CycleFinancials {
   const baseIncome = incomeEntries.reduce((sum, entry) => sum + entry.netAmount.toNumber(), 0);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) => ({
@@ -90,4 +100,18 @@ export async function getCycleFinancials(cycleId: string): Promise<CycleFinancia
     transactions,
     topCategories,
   };
+}
+
+/** Fetches a cycle's income entries and transactions, then aggregates them. */
+export async function getCycleFinancials(cycleId: string): Promise<CycleFinancials> {
+  const [incomeEntries, rawTransactions] = await Promise.all([
+    prisma.cycleIncomeEntry.findMany({ where: { cycleId } }),
+    prisma.cycleTransaction.findMany({
+      where: { cycleId },
+      include: { expenseCategory: true },
+      orderBy: { occurredAt: "desc" },
+    }),
+  ]);
+
+  return summarizeCycleFinancials(incomeEntries, rawTransactions);
 }

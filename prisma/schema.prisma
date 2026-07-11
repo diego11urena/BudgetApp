@@ -60,7 +60,7 @@ model BudgetCycle {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   label       String
   periodStart DateTime
-  periodEnd   DateTime
+  periodEnd   DateTime?
   status      CycleStatus @default(DRAFT)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -75,7 +75,6 @@ model BudgetCycle {
   accountBalances CycleAccountBalance[]
   transactions    CycleTransaction[]
 
-  @@unique([userId, label])
   @@index([userId, periodStart])
 }
 

@@ -98,6 +98,29 @@ and the chart update; log an expense large enough to make "amount left" negative
 it switches to the critical/red state with explicit "you're over" text (never color alone);
 try to delete another user's transaction id directly (should no-op, not error/leak).
 
+## "I just got paid" (`justGotPaidAction`, `lib/cycles.ts` `closeCycleAndStartNext`)
+
+A cycle is now a **paycheck period, not a calendar month** — `getOrCreateDraftCycle` finds
+the user's current open (DRAFT/ACTIVE) cycle regardless of date, and `BudgetCycle` no longer
+has a `(userId, label)` unique constraint, so clicking the button twice in the same day
+(normal in dev testing) is fine and creates two distinct closed cycles, not a constraint
+error. `label` is just a display string (the start date, `YYYY-MM-DD`) now, not a dedupe key.
+
+Clicking closes the current cycle (`status: CLOSED`, `periodEnd` set) and opens a new
+`ACTIVE` one, **carrying forward** the primary `IncomeSource` (recomputed net for the new
+cycle, now using real trailing-salary history for décimo if ≥4 cycles exist) and all of the
+just-closed cycle's `CycleBudgetGoal` rows (fixed expenses + savings targets) — but **not**
+`CycleTransaction` rows, which stay on their original (now closed) cycle forever. Worth
+checking in the DB after a click: exactly the same `IncomeSource`/category ids reused (not
+duplicated) across cycles, and the new cycle has zero transactions even though the old one
+has some.
+
+The **"Last paycheck" banner** (`_components/LastPaycheckBanner.tsx`) is computed fresh on
+every dashboard load from `getMostRecentClosedCycle` + `getCycleFinancials` — it's not a
+one-time flash message tied to the click, so it persists across reloads until the next
+paycheck closes another cycle. It won't render at all if the user has never clicked the
+button yet (no closed cycles exist).
+
 ## Verify DB state
 ```bash
 psql -U "$USER" -d budgetapp_dev -c 'SELECT ... FROM "CycleIncomeEntry" ...'

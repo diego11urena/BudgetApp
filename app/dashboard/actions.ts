@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { closeCycleAndStartNext, getOrCreateDraftCycle } from "@/lib/cycles";
 import { addTransactionSchema } from "@/lib/validations/transactions";
 
 export type TransactionFormState = { error?: string } | undefined;
@@ -65,6 +65,17 @@ export async function deleteTransactionAction(formData: FormData): Promise<void>
   await prisma.cycleTransaction.deleteMany({
     where: { id: transactionId, cycle: { userId: session.user.id } },
   });
+
+  revalidatePath("/dashboard");
+}
+
+export async function justGotPaidAction(): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  await closeCycleAndStartNext(session.user.id);
 
   revalidatePath("/dashboard");
 }

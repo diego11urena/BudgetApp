@@ -1,39 +1,42 @@
 import { prisma } from "@/lib/prisma";
+import { computeNetIncomeForCycle } from "@/lib/panama-tax";
+import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle } from "@/app/generated/prisma/client";
 
 function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
-/** "YYYY-MM" label for the given date's calendar month. */
-export function currentCycleLabel(date: Date = new Date()): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
-}
-
-function monthBounds(date: Date): { periodStart: Date; periodEnd: Date } {
-  const periodStart = new Date(date.getFullYear(), date.getMonth(), 1);
-  const periodEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { periodStart, periodEnd };
+/** "YYYY-MM-DD" label for the given date — a cycle's start date, for display. */
+export function formatCycleLabel(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /**
- * Returns the current calendar month's budget cycle for a user, creating it
- * (as DRAFT) if it doesn't exist yet. Onboarding writes progressively into
- * this same cycle's related rows.
+ * Returns the user's current open (DRAFT or ACTIVE) cycle, creating one if
+ * none exists yet. Onboarding writes progressively into this same cycle's
+ * related rows. A cycle is a paycheck period, not a calendar month — it
+ * stays open until explicitly closed via closeCycleAndStartNext, however
+ * often that happens (e.g. twice a month for semi-monthly pay).
  */
 export async function getOrCreateDraftCycle(userId: string): Promise<BudgetCycle> {
-  const now = new Date();
-  const label = currentCycleLabel(now);
-
-  const existing = await prisma.budgetCycle.findUnique({
-    where: { userId_label: { userId, label } },
+  const existing = await prisma.budgetCycle.findFirst({
+    where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
+    orderBy: { periodStart: "desc" },
   });
   if (existing) return existing;
 
-  const { periodStart, periodEnd } = monthBounds(now);
-
+  const now = new Date();
   return prisma.budgetCycle.create({
-    data: { userId, label, periodStart, periodEnd },
+    data: { userId, label: formatCycleLabel(now), periodStart: now },
+  });
+}
+
+/** The user's most recently closed cycle, if any — for a "last paycheck" summary. */
+export function getMostRecentClosedCycle(userId: string) {
+  return prisma.budgetCycle.findFirst({
+    where: { userId, status: "CLOSED" },
+    orderBy: { periodEnd: "desc" },
   });
 }
 
@@ -47,6 +50,98 @@ export function getRecentCycles(userId: string, limit = 5) {
       incomeEntries: true,
       budgetGoals: { include: { expenseCategory: true } },
       accountBalances: { include: { financialAccount: true } },
+      transactions: { include: { expenseCategory: true } },
     },
   });
+}
+
+export interface CloseCycleResult {
+  closedCycle: BudgetCycle;
+  newCycle: BudgetCycle;
+  closedCycleFinancials: CycleFinancials;
+}
+
+/**
+ * "Just got paid": closes the current open cycle and starts the next one,
+ * carrying forward the recurring setup (income, fixed-expense and savings
+ * targets) so the user never has to redo onboarding-style setup for a new
+ * paycheck. Logged transactions do NOT carry forward — the closed cycle
+ * keeps its own transaction history forever, exactly as it was.
+ */
+export async function closeCycleAndStartNext(userId: string): Promise<CloseCycleResult> {
+  const currentCycle = await getOrCreateDraftCycle(userId);
+  const closedCycleFinancials = await getCycleFinancials(currentCycle.id);
+
+  // Now that real cycle history exists, prefer it for décimo averaging
+  // instead of always falling back to the gross/3 estimate.
+  const recentCycles = await getRecentCycles(userId, 4);
+  const trailingFourMonthSalaries = recentCycles
+    .flatMap((cycle) => cycle.incomeEntries.map((entry) => entry.grossAmount.toNumber()))
+    .slice(0, 4);
+
+  const now = new Date();
+
+  const { closed: closedCycle, created: newCycle } = await prisma.$transaction(async (tx) => {
+    const closed = await tx.budgetCycle.update({
+      where: { id: currentCycle.id },
+      data: { status: "CLOSED", periodEnd: now },
+    });
+
+    const created = await tx.budgetCycle.create({
+      data: {
+        userId,
+        label: formatCycleLabel(now),
+        periodStart: now,
+        status: "ACTIVE",
+      },
+    });
+
+    const incomeSource = await tx.incomeSource.findFirst({
+      where: { userId, isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (incomeSource) {
+      const breakdown = computeNetIncomeForCycle({
+        grossMonthlyAmount: incomeSource.grossMonthlyAmount,
+        cycleMonth: created.periodStart.getMonth() + 1,
+        isPanamaPayroll: incomeSource.isPanamaPayroll,
+        trailingFourMonthSalaries:
+          trailingFourMonthSalaries.length >= 4 ? trailingFourMonthSalaries : undefined,
+      });
+
+      await tx.cycleIncomeEntry.create({
+        data: {
+          cycleId: created.id,
+          incomeSourceId: incomeSource.id,
+          grossAmount: breakdown.grossAmount,
+          cssDeduction: breakdown.cssDeduction,
+          seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
+          isrDeduction: breakdown.isrDeduction,
+          decimoGrossAmount: breakdown.decimoGrossAmount,
+          decimoCssDeduction: breakdown.decimoCssDeduction,
+          decimoIsEstimated: breakdown.decimoIsEstimated,
+          netAmount: breakdown.netAmount,
+        },
+      });
+    }
+
+    const previousGoals = await tx.cycleBudgetGoal.findMany({
+      where: { cycleId: closed.id },
+    });
+
+    for (const goal of previousGoals) {
+      await tx.cycleBudgetGoal.create({
+        data: {
+          cycleId: created.id,
+          expenseCategoryId: goal.expenseCategoryId,
+          targetAmount: goal.targetAmount,
+        },
+      });
+    }
+
+    return { closed, created };
+  });
+
+  return { closedCycle, newCycle, closedCycleFinancials };
 }
