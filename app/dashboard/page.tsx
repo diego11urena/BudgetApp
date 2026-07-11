@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getRecentCycles } from "@/lib/cycles";
+import { resetOnboardingAction } from "./dev-actions";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -31,6 +32,13 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+        {process.env.NODE_ENV !== "production" && (
+          <form action={resetOnboardingAction} style={{ marginTop: "1.5rem" }}>
+            <button type="submit" className="button button--secondary">
+              Reset onboarding (dev only)
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

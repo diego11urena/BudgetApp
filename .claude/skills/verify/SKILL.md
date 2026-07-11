@@ -65,6 +65,19 @@ models still exist in the schema (kept for a future proper multi-account dashboa
 feature) but nothing in onboarding writes to them; expect 0 rows there always.
 
 ## Gotchas
+- **Dev-only "Reset onboarding" button** on `/dashboard` (`app/dashboard/dev-actions.ts`,
+  `resetOnboardingAction`): gated by `process.env.NODE_ENV !== "production"` both on the
+  button's render and inside the action itself (defense in depth). Deletes the current
+  `BudgetCycle` (cascades income/goals) and clears `User.onboardingCompletedAt`, then
+  redirects to `/onboarding`. Use this instead of manually poking the DB when you need to
+  re-run onboarding during testing.
+- Testing a **production build locally** (`npm run build && npm start`) over plain HTTP
+  breaks login entirely — Auth.js defaults session cookies to `secure: true` when
+  `NODE_ENV=production`, and browsers won't send secure cookies over non-HTTPS `localhost`.
+  This is an artifact of local testing, not an app bug; real deployments serve over HTTPS.
+  Verifying prod-only behavior (like the reset button being absent) is better done by
+  reading the compiled output/trusting the `NODE_ENV` conditional than by driving a full
+  signed-in flow against a local prod server.
 - `expenses` and `savings` allow **zero rows** (fixed expenses / savings goals are both
   optional), so row-count presence can't signal "step completed" — a fresh cycle and a
   cycle where the user submitted zero rows look identical by row count. Completion is
