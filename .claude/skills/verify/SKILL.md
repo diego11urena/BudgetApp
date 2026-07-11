@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Build/launch/drive recipe for BudgetApp (Next.js + Prisma + Postgres onboarding flow)
+description: Build/launch/drive recipe for BudgetApp (Next.js + Prisma + Postgres onboarding flow + dashboard)
 ---
 
 # BudgetApp verify recipe
@@ -65,6 +65,38 @@ next step, not bounce back), **editing income twice** (must update the same
 `IncomeSource`/`CycleIncomeEntry` in place — check DB for exactly one row, not two),
 **removing a row on expenses/savings and resubmitting** (the removed category's
 `CycleBudgetGoal` must actually be gone, not orphaned).
+
+## Dashboard (`/dashboard`)
+
+Real feature now, not a stub — a KPI stat tile ("Amount left this cycle"), a top-categories
+bar chart, an add-transaction form (`#tx-type`/`#tx-name`/`#tx-amount`, button "Log it"),
+and a list of this cycle's transactions with per-row "Delete" buttons.
+
+**"Amount left" math**: `baseIncome` (sum of `CycleIncomeEntry.netAmount` for the cycle) `+`
+sum of `CycleTransaction` type=INCOME `-` sum of type=EXPENSE `-` sum of type=SAVINGS. This
+is driven by **actually logged transactions**, not the planned `CycleBudgetGoal` targets
+from onboarding — a fixed expense set during onboarding does nothing to this number until
+you separately log it happening via the transaction form. Read the value from `.kpi-value`
+(strip currency formatting with something like `Number(text.replace(/[^0-9.-]/g, ""))`).
+
+**Category linkage**: logging an EXPENSE or SAVINGS transaction upserts an `ExpenseCategory`
+by `(userId, name)` — same pattern as onboarding's expenses/savings steps — so naming a
+transaction the same as an existing fixed-expense category (e.g. "Rent") reuses that
+category rather than creating a duplicate. INCOME transactions never get a category. Worth
+checking in the DB after logging a same-named transaction: exactly one `ExpenseCategory` row
+for that name, and the new `CycleTransaction.expenseCategoryId` points at it.
+
+**Top categories chart**: only EXPENSE-type transactions feed it (grouped by category,
+summed, top 5) — a SAVINGS-type transaction with the same name must NOT appear in it.
+Bars are a single hue (sequential encoding, not per-category identity — see the dataviz
+skill notes below), so don't expect distinct colors per bar; distinguish by the direct
+label instead. Long category names truncate with ellipsis in the fixed-width label column
+— that's intentional (measured, not accidentally clipped).
+
+Worth probing on the dashboard specifically: delete a transaction and confirm both the KPI
+and the chart update; log an expense large enough to make "amount left" negative and confirm
+it switches to the critical/red state with explicit "you're over" text (never color alone);
+try to delete another user's transaction id directly (should no-op, not error/leak).
 
 ## Verify DB state
 ```bash

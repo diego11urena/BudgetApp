@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { decimalString } from "./shared";
 
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -10,11 +11,6 @@ export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
 });
-
-const decimalString = z
-  .string()
-  .trim()
-  .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 1234.56)");
 
 export const incomeStepSchema = z.object({
   name: z.string().trim().min(1, "Give this income a name").max(100),
