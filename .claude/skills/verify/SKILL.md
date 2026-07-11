@@ -16,6 +16,16 @@ npm run dev   # http://localhost:3000
 Root `/` redirects based on session + `User.onboardingCompletedAt`:
 unauth -> `/login`, incomplete -> `/onboarding` (resumes at first incomplete step), done -> `/dashboard`.
 
+**Before launching, check nothing stale already owns port 3000**: `lsof -i :3000`. If a
+`next dev` you started earlier is killed with `pkill -f "next dev"` but a `next start`
+(production) server was also started at some point, `pkill -f "next start"` will **not**
+catch it — the actual process name is `next-server`, not "next start". A leftover prod
+server on port 3000 makes `npm run dev` silently fall back to :3001, and the user's
+browser keeps hitting the stale prod server on :3000 instead — which then breaks login
+entirely (see the secure-cookies-over-HTTP gotcha below), looking exactly like "login
+does nothing." If dev unexpectedly starts on a port other than 3000, this is why —
+`lsof -i :3000` / `pkill -f "next-server"` to clear it, then restart dev.
+
 ## Drive it (real browser — forms use client hooks like useActionState)
 Playwright is a devDependency. System Chrome works without downloading Chromium:
 ```js

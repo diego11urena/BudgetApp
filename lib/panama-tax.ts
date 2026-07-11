@@ -123,6 +123,11 @@ export interface ComputeNetIncomeResult {
   decimoGrossAmount: Decimal | null;
   decimoCssDeduction: Decimal | null;
   decimoIsEstimated: boolean;
+  /** Regular monthly take-home, excluding any décimo lump sum. */
+  regularNetAmount: Decimal;
+  /** regularNetAmount / 2 — one semi-monthly paycheck ("quincena"). */
+  biweeklyNetAmount: Decimal;
+  /** regularNetAmount plus this cycle's décimo, if this cycle month pays one. */
   netAmount: Decimal;
 }
 
@@ -133,15 +138,18 @@ export function computeNetIncomeForCycle(
   const gross = toDecimal(input.grossMonthlyAmount);
 
   if (!input.isPanamaPayroll) {
+    const flatNet = gross.toDecimalPlaces(2);
     return {
-      grossAmount: gross.toDecimalPlaces(2),
+      grossAmount: flatNet,
       cssDeduction: new Decimal(0),
       seguroEducativoDeduction: new Decimal(0),
       isrDeduction: new Decimal(0),
       decimoGrossAmount: null,
       decimoCssDeduction: null,
       decimoIsEstimated: false,
-      netAmount: gross.toDecimalPlaces(2),
+      regularNetAmount: flatNet,
+      biweeklyNetAmount: flatNet.dividedBy(2).toDecimalPlaces(2),
+      netAmount: flatNet,
     };
   }
 
@@ -165,10 +173,13 @@ export function computeNetIncomeForCycle(
     decimoCssDeduction = calculateCSS(decimoGrossAmount, true);
   }
 
-  let netAmount = gross
+  const regularNetAmount = gross
     .minus(cssDeduction)
     .minus(seguroEducativoDeduction)
-    .minus(isrDeduction);
+    .minus(isrDeduction)
+    .toDecimalPlaces(2);
+
+  let netAmount = regularNetAmount;
 
   if (decimoGrossAmount && decimoCssDeduction) {
     netAmount = netAmount.plus(decimoGrossAmount).minus(decimoCssDeduction);
@@ -182,6 +193,8 @@ export function computeNetIncomeForCycle(
     decimoGrossAmount,
     decimoCssDeduction,
     decimoIsEstimated,
+    regularNetAmount,
+    biweeklyNetAmount: regularNetAmount.dividedBy(2).toDecimalPlaces(2),
     netAmount: netAmount.toDecimalPlaces(2),
   };
 }

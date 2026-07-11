@@ -67,6 +67,8 @@ describe("computeNetIncomeForCycle", () => {
     expect(result.decimoGrossAmount).toBeNull();
     expect(result.decimoCssDeduction).toBeNull();
     expect(result.decimoIsEstimated).toBe(false);
+    expect(result.regularNetAmount.toNumber()).toBeCloseTo(1617.5, 2);
+    expect(result.biweeklyNetAmount.toNumber()).toBeCloseTo(808.75, 2);
   });
 
   it("estimates décimo as gross/3 in a décimo month with no salary history", () => {
@@ -79,6 +81,8 @@ describe("computeNetIncomeForCycle", () => {
     expect(result.decimoIsEstimated).toBe(true);
     expect(result.decimoGrossAmount?.toNumber()).toBeCloseTo(666.67, 2);
     expect(result.decimoCssDeduction?.toNumber()).toBeCloseTo(48.33, 2);
+    // Décimo is a lump sum, not part of the recurring biweekly paycheck.
+    expect(result.biweeklyNetAmount.toNumber()).toBeCloseTo(808.75, 2);
   });
 
   it("uses real trailing salary history when available in a décimo month", () => {

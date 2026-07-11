@@ -95,6 +95,10 @@ export function IncomePreview({
             <strong>Net this cycle</strong>
             <strong>{formatUSD(breakdown.netAmount.toNumber())}</strong>
           </div>
+          <div className="line-item">
+            <span>Net per paycheck (quincena)</span>
+            <span>{formatUSD(breakdown.biweeklyNetAmount.toNumber())}</span>
+          </div>
         </div>
       )}
     </>
