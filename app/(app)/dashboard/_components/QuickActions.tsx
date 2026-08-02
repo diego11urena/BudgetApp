@@ -14,11 +14,11 @@ const ACTIONS: { type: TxType; icon: string; label: string }[] = [
 export function QuickActions({
   expenseCategoryNames,
   savingsCategoryNames,
-  lastUsedNames,
+  lastUsedIncomeName,
 }: {
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
-  lastUsedNames: Record<TxType, string | null>;
+  lastUsedIncomeName: string | null;
 }) {
   const [openType, setOpenType] = useState<TxType | null>(null);
 
@@ -43,7 +43,7 @@ export function QuickActions({
           initialType={openType}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
-          lastUsedNames={lastUsedNames}
+          lastUsedIncomeName={lastUsedIncomeName}
           onClose={() => setOpenType(null)}
         />
       )}

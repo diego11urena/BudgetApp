@@ -12,6 +12,7 @@ const TYPE_OPTIONS: { value: TxType; label: string }[] = [
 ];
 
 const SWIPE_DISMISS_THRESHOLD = 90;
+const TOP_CHIP_COUNT = 6;
 
 const initialState: TransactionFormState = undefined;
 
@@ -19,13 +20,15 @@ export function QuickAddSheet({
   initialType,
   expenseCategoryNames,
   savingsCategoryNames,
-  lastUsedNames,
+  lastUsedIncomeName,
   onClose,
 }: {
   initialType: TxType;
+  /** Pre-ordered: most-used-this-cycle, then recently-used, then alphabetical. */
   expenseCategoryNames: string[];
+  /** Pre-ordered, same rule as expenseCategoryNames. */
   savingsCategoryNames: string[];
-  lastUsedNames: Record<TxType, string | null>;
+  lastUsedIncomeName: string | null;
   onClose: () => void;
 }) {
   const [state, formAction, pending] = useActionState(addTransactionAction, initialState);
@@ -33,7 +36,7 @@ export function QuickAddSheet({
   const [type, setType] = useState<TxType>(initialType);
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState(
-    initialType === "INCOME" ? (lastUsedNames.INCOME ?? "") : "",
+    initialType === "INCOME" ? (lastUsedIncomeName ?? "") : "",
   );
 
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -42,9 +45,11 @@ export function QuickAddSheet({
 
   const categoryNames =
     type === "EXPENSE" ? expenseCategoryNames : type === "SAVINGS" ? savingsCategoryNames : [];
-  const [selectedCategory, setSelectedCategory] = useState(
-    lastUsedNames[initialType] ?? categoryNames[0] ?? "",
-  );
+  // The list is already ordered most-used-first, so its head is the default —
+  // always within the top TOP_CHIP_COUNT chips, so no auto-expand is needed.
+  const [selectedCategory, setSelectedCategory] = useState(categoryNames[0] ?? "");
+  // "More…" (see below) expands the chip row to the full ordered list.
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -67,12 +72,13 @@ export function QuickAddSheet({
   function handleTypeChange(next: TxType) {
     setType(next);
     setCustomMode(false);
+    setShowAllCategories(false);
     if (next === "INCOME") {
-      setCustomName(lastUsedNames.INCOME ?? "");
+      setCustomName(lastUsedIncomeName ?? "");
       return;
     }
     const nextCategoryNames = next === "EXPENSE" ? expenseCategoryNames : savingsCategoryNames;
-    setSelectedCategory(lastUsedNames[next] ?? nextCategoryNames[0] ?? "");
+    setSelectedCategory(nextCategoryNames[0] ?? "");
   }
 
   function handleDragStart(e: React.TouchEvent) {
@@ -168,17 +174,28 @@ export function QuickAddSheet({
             <div className="field">
               <label>Category</label>
               {!customMode && categoryNames.length > 0 && (
-                <div className="category-chips">
-                  {categoryNames.map((name) => (
+                <div className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""}`}>
+                  {(showAllCategories ? categoryNames : categoryNames.slice(0, TOP_CHIP_COUNT)).map(
+                    (name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        className={`category-chip ${selectedCategory === name ? "is-active" : ""}`}
+                        onClick={() => setSelectedCategory(name)}
+                      >
+                        {name}
+                      </button>
+                    ),
+                  )}
+                  {!showAllCategories && categoryNames.length > TOP_CHIP_COUNT && (
                     <button
-                      key={name}
                       type="button"
-                      className={`category-chip ${selectedCategory === name ? "is-active" : ""}`}
-                      onClick={() => setSelectedCategory(name)}
+                      className="category-chip category-chip--more"
+                      onClick={() => setShowAllCategories(true)}
                     >
-                      {name}
+                      More…
                     </button>
-                  ))}
+                  )}
                   <button
                     type="button"
                     className="category-chip category-chip--other"

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getGoalsWithProgress } from "@/lib/goals";
+import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatUSD } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import { ProgressBar } from "../_components/ProgressBar";
@@ -18,10 +18,7 @@ export default async function GoalsPage() {
 
   const cycle = await getOrCreateDraftCycle(userId);
   const goals = await getGoalsWithProgress(userId, cycle.id);
-  const savingsCategories = await prisma.expenseCategory.findMany({
-    where: { userId, type: "SAVINGS" },
-    select: { name: true },
-  });
+  const savingsCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "SAVINGS");
 
   return (
     <div className="home-page">
@@ -64,7 +61,7 @@ export default async function GoalsPage() {
 
       <div className="dashboard-section">
         <h2>Add or update a goal</h2>
-        <GoalForm categoryNames={savingsCategories.map((c) => c.name)} />
+        <GoalForm categoryNames={savingsCategoryNames} />
       </div>
     </div>
   );

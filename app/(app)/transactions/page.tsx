@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
+import { getOrderedCategoryNames } from "@/lib/category-order";
 import { TransactionForm } from "../_components/TransactionForm";
 import { TransactionList } from "../_components/TransactionList";
 
@@ -12,15 +14,17 @@ export default async function TransactionsPage() {
   }
   const userId = session.user.id;
 
-  const [rawTransactions, expenseCategories, savingsCategories] = await Promise.all([
+  const cycle = await getOrCreateDraftCycle(userId);
+
+  const [rawTransactions, expenseCategoryNames, savingsCategoryNames] = await Promise.all([
     prisma.cycleTransaction.findMany({
       where: { cycle: { userId } },
       orderBy: { occurredAt: "desc" },
       take: 100,
       include: { expenseCategory: true, cycle: true },
     }),
-    prisma.expenseCategory.findMany({ where: { userId, type: "EXPENSE" }, select: { name: true } }),
-    prisma.expenseCategory.findMany({ where: { userId, type: "SAVINGS" }, select: { name: true } }),
+    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
   ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) => ({
@@ -40,8 +44,8 @@ export default async function TransactionsPage() {
       <div className="dashboard-section">
         <h2>Log a transaction</h2>
         <TransactionForm
-          expenseCategoryNames={expenseCategories.map((c) => c.name)}
-          savingsCategoryNames={savingsCategories.map((c) => c.name)}
+          expenseCategoryNames={expenseCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
         />
       </div>
 

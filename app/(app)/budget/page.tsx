@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
+import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { formatUSD } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
@@ -20,10 +20,7 @@ export default async function BudgetPage() {
   const cycle = await getOrCreateDraftCycle(userId);
   const financials = await getCycleFinancials(cycle.id);
   const goals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
-  const expenseCategories = await prisma.expenseCategory.findMany({
-    where: { userId, type: "EXPENSE" },
-    select: { name: true },
-  });
+  const expenseCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "EXPENSE");
 
   const rows = goals.map((goal) => ({
     ...goal,
@@ -75,7 +72,7 @@ export default async function BudgetPage() {
           This quincena&apos;s target only — won&apos;t affect future quincenas until you edit
           those too.
         </p>
-        <BudgetGoalForm categoryNames={expenseCategories.map((c) => c.name)} />
+        <BudgetGoalForm categoryNames={expenseCategoryNames} />
       </div>
     </div>
   );

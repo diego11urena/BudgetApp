@@ -124,29 +124,17 @@ export async function getCycleFinancials(cycleId: string): Promise<CycleFinancia
 }
 
 /**
- * The most recent transaction name logged for each type, across all of the
- * user's cycles (not just the current one) — categories persist cycle to
- * cycle, so "last used" is a user-wide notion. Powers the quick-add sheet's
- * default category so the common case (same category as last time) is zero
- * extra taps.
+ * The most recent Extra income transaction name, across all of the user's
+ * cycles. Income has no category concept (see getOrderedCategoryNames in
+ * lib/category-order.ts for Expense/Savings, which now drives those
+ * defaults instead), so this is the only "last used" lookup still needed —
+ * it prefills the quick-add sheet's income name field.
  */
-export async function getLastUsedCategoryNames(
-  userId: string,
-): Promise<Record<"EXPENSE" | "INCOME" | "SAVINGS", string | null>> {
-  const types = ["EXPENSE", "INCOME", "SAVINGS"] as const;
-  const results = await Promise.all(
-    types.map((type) =>
-      prisma.cycleTransaction.findFirst({
-        where: { type, cycle: { userId } },
-        orderBy: { occurredAt: "desc" },
-        select: { name: true },
-      }),
-    ),
-  );
-
-  return {
-    EXPENSE: results[0]?.name ?? null,
-    INCOME: results[1]?.name ?? null,
-    SAVINGS: results[2]?.name ?? null,
-  };
+export async function getLastUsedIncomeName(userId: string): Promise<string | null> {
+  const result = await prisma.cycleTransaction.findFirst({
+    where: { type: "INCOME", cycle: { userId } },
+    orderBy: { occurredAt: "desc" },
+    select: { name: true },
+  });
+  return result?.name ?? null;
 }

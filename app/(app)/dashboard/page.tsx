@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
 import {
   getCycleFinancials,
-  getLastUsedCategoryNames,
+  getLastUsedIncomeName,
   summarizeCycleFinancials,
 } from "@/lib/cycle-financials";
+import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
 import { formatUSD } from "@/lib/format";
@@ -42,18 +42,11 @@ export default async function DashboardPage({
   const expenseGoals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
   const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
 
-  const [expenseCategories, savingsCategories] = await Promise.all([
-    prisma.expenseCategory.findMany({
-      where: { userId, type: "EXPENSE" },
-      select: { name: true },
-    }),
-    prisma.expenseCategory.findMany({
-      where: { userId, type: "SAVINGS" },
-      select: { name: true },
-    }),
+  const [expenseCategoryNames, savingsCategoryNames, lastUsedIncomeName] = await Promise.all([
+    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+    getLastUsedIncomeName(userId),
   ]);
-
-  const lastUsedNames = await getLastUsedCategoryNames(userId);
 
   const lastClosedCycle = await getMostRecentClosedCycle(userId);
   const lastClosedFinancials = lastClosedCycle
@@ -108,9 +101,9 @@ export default async function DashboardPage({
 
       <div className="dashboard-section dashboard-section--plain">
         <QuickActions
-          expenseCategoryNames={expenseCategories.map((c) => c.name)}
-          savingsCategoryNames={savingsCategories.map((c) => c.name)}
-          lastUsedNames={lastUsedNames}
+          expenseCategoryNames={expenseCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
+          lastUsedIncomeName={lastUsedIncomeName}
         />
       </div>
 
@@ -119,8 +112,8 @@ export default async function DashboardPage({
         <TransactionForm
           key={initialType}
           initialType={initialType}
-          expenseCategoryNames={expenseCategories.map((c) => c.name)}
-          savingsCategoryNames={savingsCategories.map((c) => c.name)}
+          expenseCategoryNames={expenseCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
         />
       </div>
 

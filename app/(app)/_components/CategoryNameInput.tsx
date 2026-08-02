@@ -1,9 +1,18 @@
+"use client";
+
+import { useRef, useState } from "react";
+
+const TOP_CHIP_COUNT = 6;
+
 /**
- * A plain name input with a native <datalist> of existing category names.
- * Category creation elsewhere upserts by exact-name match, so a near-miss
- * (extra space, different case) silently creates a second, separate
- * category — this autocomplete nudges reuse of the exact existing name
- * without adding client-state complexity (it's a standard HTML mechanism).
+ * A name input with quick-select chips for the top used categories plus a
+ * native <datalist> covering the rest — the full picker. `categoryNames` is
+ * expected pre-ordered (most-used-this-cycle, then recently-used, then
+ * alphabetical; see lib/category-order.ts) so the chips and the datalist's
+ * suggestion order both reflect that. Category creation elsewhere upserts
+ * by exact-name match, so a near-miss (extra space, different case) would
+ * silently create a second, separate category — the chips and autocomplete
+ * both nudge reuse of the exact existing name.
  */
 export function CategoryNameInput({
   id,
@@ -21,10 +30,33 @@ export function CategoryNameInput({
   required?: boolean;
 }) {
   const listId = `${id}-list`;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [activeValue, setActiveValue] = useState(defaultValue ?? "");
+  const topCategories = categoryNames.slice(0, TOP_CHIP_COUNT);
+
+  function selectChip(value: string) {
+    setActiveValue(value);
+    if (inputRef.current) inputRef.current.value = value;
+  }
 
   return (
     <>
+      {topCategories.length > 0 && (
+        <div className="category-chips category-chips--compact">
+          {topCategories.map((categoryName) => (
+            <button
+              key={categoryName}
+              type="button"
+              className={`category-chip ${activeValue === categoryName ? "is-active" : ""}`}
+              onClick={() => selectChip(categoryName)}
+            >
+              {categoryName}
+            </button>
+          ))}
+        </div>
+      )}
       <input
+        ref={inputRef}
         id={id}
         name={name}
         type="text"
@@ -33,6 +65,7 @@ export function CategoryNameInput({
         placeholder={placeholder}
         required={required}
         autoComplete="off"
+        onChange={(e) => setActiveValue(e.target.value)}
       />
       <datalist id={listId}>
         {categoryNames.map((categoryName) => (
