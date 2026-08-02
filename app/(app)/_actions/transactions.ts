@@ -7,7 +7,22 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { addTransactionSchema } from "@/lib/validations/transactions";
 
-export type TransactionFormState = { error?: string } | undefined;
+/** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
+export type TransactionMutationResult = { error: string } | { transactionId: string } | undefined;
+
+export interface DeletedTransactionSnapshot {
+  cycleId: string;
+  type: "EXPENSE" | "INCOME" | "SAVINGS";
+  name: string;
+  amount: number;
+  occurredAt: string;
+}
+
+/** Success carries a snapshot of the deleted row so a "Deleted · Undo" toast can restore it. */
+export type DeleteTransactionResult =
+  | { error: string }
+  | { deleted: DeletedTransactionSnapshot }
+  | undefined;
 
 /** Any transaction/budget/goal mutation can affect all 4 of these pages. */
 function revalidateAppPages() {
@@ -18,9 +33,9 @@ function revalidateAppPages() {
 }
 
 export async function addTransactionAction(
-  _prevState: TransactionFormState,
+  _prevState: TransactionMutationResult,
   formData: FormData,
-): Promise<TransactionFormState> {
+): Promise<TransactionMutationResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -50,17 +65,20 @@ export async function addTransactionAction(
     expenseCategoryId = category.id;
   }
 
-  await prisma.cycleTransaction.create({
+  const created = await prisma.cycleTransaction.create({
     data: { cycleId: cycle.id, type, name, amount, expenseCategoryId },
+    select: { id: true },
   });
 
   revalidateAppPages();
+
+  return { transactionId: created.id };
 }
 
 export async function updateTransactionAction(
-  _prevState: TransactionFormState,
+  _prevState: TransactionMutationResult,
   formData: FormData,
-): Promise<TransactionFormState> {
+): Promise<TransactionMutationResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -112,23 +130,102 @@ export async function updateTransactionAction(
   });
 
   revalidateAppPages();
+
+  return { transactionId };
 }
 
-export async function deleteTransactionAction(formData: FormData): Promise<void> {
+export async function deleteTransactionAction(
+  _prevState: DeleteTransactionResult,
+  formData: FormData,
+): Promise<DeleteTransactionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const userId = session.user.id;
 
   const transactionId = formData.get("transactionId");
   if (typeof transactionId !== "string" || !transactionId) {
-    return;
+    return { error: "Missing transaction" };
   }
 
-  // Scope the delete to this user's own cycles — a plain delete({ where: { id } })
-  // would let a user delete another user's row by guessing an id.
-  await prisma.cycleTransaction.deleteMany({
-    where: { id: transactionId, cycle: { userId: session.user.id } },
+  // Ownership-scoped: a plain delete({ where: { id } }) would let a user
+  // delete another user's row by guessing an id.
+  const existing = await prisma.cycleTransaction.findFirst({
+    where: { id: transactionId, cycle: { userId } },
+  });
+  if (!existing) {
+    return { error: "Transaction not found" };
+  }
+
+  await prisma.cycleTransaction.delete({ where: { id: transactionId } });
+
+  revalidateAppPages();
+
+  return {
+    deleted: {
+      cycleId: existing.cycleId,
+      type: existing.type,
+      name: existing.name,
+      amount: existing.amount.toNumber(),
+      occurredAt: existing.occurredAt.toISOString(),
+    },
+  };
+}
+
+/**
+ * Undo for a deleted transaction — recreates it with its original cycle,
+ * fields, and timestamp so it reappears exactly where it was, including in
+ * an already-closed cycle's history (frozen history is about not silently
+ * rewriting totals elsewhere, not about blocking an explicit user undo).
+ */
+export async function restoreTransactionAction(
+  formData: FormData,
+): Promise<{ error?: string } | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const cycleId = formData.get("cycleId");
+  const type = formData.get("type");
+  const name = formData.get("name");
+  const amount = formData.get("amount");
+  const occurredAt = formData.get("occurredAt");
+
+  if (
+    typeof cycleId !== "string" ||
+    !cycleId ||
+    typeof name !== "string" ||
+    !name ||
+    typeof amount !== "string" ||
+    !amount ||
+    typeof occurredAt !== "string" ||
+    !occurredAt ||
+    (type !== "EXPENSE" && type !== "INCOME" && type !== "SAVINGS")
+  ) {
+    return { error: "Invalid undo payload" };
+  }
+
+  // Ownership-scoped: only restore into a cycle that belongs to this user.
+  const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
+  if (!cycle) {
+    return { error: "Cycle not found" };
+  }
+
+  let expenseCategoryId: string | null = null;
+  if (type !== "INCOME") {
+    const category = await prisma.expenseCategory.upsert({
+      where: { userId_name: { userId, name } },
+      create: { userId, name, type },
+      update: {},
+    });
+    expenseCategoryId = category.id;
+  }
+
+  await prisma.cycleTransaction.create({
+    data: { cycleId, type, name, amount, expenseCategoryId, occurredAt: new Date(occurredAt) },
   });
 
   revalidateAppPages();

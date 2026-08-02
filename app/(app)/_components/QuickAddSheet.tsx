@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   addTransactionAction,
   deleteTransactionAction,
+  restoreTransactionAction,
   updateTransactionAction,
-  type TransactionFormState,
 } from "../_actions/transactions";
+import { formatUSD } from "@/lib/format";
+import { useToast } from "./ToastProvider";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 
@@ -25,8 +27,6 @@ const TYPE_OPTIONS: { value: TxType; label: string }[] = [
 
 const SWIPE_DISMISS_THRESHOLD = 90;
 const TOP_CHIP_COUNT = 6;
-
-const initialState: TransactionFormState = undefined;
 
 export function QuickAddSheet({
   initialType,
@@ -47,16 +47,23 @@ export function QuickAddSheet({
   editingTransaction?: EditingTransaction | null;
   onClose: () => void;
 }) {
+  const { showToast } = useToast();
   const isEditing = editingTransaction !== null;
-  const [state, formAction, pending] = useActionState(
-    isEditing ? updateTransactionAction : addTransactionAction,
-    initialState,
-  );
+
+  // Calling the server actions directly (rather than via useActionState)
+  // and doing the toast + close in the same async function is deliberate:
+  // these actions revalidate this very page, and a subsequent re-render can
+  // tear this component down before a separate "pending -> false" effect
+  // gets a chance to run — dropping the toast. Awaiting inline sidesteps
+  // that race entirely.
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+
   const [visible, setVisible] = useState(false);
   const [type, setType] = useState<TxType>(editingTransaction?.type ?? initialType);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
-  const wasPending = useRef(false);
 
   function categoryNamesForType(t: TxType): string[] {
     return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : [];
@@ -87,6 +94,7 @@ export function QuickAddSheet({
     if (editingTransaction && editingTransaction.type !== "INCOME") return editingTransaction.name;
     return categoryNames[0] ?? "";
   });
+  const [amount, setAmount] = useState(editingTransaction ? editingTransaction.amount.toFixed(2) : "");
   // "More…" expands the chip row to the full ordered list — starts expanded
   // if editing a category that wouldn't otherwise be visible in the top 6.
   const [showAllCategories, setShowAllCategories] = useState(() => {
@@ -102,17 +110,68 @@ export function QuickAddSheet({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  useEffect(() => {
-    if (wasPending.current && !pending && !state?.error) {
-      handleClose();
-    }
-    wasPending.current = pending;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, state]);
-
   function handleClose() {
     setVisible(false);
     setTimeout(onClose, 200);
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPending(true);
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    const action = isEditing ? updateTransactionAction : addTransactionAction;
+    const result = await action(undefined, formData);
+
+    if (result && "error" in result) {
+      setPending(false);
+      setError(result.error);
+      return;
+    }
+
+    if (!isEditing && result && "transactionId" in result) {
+      const amountNumber = Number(formData.get("amount"));
+      const label = String(formData.get("name") ?? "").trim() || "transaction";
+      const newTransactionId = result.transactionId;
+      showToast(`Logged ${formatUSD(amountNumber)} for ${label}`, {
+        label: "Undo",
+        onClick: () => {
+          const fd = new FormData();
+          fd.set("transactionId", newTransactionId);
+          void deleteTransactionAction(undefined, fd);
+        },
+      });
+    }
+
+    setPending(false);
+    handleClose();
+  }
+
+  async function handleDelete() {
+    if (!editingTransaction) return;
+    setDeletePending(true);
+    const fd = new FormData();
+    fd.set("transactionId", editingTransaction.id);
+    const result = await deleteTransactionAction(undefined, fd);
+
+    if (result && "deleted" in result) {
+      const d = result.deleted;
+      showToast("Deleted", {
+        label: "Undo",
+        onClick: () => {
+          const restoreFd = new FormData();
+          restoreFd.set("cycleId", d.cycleId);
+          restoreFd.set("type", d.type);
+          restoreFd.set("name", d.name);
+          restoreFd.set("amount", String(d.amount));
+          restoreFd.set("occurredAt", d.occurredAt);
+          void restoreTransactionAction(restoreFd);
+        },
+      });
+    }
+
+    setDeletePending(false);
+    handleClose();
   }
 
   function handleTypeChange(next: TxType) {
@@ -186,7 +245,7 @@ export function QuickAddSheet({
           ))}
         </div>
 
-        <form action={formAction}>
+        <form onSubmit={handleSubmit}>
           <input type="hidden" name="type" value={type} />
           <input type="hidden" name="name" value={nameValue} />
           {isEditing && (
@@ -201,7 +260,8 @@ export function QuickAddSheet({
               type="text"
               inputMode="decimal"
               placeholder="0.00"
-              defaultValue={editingTransaction ? editingTransaction.amount.toFixed(2) : undefined}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               autoFocus
               required
               className="sheet-amount-input"
@@ -271,7 +331,7 @@ export function QuickAddSheet({
             </div>
           )}
 
-          {state?.error && <p className="error-text">{state.error}</p>}
+          {error && <p className="error-text">{error}</p>}
 
           <button type="submit" className="button sheet-submit" disabled={pending}>
             {pending ? (isEditing ? "Saving..." : "Logging...") : isEditing ? "Save changes" : "Log it"}
@@ -279,12 +339,14 @@ export function QuickAddSheet({
         </form>
 
         {isEditing && (
-          <form action={deleteTransactionAction} onSubmit={handleClose}>
-            <input type="hidden" name="transactionId" value={editingTransaction.id} />
-            <button type="submit" className="sheet-delete">
-              Delete transaction
-            </button>
-          </form>
+          <button
+            type="button"
+            className="sheet-delete"
+            disabled={deletePending}
+            onClick={handleDelete}
+          >
+            {deletePending ? "Deleting..." : "Delete transaction"}
+          </button>
         )}
       </div>
     </div>
