@@ -2,14 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { computeNetIncomeForCycle } from "@/lib/panama-tax";
+import { formatUSD } from "@/lib/format";
 import type { IncomeFormInitial } from "./IncomeForm";
-
-function formatUSD(amount: number): string {
-  return amount.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-}
 
 export function IncomePreview({
   cycleMonth,

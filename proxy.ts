@@ -3,11 +3,19 @@ import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
+const PROTECTED_PREFIXES = [
+  "/onboarding",
+  "/dashboard",
+  "/transactions",
+  "/budget",
+  "/goals",
+  "/profile",
+];
+
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
-  const isProtectedRoute =
-    pathname.startsWith("/onboarding") || pathname.startsWith("/dashboard");
+  const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   if (isProtectedRoute && !isLoggedIn) {
     return Response.redirect(new URL("/login", req.nextUrl));
@@ -15,5 +23,12 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/onboarding/:path*", "/dashboard/:path*"],
+  matcher: [
+    "/onboarding/:path*",
+    "/dashboard/:path*",
+    "/transactions/:path*",
+    "/budget/:path*",
+    "/goals/:path*",
+    "/profile/:path*",
+  ],
 };

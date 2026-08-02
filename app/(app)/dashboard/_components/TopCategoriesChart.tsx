@@ -1,8 +1,6 @@
 import type { CategoryTotal } from "@/lib/cycle-financials";
-
-function formatUSD(amount: number): string {
-  return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
+import { formatUSD } from "@/lib/format";
+import { iconForCategoryName } from "@/lib/category-icons";
 
 export function TopCategoriesChart({ categories }: { categories: CategoryTotal[] }) {
   if (categories.length === 0) {
@@ -22,7 +20,10 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
       <div className="bar-chart">
         {categories.map((category) => (
           <div className="bar-chart-row" key={category.categoryId}>
-            <span className="bar-chart-label">{category.categoryName}</span>
+            <span className="bar-chart-label">
+              <span className="bar-chart-icon">{iconForCategoryName(category.categoryName)}</span>
+              {category.categoryName}
+            </span>
             <div className="bar-chart-track">
               <div
                 className="bar-chart-fill"

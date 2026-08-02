@@ -113,6 +113,11 @@ model ExpenseCategory {
   isDefault Boolean      @default(false)
   createdAt DateTime     @default(now())
 
+  // Set only for SAVINGS-type categories the user has turned into a Goal —
+  // the overall target total, distinct from CycleBudgetGoal.targetAmount
+  // (that's the recurring per-cycle contribution). Non-null == "is a goal".
+  lifetimeTargetAmount Decimal? @db.Decimal(12, 2)
+
   budgetGoals  CycleBudgetGoal[]
   transactions CycleTransaction[]
 

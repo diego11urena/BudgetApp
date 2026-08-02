@@ -4,10 +4,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { closeCycleAndStartNext, getOrCreateDraftCycle } from "@/lib/cycles";
+import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { addTransactionSchema } from "@/lib/validations/transactions";
 
 export type TransactionFormState = { error?: string } | undefined;
+
+/** Any transaction/budget/goal mutation can affect all 4 of these pages. */
+function revalidateAppPages() {
+  revalidatePath("/dashboard");
+  revalidatePath("/transactions");
+  revalidatePath("/budget");
+  revalidatePath("/goals");
+}
 
 export async function addTransactionAction(
   _prevState: TransactionFormState,
@@ -46,7 +54,7 @@ export async function addTransactionAction(
     data: { cycleId: cycle.id, type, name, amount, expenseCategoryId },
   });
 
-  revalidatePath("/dashboard");
+  revalidateAppPages();
 }
 
 export async function deleteTransactionAction(formData: FormData): Promise<void> {
@@ -66,16 +74,5 @@ export async function deleteTransactionAction(formData: FormData): Promise<void>
     where: { id: transactionId, cycle: { userId: session.user.id } },
   });
 
-  revalidatePath("/dashboard");
-}
-
-export async function justGotPaidAction(): Promise<void> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  await closeCycleAndStartNext(session.user.id);
-
-  revalidatePath("/dashboard");
+  revalidateAppPages();
 }

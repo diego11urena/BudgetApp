@@ -1,9 +1,6 @@
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
-import { deleteTransactionAction } from "../actions";
-
-function formatUSD(amount: number): string {
-  return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
+import { formatUSD } from "@/lib/format";
+import { deleteTransactionAction } from "../_actions/transactions";
 
 const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
   EXPENSE: "Expense",
@@ -13,11 +10,13 @@ const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
 
 export function TransactionList({
   transactions,
+  emptyMessage = "Nothing logged yet this cycle.",
 }: {
   transactions: CycleTransactionSummary[];
+  emptyMessage?: string;
 }) {
   if (transactions.length === 0) {
-    return <p className="field-hint">Nothing logged yet this cycle.</p>;
+    return <p className="field-hint">{emptyMessage}</p>;
   }
 
   return (
@@ -29,6 +28,7 @@ export function TransactionList({
             <span className="transaction-sub">
               {TYPE_LABEL[tx.type]}
               {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
+              {tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
             </span>
           </div>
           <div className="transaction-row-actions">

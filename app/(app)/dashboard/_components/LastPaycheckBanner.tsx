@@ -1,6 +1,4 @@
-function formatUSD(amount: number): string {
-  return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
+import { formatUSD } from "@/lib/format";
 
 export function LastPaycheckBanner({ amountLeft }: { amountLeft: number }) {
   const isPositive = amountLeft >= 0;

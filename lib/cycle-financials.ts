@@ -13,6 +13,8 @@ export interface CycleTransactionSummary {
   amount: number;
   categoryName: string | null;
   occurredAt: Date;
+  /** Only set by callers building an all-time (cross-cycle) view. */
+  cycleLabel?: string;
 }
 
 export interface CycleFinancials {
@@ -22,6 +24,9 @@ export interface CycleFinancials {
   totalSavings: number;
   amountLeft: number;
   transactions: CycleTransactionSummary[];
+  /** All EXPENSE categories with any transaction this cycle, full list, sorted desc. */
+  categoryTotals: CategoryTotal[];
+  /** categoryTotals.slice(0, 5) — for the Home dashboard's chart. */
   topCategories: CategoryTotal[];
 }
 
@@ -87,9 +92,10 @@ export function summarizeCycleFinancials(
     }
   }
 
-  const topCategories = Array.from(categoryTotals.values())
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
+  const sortedCategoryTotals = Array.from(categoryTotals.values()).sort(
+    (a, b) => b.amount - a.amount,
+  );
+  const topCategories = sortedCategoryTotals.slice(0, 5);
 
   return {
     baseIncome,
@@ -98,6 +104,7 @@ export function summarizeCycleFinancials(
     totalSavings,
     amountLeft,
     transactions,
+    categoryTotals: sortedCategoryTotals,
     topCategories,
   };
 }
