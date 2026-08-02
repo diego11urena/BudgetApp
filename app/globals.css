@@ -438,8 +438,11 @@ a {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   box-shadow: 0 1px 3px var(--shadow-color);
+  font-family: inherit;
+  color: inherit;
   font-size: 0.8rem;
   font-weight: 600;
+  cursor: pointer;
   transition:
     transform 0.1s ease,
     box-shadow 0.1s ease;
@@ -451,6 +454,129 @@ a {
 
 .quick-action-icon {
   font-size: 1.4rem;
+}
+
+/* Quick-add bottom sheet */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  transition: background 0.2s ease;
+}
+
+.sheet-backdrop.is-visible {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.sheet {
+  width: 100%;
+  max-width: 30rem;
+  background: var(--color-card);
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px var(--shadow-color);
+  transform: translateY(100%);
+  transition: transform 0.22s ease;
+  touch-action: none;
+}
+
+.sheet.is-open {
+  transform: translateY(0);
+}
+
+.sheet-handle {
+  width: 2.5rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  margin: 0 auto 1rem;
+}
+
+.type-toggle {
+  display: flex;
+  gap: 0.4rem;
+  background: var(--color-bg-secondary);
+  border-radius: 0.6rem;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.type-toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 0.3rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.type-toggle-btn.is-active {
+  background: var(--color-card);
+  color: var(--color-accent-green);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.sheet-amount-field {
+  text-align: center;
+}
+
+.sheet-amount-input {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 2.5rem !important;
+  font-weight: 700;
+  text-align: center;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.25rem !important;
+}
+
+.category-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.category-chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.category-chip.is-active {
+  background: var(--color-accent-green);
+  border-color: var(--color-accent-green);
+  color: var(--color-on-accent);
+}
+
+.category-chip--other {
+  background: transparent;
+}
+
+.sheet-submit {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.85rem 1.2rem;
+  font-size: 1.05rem;
 }
 
 /* Insights card */

@@ -2,7 +2,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
-import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
+import {
+  getCycleFinancials,
+  getLastUsedCategoryNames,
+  summarizeCycleFinancials,
+} from "@/lib/cycle-financials";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
 import { formatUSD } from "@/lib/format";
@@ -48,6 +52,8 @@ export default async function DashboardPage({
       select: { name: true },
     }),
   ]);
+
+  const lastUsedNames = await getLastUsedCategoryNames(userId);
 
   const lastClosedCycle = await getMostRecentClosedCycle(userId);
   const lastClosedFinancials = lastClosedCycle
@@ -101,7 +107,11 @@ export default async function DashboardPage({
       </div>
 
       <div className="dashboard-section dashboard-section--plain">
-        <QuickActions />
+        <QuickActions
+          expenseCategoryNames={expenseCategories.map((c) => c.name)}
+          savingsCategoryNames={savingsCategories.map((c) => c.name)}
+          lastUsedNames={lastUsedNames}
+        />
       </div>
 
       <div className="dashboard-section">

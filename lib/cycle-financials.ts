@@ -122,3 +122,31 @@ export async function getCycleFinancials(cycleId: string): Promise<CycleFinancia
 
   return summarizeCycleFinancials(incomeEntries, rawTransactions);
 }
+
+/**
+ * The most recent transaction name logged for each type, across all of the
+ * user's cycles (not just the current one) — categories persist cycle to
+ * cycle, so "last used" is a user-wide notion. Powers the quick-add sheet's
+ * default category so the common case (same category as last time) is zero
+ * extra taps.
+ */
+export async function getLastUsedCategoryNames(
+  userId: string,
+): Promise<Record<"EXPENSE" | "INCOME" | "SAVINGS", string | null>> {
+  const types = ["EXPENSE", "INCOME", "SAVINGS"] as const;
+  const results = await Promise.all(
+    types.map((type) =>
+      prisma.cycleTransaction.findFirst({
+        where: { type, cycle: { userId } },
+        orderBy: { occurredAt: "desc" },
+        select: { name: true },
+      }),
+    ),
+  );
+
+  return {
+    EXPENSE: results[0]?.name ?? null,
+    INCOME: results[1]?.name ?? null,
+    SAVINGS: results[2]?.name ?? null,
+  };
+}
