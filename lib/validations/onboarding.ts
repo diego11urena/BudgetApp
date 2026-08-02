@@ -14,7 +14,7 @@ export const loginSchema = z.object({
 
 export const incomeStepSchema = z.object({
   name: z.string().trim().min(1, "Give this income a name").max(100),
-  grossMonthlyAmount: decimalString,
+  grossAmountPerCycle: decimalString,
   isPanamaPayroll: z.boolean(),
 });
 

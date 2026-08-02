@@ -37,7 +37,7 @@ export default async function ExpensesStepPage() {
         action={saveExpensesAction}
         fieldName="itemsJson"
         itemNounSingular="fixed expense"
-        amountLabel="Monthly amount (USD)"
+        amountLabel="Amount per cycle (USD)"
         submitLabel="Continue"
         initialItems={initialItems}
       />

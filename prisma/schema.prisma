@@ -25,23 +25,18 @@ model User {
   budgetCycles      BudgetCycle[]
 }
 
-enum PayFrequency {
-  MONTHLY
-  BIWEEKLY
-  SEMIMONTHLY
-}
-
 model IncomeSource {
-  id                 String       @id @default(cuid())
-  userId             String
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name               String
-  grossMonthlyAmount Decimal      @db.Decimal(12, 2)
-  payFrequency       PayFrequency @default(MONTHLY)
-  isPanamaPayroll    Boolean      @default(true)
-  isActive           Boolean      @default(true)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  // The gross pay for ONE cycle (a quincena, ~15 days) -- not monthly. Every
+  // BudgetCycle is one pay period, so this is what actually gets used.
+  grossAmountPerCycle Decimal  @db.Decimal(12, 2)
+  isPanamaPayroll     Boolean  @default(true)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   cycleEntries CycleIncomeEntry[]
 

@@ -32,11 +32,21 @@ Playwright is a devDependency. System Chrome works without downloading Chromium:
 const browser = await chromium.launch({ channel: "chrome" });
 ```
 Flow to drive (3 steps, no accounts step): `/signup` -> `/onboarding/income` (fill name +
-grossMonthlyAmount, check live preview math in `.preview-box`) -> `/onboarding/expenses`
-(fixed expenses — starts with **zero rows**, click "+ Add a fixed expense" to add each
-one, no pre-added categories) -> `/onboarding/savings` (savings goals — same
-zero-rows-allowed pattern, "+ Add a savings goal") -> `/dashboard`. Both expenses and
-savings can be submitted with zero rows and still advance.
+`#grossAmountPerCycle` — **gross pay for ONE 15-day cycle, not monthly** — check live
+preview math in `.preview-box`) -> `/onboarding/expenses` (fixed expenses — starts with
+**zero rows**, click "+ Add a fixed expense" to add each one, no pre-added categories) ->
+`/onboarding/savings` (savings goals — same zero-rows-allowed pattern, "+ Add a savings
+goal") -> `/dashboard`. Both expenses and savings can be submitted with zero rows and
+still advance.
+
+**Income model (quincena-only, no décimo auto-calc)**: `IncomeSource.grossAmountPerCycle`
+(renamed from `grossMonthlyAmount`) is the gross for one cycle. `computeNetIncomeForCycle`
+(`lib/panama-tax.ts`) computes CSS (9.75%), Seguro Educativo (1.25%), and ISR annualized
+over **24** cycles/year (not 12 months) directly on that per-cycle gross — no halving, no
+décimo logic. Décimo Tercer Mes is **not auto-calculated at all** — the user logs it
+manually via the existing "Add Income" transaction (already fully supports arbitrary
+one-off income by name+amount, no code changes needed for this). Sanity check: $1,000/cycle
+-> CSS $97.50, SE $12.50, ISR $81.25 (= (24000-11000)*0.15/24), net $808.75.
 
 `expenses` and `savings` share one client component, `_components/LineItemsForm.tsx` — each
 row is a `.field` div containing a name input and an amount input, **both `type="text"`**
@@ -194,8 +204,9 @@ error. `label` is just a display string (the start date, `YYYY-MM-DD`) now, not 
 
 Clicking closes the current cycle (`status: CLOSED`, `periodEnd` set) and opens a new
 `ACTIVE` one, **carrying forward** the primary `IncomeSource` (recomputed net for the new
-cycle, now using real trailing-salary history for décimo if ≥4 cycles exist) and all of the
-just-closed cycle's `CycleBudgetGoal` rows (fixed expenses + savings targets) — but **not**
+cycle from `grossAmountPerCycle` — same quincena amount every time, no décimo/monthly logic
+involved) and all of the just-closed cycle's `CycleBudgetGoal` rows (fixed expenses +
+savings targets) — but **not**
 `CycleTransaction` rows, which stay on their original (now closed) cycle forever. Worth
 checking in the DB after a click: exactly the same `IncomeSource`/category ids reused (not
 duplicated) across cycles, and the new cycle has zero transactions even though the old one

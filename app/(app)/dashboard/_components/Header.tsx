@@ -10,13 +10,14 @@ export function Header({ name }: { name?: string | null }) {
   const now = new Date();
   const greeting = getGreeting(now.getHours());
   const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
+  const firstName = name?.trim().split(/\s+/)[0];
 
   return (
     <div className="home-header">
       <div>
         <p className="home-greeting">
           {greeting}
-          {name ? `, ${name}` : ""}
+          {firstName ? `, ${firstName}` : ""}
         </p>
         <p className="home-month">{monthLabel} Budget</p>
       </div>

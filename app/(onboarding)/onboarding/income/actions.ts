@@ -21,7 +21,7 @@ export async function saveIncomeAction(
 
   const parsed = incomeStepSchema.safeParse({
     name: formData.get("name"),
-    grossMonthlyAmount: formData.get("grossMonthlyAmount"),
+    grossAmountPerCycle: formData.get("grossAmountPerCycle"),
     isPanamaPayroll: formData.get("isPanamaPayroll") === "on",
   });
 
@@ -29,14 +29,13 @@ export async function saveIncomeAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { name, grossMonthlyAmount, isPanamaPayroll } = parsed.data;
+  const { name, grossAmountPerCycle, isPanamaPayroll } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
 
   // Server-side recompute — never trust a client-submitted net amount.
   const breakdown = computeNetIncomeForCycle({
-    grossMonthlyAmount,
-    cycleMonth: cycle.periodStart.getMonth() + 1,
+    grossAmountPerCycle,
     isPanamaPayroll,
   });
 
@@ -52,9 +51,6 @@ export async function saveIncomeAction(
     cssDeduction: breakdown.cssDeduction,
     seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
     isrDeduction: breakdown.isrDeduction,
-    decimoGrossAmount: breakdown.decimoGrossAmount,
-    decimoCssDeduction: breakdown.decimoCssDeduction,
-    decimoIsEstimated: breakdown.decimoIsEstimated,
     netAmount: breakdown.netAmount,
   };
 
@@ -62,7 +58,7 @@ export async function saveIncomeAction(
     await prisma.$transaction([
       prisma.incomeSource.update({
         where: { id: existingEntry.incomeSourceId },
-        data: { name, grossMonthlyAmount, isPanamaPayroll },
+        data: { name, grossAmountPerCycle, isPanamaPayroll },
       }),
       prisma.cycleIncomeEntry.update({
         where: { id: existingEntry.id },
@@ -71,7 +67,7 @@ export async function saveIncomeAction(
     ]);
   } else {
     const incomeSource = await prisma.incomeSource.create({
-      data: { userId, name, grossMonthlyAmount, isPanamaPayroll },
+      data: { userId, name, grossAmountPerCycle, isPanamaPayroll },
     });
 
     await prisma.cycleIncomeEntry.create({

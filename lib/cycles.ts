@@ -72,13 +72,6 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
   const currentCycle = await getOrCreateDraftCycle(userId);
   const closedCycleFinancials = await getCycleFinancials(currentCycle.id);
 
-  // Now that real cycle history exists, prefer it for décimo averaging
-  // instead of always falling back to the gross/3 estimate.
-  const recentCycles = await getRecentCycles(userId, 4);
-  const trailingFourMonthSalaries = recentCycles
-    .flatMap((cycle) => cycle.incomeEntries.map((entry) => entry.grossAmount.toNumber()))
-    .slice(0, 4);
-
   const now = new Date();
 
   const { closed: closedCycle, created: newCycle } = await prisma.$transaction(async (tx) => {
@@ -103,11 +96,8 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
 
     if (incomeSource) {
       const breakdown = computeNetIncomeForCycle({
-        grossMonthlyAmount: incomeSource.grossMonthlyAmount,
-        cycleMonth: created.periodStart.getMonth() + 1,
+        grossAmountPerCycle: incomeSource.grossAmountPerCycle,
         isPanamaPayroll: incomeSource.isPanamaPayroll,
-        trailingFourMonthSalaries:
-          trailingFourMonthSalaries.length >= 4 ? trailingFourMonthSalaries : undefined,
       });
 
       await tx.cycleIncomeEntry.create({
@@ -118,9 +108,6 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
           cssDeduction: breakdown.cssDeduction,
           seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
           isrDeduction: breakdown.isrDeduction,
-          decimoGrossAmount: breakdown.decimoGrossAmount,
-          decimoCssDeduction: breakdown.decimoCssDeduction,
-          decimoIsEstimated: breakdown.decimoIsEstimated,
           netAmount: breakdown.netAmount,
         },
       });
