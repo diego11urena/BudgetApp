@@ -72,7 +72,11 @@ export default async function DashboardPage({
       )}
 
       <div className="dashboard-section dashboard-section--plain">
-        <HeroCard amountLeft={financials.amountLeft} />
+        <HeroCard
+          amountLeft={financials.amountLeft}
+          periodStart={cycle.periodStart}
+          totalExpenses={financials.totalExpenses}
+        />
       </div>
 
       <div className="dashboard-section">

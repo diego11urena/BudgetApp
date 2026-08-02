@@ -370,6 +370,17 @@ a {
   margin-bottom: 1rem;
 }
 
+.hero-pace {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: -0.4rem 0 1rem;
+}
+
+.hero-pace--warning {
+  color: var(--color-warning);
+}
+
 .hero-action-link {
   background: none;
   border: none;
