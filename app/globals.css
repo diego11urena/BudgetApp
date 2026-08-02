@@ -590,6 +590,24 @@ a {
   font-size: 1.05rem;
 }
 
+.sheet-delete {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-error);
+  background: transparent;
+  color: var(--color-error);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sheet-delete:active {
+  background: var(--color-error-bg);
+}
+
 /* Insights card */
 .insights-card {
   background: linear-gradient(160deg, var(--color-success-bg), transparent);
@@ -694,18 +712,31 @@ a {
   white-space: nowrap;
 }
 
-/* Transaction list */
+/* Transaction list — each row is a button that opens the edit sheet */
 .transaction-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  width: 100%;
   padding: 0.6rem 0;
+  border: none;
   border-bottom: 1px solid var(--color-border);
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-height: 44px;
+  transition: opacity 0.1s ease;
 }
 
 .transaction-row:last-child {
   border-bottom: none;
+}
+
+.transaction-row:active {
+  opacity: 0.6;
 }
 
 .transaction-meta {
@@ -729,12 +760,6 @@ a {
 
 .transaction-amount--income {
   color: var(--color-success);
-}
-
-.transaction-row-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .icon-button {

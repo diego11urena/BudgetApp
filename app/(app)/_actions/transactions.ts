@@ -57,6 +57,63 @@ export async function addTransactionAction(
   revalidateAppPages();
 }
 
+export async function updateTransactionAction(
+  _prevState: TransactionFormState,
+  formData: FormData,
+): Promise<TransactionFormState> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const transactionId = formData.get("transactionId");
+  if (typeof transactionId !== "string" || !transactionId) {
+    return { error: "Missing transaction" };
+  }
+
+  const parsed = addTransactionSchema.safeParse({
+    type: formData.get("type"),
+    name: formData.get("name"),
+    amount: formData.get("amount"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const { type, name, amount } = parsed.data;
+
+  // Ownership-scoped: a plain update({ where: { id } }) would let a user
+  // edit another user's row by guessing an id.
+  const existing = await prisma.cycleTransaction.findFirst({
+    where: { id: transactionId, cycle: { userId } },
+  });
+  if (!existing) {
+    return { error: "Transaction not found" };
+  }
+
+  let expenseCategoryId: string | null = null;
+  if (type !== "INCOME") {
+    const category = await prisma.expenseCategory.upsert({
+      where: { userId_name: { userId, name } },
+      create: { userId, name, type },
+      update: {},
+    });
+    expenseCategoryId = category.id;
+  }
+
+  // Updates the existing row in place — balances are always derived live
+  // from CycleTransaction, so there's no separate total to reconcile and
+  // no risk of double-counting.
+  await prisma.cycleTransaction.update({
+    where: { id: transactionId },
+    data: { type, name, amount, expenseCategoryId },
+  });
+
+  revalidateAppPages();
+}
+
 export async function deleteTransactionAction(formData: FormData): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) {

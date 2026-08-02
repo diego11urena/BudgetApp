@@ -96,7 +96,11 @@ export default async function DashboardPage({
 
       <div className="dashboard-section">
         <h2>Recent transactions</h2>
-        <TransactionList transactions={financials.transactions.slice(0, 5)} />
+        <TransactionList
+          transactions={financials.transactions.slice(0, 5)}
+          expenseCategoryNames={expenseCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
+        />
       </div>
 
       <div className="dashboard-section dashboard-section--plain">

@@ -53,6 +53,8 @@ export default async function TransactionsPage() {
         <h2>All transactions</h2>
         <TransactionList
           transactions={transactions}
+          expenseCategoryNames={expenseCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
           emptyMessage="No transactions logged yet."
         />
       </div>
