@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Build/launch/drive recipe for BudgetApp (Next.js + Prisma + Postgres onboarding flow + dashboard)
+description: Build/launch/drive recipe for BudgetApp (Next.js + Prisma + Postgres onboarding flow + 5-tab app)
 ---
 
 # BudgetApp verify recipe
@@ -66,11 +66,47 @@ next step, not bounce back), **editing income twice** (must update the same
 **removing a row on expenses/savings and resubmitting** (the removed category's
 `CycleBudgetGoal` must actually be gone, not orphaned).
 
-## Dashboard (`/dashboard`)
+## App shell: 5-tab nav (`app/(app)/`)
 
-Real feature now, not a stub — a KPI stat tile ("Amount left this cycle"), a top-categories
-bar chart, an add-transaction form (`#tx-type`/`#tx-name`/`#tx-amount`, button "Log it"),
-and a list of this cycle's transactions with per-row "Delete" buttons.
+All authenticated pages live under the `app/(app)/` route group (route groups don't affect
+URLs — `/dashboard` is still `/dashboard`), sharing `app/(app)/layout.tsx` which centralizes
+**both** the auth check (redirect `/login`) **and** the onboarding-completion check (redirect
+`/onboarding`) — the latter didn't used to exist per-page, and matters now that 4 more
+always-reachable routes exist (`/transactions`, `/budget`, `/goals`, `/profile`) that a
+mid-onboarding user could otherwise hit directly. `proxy.ts`'s matcher covers all 5 routes.
+`_components/BottomNav.tsx` is fixed-position, 5 tabs, active state via
+`pathname.startsWith(href)`.
+
+**Dev-mode gotcha**: on a narrow/mobile Playwright viewport, Next.js's floating dev-tools
+indicator (`<nextjs-portal>`, bottom-left) can visually overlap the bottom nav's leftmost
+(Home) tab and intercept clicks, timing out `page.click('.bottom-nav-item:has-text("Home")')`
+with "subtree intercepts pointer events" — even though the exact same click works fine on a
+wider viewport (already confirmed in the nav-shell-only test). This is a dev-tool artifact,
+not a real bug (it doesn't exist in production, and manual clicking rarely lands exactly on
+the overlap pixel). Prefer `page.goto(url)` directly over clicking nav tabs in narrow-viewport
+Playwright scripts to sidestep it, rather than chasing it as a regression.
+
+Shared pieces reused across pages: `_components/ProgressBar.tsx` (color-state: good <70%,
+warning <100%, critical ≥100%), `_components/CategoryNameInput.tsx` (datalist-backed name
+input — nudges reusing an exact existing category name instead of silently forking a
+near-duplicate via free text), `_components/TransactionForm.tsx` /
+`TransactionList.tsx` (add/list transactions, used by both Home and `/transactions`),
+`_actions/transactions.ts` (`addTransactionAction`/`deleteTransactionAction` — revalidate
+all 4 data pages, not just one, since any of them could be showing the affected data).
+
+## Home (`/dashboard`)
+
+The KPI stat tile ("Amount left this cycle" — the hero card), a top-categories
+bar chart (now with per-category icons from `lib/category-icons.ts`, a keyword-based
+guess, not user-configurable), an add-transaction form (`#tx-type`/`#tx-name`/`#tx-amount`,
+button "Log it"), and a list of this cycle's transactions with per-row "Delete" buttons.
+Quick action links (`?type=EXPENSE|INCOME|SAVINGS#log-transaction`) pre-select the form's
+type — the form remounts via `key={initialType}` in `page.tsx` so the URL-driven default
+actually takes effect (a plain prop update wouldn't re-sync `useState`'s initial value).
+The rule-based insights card (`lib/insights.ts`, unit-tested in `lib/insights.test.ts`) shows
+up to 3 of: a top-category delta vs the last closed cycle, an on-track/over-budget
+restatement, an under-budget streak (≥2 cycles) — or a fallback if there's no closed-cycle
+history yet.
 
 **"Amount left" math**: `baseIncome` (sum of `CycleIncomeEntry.netAmount` for the cycle) `+`
 sum of `CycleTransaction` type=INCOME `-` sum of type=EXPENSE `-` sum of type=SAVINGS. This
@@ -97,6 +133,56 @@ Worth probing on the dashboard specifically: delete a transaction and confirm bo
 and the chart update; log an expense large enough to make "amount left" negative and confirm
 it switches to the critical/red state with explicit "you're over" text (never color alone);
 try to delete another user's transaction id directly (should no-op, not error/leak).
+
+## Transactions (`/transactions`)
+
+All-time list across every cycle (not just current — `prisma.cycleTransaction.findMany({
+where: { cycle: { userId } }, take: 100 })`), each row showing its cycle's label. Reuses the
+same add/delete actions and components as Home — logging or deleting here updates Home too
+(and vice versa), since both revalidate the full set of app pages.
+
+## Budget (`/budget`)
+
+**EXPENSE-type categories only** — SAVINGS categories are Goals' territory (explicit split,
+see Goals below). Shows this cycle's `CycleBudgetGoal` rows cross-referenced against actual
+spend (`getCycleFinancials(cycle.id).categoryTotals`, the *full* unsliced list, not the
+top-5 `topCategories` Home uses — a goal with $0 actual spend so far still needs to show up).
+Editing a target only affects *this* cycle — `closeCycleAndStartNext` copies whatever the
+value is at the moment of closing, so the UI says so explicitly near the edit control. Adding
+a goal upserts the category by name (same pattern as onboarding's expenses step) + upserts
+`CycleBudgetGoal` for the current cycle. Removing a goal deletes only that `CycleBudgetGoal`
+row (ownership-scoped `deleteMany`), not the category.
+
+## Goals (`/goals`)
+
+A "goal" is a **SAVINGS-type `ExpenseCategory` with `lifetimeTargetAmount` set** — not a
+separate model (a `SavingsGoal` model was considered and rejected: it would've meant two
+different fields both claiming to be "the target" for the same category). Progress sums
+`CycleTransaction` type=SAVINGS **across every cycle** for that category (`lib/goals.ts`
+`getGoalsWithProgress`), not just the current one. Also shows the current cycle's recurring
+`CycleBudgetGoal` amount if one exists (e.g. carried forward from onboarding's savings step),
+so that per-cycle contribution target isn't stranded now that Budget excludes SAVINGS.
+"Remove goal" clears `lifetimeTargetAmount` back to `null` — it does **not** delete the
+`ExpenseCategory` (that would cascade/orphan real historical rows).
+
+**The whole feature's value depends on exact category-name matches** — logging a SAVINGS
+transaction elsewhere (e.g. Home's quick actions) only moves a goal's progress bar if the
+transaction's name exactly matches the goal's category name. Worth testing: create a goal
+named "Emergency fund", log a SAVINGS transaction with that exact name from Home or
+Transactions, confirm the Goals page progress bar updates. The `CategoryNameInput` datalist
+mitigates typos/case-mismatches but doesn't prevent them if the user ignores the suggestion
+and types a near-miss anyway — that's an accepted, documented limitation, not a bug to chase.
+
+## Profile (`/profile`)
+
+User info (name, email, member-since) and the app's **first-ever working sign-out button** —
+there was previously no way to log out of this app through the UI at all. `signOutAction`
+(`app/(app)/profile/actions.ts`) calls Auth.js `signOut({ redirectTo: "/login" })`. Test this
+specifically: sign out → confirm redirect to `/login` → confirm a protected route (e.g.
+`/dashboard`) now bounces to `/login` too (session actually cleared, not just a UI redirect)
+→ sign back in. The dev-only "Reset onboarding" button (`resetOnboardingAction`) lives here
+now too — moved from Home during the redesign to keep Home decluttered; the underlying
+function/behavior is unchanged (`app/(app)/profile/dev-actions.ts`).
 
 ## "I just got paid" (`justGotPaidAction`, `lib/cycles.ts` `closeCycleAndStartNext`)
 
@@ -130,12 +216,12 @@ models still exist in the schema (kept for a future proper multi-account dashboa
 feature) but nothing in onboarding writes to them; expect 0 rows there always.
 
 ## Gotchas
-- **Dev-only "Reset onboarding" button** on `/dashboard` (`app/dashboard/dev-actions.ts`,
-  `resetOnboardingAction`): gated by `process.env.NODE_ENV !== "production"` both on the
-  button's render and inside the action itself (defense in depth). Deletes the current
-  `BudgetCycle` (cascades income/goals) and clears `User.onboardingCompletedAt`, then
-  redirects to `/onboarding`. Use this instead of manually poking the DB when you need to
-  re-run onboarding during testing.
+- **Dev-only "Reset onboarding" button** on `/profile` (`app/(app)/profile/dev-actions.ts`,
+  `resetOnboardingAction` — moved here from Home during the premium redesign): gated by
+  `process.env.NODE_ENV !== "production"` both on the button's render and inside the action
+  itself (defense in depth). Deletes the current `BudgetCycle` (cascades income/goals) and
+  clears `User.onboardingCompletedAt`, then redirects to `/onboarding`. Use this instead of
+  manually poking the DB when you need to re-run onboarding during testing.
 - Testing a **production build locally** (`npm run build && npm start`) over plain HTTP
   breaks login entirely — Auth.js defaults session cookies to `secure: true` when
   `NODE_ENV=production`, and browsers won't send secure cookies over non-HTTPS `localhost`.
