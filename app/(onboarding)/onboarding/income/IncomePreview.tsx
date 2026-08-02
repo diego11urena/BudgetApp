@@ -6,33 +6,33 @@ import { formatUSD } from "@/lib/format";
 import type { IncomeFormInitial } from "./IncomeForm";
 
 export function IncomePreview({ initial }: { initial?: IncomeFormInitial }) {
-  const [grossAmountPerCycle, setGrossAmountPerCycle] = useState(
-    initial?.grossAmountPerCycle ?? "",
+  const [grossMonthlyAmount, setGrossMonthlyAmount] = useState(
+    initial?.grossMonthlyAmount ?? "",
   );
   const [isPanamaPayroll, setIsPanamaPayroll] = useState(initial?.isPanamaPayroll ?? true);
 
   const breakdown = useMemo(() => {
-    const gross = Number(grossAmountPerCycle);
-    if (!grossAmountPerCycle || Number.isNaN(gross) || gross <= 0) return null;
-    return computeNetIncomeForCycle({ grossAmountPerCycle: gross, isPanamaPayroll });
-  }, [grossAmountPerCycle, isPanamaPayroll]);
+    const gross = Number(grossMonthlyAmount);
+    if (!grossMonthlyAmount || Number.isNaN(gross) || gross <= 0) return null;
+    return computeNetIncomeForCycle({ grossMonthlyAmount: gross, isPanamaPayroll });
+  }, [grossMonthlyAmount, isPanamaPayroll]);
 
   return (
     <>
       <div className="field">
-        <label htmlFor="grossAmountPerCycle">Gross amount per cycle (USD)</label>
+        <label htmlFor="grossMonthlyAmount">Gross monthly salary (USD)</label>
         <input
-          id="grossAmountPerCycle"
-          name="grossAmountPerCycle"
+          id="grossMonthlyAmount"
+          name="grossMonthlyAmount"
           type="text"
           inputMode="decimal"
-          placeholder="1000.00"
+          placeholder="2000.00"
           required
-          value={grossAmountPerCycle}
-          onChange={(e) => setGrossAmountPerCycle(e.target.value)}
+          value={grossMonthlyAmount}
+          onChange={(e) => setGrossMonthlyAmount(e.target.value)}
         />
         <span className="field-hint">
-          Your pay for one 15-day cycle (quincena), not your full monthly salary.
+          Your full monthly salary — we&apos;ll split it into two quincenas for you.
         </span>
       </div>
       <div className="field">
@@ -52,28 +52,32 @@ export function IncomePreview({ initial }: { initial?: IncomeFormInitial }) {
       {breakdown && (
         <div className="preview-box">
           <div className="line-item">
-            <span>Gross</span>
-            <span>{formatUSD(breakdown.grossAmount.toNumber())}</span>
+            <span>Gross (monthly)</span>
+            <span>{formatUSD(breakdown.grossMonthlyAmount.toNumber())}</span>
           </div>
           {isPanamaPayroll && (
             <>
               <div className="line-item">
                 <span>CSS (9.75%)</span>
-                <span>-{formatUSD(breakdown.cssDeduction.toNumber())}</span>
+                <span>-{formatUSD(breakdown.monthlyCssDeduction.toNumber())}</span>
               </div>
               <div className="line-item">
                 <span>Seguro Educativo (1.25%)</span>
-                <span>-{formatUSD(breakdown.seguroEducativoDeduction.toNumber())}</span>
+                <span>-{formatUSD(breakdown.monthlySeguroEducativoDeduction.toNumber())}</span>
               </div>
               <div className="line-item">
                 <span>ISR (est.)</span>
-                <span>-{formatUSD(breakdown.isrDeduction.toNumber())}</span>
+                <span>-{formatUSD(breakdown.monthlyIsrDeduction.toNumber())}</span>
               </div>
             </>
           )}
           <div className="line-item">
-            <strong>Net this cycle</strong>
-            <strong>{formatUSD(breakdown.netAmount.toNumber())}</strong>
+            <span>Net monthly salary</span>
+            <span>{formatUSD(breakdown.netMonthlyAmount.toNumber())}</span>
+          </div>
+          <div className="line-item">
+            <strong>Net per quincena</strong>
+            <strong>{formatUSD(breakdown.netQuincenaAmount.toNumber())}</strong>
           </div>
         </div>
       )}

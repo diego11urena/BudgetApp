@@ -1,12 +1,53 @@
+/*
+ * Theme: centralized palette. To retheme the app, change values here —
+ * everything below references these variables, no hardcoded colors.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg: #f8f6f1;
+  --color-bg-secondary: #f2eee6;
+  --color-card: #fffdf9;
+  --color-primary-green: #7fae7b;
+  --color-secondary-green: #a8cfa5;
+  --color-accent-green: #5e8f5a;
+  --color-text-primary: #2f3a2f;
+  --color-text-secondary: #6c756c;
+  --color-border: #e5e1d8;
+  --color-success: #7fae7b;
+  --color-warning: #d9a05b;
+  --color-error: #c1706a;
+  --color-on-accent: #fffdf9;
+  --color-success-bg: rgba(127, 174, 123, 0.15);
+  --color-warning-bg: rgba(217, 160, 91, 0.15);
+  --color-error-bg: rgba(193, 112, 106, 0.15);
+  --shadow-color: rgba(47, 58, 47, 0.08);
+
+  /* Aliases so existing rules referencing page-level bg/fg stay in sync. */
+  --background: var(--color-bg);
+  --foreground: var(--color-text-primary);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-bg: #1e1d18;
+    --color-bg-secondary: #26241e;
+    --color-card: #2a2822;
+    --color-primary-green: #8fbf8a;
+    --color-secondary-green: #6fa36a;
+    --color-accent-green: #7fae7b;
+    --color-text-primary: #f2eee6;
+    --color-text-secondary: #b8b2a5;
+    --color-border: #3a3830;
+    --color-success: #8fbf8a;
+    --color-warning: #e0b378;
+    --color-error: #d68b84;
+    --color-on-accent: #fffdf9;
+    --color-success-bg: rgba(143, 191, 138, 0.15);
+    --color-warning-bg: rgba(224, 179, 120, 0.15);
+    --color-error-bg: rgba(214, 139, 132, 0.15);
+    --shadow-color: rgba(0, 0, 0, 0.25);
+
+    --background: var(--color-bg);
+    --foreground: var(--color-text-primary);
   }
 }
 
@@ -26,7 +67,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -59,9 +100,11 @@ a {
 .card {
   width: 100%;
   max-width: 28rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   padding: 2rem;
+  box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .card--wide {
@@ -89,15 +132,15 @@ a {
 .field select {
   padding: 0.55rem 0.7rem;
   border-radius: 0.4rem;
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  background: var(--background);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
   color: var(--foreground);
   font-size: 1rem;
 }
 
 .field-hint {
   font-size: 0.8rem;
-  opacity: 0.7;
+  color: var(--color-text-secondary);
 }
 
 .form-actions {
@@ -112,11 +155,22 @@ a {
   padding: 0.6rem 1.2rem;
   border-radius: 0.4rem;
   border: none;
-  background: #171717;
-  color: #fff;
+  background: var(--color-accent-green);
+  color: var(--color-on-accent);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    opacity 0.15s ease;
+}
+
+.button:hover {
+  opacity: 0.92;
+}
+
+.button:active {
+  transform: scale(0.98);
 }
 
 .button:disabled {
@@ -127,18 +181,11 @@ a {
 .button--secondary {
   background: transparent;
   color: var(--foreground);
-  border: 1px solid rgba(128, 128, 128, 0.4);
-}
-
-@media (prefers-color-scheme: dark) {
-  .button {
-    background: #ededed;
-    color: #0a0a0a;
-  }
+  border: 1px solid var(--color-border);
 }
 
 .error-text {
-  color: #d92d20;
+  color: var(--color-error);
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
@@ -146,7 +193,7 @@ a {
 .muted-link {
   margin-top: 1.25rem;
   font-size: 0.875rem;
-  opacity: 0.8;
+  color: var(--color-text-secondary);
 }
 
 .muted-link a {
@@ -165,7 +212,7 @@ a {
   display: block;
   height: 4px;
   border-radius: 2px;
-  background: rgba(128, 128, 128, 0.3);
+  background: var(--color-border);
 }
 
 .step-progress a {
@@ -173,21 +220,13 @@ a {
 }
 
 .step-progress a:hover {
-  background: rgba(128, 128, 128, 0.5);
+  background: var(--color-secondary-green);
 }
 
 .step-progress span.is-complete,
 .step-progress span.is-active,
 .step-progress a.is-complete {
-  background: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  .step-progress span.is-complete,
-  .step-progress span.is-active,
-  .step-progress a.is-complete {
-    background: #ededed;
-  }
+  background: var(--color-accent-green);
 }
 
 .line-item {
@@ -196,7 +235,7 @@ a {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .line-item:last-child {
@@ -211,11 +250,12 @@ a {
 }
 
 .preview-box {
-  border: 1px dashed rgba(128, 128, 128, 0.4);
+  border: 1px dashed var(--color-border);
   border-radius: 0.5rem;
   padding: 1rem;
   margin-top: 0.5rem;
   font-size: 0.875rem;
+  background: var(--color-bg-secondary);
 }
 
 .banner {
@@ -227,15 +267,15 @@ a {
 }
 
 .banner--good {
-  color: #0ca30c;
-  background: rgba(12, 163, 12, 0.1);
-  border-left-color: #0ca30c;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border-left-color: var(--color-success);
 }
 
 .banner--critical {
-  color: #d03b3b;
-  background: rgba(208, 59, 59, 0.1);
-  border-left-color: #d03b3b;
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-left-color: var(--color-error);
 }
 
 .home-page {
@@ -244,17 +284,19 @@ a {
 }
 
 .dashboard-section {
-  margin-top: 1.25rem;
-  background: var(--background);
-  border: 1px solid rgba(128, 128, 128, 0.15);
+  margin-top: 1.5rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: 1rem;
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 1.4rem;
+  box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .dashboard-section h2 {
   font-size: 1.05rem;
-  margin-bottom: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 0.85rem;
+  color: var(--color-text-primary);
 }
 
 .dashboard-section--plain {
@@ -273,13 +315,13 @@ a {
 }
 
 .home-greeting {
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   font-weight: 700;
 }
 
 .home-month {
   font-size: 0.875rem;
-  opacity: 0.6;
+  color: var(--color-text-secondary);
   margin-top: 0.15rem;
 }
 
@@ -288,26 +330,26 @@ a {
   line-height: 1;
   padding: 0.4rem;
   border-radius: 999px;
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--color-bg-secondary);
 }
 
 /* Hero card */
 .hero-card {
-  background: linear-gradient(160deg, rgba(42, 120, 214, 0.08), rgba(42, 120, 214, 0.02));
-  border: 1px solid rgba(42, 120, 214, 0.15);
+  background: linear-gradient(160deg, var(--color-success-bg), transparent);
+  border: 1px solid var(--color-border);
   border-radius: 1.25rem;
-  padding: 1.75rem 1.5rem;
+  padding: 1.85rem 1.5rem;
   text-align: center;
 }
 
 .hero-label {
   font-size: 0.9rem;
-  opacity: 0.7;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .hero-value {
-  font-size: 3rem;
+  font-size: 3.25rem;
   font-weight: 700;
   line-height: 1.1;
   margin: 0.4rem 0;
@@ -315,33 +357,27 @@ a {
 }
 
 .hero-value--good {
-  color: #0ca30c;
+  color: var(--color-success);
 }
 
 .hero-value--critical {
-  color: #d03b3b;
+  color: var(--color-error);
 }
 
 .hero-subtitle {
   font-size: 0.875rem;
-  opacity: 0.6;
+  color: var(--color-text-secondary);
   margin-bottom: 1rem;
 }
 
 .hero-action-link {
   background: none;
   border: none;
-  color: #2a78d6;
+  color: var(--color-accent-green);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0.4rem 0.8rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .hero-action-link {
-    color: #3987e5;
-  }
 }
 
 /* Income / Expenses / Saved summary */
@@ -362,7 +398,7 @@ a {
 
 .summary-label {
   font-size: 0.8rem;
-  opacity: 0.65;
+  color: var(--color-text-secondary);
 }
 
 .summary-value {
@@ -371,7 +407,7 @@ a {
 }
 
 .summary-value--good {
-  color: #0ca30c;
+  color: var(--color-success);
 }
 
 /* Quick actions */
@@ -388,9 +424,9 @@ a {
   gap: 0.3rem;
   padding: 0.85rem 0.5rem;
   border-radius: 1rem;
-  background: var(--background);
-  border: 1px solid rgba(128, 128, 128, 0.15);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px var(--shadow-color);
   font-size: 0.8rem;
   font-weight: 600;
   transition:
@@ -408,10 +444,10 @@ a {
 
 /* Insights card */
 .insights-card {
-  background: linear-gradient(160deg, rgba(29, 175, 122, 0.08), rgba(29, 175, 122, 0.02));
-  border: 1px solid rgba(29, 175, 122, 0.15);
+  background: linear-gradient(160deg, var(--color-success-bg), transparent);
+  border: 1px solid var(--color-border);
   border-radius: 1rem;
-  padding: 1.25rem;
+  padding: 1.4rem;
 }
 
 .insights-title {
@@ -433,9 +469,10 @@ a {
 
 /* KPI stat tile */
 .kpi-tile {
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   padding: 1.5rem;
+  background: var(--color-card);
 }
 
 .kpi-value {
@@ -447,20 +484,11 @@ a {
 }
 
 .kpi-value--good {
-  color: #0ca30c;
+  color: var(--color-success);
 }
 
 .kpi-value--critical {
-  color: #d03b3b;
-}
-
-@media (prefers-color-scheme: dark) {
-  .kpi-value--good {
-    color: #0ca30c;
-  }
-  .kpi-value--critical {
-    color: #d03b3b;
-  }
+  color: var(--color-error);
 }
 
 .kpi-breakdown {
@@ -474,7 +502,7 @@ a {
   display: flex;
   justify-content: space-between;
   font-size: 0.875rem;
-  opacity: 0.85;
+  color: var(--color-text-secondary);
 }
 
 /* Top categories horizontal bar chart */
@@ -499,7 +527,7 @@ a {
 }
 
 .bar-chart-track {
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--color-bg-secondary);
   border-radius: 4px;
   height: 20px;
 }
@@ -509,13 +537,7 @@ a {
   max-height: 24px;
   min-width: 4px;
   border-radius: 4px;
-  background: #2a78d6;
-}
-
-@media (prefers-color-scheme: dark) {
-  .bar-chart-fill {
-    background: #3987e5;
-  }
+  background: var(--color-primary-green);
 }
 
 .bar-chart-value {
@@ -531,7 +553,7 @@ a {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.6rem 0;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .transaction-row:last-child {
@@ -549,7 +571,7 @@ a {
 
 .transaction-meta .transaction-sub {
   font-size: 0.8rem;
-  opacity: 0.7;
+  color: var(--color-text-secondary);
 }
 
 .transaction-amount {
@@ -558,7 +580,7 @@ a {
 }
 
 .transaction-amount--income {
-  color: #0ca30c;
+  color: var(--color-success);
 }
 
 .transaction-row-actions {
@@ -612,8 +634,8 @@ a {
   right: 0;
   display: flex;
   justify-content: space-around;
-  background: var(--background);
-  border-top: 1px solid rgba(128, 128, 128, 0.2);
+  background: var(--color-card);
+  border-top: 1px solid var(--color-border);
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 50;
 }
@@ -636,6 +658,7 @@ a {
 .bottom-nav-item.is-active {
   opacity: 1;
   font-weight: 600;
+  color: var(--color-accent-green);
 }
 
 .bottom-nav-icon {
@@ -656,7 +679,7 @@ a {
 }
 
 .progress-bar-track {
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--color-bg-secondary);
   border-radius: 4px;
   height: 10px;
   overflow: hidden;
@@ -669,15 +692,15 @@ a {
 }
 
 .progress-bar-fill--good {
-  background: #0ca30c;
+  background: var(--color-success);
 }
 
 .progress-bar-fill--warning {
-  background: #fab219;
+  background: var(--color-warning);
 }
 
 .progress-bar-fill--critical {
-  background: #d03b3b;
+  background: var(--color-error);
 }
 
 /* Budget & Goals goal rows */
@@ -691,7 +714,7 @@ a {
 .budget-goal-row,
 .goal-row {
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .budget-goal-row:last-child,

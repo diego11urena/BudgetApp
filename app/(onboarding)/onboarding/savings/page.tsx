@@ -30,7 +30,7 @@ export default async function SavingsStepPage() {
       <StepProgress current="savings" />
       <h1>Set your savings goals</h1>
       <p className="field-hint">
-        Anything you&apos;re saving toward this cycle. Optional — add as many as you
+        Anything you&apos;re saving toward this quincena. Optional — add as many as you
         need, or skip for now.
       </p>
       <LineItemsForm

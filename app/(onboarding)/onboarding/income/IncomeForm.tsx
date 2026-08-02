@@ -8,7 +8,7 @@ const initialState: IncomeFormState = undefined;
 
 export interface IncomeFormInitial {
   name: string;
-  grossAmountPerCycle: string;
+  grossMonthlyAmount: string;
   isPanamaPayroll: boolean;
 }
 

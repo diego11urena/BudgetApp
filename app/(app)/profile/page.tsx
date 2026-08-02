@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { IncomeSettingsForm } from "./_components/IncomeSettingsForm";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -9,11 +10,18 @@ export default async function ProfilePage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const userId = session.user.id;
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true, email: true, createdAt: true },
-  });
+  const [user, incomeSource] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true, createdAt: true },
+    }),
+    prisma.incomeSource.findFirst({
+      where: { userId, isActive: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
 
   return (
     <div className="home-page">
@@ -30,6 +38,19 @@ export default async function ProfilePage() {
           })}
         </p>
       </div>
+
+      {incomeSource && (
+        <div className="dashboard-section">
+          <h2>Income</h2>
+          <IncomeSettingsForm
+            initial={{
+              name: incomeSource.name,
+              grossMonthlyAmount: incomeSource.grossMonthlyAmount.toString(),
+              isPanamaPayroll: incomeSource.isPanamaPayroll,
+            }}
+          />
+        </div>
+      )}
 
       <div className="dashboard-section">
         <form action={signOutAction}>

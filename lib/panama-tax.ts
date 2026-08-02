@@ -5,14 +5,20 @@ export type { Decimal };
 /**
  * Panama payroll and personal income tax calculations.
  *
- * The app works entirely in quincenas (15-day pay cycles) — every
- * `BudgetCycle` is one pay period, not a calendar month. Gross amounts here
- * are always "per cycle," and ISR is annualized as 24 cycles/year.
+ * Salaries are quoted/contracted monthly in Panama, even though pay is
+ * disbursed quincenally (twice a month). This module computes deductions on
+ * the monthly basis (matching how a payslip would itemize it), then derives
+ * the quincena split — CSS and Seguro Educativo are flat percentages, so
+ * halving the monthly deduction is exact; ISR is annualized over 12 months
+ * as usual, so the quincena ISR is simply half the monthly ISR too.
+ *
+ * Every `BudgetCycle` is one quincena, so callers should store the
+ * `quincena*` fields on `CycleIncomeEntry`, never the monthly ones.
  *
  * Simplifications (documented, not hidden):
- * - ISR is legally an annual tax with DGI-published per-period withholding
- *   tables. Here per-cycle withholding is approximated as
- *   calculateISR(gross * 24) / 24.
+ * - ISR is legally an annual tax with DGI-published monthly withholding
+ *   tables. Here monthly withholding is approximated as
+ *   calculateISR(gross * 12) / 12.
  * - Décimo Tercer Mes is not auto-calculated — the user logs it manually as
  *   a one-off income transaction when they receive it (the existing "Add
  *   Income" flow already supports this with no further changes needed).
@@ -26,8 +32,6 @@ const ISR_MID_CEILING = new Decimal("50000");
 const ISR_MID_RATE = new Decimal("0.15");
 const ISR_TOP_RATE = new Decimal("0.25");
 const ISR_TOP_FIXED_BASE = new Decimal("5850");
-
-const CYCLES_PER_YEAR = 24;
 
 function toDecimal(value: Decimal.Value): Decimal {
   return value instanceof Decimal ? value : new Decimal(value);
@@ -66,51 +70,71 @@ export function calculateISR(annualTaxableIncome: Decimal.Value): Decimal {
 }
 
 export interface ComputeNetIncomeInput {
-  grossAmountPerCycle: Decimal.Value;
+  grossMonthlyAmount: Decimal.Value;
   isPanamaPayroll: boolean;
 }
 
 export interface ComputeNetIncomeResult {
-  grossAmount: Decimal;
-  cssDeduction: Decimal;
-  seguroEducativoDeduction: Decimal;
-  isrDeduction: Decimal;
-  netAmount: Decimal;
+  // Monthly reference — matches how the salary is actually quoted/contracted.
+  grossMonthlyAmount: Decimal;
+  monthlyCssDeduction: Decimal;
+  monthlySeguroEducativoDeduction: Decimal;
+  monthlyIsrDeduction: Decimal;
+  netMonthlyAmount: Decimal;
+
+  // What actually gets stored per BudgetCycle — one quincena = half of monthly.
+  grossQuincenaAmount: Decimal;
+  quincenaCssDeduction: Decimal;
+  quincenaSeguroEducativoDeduction: Decimal;
+  quincenaIsrDeduction: Decimal;
+  netQuincenaAmount: Decimal;
 }
 
-/** Full breakdown of one cycle's (quincena) income. */
+/** Full monthly + quincena breakdown for a given monthly gross salary. */
 export function computeNetIncomeForCycle(
   input: ComputeNetIncomeInput,
 ): ComputeNetIncomeResult {
-  const gross = toDecimal(input.grossAmountPerCycle);
+  const monthlyGross = toDecimal(input.grossMonthlyAmount).toDecimalPlaces(2);
 
   if (!input.isPanamaPayroll) {
-    const flatNet = gross.toDecimalPlaces(2);
+    const half = monthlyGross.dividedBy(2).toDecimalPlaces(2);
     return {
-      grossAmount: flatNet,
-      cssDeduction: new Decimal(0),
-      seguroEducativoDeduction: new Decimal(0),
-      isrDeduction: new Decimal(0),
-      netAmount: flatNet,
+      grossMonthlyAmount: monthlyGross,
+      monthlyCssDeduction: new Decimal(0),
+      monthlySeguroEducativoDeduction: new Decimal(0),
+      monthlyIsrDeduction: new Decimal(0),
+      netMonthlyAmount: monthlyGross,
+      grossQuincenaAmount: half,
+      quincenaCssDeduction: new Decimal(0),
+      quincenaSeguroEducativoDeduction: new Decimal(0),
+      quincenaIsrDeduction: new Decimal(0),
+      netQuincenaAmount: half,
     };
   }
 
-  const cssDeduction = calculateCSS(gross);
-  const seguroEducativoDeduction = calculateSeguroEducativo(gross);
-  const isrAnnual = calculateISR(gross.times(CYCLES_PER_YEAR));
-  const isrDeduction = isrAnnual.dividedBy(CYCLES_PER_YEAR).toDecimalPlaces(2);
+  const monthlyCssDeduction = calculateCSS(monthlyGross);
+  const monthlySeguroEducativoDeduction = calculateSeguroEducativo(monthlyGross);
+  const isrAnnual = calculateISR(monthlyGross.times(12));
+  const monthlyIsrDeduction = isrAnnual.dividedBy(12).toDecimalPlaces(2);
 
-  const netAmount = gross
-    .minus(cssDeduction)
-    .minus(seguroEducativoDeduction)
-    .minus(isrDeduction)
+  const netMonthlyAmount = monthlyGross
+    .minus(monthlyCssDeduction)
+    .minus(monthlySeguroEducativoDeduction)
+    .minus(monthlyIsrDeduction)
     .toDecimalPlaces(2);
 
   return {
-    grossAmount: gross.toDecimalPlaces(2),
-    cssDeduction,
-    seguroEducativoDeduction,
-    isrDeduction,
-    netAmount,
+    grossMonthlyAmount: monthlyGross,
+    monthlyCssDeduction,
+    monthlySeguroEducativoDeduction,
+    monthlyIsrDeduction,
+    netMonthlyAmount,
+    grossQuincenaAmount: monthlyGross.dividedBy(2).toDecimalPlaces(2),
+    quincenaCssDeduction: monthlyCssDeduction.dividedBy(2).toDecimalPlaces(2),
+    quincenaSeguroEducativoDeduction: monthlySeguroEducativoDeduction
+      .dividedBy(2)
+      .toDecimalPlaces(2),
+    quincenaIsrDeduction: monthlyIsrDeduction.dividedBy(2).toDecimalPlaces(2),
+    netQuincenaAmount: netMonthlyAmount.dividedBy(2).toDecimalPlaces(2),
   };
 }

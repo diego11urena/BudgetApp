@@ -30,14 +30,14 @@ export default async function ExpensesStepPage() {
       <StepProgress current="expenses" />
       <h1>Add your fixed expenses</h1>
       <p className="field-hint">
-        Things you pay every cycle, like rent or subscriptions. Add as many as you need
+        Things you pay every quincena, like rent or subscriptions. Add as many as you need
         — you can always change these later.
       </p>
       <LineItemsForm
         action={saveExpensesAction}
         fieldName="itemsJson"
         itemNounSingular="fixed expense"
-        amountLabel="Amount per cycle (USD)"
+        amountLabel="Amount per quincena (USD)"
         submitLabel="Continue"
         initialItems={initialItems}
       />

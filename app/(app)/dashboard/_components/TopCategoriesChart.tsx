@@ -6,8 +6,8 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
   if (categories.length === 0) {
     return (
       <div>
-        <h2>Top categories this cycle</h2>
-        <p className="field-hint">No expenses logged yet this cycle.</p>
+        <h2>Top categories this quincena</h2>
+        <p className="field-hint">No expenses logged yet this quincena.</p>
       </div>
     );
   }
@@ -16,7 +16,7 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
 
   return (
     <div>
-      <h2>Top categories this cycle</h2>
+      <h2>Top categories this quincena</h2>
       <div className="bar-chart">
         {categories.map((category) => (
           <div className="bar-chart-row" key={category.categoryId}>

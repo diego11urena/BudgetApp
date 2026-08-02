@@ -34,11 +34,11 @@ export default async function BudgetPage() {
     <div className="home-page">
       <h1 className="page-title">Budget</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Fixed expense targets for this cycle. Savings targets live on the Goals tab.
+        Fixed expense targets for this quincena. Savings targets live on the Goals tab.
       </p>
 
       <div className="dashboard-section">
-        <h2>This cycle&apos;s budget</h2>
+        <h2>This quincena&apos;s budget</h2>
         {rows.length === 0 && (
           <p className="field-hint">No budget categories yet — add one below.</p>
         )}
@@ -72,8 +72,8 @@ export default async function BudgetPage() {
       <div className="dashboard-section">
         <h2>Add or update a target</h2>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          This cycle&apos;s target only — won&apos;t affect future cycles until you edit those
-          too.
+          This quincena&apos;s target only — won&apos;t affect future quincenas until you edit
+          those too.
         </p>
         <BudgetGoalForm categoryNames={expenseCategories.map((c) => c.name)} />
       </div>

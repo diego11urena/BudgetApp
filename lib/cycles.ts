@@ -96,19 +96,20 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
 
     if (incomeSource) {
       const breakdown = computeNetIncomeForCycle({
-        grossAmountPerCycle: incomeSource.grossAmountPerCycle,
+        grossMonthlyAmount: incomeSource.grossMonthlyAmount,
         isPanamaPayroll: incomeSource.isPanamaPayroll,
       });
 
+      // A cycle is one quincena — store the quincena breakdown, not monthly.
       await tx.cycleIncomeEntry.create({
         data: {
           cycleId: created.id,
           incomeSourceId: incomeSource.id,
-          grossAmount: breakdown.grossAmount,
-          cssDeduction: breakdown.cssDeduction,
-          seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
-          isrDeduction: breakdown.isrDeduction,
-          netAmount: breakdown.netAmount,
+          grossAmount: breakdown.grossQuincenaAmount,
+          cssDeduction: breakdown.quincenaCssDeduction,
+          seguroEducativoDeduction: breakdown.quincenaSeguroEducativoDeduction,
+          isrDeduction: breakdown.quincenaIsrDeduction,
+          netAmount: breakdown.netQuincenaAmount,
         },
       });
     }

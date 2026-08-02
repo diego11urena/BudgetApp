@@ -10,7 +10,7 @@ const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
 
 export function TransactionList({
   transactions,
-  emptyMessage = "Nothing logged yet this cycle.",
+  emptyMessage = "Nothing logged yet this quincena.",
 }: {
   transactions: CycleTransactionSummary[];
   emptyMessage?: string;

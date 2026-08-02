@@ -32,21 +32,33 @@ Playwright is a devDependency. System Chrome works without downloading Chromium:
 const browser = await chromium.launch({ channel: "chrome" });
 ```
 Flow to drive (3 steps, no accounts step): `/signup` -> `/onboarding/income` (fill name +
-`#grossAmountPerCycle` — **gross pay for ONE 15-day cycle, not monthly** — check live
-preview math in `.preview-box`) -> `/onboarding/expenses` (fixed expenses — starts with
-**zero rows**, click "+ Add a fixed expense" to add each one, no pre-added categories) ->
-`/onboarding/savings` (savings goals — same zero-rows-allowed pattern, "+ Add a savings
-goal") -> `/dashboard`. Both expenses and savings can be submitted with zero rows and
-still advance.
+`#grossMonthlyAmount` — **the full monthly salary, as quoted in a Panama employment
+contract** — check live preview math in `.preview-box`, which shows both the monthly
+breakdown and the derived quincena net) -> `/onboarding/expenses` (fixed expenses —
+starts with **zero rows**, click "+ Add a fixed expense" to add each one, no pre-added
+categories) -> `/onboarding/savings` (savings goals — same zero-rows-allowed pattern,
+"+ Add a savings goal") -> `/dashboard`. Both expenses and savings can be submitted with
+zero rows and still advance.
 
-**Income model (quincena-only, no décimo auto-calc)**: `IncomeSource.grossAmountPerCycle`
-(renamed from `grossMonthlyAmount`) is the gross for one cycle. `computeNetIncomeForCycle`
-(`lib/panama-tax.ts`) computes CSS (9.75%), Seguro Educativo (1.25%), and ISR annualized
-over **24** cycles/year (not 12 months) directly on that per-cycle gross — no halving, no
-décimo logic. Décimo Tercer Mes is **not auto-calculated at all** — the user logs it
-manually via the existing "Add Income" transaction (already fully supports arbitrary
-one-off income by name+amount, no code changes needed for this). Sanity check: $1,000/cycle
--> CSS $97.50, SE $12.50, ISR $81.25 (= (24000-11000)*0.15/24), net $808.75.
+**Income model (monthly input, quincena derived, no décimo auto-calc)**:
+`IncomeSource.grossMonthlyAmount` is the full monthly salary. `computeNetIncomeForCycle`
+(`lib/panama-tax.ts`) computes CSS (9.75%), Seguro Educativo (1.25%), and ISR (annualized
+`×12`) on that monthly gross — same as a real payslip — then derives the quincena figures
+as **exactly half** of every monthly one (CSS/SE are flat percentages and ISR is already
+monthly, so halving is exact, not an approximation). The result has **both** bases
+explicit: `netMonthlyAmount` / `netQuincenaAmount` etc. — **only the `quincena*` fields
+ever get stored on `CycleIncomeEntry`** (a `BudgetCycle` is one quincena, not a month) —
+storing the monthly figures there was an actual bug fixed earlier this session (it
+overstated "available to spend" ~2x). Décimo Tercer Mes is **not auto-calculated at
+all** — the user logs it manually via "Add Income" (already fully supports arbitrary
+one-off income by name+amount). Sanity check for $2,000/month: CSS $195, SE $25, ISR
+$162.50, net monthly $1,617.50, net quincena **$808.75**.
+
+**Editing income later**: `/profile` has an "Income" section (`IncomeSettingsForm.tsx`,
+`updateIncomeAction`) — this didn't exist before and was a real gap (no way to change your
+salary after onboarding). Updates `IncomeSource` and, if the current open cycle already
+has a `CycleIncomeEntry`, updates it in place too — so the dashboard reflects a salary
+change immediately. Past closed cycles are never touched (frozen history).
 
 `expenses` and `savings` share one client component, `_components/LineItemsForm.tsx` — each
 row is a `.field` div containing a name input and an amount input, **both `type="text"`**
@@ -203,10 +215,10 @@ has a `(userId, label)` unique constraint, so clicking the button twice in the s
 error. `label` is just a display string (the start date, `YYYY-MM-DD`) now, not a dedupe key.
 
 Clicking closes the current cycle (`status: CLOSED`, `periodEnd` set) and opens a new
-`ACTIVE` one, **carrying forward** the primary `IncomeSource` (recomputed net for the new
-cycle from `grossAmountPerCycle` — same quincena amount every time, no décimo/monthly logic
-involved) and all of the just-closed cycle's `CycleBudgetGoal` rows (fixed expenses +
-savings targets) — but **not**
+`ACTIVE` one, **carrying forward** the primary `IncomeSource` (recomputed from
+`grossMonthlyAmount`, storing the derived quincena breakdown — same amount every time
+unless the salary was edited from Profile in between) and all of the just-closed cycle's
+`CycleBudgetGoal` rows (fixed expenses + savings targets) — but **not**
 `CycleTransaction` rows, which stay on their original (now closed) cycle forever. Worth
 checking in the DB after a click: exactly the same `IncomeSource`/category ids reused (not
 duplicated) across cycles, and the new cycle has zero transactions even though the old one
@@ -227,6 +239,14 @@ models still exist in the schema (kept for a future proper multi-account dashboa
 feature) but nothing in onboarding writes to them; expect 0 rows there always.
 
 ## Gotchas
+- **Theme**: all colors live as CSS custom properties at `:root` in the top of
+  `app/globals.css` (warm cream/pastel-green palette, both light and dark variants) — never
+  hardcode a hex color in a new rule, use the existing `var(--color-*)` roles (`--color-bg`,
+  `--color-card` — deliberately distinct from the page background so cards visually lift —
+  `--color-text-secondary`, `--color-success`/`--color-warning`/`--color-error` + their
+  `-bg` tint variants for soft banner/card backgrounds). `body`'s `font-family` finally
+  references the Geist font Next.js already loads via `--font-geist-sans` — it used to
+  hardcode `Arial, Helvetica, sans-serif` and silently never use the configured font at all.
 - **Dev-only "Reset onboarding" button** on `/profile` (`app/(app)/profile/dev-actions.ts`,
   `resetOnboardingAction` — moved here from Home during the premium redesign): gated by
   `process.env.NODE_ENV !== "production"` both on the button's render and inside the action

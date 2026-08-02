@@ -31,31 +31,38 @@ describe("calculateSeguroEducativo", () => {
 });
 
 describe("computeNetIncomeForCycle", () => {
-  it("computes CSS/SE/ISR and net for one quincena cycle", () => {
-    // $2000 gross per cycle -> $48,000/year (24 cycles), squarely in the
-    // 15% ISR bracket.
+  it("computes the monthly breakdown and its exact quincena half", () => {
+    // $2000/month -> $24,000/year, in the 15% ISR bracket.
     const result = computeNetIncomeForCycle({
-      grossAmountPerCycle: 2000,
+      grossMonthlyAmount: 2000,
       isPanamaPayroll: true,
     });
 
-    expect(result.grossAmount.toNumber()).toBeCloseTo(2000, 2);
-    expect(result.cssDeduction.toNumber()).toBeCloseTo(195, 2);
-    expect(result.seguroEducativoDeduction.toNumber()).toBeCloseTo(25, 2);
-    // annual = 48000, ISR = (48000-11000)*0.15 = 5550, per cycle = 5550/24
-    expect(result.isrDeduction.toNumber()).toBeCloseTo(231.25, 2);
-    expect(result.netAmount.toNumber()).toBeCloseTo(1548.75, 2);
+    expect(result.grossMonthlyAmount.toNumber()).toBeCloseTo(2000, 2);
+    expect(result.monthlyCssDeduction.toNumber()).toBeCloseTo(195, 2);
+    expect(result.monthlySeguroEducativoDeduction.toNumber()).toBeCloseTo(25, 2);
+    // annual = 24000, ISR = (24000-11000)*0.15 = 1950, monthly = 1950/12
+    expect(result.monthlyIsrDeduction.toNumber()).toBeCloseTo(162.5, 2);
+    expect(result.netMonthlyAmount.toNumber()).toBeCloseTo(1617.5, 2);
+
+    // Quincena = exactly half of every monthly figure.
+    expect(result.grossQuincenaAmount.toNumber()).toBeCloseTo(1000, 2);
+    expect(result.quincenaCssDeduction.toNumber()).toBeCloseTo(97.5, 2);
+    expect(result.quincenaSeguroEducativoDeduction.toNumber()).toBeCloseTo(12.5, 2);
+    expect(result.quincenaIsrDeduction.toNumber()).toBeCloseTo(81.25, 2);
+    expect(result.netQuincenaAmount.toNumber()).toBeCloseTo(808.75, 2);
   });
 
   it("skips all Panama deductions for non-Panama income sources", () => {
     const result = computeNetIncomeForCycle({
-      grossAmountPerCycle: 2000,
+      grossMonthlyAmount: 2000,
       isPanamaPayroll: false,
     });
 
-    expect(result.cssDeduction.toNumber()).toBe(0);
-    expect(result.seguroEducativoDeduction.toNumber()).toBe(0);
-    expect(result.isrDeduction.toNumber()).toBe(0);
-    expect(result.netAmount.toNumber()).toBe(2000);
+    expect(result.monthlyCssDeduction.toNumber()).toBe(0);
+    expect(result.monthlySeguroEducativoDeduction.toNumber()).toBe(0);
+    expect(result.monthlyIsrDeduction.toNumber()).toBe(0);
+    expect(result.netMonthlyAmount.toNumber()).toBe(2000);
+    expect(result.netQuincenaAmount.toNumber()).toBe(1000);
   });
 });

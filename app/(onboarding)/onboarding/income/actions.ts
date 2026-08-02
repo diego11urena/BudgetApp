@@ -21,7 +21,7 @@ export async function saveIncomeAction(
 
   const parsed = incomeStepSchema.safeParse({
     name: formData.get("name"),
-    grossAmountPerCycle: formData.get("grossAmountPerCycle"),
+    grossMonthlyAmount: formData.get("grossMonthlyAmount"),
     isPanamaPayroll: formData.get("isPanamaPayroll") === "on",
   });
 
@@ -29,36 +29,37 @@ export async function saveIncomeAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { name, grossAmountPerCycle, isPanamaPayroll } = parsed.data;
+  const { name, grossMonthlyAmount, isPanamaPayroll } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
 
   // Server-side recompute — never trust a client-submitted net amount.
   const breakdown = computeNetIncomeForCycle({
-    grossAmountPerCycle,
+    grossMonthlyAmount,
     isPanamaPayroll,
   });
 
   // Onboarding only supports one income source per cycle. If the user came
   // back to edit this step, update the existing rows in place instead of
-  // creating a duplicate income source/entry.
+  // creating a duplicate income source/entry. A cycle is one quincena, so
+  // the quincena breakdown is what's stored — never the monthly figures.
   const existingEntry = await prisma.cycleIncomeEntry.findFirst({
     where: { cycleId: cycle.id },
   });
 
   const entryData = {
-    grossAmount: breakdown.grossAmount,
-    cssDeduction: breakdown.cssDeduction,
-    seguroEducativoDeduction: breakdown.seguroEducativoDeduction,
-    isrDeduction: breakdown.isrDeduction,
-    netAmount: breakdown.netAmount,
+    grossAmount: breakdown.grossQuincenaAmount,
+    cssDeduction: breakdown.quincenaCssDeduction,
+    seguroEducativoDeduction: breakdown.quincenaSeguroEducativoDeduction,
+    isrDeduction: breakdown.quincenaIsrDeduction,
+    netAmount: breakdown.netQuincenaAmount,
   };
 
   if (existingEntry?.incomeSourceId) {
     await prisma.$transaction([
       prisma.incomeSource.update({
         where: { id: existingEntry.incomeSourceId },
-        data: { name, grossAmountPerCycle, isPanamaPayroll },
+        data: { name, grossMonthlyAmount, isPanamaPayroll },
       }),
       prisma.cycleIncomeEntry.update({
         where: { id: existingEntry.id },
@@ -67,7 +68,7 @@ export async function saveIncomeAction(
     ]);
   } else {
     const incomeSource = await prisma.incomeSource.create({
-      data: { userId, name, grossAmountPerCycle, isPanamaPayroll },
+      data: { userId, name, grossMonthlyAmount, isPanamaPayroll },
     });
 
     await prisma.cycleIncomeEntry.create({

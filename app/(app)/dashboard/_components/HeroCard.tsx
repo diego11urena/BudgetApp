@@ -10,7 +10,7 @@ export function HeroCard({ amountLeft }: { amountLeft: number }) {
       <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
         {formatUSD(amountLeft)}
       </p>
-      <p className="hero-subtitle">this pay cycle</p>
+      <p className="hero-subtitle">Remaining this Quincena</p>
       <form action={justGotPaidAction}>
         <button type="submit" className="hero-action-link">
           I just got paid →
