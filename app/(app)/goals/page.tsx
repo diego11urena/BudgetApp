@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import { GoalRing } from "./_components/GoalRing";
 import { GoalForm } from "./_components/GoalForm";
-import { removeGoalAction } from "./actions";
+import { RemoveGoalButton } from "./_components/RemoveGoalButton";
 
 function formatEtaDate(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -60,16 +60,9 @@ export default async function GoalsPage() {
                     )}
                   </div>
                 </div>
-                <form action={removeGoalAction} style={{ marginTop: "0.5rem" }}>
-                  <input type="hidden" name="categoryId" value={goal.categoryId} />
-                  <button
-                    type="submit"
-                    className="icon-button"
-                    aria-label={`Remove ${goal.name} goal`}
-                  >
-                    Remove goal
-                  </button>
-                </form>
+                <div style={{ marginTop: "0.5rem" }}>
+                  <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} />
+                </div>
               </div>
             );
           })}

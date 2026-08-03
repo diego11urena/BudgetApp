@@ -80,21 +80,84 @@ export async function toggleCategoryRecurringAction(formData: FormData): Promise
   revalidateAppPages();
 }
 
-export async function deleteBudgetGoalAction(formData: FormData): Promise<void> {
+export interface DeletedBudgetGoalSnapshot {
+  cycleId: string;
+  expenseCategoryId: string;
+  targetAmount: number;
+}
+
+/** Success carries a snapshot so a "Deleted · Undo" toast can restore it. */
+export type DeleteBudgetGoalResult = { error: string } | { deleted: DeletedBudgetGoalSnapshot } | undefined;
+
+export async function deleteBudgetGoalAction(formData: FormData): Promise<DeleteBudgetGoalResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const userId = session.user.id;
 
   const goalId = formData.get("goalId");
   if (typeof goalId !== "string" || !goalId) {
-    return;
+    return { error: "Missing target" };
   }
 
   // Ownership-scoped: a plain delete({ where: { id } }) would let a user
   // delete another user's row by guessing an id.
-  await prisma.cycleBudgetGoal.deleteMany({
-    where: { id: goalId, cycle: { userId: session.user.id } },
+  const existing = await prisma.cycleBudgetGoal.findFirst({
+    where: { id: goalId, cycle: { userId } },
+  });
+  if (!existing) {
+    return { error: "Target not found" };
+  }
+
+  await prisma.cycleBudgetGoal.delete({ where: { id: existing.id } });
+
+  revalidateAppPages();
+
+  return {
+    deleted: {
+      cycleId: existing.cycleId,
+      expenseCategoryId: existing.expenseCategoryId,
+      targetAmount: existing.targetAmount.toNumber(),
+    },
+  };
+}
+
+/** Undo for a deleted budget target — recreates it with its original cycle, category, and amount. */
+export async function restoreBudgetGoalAction(
+  formData: FormData,
+): Promise<{ error?: string } | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const cycleId = formData.get("cycleId");
+  const expenseCategoryId = formData.get("expenseCategoryId");
+  const targetAmount = formData.get("targetAmount");
+
+  if (
+    typeof cycleId !== "string" ||
+    !cycleId ||
+    typeof expenseCategoryId !== "string" ||
+    !expenseCategoryId ||
+    typeof targetAmount !== "string" ||
+    !targetAmount
+  ) {
+    return { error: "Invalid undo payload" };
+  }
+
+  // Ownership-scoped: only restore into a cycle that belongs to this user.
+  const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
+  if (!cycle) {
+    return { error: "Cycle not found" };
+  }
+
+  await prisma.cycleBudgetGoal.upsert({
+    where: { cycleId_expenseCategoryId: { cycleId, expenseCategoryId } },
+    create: { cycleId, expenseCategoryId, targetAmount },
+    update: { targetAmount },
   });
 
   revalidateAppPages();

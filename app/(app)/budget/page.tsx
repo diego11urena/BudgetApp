@@ -10,7 +10,7 @@ import { iconForCategoryName } from "@/lib/category-icons";
 import { ProgressBar } from "../_components/ProgressBar";
 import { BudgetGoalForm } from "./_components/BudgetGoalForm";
 import { RecurringToggle } from "./_components/RecurringToggle";
-import { deleteBudgetGoalAction } from "./actions";
+import { DeleteBudgetGoalButton } from "./_components/DeleteBudgetGoalButton";
 
 export default async function BudgetPage() {
   const session = await auth();
@@ -68,16 +68,7 @@ export default async function BudgetPage() {
                   }}
                 >
                   <RecurringToggle categoryId={row.categoryId} recurring={row.recurring} />
-                  <form action={deleteBudgetGoalAction}>
-                    <input type="hidden" name="goalId" value={row.id} />
-                    <button
-                      type="submit"
-                      className="icon-button"
-                      aria-label={`Remove ${row.categoryName} budget`}
-                    >
-                      Remove
-                    </button>
-                  </form>
+                  <DeleteBudgetGoalButton goalId={row.id} categoryName={row.categoryName} />
                 </div>
               </div>
             );
