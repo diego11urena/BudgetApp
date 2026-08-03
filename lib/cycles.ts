@@ -49,7 +49,6 @@ export function getRecentCycles(userId: string, limit = 5) {
     include: {
       incomeEntries: true,
       budgetGoals: { include: { expenseCategory: true } },
-      accountBalances: { include: { financialAccount: true } },
       transactions: { include: { expenseCategory: true } },
     },
   });

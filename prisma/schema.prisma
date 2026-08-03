@@ -21,7 +21,6 @@ model User {
 
   incomeSources     IncomeSource[]
   expenseCategories ExpenseCategory[]
-  financialAccounts FinancialAccount[]
   budgetCycles      BudgetCycle[]
 }
 
@@ -66,10 +65,9 @@ model BudgetCycle {
   expensesConfirmedAt DateTime?
   savingsConfirmedAt  DateTime?
 
-  incomeEntries   CycleIncomeEntry[]
-  budgetGoals     CycleBudgetGoal[]
-  accountBalances CycleAccountBalance[]
-  transactions    CycleTransaction[]
+  incomeEntries CycleIncomeEntry[]
+  budgetGoals   CycleBudgetGoal[]
+  transactions  CycleTransaction[]
 
   @@index([userId, periodStart])
 }
@@ -166,43 +164,3 @@ model CycleBudgetGoal {
   @@index([cycleId])
 }
 
-enum FinancialAccountType {
-  CHECKING
-  SAVINGS
-  CASH
-  CREDIT_CARD
-  LOAN
-  OTHER_DEBT
-}
-
-enum BalanceSnapshotType {
-  OPENING
-  CLOSING
-}
-
-model FinancialAccount {
-  id        String               @id @default(cuid())
-  userId    String
-  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  type      FinancialAccountType
-  createdAt DateTime             @default(now())
-
-  balances CycleAccountBalance[]
-
-  @@index([userId])
-}
-
-model CycleAccountBalance {
-  id                 String              @id @default(cuid())
-  cycleId            String
-  cycle              BudgetCycle         @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  financialAccountId String
-  financialAccount   FinancialAccount    @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
-  type               BalanceSnapshotType @default(OPENING)
-  amount             Decimal             @db.Decimal(12, 2)
-  recordedAt         DateTime            @default(now())
-
-  @@unique([cycleId, financialAccountId, type])
-  @@index([cycleId])
-}
