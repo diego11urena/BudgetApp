@@ -1,20 +1,28 @@
+"use client";
+
+import { useRef } from "react";
 import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
+import { useModalFocus } from "../../_components/useModalFocus";
 import type { CycleClosedSummary } from "../actions";
 
 export function CycleClosedCard({
   summary,
   onDismiss,
+  returnFocusTo = null,
 }: {
   summary: CycleClosedSummary;
   onDismiss: () => void;
+  returnFocusTo?: HTMLElement | null;
 }) {
   const isOver = summary.budget.hasBudget && summary.budget.overBy > 0;
   const isPositiveRollover = summary.rolledOver >= 0;
+  const cardRef = useRef<HTMLDivElement>(null);
+  useModalFocus(cardRef, onDismiss, returnFocusTo);
 
   return (
     <div className="cycle-closed-overlay" role="dialog" aria-modal="true" aria-label="Quincena closed">
-      <div className="cycle-closed-card">
+      <div ref={cardRef} tabIndex={-1} className="cycle-closed-card">
         <p className="cycle-closed-emoji">🎉</p>
         <h1 className="cycle-closed-title">Quincena closed</h1>
 

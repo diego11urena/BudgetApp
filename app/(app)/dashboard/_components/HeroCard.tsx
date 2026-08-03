@@ -19,6 +19,12 @@ export function HeroCard({
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
+  // Captured synchronously on click, before either modal mounts, and reused
+  // across both — the trigger button gets disabled while pending, so a
+  // modal that instead re-derives document.activeElement at its own mount
+  // time (rather than being handed this directly) can end up capturing
+  // <body> if that mount happens to land while the button is disabled.
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const isPositive = amountLeft >= 0;
   const pace = computeQuincenaPace({ periodStart, now: new Date(), amountLeft, totalExpenses });
 
@@ -46,7 +52,10 @@ export function HeroCard({
         <button
           type="button"
           className="hero-action-link"
-          onClick={() => setConfirming(true)}
+          onClick={(e) => {
+            setTriggerElement(e.currentTarget);
+            setConfirming(true);
+          }}
           disabled={pending}
         >
           {pending ? "Closing quincena..." : "I just got paid →"}
@@ -57,11 +66,16 @@ export function HeroCard({
         <ConfirmJustGotPaidSheet
           onConfirm={handleConfirmedJustGotPaid}
           onCancel={() => setConfirming(false)}
+          returnFocusTo={triggerElement}
         />
       )}
 
       {closedSummary && (
-        <CycleClosedCard summary={closedSummary} onDismiss={() => setClosedSummary(null)} />
+        <CycleClosedCard
+          summary={closedSummary}
+          onDismiss={() => setClosedSummary(null)}
+          returnFocusTo={triggerElement}
+        />
       )}
     </>
   );

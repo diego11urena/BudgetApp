@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useModalFocus } from "../../_components/useModalFocus";
 
 /**
  * Closing a quincena is the one significant, hard-to-undo action in the
@@ -13,11 +14,14 @@ import { useEffect, useState } from "react";
 export function ConfirmJustGotPaidSheet({
   onConfirm,
   onCancel,
+  returnFocusTo = null,
 }: {
   onConfirm: () => void;
   onCancel: () => void;
+  returnFocusTo?: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -34,6 +38,8 @@ export function ConfirmJustGotPaidSheet({
     setTimeout(onConfirm, 200);
   }
 
+  useModalFocus(sheetRef, handleCancel, returnFocusTo);
+
   return (
     <div
       className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
@@ -41,6 +47,8 @@ export function ConfirmJustGotPaidSheet({
       role="presentation"
     >
       <div
+        ref={sheetRef}
+        tabIndex={-1}
         className={`sheet ${visible ? "is-open" : ""}`}
         role="dialog"
         aria-modal="true"

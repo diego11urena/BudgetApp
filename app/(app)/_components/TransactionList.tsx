@@ -45,6 +45,10 @@ export function TransactionList({
   emptyMessage?: string;
 }) {
   const [editing, setEditing] = useState<EditingTransaction | null>(null);
+  // Captured synchronously on click, before the sheet mounts — see
+  // QuickAddSheet's returnFocusTo doc comment for why this can't just be
+  // auto-detected inside the sheet itself.
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
   if (transactions.length === 0) {
     return <p className="field-hint">{emptyMessage}</p>;
@@ -63,7 +67,10 @@ export function TransactionList({
             type="button"
             className="transaction-row"
             key={tx.id}
-            onClick={() => setEditing({ id: tx.id, type: tx.type, name: tx.name, amount: tx.amount })}
+            onClick={(e) => {
+              setTriggerElement(e.currentTarget);
+              setEditing({ id: tx.id, type: tx.type, name: tx.name, amount: tx.amount });
+            }}
           >
             <TransactionRowContent tx={tx} />
           </button>
@@ -76,6 +83,7 @@ export function TransactionList({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           editingTransaction={editing}
+          returnFocusTo={triggerElement}
           onClose={() => setEditing(null)}
         />
       )}

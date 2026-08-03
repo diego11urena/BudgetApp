@@ -21,6 +21,9 @@ export function QuickActions({
   lastUsedIncomeName: string | null;
 }) {
   const [openType, setOpenType] = useState<TxType | null>(null);
+  // Captured synchronously on click, before the sheet mounts — its own
+  // amount field autoFocus would otherwise steal focus first.
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
   return (
     <>
@@ -30,7 +33,10 @@ export function QuickActions({
             key={action.type}
             type="button"
             className="quick-action"
-            onClick={() => setOpenType(action.type)}
+            onClick={(e) => {
+              setTriggerElement(e.currentTarget);
+              setOpenType(action.type);
+            }}
           >
             <span className="quick-action-icon">{action.icon}</span>
             <span>{action.label}</span>
@@ -44,6 +50,7 @@ export function QuickActions({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           lastUsedIncomeName={lastUsedIncomeName}
+          returnFocusTo={triggerElement}
           onClose={() => setOpenType(null)}
         />
       )}

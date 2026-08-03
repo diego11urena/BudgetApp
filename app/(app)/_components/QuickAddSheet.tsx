@@ -9,6 +9,7 @@ import {
 } from "../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "./ToastProvider";
+import { useModalFocus } from "./useModalFocus";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 
@@ -34,6 +35,7 @@ export function QuickAddSheet({
   savingsCategoryNames,
   lastUsedIncomeName = null,
   editingTransaction = null,
+  returnFocusTo = null,
   onClose,
 }: {
   initialType: TxType;
@@ -45,6 +47,8 @@ export function QuickAddSheet({
   lastUsedIncomeName?: string | null;
   /** Present -> the sheet edits (and can delete) this transaction instead of creating a new one. */
   editingTransaction?: EditingTransaction | null;
+  /** The button that opened this sheet — focus returns here on close. Needed because the amount field's own autoFocus would otherwise race the trigger-capture. */
+  returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
@@ -114,6 +118,8 @@ export function QuickAddSheet({
     setVisible(false);
     setTimeout(onClose, 200);
   }
+
+  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -221,6 +227,7 @@ export function QuickAddSheet({
     >
       <div
         ref={sheetRef}
+        tabIndex={-1}
         className={`sheet ${visible ? "is-open" : ""}`}
         role="dialog"
         aria-modal="true"
