@@ -6,6 +6,8 @@ export interface BudgetGoalWithCategory {
   categoryName: string;
   targetAmount: number;
   recurring: boolean;
+  frequency: "BIWEEKLY" | "MONTHLY";
+  dueDay: number | null;
 }
 
 /** A cycle's budget goals for one category type, with plain-number amounts for display. */
@@ -25,5 +27,7 @@ export async function getCycleBudgetGoals(
     categoryName: goal.expenseCategory.name,
     targetAmount: goal.targetAmount.toNumber(),
     recurring: goal.expenseCategory.recurring,
+    frequency: goal.expenseCategory.frequency,
+    dueDay: goal.expenseCategory.dueDay,
   }));
 }

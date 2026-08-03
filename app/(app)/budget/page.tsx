@@ -10,6 +10,7 @@ import { iconForCategoryName } from "@/lib/category-icons";
 import { ProgressBar } from "../_components/ProgressBar";
 import { BudgetGoalForm } from "./_components/BudgetGoalForm";
 import { RecurringToggle } from "./_components/RecurringToggle";
+import { RecurringFrequencyControl } from "./_components/RecurringFrequencyControl";
 import { DeleteBudgetGoalButton } from "./_components/DeleteBudgetGoalButton";
 
 export default async function BudgetPage() {
@@ -70,6 +71,13 @@ export default async function BudgetPage() {
                   <RecurringToggle categoryId={row.categoryId} recurring={row.recurring} />
                   <DeleteBudgetGoalButton goalId={row.id} categoryName={row.categoryName} />
                 </div>
+                {row.recurring && (
+                  <RecurringFrequencyControl
+                    categoryId={row.categoryId}
+                    frequency={row.frequency}
+                    dueDay={row.dueDay}
+                  />
+                )}
               </div>
             );
           })}

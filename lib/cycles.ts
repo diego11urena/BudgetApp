@@ -12,6 +12,29 @@ export function formatCycleLabel(date: Date = new Date()): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+export type Quincena = "FIRST" | "SECOND";
+
+/** On/before the 15th of the month -> the first quincena; after -> the second. */
+export function quincenaForDay(day: number): Quincena {
+  return day <= 15 ? "FIRST" : "SECOND";
+}
+
+/**
+ * Whether a recurring category's most recent budget target should carry
+ * forward into a newly-created cycle. BIWEEKLY carries into every cycle —
+ * once per quincena, by definition. MONTHLY carries into exactly one
+ * quincena per month: whichever one dueDay falls in, matched against which
+ * quincena the new cycle itself is (by its own periodStart's day-of-month).
+ */
+export function shouldCarryForwardToCycle(
+  rule: { frequency: "BIWEEKLY" | "MONTHLY"; dueDay: number | null },
+  newCyclePeriodStart: Date,
+): boolean {
+  if (rule.frequency === "BIWEEKLY") return true;
+  if (rule.dueDay === null) return false;
+  return quincenaForDay(rule.dueDay) === quincenaForDay(newCyclePeriodStart.getDate());
+}
+
 /**
  * Returns the user's current open (DRAFT or ACTIVE) cycle, creating one if
  * none exists yet. Onboarding writes progressively into this same cycle's
@@ -115,18 +138,31 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
 
     // Only categories marked recurring auto-carry their most recent target
     // into the new cycle — a category's own setting, independent of any
-    // one cycle's targetAmount (which is never rewritten by this).
+    // one cycle's targetAmount (which is never rewritten by this). Which
+    // *cycles* a category carries into is a separate decision (see
+    // shouldCarryForwardToCycle): BIWEEKLY carries into all of them, MONTHLY
+    // only into the one quincena matching its dueDay.
     const previousGoals = await tx.cycleBudgetGoal.findMany({
       where: { cycleId: closed.id, expenseCategory: { recurring: true } },
+      include: { expenseCategory: true },
     });
 
     for (const goal of previousGoals) {
-      await tx.cycleBudgetGoal.create({
-        data: {
+      if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart)) continue;
+
+      // upsert, not create: makes this idempotent against a retry of this
+      // transaction, so a rule can never end up with two CycleBudgetGoal
+      // rows for the same new cycle.
+      await tx.cycleBudgetGoal.upsert({
+        where: {
+          cycleId_expenseCategoryId: { cycleId: created.id, expenseCategoryId: goal.expenseCategoryId },
+        },
+        create: {
           cycleId: created.id,
           expenseCategoryId: goal.expenseCategoryId,
           targetAmount: goal.targetAmount,
         },
+        update: {},
       });
     }
 

@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
-import { budgetGoalSchema } from "@/lib/validations/budget";
+import { budgetGoalSchema, recurringFrequencySchema } from "@/lib/validations/budget";
 
 export type BudgetGoalFormState = { error?: string } | undefined;
 
@@ -65,6 +65,42 @@ export async function toggleCategoryRecurringAction(formData: FormData): Promise
   await prisma.expenseCategory.updateMany({
     where: { id: categoryId, userId: session.user.id },
     data: { recurring },
+  });
+
+  revalidateAppPages();
+}
+
+/**
+ * Sets how a recurring category's target carries forward: BIWEEKLY (every
+ * cycle) or MONTHLY (only the one quincena matching dueDay). See
+ * shouldCarryForwardToCycle in lib/cycles.ts for where this is consumed.
+ */
+export async function updateCategoryFrequencyAction(
+  formData: FormData,
+): Promise<{ error?: string } | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const categoryId = formData.get("categoryId");
+  if (typeof categoryId !== "string" || !categoryId) {
+    return { error: "Missing category" };
+  }
+
+  const parsed = recurringFrequencySchema.safeParse({
+    frequency: formData.get("frequency"),
+    dueDay: formData.get("dueDay") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const { frequency, dueDay } = parsed.data;
+
+  // Ownership-scoped, same reasoning as toggleCategoryRecurringAction above.
+  await prisma.expenseCategory.updateMany({
+    where: { id: categoryId, userId: session.user.id },
+    data: { frequency, dueDay: frequency === "MONTHLY" ? dueDay : null },
   });
 
   revalidateAppPages();

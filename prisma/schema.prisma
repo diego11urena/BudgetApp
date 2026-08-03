@@ -97,6 +97,11 @@ enum CategoryType {
   SAVINGS
 }
 
+enum RecurringFrequency {
+  BIWEEKLY
+  MONTHLY
+}
+
 model ExpenseCategory {
   id        String       @id @default(cuid())
   userId    String
@@ -117,6 +122,15 @@ model ExpenseCategory {
   // the overall target total, distinct from CycleBudgetGoal.targetAmount
   // (that's the recurring per-cycle contribution). Non-null == "is a goal".
   lifetimeTargetAmount Decimal? @db.Decimal(12, 2)
+
+  // Only meaningful when recurring == true. BIWEEKLY carries the target into
+  // every new cycle (once per quincena, by definition). MONTHLY carries it
+  // into exactly one quincena per month, chosen by dueDay: on/before the
+  // 15th -> the first quincena of the month, after the 15th -> the second.
+  // Defaults to BIWEEKLY so every category that existed before this field
+  // was added keeps its old "carries into every cycle" behavior unchanged.
+  frequency RecurringFrequency @default(BIWEEKLY)
+  dueDay    Int?
 
   budgetGoals  CycleBudgetGoal[]
   transactions CycleTransaction[]
