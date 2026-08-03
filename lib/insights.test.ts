@@ -49,6 +49,32 @@ describe("generateInsights", () => {
     expect(insights[0]).toBe("Groceries spending is down $58.00 vs last cycle.");
   });
 
+  it("still matches the category across a rename (id stable, name changed)", () => {
+    const current = makeFinancials({
+      amountLeft: 1000,
+      topCategories: [{ categoryId: "c1", categoryName: "Food", amount: 200 }],
+    });
+    const previous = makeFinancials({
+      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", amount: 150 }],
+    });
+
+    const insights = generateInsights(current, [previous]);
+    expect(insights[0]).toBe("Food spending is up $50.00 vs last cycle.");
+  });
+
+  it("does not false-match two different categories that happen to share a name", () => {
+    const current = makeFinancials({
+      amountLeft: 1000,
+      topCategories: [{ categoryId: "c1", categoryName: "Travel", amount: 200 }],
+    });
+    const previous = makeFinancials({
+      categoryTotals: [{ categoryId: "c2", categoryName: "Travel", amount: 158 }],
+    });
+
+    const insights = generateInsights(current, [previous]);
+    expect(insights[0]).not.toContain("Travel spending is");
+  });
+
   it("restates a positive amount left as on-track", () => {
     const insights = generateInsights(makeFinancials({ amountLeft: 630 }), [makeFinancials()]);
     expect(insights).toContain("You're on track to have $630.00 left this cycle.");

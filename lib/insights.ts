@@ -20,7 +20,7 @@ export function generateInsights(
   const topCategory = current.topCategories[0];
   if (topCategory) {
     const previousForCategory = mostRecent.categoryTotals.find(
-      (c) => c.categoryName === topCategory.categoryName,
+      (c) => c.categoryId === topCategory.categoryId,
     );
     if (previousForCategory) {
       const delta = topCategory.amount - previousForCategory.amount;
