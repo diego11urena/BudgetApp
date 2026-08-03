@@ -20,6 +20,11 @@
   --color-warning-bg: rgba(217, 160, 91, 0.15);
   --color-error-bg: rgba(193, 112, 106, 0.15);
   --shadow-color: rgba(47, 58, 47, 0.08);
+  /* Filled surfaces with --color-on-accent text on top (buttons, active
+     chips) — same as --color-accent-green in light mode; dark mode gives
+     it its own darker shade so it can both hold light text AND still let
+     --color-accent-green stay light enough for its text-on-dark uses. */
+  --color-button-bg: var(--color-accent-green);
 
   /* Aliases so existing rules referencing page-level bg/fg stay in sync. */
   --background: var(--color-bg);
@@ -32,7 +37,11 @@
     --color-bg-secondary: #26241e;
     --color-card: #2a2822;
     --color-primary-green: #8fbf8a;
-    --color-secondary-green: #6fa36a;
+    /* Darkened from #6fa36a (same hue, ~53% -> ~36% lightness): as text
+       (.toast-action) on the toast's light surface it read at 2.55:1;
+       now 4.93:1. Still used unmodified as a decorative hover fill
+       elsewhere, where text contrast doesn't apply. */
+    --color-secondary-green: #487047;
     --color-accent-green: #7fae7b;
     --color-text-primary: #f2eee6;
     --color-text-secondary: #b8b2a5;
@@ -45,6 +54,13 @@
     --color-warning-bg: rgba(224, 179, 120, 0.15);
     --color-error-bg: rgba(214, 139, 132, 0.15);
     --shadow-color: rgba(0, 0, 0, 0.25);
+    /* --color-accent-green (#7fae7b) is light enough to read well as text
+       on this mode's dark surfaces (hero-action-link, active nav/tabs),
+       but that's too light for --color-on-accent (near-white) text to sit
+       on top of as a button fill — was 2.51:1. Darkened same hue instead
+       of touching --color-accent-green, which would break those other
+       passing uses. */
+    --color-button-bg: #4d7a49;
 
     --background: var(--color-bg);
     --foreground: var(--color-text-primary);
@@ -155,7 +171,7 @@ a {
   padding: 0.6rem 1.2rem;
   border-radius: 0.4rem;
   border: none;
-  background: var(--color-accent-green);
+  background: var(--color-button-bg);
   color: var(--color-on-accent);
   font-size: 1rem;
   font-weight: 600;
@@ -669,8 +685,8 @@ a {
 }
 
 .category-chip.is-active {
-  background: var(--color-accent-green);
-  border-color: var(--color-accent-green);
+  background: var(--color-button-bg);
+  border-color: var(--color-button-bg);
   color: var(--color-on-accent);
 }
 
