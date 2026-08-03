@@ -1,5 +1,5 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 
 /**
  * Rule-based insights from real cycle history — no LLM call. Rules run in
@@ -27,17 +27,17 @@ export function generateInsights(
       if (Math.abs(delta) >= 1) {
         const direction = delta > 0 ? "up" : "down";
         insights.push(
-          `${topCategory.categoryName} spending is ${direction} ${formatUSD(Math.abs(delta))} vs last cycle.`,
+          `${topCategory.categoryName} spending is ${direction} ${formatCurrency(Math.abs(delta))} vs last cycle.`,
         );
       }
     }
   }
 
   if (current.amountLeft >= 0) {
-    insights.push(`You're on track to have ${formatUSD(current.amountLeft)} left this cycle.`);
+    insights.push(`You're on track to have ${formatCurrency(current.amountLeft)} left this cycle.`);
   } else {
     insights.push(
-      `You're ${formatUSD(Math.abs(current.amountLeft))} over budget this cycle so far.`,
+      `You're ${formatCurrency(Math.abs(current.amountLeft))} over budget this cycle so far.`,
     );
   }
 

@@ -7,7 +7,7 @@ import {
   restoreTransactionAction,
   updateTransactionAction,
 } from "../_actions/transactions";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { useToast } from "./ToastProvider";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
@@ -133,7 +133,7 @@ export function QuickAddSheet({
       const amountNumber = Number(formData.get("amount"));
       const label = String(formData.get("name") ?? "").trim() || "transaction";
       const newTransactionId = result.transactionId;
-      showToast(`Logged ${formatUSD(amountNumber)} for ${label}`, {
+      showToast(`Logged ${formatCurrency(amountNumber)} for ${label}`, {
         label: "Undo",
         onClick: () => {
           const fd = new FormData();

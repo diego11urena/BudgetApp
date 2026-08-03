@@ -144,9 +144,27 @@ a {
   font-weight: 600;
 }
 
-.field input,
+/* A label wrapping a checkbox is the checkbox's whole tap target — make
+   that full row at least 44px tall instead of just the native checkbox box. */
+.checkbox-field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.checkbox-field-label input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.field input:not([type="checkbox"]),
 .field select {
   padding: 0.55rem 0.7rem;
+  min-height: 44px;
   border-radius: 0.4rem;
   border: 1px solid var(--color-border);
   background: var(--color-card);
@@ -168,6 +186,10 @@ a {
 }
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 0.6rem 1.2rem;
   border-radius: 0.4rem;
   border: none;
@@ -237,7 +259,20 @@ a {
 }
 
 .step-progress a {
+  position: relative;
   cursor: pointer;
+}
+
+/* The bar itself stays a thin 4px indicator; this invisibly extends the
+   actual tap target to 44px so it's not a sliver to aim for on mobile. */
+.step-progress a::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 44px;
+  transform: translateY(-50%);
 }
 
 .step-progress a:hover {
@@ -347,9 +382,13 @@ a {
 }
 
 .home-profile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   font-size: 1.5rem;
   line-height: 1;
-  padding: 0.4rem;
   border-radius: 999px;
   background: var(--color-bg-secondary);
 }
@@ -403,6 +442,10 @@ a {
 }
 
 .hero-action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--color-accent-green);
@@ -620,6 +663,10 @@ a {
 
 .type-toggle-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   border: none;
   background: transparent;
   color: var(--color-text-secondary);
@@ -672,6 +719,9 @@ a {
 
 .category-chip {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   border: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
   color: var(--foreground);
@@ -705,6 +755,7 @@ a {
 
 .sheet-delete {
   width: 100%;
+  min-height: 44px;
   margin-top: 0.75rem;
   padding: 0.7rem 1.2rem;
   border-radius: 0.4rem;
@@ -876,6 +927,9 @@ a {
 }
 
 .icon-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   background: transparent;
   border: none;
   color: inherit;
@@ -993,6 +1047,7 @@ a {
 }
 
 .toast-action {
+  position: relative;
   flex: 0 0 auto;
   background: none;
   border: none;
@@ -1002,6 +1057,18 @@ a {
   font-weight: 700;
   cursor: pointer;
   padding: 0.25rem 0;
+}
+
+/* The toast itself is compact; this invisibly extends Undo's tap target
+   to 44px tall (and a bit wider) without growing the toast visually. */
+.toast-action::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -8px;
+  right: -8px;
+  height: 44px;
+  transform: translateY(-50%);
 }
 
 .bottom-nav-item.is-active .bottom-nav-icon {

@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { computeNetIncomeForCycle } from "@/lib/panama-tax";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { updateIncomeAction, type IncomeSettingsFormState } from "../actions";
 
 const initialState: IncomeSettingsFormState = undefined;
@@ -49,14 +49,13 @@ export function IncomeSettingsForm({ initial }: { initial: IncomeSettingsInitial
         />
       </div>
       <div className="field">
-        <label htmlFor="income-panama">
+        <label htmlFor="income-panama" className="checkbox-field-label">
           <input
             id="income-panama"
             name="isPanamaPayroll"
             type="checkbox"
             checked={isPanamaPayroll}
             onChange={(e) => setIsPanamaPayroll(e.target.checked)}
-            style={{ marginRight: "0.5rem" }}
           />
           Subject to Panama payroll deductions (CSS, Seguro Educativo, ISR)
         </label>
@@ -66,11 +65,11 @@ export function IncomeSettingsForm({ initial }: { initial: IncomeSettingsInitial
         <div className="preview-box">
           <div className="line-item">
             <span>Net monthly salary</span>
-            <span>{formatUSD(breakdown.netMonthlyAmount.toNumber())}</span>
+            <span>{formatCurrency(breakdown.netMonthlyAmount.toNumber())}</span>
           </div>
           <div className="line-item">
             <strong>Net per quincena</strong>
-            <strong>{formatUSD(breakdown.netQuincenaAmount.toNumber())}</strong>
+            <strong>{formatCurrency(breakdown.netQuincenaAmount.toNumber())}</strong>
           </div>
         </div>
       )}

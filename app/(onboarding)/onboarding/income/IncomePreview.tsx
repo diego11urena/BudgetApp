@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { computeNetIncomeForCycle } from "@/lib/panama-tax";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import type { IncomeFormInitial } from "./IncomeForm";
 
 export function IncomePreview({ initial }: { initial?: IncomeFormInitial }) {
@@ -36,14 +36,13 @@ export function IncomePreview({ initial }: { initial?: IncomeFormInitial }) {
         </span>
       </div>
       <div className="field">
-        <label htmlFor="isPanamaPayroll">
+        <label htmlFor="isPanamaPayroll" className="checkbox-field-label">
           <input
             id="isPanamaPayroll"
             name="isPanamaPayroll"
             type="checkbox"
             checked={isPanamaPayroll}
             onChange={(e) => setIsPanamaPayroll(e.target.checked)}
-            style={{ marginRight: "0.5rem" }}
           />
           Subject to Panama payroll deductions (CSS, Seguro Educativo, ISR)
         </label>
@@ -53,31 +52,31 @@ export function IncomePreview({ initial }: { initial?: IncomeFormInitial }) {
         <div className="preview-box">
           <div className="line-item">
             <span>Gross (monthly)</span>
-            <span>{formatUSD(breakdown.grossMonthlyAmount.toNumber())}</span>
+            <span>{formatCurrency(breakdown.grossMonthlyAmount.toNumber())}</span>
           </div>
           {isPanamaPayroll && (
             <>
               <div className="line-item">
                 <span>CSS (9.75%)</span>
-                <span>-{formatUSD(breakdown.monthlyCssDeduction.toNumber())}</span>
+                <span>-{formatCurrency(breakdown.monthlyCssDeduction.toNumber())}</span>
               </div>
               <div className="line-item">
                 <span>Seguro Educativo (1.25%)</span>
-                <span>-{formatUSD(breakdown.monthlySeguroEducativoDeduction.toNumber())}</span>
+                <span>-{formatCurrency(breakdown.monthlySeguroEducativoDeduction.toNumber())}</span>
               </div>
               <div className="line-item">
                 <span>ISR (est.)</span>
-                <span>-{formatUSD(breakdown.monthlyIsrDeduction.toNumber())}</span>
+                <span>-{formatCurrency(breakdown.monthlyIsrDeduction.toNumber())}</span>
               </div>
             </>
           )}
           <div className="line-item">
             <span>Net monthly salary</span>
-            <span>{formatUSD(breakdown.netMonthlyAmount.toNumber())}</span>
+            <span>{formatCurrency(breakdown.netMonthlyAmount.toNumber())}</span>
           </div>
           <div className="line-item">
             <strong>Net per quincena</strong>
-            <strong>{formatUSD(breakdown.netQuincenaAmount.toNumber())}</strong>
+            <strong>{formatCurrency(breakdown.netQuincenaAmount.toNumber())}</strong>
           </div>
         </div>
       )}

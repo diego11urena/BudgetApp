@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { QuickAddSheet, type EditingTransaction } from "./QuickAddSheet";
 
 const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
@@ -49,7 +49,7 @@ export function TransactionList({
             className={`transaction-amount ${tx.type === "INCOME" ? "transaction-amount--income" : ""}`}
           >
             {tx.type === "INCOME" ? "+" : "-"}
-            {formatUSD(tx.amount)}
+            {formatCurrency(tx.amount)}
           </span>
         </button>
       ))}

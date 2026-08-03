@@ -9,7 +9,7 @@ import {
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
 import { BudgetProgressCard } from "./_components/BudgetProgressCard";
@@ -135,7 +135,7 @@ export default async function DashboardPage({
                 <span>
                   {c.label} ({c.status})
                 </span>
-                <span>{formatUSD(cFinancials.amountLeft)} left</span>
+                <span>{formatCurrency(cFinancials.amountLeft)} left</span>
               </div>
             );
           })}

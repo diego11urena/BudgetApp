@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getOrderedCategoryNames } from "@/lib/category-order";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import { ProgressBar } from "../_components/ProgressBar";
 import { GoalForm } from "./_components/GoalForm";
@@ -35,13 +35,13 @@ export default async function GoalsPage() {
                   {iconForCategoryName(goal.name)} {goal.name}
                 </span>
                 <span>
-                  {formatUSD(goal.savedSoFar)} / {formatUSD(goal.lifetimeTargetAmount)}
+                  {formatCurrency(goal.savedSoFar)} / {formatCurrency(goal.lifetimeTargetAmount)}
                 </span>
               </div>
               <ProgressBar current={goal.savedSoFar} target={goal.lifetimeTargetAmount} />
               {goal.currentCycleRecurringAmount !== null && (
                 <p className="field-hint" style={{ marginTop: "0.35rem" }}>
-                  {formatUSD(goal.currentCycleRecurringAmount)} per cycle
+                  {formatCurrency(goal.currentCycleRecurringAmount)} per cycle
                 </p>
               )}
               <form action={removeGoalAction} style={{ marginTop: "0.5rem" }}>

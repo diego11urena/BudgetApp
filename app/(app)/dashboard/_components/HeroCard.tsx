@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
@@ -32,13 +32,13 @@ export function HeroCard({
       <div className="hero-card">
         <p className="hero-label">Available to spend</p>
         <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
-          {formatUSD(amountLeft)}
+          {formatCurrency(amountLeft)}
         </p>
         <p className="hero-subtitle">Remaining this Quincena</p>
         <p className={`hero-pace ${pace.isOverPace ? "hero-pace--warning" : ""}`}>
-          {formatUSD(amountLeft)} left · {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"}{" "}
+          {formatCurrency(amountLeft)} left · {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"}{" "}
           left ·{" "}
-          {pace.isLastDay ? "Last day of this quincena" : `~${formatUSD(pace.perDay)}/day`}
+          {pace.isLastDay ? "Last day of this quincena" : `~${formatCurrency(pace.perDay)}/day`}
         </p>
         <button
           type="button"

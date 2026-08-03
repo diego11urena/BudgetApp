@@ -1,4 +1,4 @@
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import type { CycleClosedSummary } from "../actions";
 
@@ -21,18 +21,18 @@ export function CycleClosedCard({
         <div className="summary-row">
           <div className="summary-item">
             <span className="summary-label">Spent</span>
-            <span className="summary-value">{formatUSD(summary.spent)}</span>
+            <span className="summary-value">{formatCurrency(summary.spent)}</span>
           </div>
           <div className="summary-item">
             <span className="summary-label">Saved</span>
-            <span className="summary-value summary-value--good">{formatUSD(summary.saved)}</span>
+            <span className="summary-value summary-value--good">{formatCurrency(summary.saved)}</span>
           </div>
           <div className="summary-item">
             <span className="summary-label">Rolled over</span>
             <span
               className={`summary-value ${isPositiveRollover ? "summary-value--good" : ""}`}
             >
-              {formatUSD(summary.rolledOver)}
+              {formatCurrency(summary.rolledOver)}
             </span>
           </div>
         </div>
@@ -42,13 +42,13 @@ export function CycleClosedCard({
             <span>
               {iconForCategoryName(summary.topCategory.name)} Top category: {summary.topCategory.name}
             </span>
-            <span>{formatUSD(summary.topCategory.amount)}</span>
+            <span>{formatCurrency(summary.topCategory.amount)}</span>
           </div>
         )}
 
         {summary.budget.hasBudget && (
           <div className={`banner ${isOver ? "banner--critical" : "banner--good"}`}>
-            {isOver ? `Over budget by ${formatUSD(summary.budget.overBy)}` : "On budget"}
+            {isOver ? `Over budget by ${formatCurrency(summary.budget.overBy)}` : "On budget"}
           </div>
         )}
 

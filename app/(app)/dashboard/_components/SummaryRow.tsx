@@ -1,4 +1,4 @@
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 
 export function SummaryRow({
   income,
@@ -13,15 +13,15 @@ export function SummaryRow({
     <div className="summary-row summary-row--home">
       <div className="summary-item">
         <span className="summary-label">Income</span>
-        <span className="summary-value summary-value--good">{formatUSD(income)}</span>
+        <span className="summary-value summary-value--good">{formatCurrency(income)}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">Expenses</span>
-        <span className="summary-value">{formatUSD(expenses)}</span>
+        <span className="summary-value">{formatCurrency(expenses)}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">Saved</span>
-        <span className="summary-value summary-value--good">{formatUSD(saved)}</span>
+        <span className="summary-value summary-value--good">{formatCurrency(saved)}</span>
       </div>
     </div>
   );

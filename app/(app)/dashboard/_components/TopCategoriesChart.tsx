@@ -1,5 +1,5 @@
 import type { CategoryTotal } from "@/lib/cycle-financials";
-import { formatUSD } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 
 export function TopCategoriesChart({ categories }: { categories: CategoryTotal[] }) {
@@ -30,7 +30,7 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
                 style={{ width: `${(category.amount / maxAmount) * 100}%` }}
               />
             </div>
-            <span className="bar-chart-value">{formatUSD(category.amount)}</span>
+            <span className="bar-chart-value">{formatCurrency(category.amount)}</span>
           </div>
         ))}
       </div>
