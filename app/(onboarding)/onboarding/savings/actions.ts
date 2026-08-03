@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getOrCreateCategory } from "@/lib/categories";
 import { budgetLineItemsSchema } from "@/lib/validations/onboarding";
 
 export type SavingsFormState = { error?: string } | undefined;
@@ -41,11 +42,7 @@ export async function saveSavingsAction(
     });
 
     for (const item of parsed.data.items) {
-      const category = await tx.expenseCategory.upsert({
-        where: { userId_name_type: { userId, name: item.name, type: "SAVINGS" } },
-        create: { userId, name: item.name, type: "SAVINGS" },
-        update: {},
-      });
+      const category = await getOrCreateCategory(tx, userId, item.name, "SAVINGS");
 
       await tx.cycleBudgetGoal.upsert({
         where: {

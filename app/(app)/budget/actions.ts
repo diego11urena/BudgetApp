@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getOrCreateCategory } from "@/lib/categories";
 import { budgetGoalSchema } from "@/lib/validations/budget";
 
 export type BudgetGoalFormState = { error?: string } | undefined;
@@ -41,11 +42,7 @@ export async function upsertBudgetGoalAction(
   // Amount edits never touch `recurring` — that's a separate, category-level
   // setting changed only via toggleCategoryRecurringAction below, so editing
   // an existing target's amount here can't accidentally flip it.
-  const category = await prisma.expenseCategory.upsert({
-    where: { userId_name_type: { userId, name, type: "EXPENSE" } },
-    create: { userId, name, type: "EXPENSE" },
-    update: {},
-  });
+  const category = await getOrCreateCategory(prisma, userId, name, "EXPENSE");
 
   await prisma.cycleBudgetGoal.upsert({
     where: {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getOrCreateCategory } from "@/lib/categories";
 import { addTransactionSchema } from "@/lib/validations/transactions";
 
 /** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
@@ -57,11 +58,7 @@ export async function addTransactionAction(
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
-    const category = await prisma.expenseCategory.upsert({
-      where: { userId_name_type: { userId, name, type } },
-      create: { userId, name, type },
-      update: {},
-    });
+    const category = await getOrCreateCategory(prisma, userId, name, type);
     expenseCategoryId = category.id;
   }
 
@@ -120,11 +117,7 @@ export async function updateTransactionAction(
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
-    const category = await prisma.expenseCategory.upsert({
-      where: { userId_name_type: { userId, name, type } },
-      create: { userId, name, type },
-      update: {},
-    });
+    const category = await getOrCreateCategory(prisma, userId, name, type);
     expenseCategoryId = category.id;
   }
 
@@ -228,11 +221,7 @@ export async function restoreTransactionAction(
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
-    const category = await prisma.expenseCategory.upsert({
-      where: { userId_name_type: { userId, name, type } },
-      create: { userId, name, type },
-      update: {},
-    });
+    const category = await getOrCreateCategory(prisma, userId, name, type);
     expenseCategoryId = category.id;
   }
 

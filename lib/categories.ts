@@ -1,0 +1,34 @@
+import type { Prisma, PrismaClient } from "@/app/generated/prisma/client";
+
+type Db = PrismaClient | Prisma.TransactionClient;
+
+/**
+ * Finds a user's category by name+type, creating it if it doesn't exist
+ * yet. The single canonical way every callsite that just needs to resolve a
+ * free-text category name (an amount sheet's typed/selected category, a
+ * budget target's name, an onboarding line item) to its ExpenseCategory id
+ * should do it — a category-name collision across type (bug: creating a
+ * Goal with the same name as an existing Budget category silently failing
+ * to appear anywhere) traced back to these upsert clauses having quietly
+ * drifted from each other. Accepts either the top-level Prisma client or an
+ * interactive $transaction's tx client, since callers that need this inside
+ * a larger atomic write (onboarding's expenses/savings steps) still need it
+ * to participate in that transaction.
+ *
+ * Not used by callers that need the upsert's *update* branch to do real
+ * work (e.g. goals/actions.ts sets lifetimeTargetAmount/recurring on every
+ * upsert, not just on create) — those aren't this same "resolve a name"
+ * pattern and stay as their own explicit upsert.
+ */
+export function getOrCreateCategory(
+  db: Db,
+  userId: string,
+  name: string,
+  type: "EXPENSE" | "SAVINGS",
+) {
+  return db.expenseCategory.upsert({
+    where: { userId_name_type: { userId, name, type } },
+    create: { userId, name, type },
+    update: {},
+  });
+}
