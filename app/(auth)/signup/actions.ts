@@ -5,8 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { signIn } from "@/lib/auth";
 import { signupSchema } from "@/lib/validations/onboarding";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export type SignupFormState = { error?: string } | undefined;
+
+const SIGNUP_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 
 export async function signupAction(
   _prevState: SignupFormState,
@@ -23,6 +26,11 @@ export async function signupAction(
   }
 
   const { name, email, password } = parsed.data;
+
+  const rateLimit = checkRateLimit(`signup:${email.toLowerCase()}`, SIGNUP_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
