@@ -1,0 +1,143 @@
+import { describe, expect, it } from "vitest";
+import { summarizeCycleFinancials } from "./cycle-financials";
+
+function decimal(value: number) {
+  return { toNumber: () => value };
+}
+
+function tx(
+  type: "EXPENSE" | "INCOME" | "SAVINGS",
+  amount: number,
+  overrides: { name?: string; category?: { id: string; name: string } | null } = {},
+) {
+  return {
+    id: `${type}-${Math.random()}`,
+    type,
+    name: overrides.name ?? type,
+    amount: decimal(amount),
+    occurredAt: new Date(2026, 7, 2),
+    expenseCategory: overrides.category ?? null,
+  };
+}
+
+describe("summarizeCycleFinancials", () => {
+  it("sums base income from every income entry", () => {
+    const result = summarizeCycleFinancials(
+      [{ netAmount: decimal(500) }, { netAmount: decimal(300) }],
+      [],
+    );
+    expect(result.baseIncome).toBe(800);
+  });
+
+  it("computes amountLeft as income minus expenses minus savings", () => {
+    const result = summarizeCycleFinancials(
+      [{ netAmount: decimal(1000) }],
+      [
+        tx("EXPENSE", 200),
+        tx("EXPENSE", 50),
+        tx("SAVINGS", 100),
+        tx("INCOME", 75),
+      ],
+    );
+    expect(result.extraIncome).toBe(75);
+    expect(result.totalExpenses).toBe(250);
+    expect(result.totalSavings).toBe(100);
+    // 1000 (base) + 75 (extra) - 250 (expenses) - 100 (savings) = 725
+    expect(result.amountLeft).toBe(725);
+  });
+
+  it("can go negative when spending exceeds income", () => {
+    const result = summarizeCycleFinancials(
+      [{ netAmount: decimal(100) }],
+      [tx("EXPENSE", 300)],
+    );
+    expect(result.amountLeft).toBe(-200);
+  });
+
+  it("groups expense totals by category and sums within each", () => {
+    const groceries = { id: "cat-groceries", name: "Groceries" };
+    const rent = { id: "cat-rent", name: "Rent" };
+    const result = summarizeCycleFinancials(
+      [],
+      [
+        tx("EXPENSE", 30, { category: groceries }),
+        tx("EXPENSE", 20, { category: groceries }),
+        tx("EXPENSE", 800, { category: rent }),
+      ],
+    );
+    const groceriesTotal = result.categoryTotals.find((c) => c.categoryId === "cat-groceries");
+    const rentTotal = result.categoryTotals.find((c) => c.categoryId === "cat-rent");
+    expect(groceriesTotal?.amount).toBe(50);
+    expect(rentTotal?.amount).toBe(800);
+  });
+
+  it("sorts categoryTotals descending by amount", () => {
+    const result = summarizeCycleFinancials(
+      [],
+      [
+        tx("EXPENSE", 10, { category: { id: "small", name: "Small" } }),
+        tx("EXPENSE", 999, { category: { id: "big", name: "Big" } }),
+        tx("EXPENSE", 100, { category: { id: "mid", name: "Mid" } }),
+      ],
+    );
+    expect(result.categoryTotals.map((c) => c.categoryId)).toEqual(["big", "mid", "small"]);
+  });
+
+  it("excludes SAVINGS/INCOME transactions and uncategorized expenses from categoryTotals", () => {
+    const result = summarizeCycleFinancials(
+      [],
+      [
+        tx("SAVINGS", 100, { category: { id: "cat-savings", name: "Emergency Fund" } }),
+        tx("INCOME", 50),
+        tx("EXPENSE", 20, { category: null }),
+      ],
+    );
+    expect(result.categoryTotals).toEqual([]);
+  });
+
+  it("caps topCategories at 5 even with more categories present", () => {
+    const categories = Array.from({ length: 8 }, (_, i) => ({ id: `cat-${i}`, name: `Cat ${i}` }));
+    const transactions = categories.map((category, i) =>
+      tx("EXPENSE", (i + 1) * 10, { category }),
+    );
+    const result = summarizeCycleFinancials([], transactions);
+    expect(result.categoryTotals).toHaveLength(8);
+    expect(result.topCategories).toHaveLength(5);
+    // Highest amounts (cat-7..cat-3) should be the top 5.
+    expect(result.topCategories.map((c) => c.categoryId)).toEqual([
+      "cat-7",
+      "cat-6",
+      "cat-5",
+      "cat-4",
+      "cat-3",
+    ]);
+  });
+
+  it("returns zeroed totals for an empty cycle", () => {
+    const result = summarizeCycleFinancials([], []);
+    expect(result).toMatchObject({
+      baseIncome: 0,
+      extraIncome: 0,
+      totalExpenses: 0,
+      totalSavings: 0,
+      amountLeft: 0,
+      transactions: [],
+      categoryTotals: [],
+      topCategories: [],
+    });
+  });
+
+  it("maps each transaction's categoryName from its linked category, null when uncategorized", () => {
+    const result = summarizeCycleFinancials(
+      [],
+      [
+        tx("EXPENSE", 20, { category: { id: "cat-1", name: "Groceries" }, name: "Weekly shop" }),
+        tx("INCOME", 50, { name: "Bonus" }),
+      ],
+    );
+    const [expenseRow, incomeRow] = result.transactions;
+    expect(expenseRow.name).toBe("Weekly shop");
+    expect(expenseRow.categoryName).toBe("Groceries");
+    expect(incomeRow.categoryName).toBeNull();
+  });
+});
