@@ -1009,6 +1009,59 @@ a {
   opacity: 1;
 }
 
+/* Profile > Manage categories: inline rename + merge-into per row */
+.category-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-manage-row {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.category-manage-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.category-manage-rename,
+.category-manage-merge {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.category-manage-rename {
+  margin-bottom: 0.5rem;
+}
+
+.category-manage-rename input,
+.category-manage-merge select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  min-height: 40px;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.category-manage-merge-confirm {
+  background: var(--color-bg-secondary);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.category-manage-merge-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 /* Per-category recurring toggle on Budget targets */
 .recurring-toggle {
   display: inline-flex;

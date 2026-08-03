@@ -13,3 +13,6 @@ export const decimalString = z
   .trim()
   .regex(/^\d{1,10}(\.\d{1,2})?$/, "Enter a valid amount (e.g. 1234.56)")
   .refine((value) => Number(value) > 0, "Amount must be greater than $0");
+
+/** A category/goal/income-source name — shared so length/emptiness rules stay in sync everywhere one is entered. */
+export const categoryNameSchema = z.string().trim().min(1, "Give it a name").max(100);

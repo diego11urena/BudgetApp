@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { IncomeSettingsForm } from "./_components/IncomeSettingsForm";
 import { DevResetButton } from "./_components/DevResetButton";
+import { ManageCategories } from "./_components/ManageCategories";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -13,7 +14,7 @@ export default async function ProfilePage() {
   }
   const userId = session.user.id;
 
-  const [user, incomeSource] = await Promise.all([
+  const [user, incomeSource, categories] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true, createdAt: true },
@@ -21,6 +22,11 @@ export default async function ProfilePage() {
     prisma.incomeSource.findFirst({
       where: { userId, isActive: true },
       orderBy: { createdAt: "asc" },
+    }),
+    prisma.expenseCategory.findMany({
+      where: { userId },
+      orderBy: [{ type: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, type: true },
     }),
   ]);
 
@@ -52,6 +58,15 @@ export default async function ProfilePage() {
           />
         </div>
       )}
+
+      <div className="dashboard-section">
+        <h2>Manage categories</h2>
+        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
+          Rename a typo&apos;d category, or merge two into one — moves all its transactions and
+          budget history along with it.
+        </p>
+        <ManageCategories categories={categories} />
+      </div>
 
       <div className="dashboard-section">
         <form action={signOutAction}>
