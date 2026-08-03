@@ -959,6 +959,39 @@ a {
   color: var(--color-success);
 }
 
+.transaction-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.transaction-filters-search,
+.transaction-filters-row select {
+  padding: 0.55rem 0.7rem;
+  min-height: 44px;
+  border-radius: 0.4rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--foreground);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.transaction-filters-search {
+  width: 100%;
+}
+
+.transaction-filters-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.transaction-filters-row select {
+  flex: 1;
+  min-width: 0;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;
