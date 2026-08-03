@@ -5,6 +5,7 @@ import { formatCurrency } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
+import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 
 export function HeroCard({
   amountLeft,
@@ -16,11 +17,13 @@ export function HeroCard({
   totalExpenses: number;
 }) {
   const [pending, setPending] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
   const isPositive = amountLeft >= 0;
   const pace = computeQuincenaPace({ periodStart, now: new Date(), amountLeft, totalExpenses });
 
-  async function handleJustGotPaid() {
+  async function handleConfirmedJustGotPaid() {
+    setConfirming(false);
     setPending(true);
     const summary = await justGotPaidAction();
     setPending(false);
@@ -43,12 +46,19 @@ export function HeroCard({
         <button
           type="button"
           className="hero-action-link"
-          onClick={handleJustGotPaid}
+          onClick={() => setConfirming(true)}
           disabled={pending}
         >
           {pending ? "Closing quincena..." : "I just got paid →"}
         </button>
       </div>
+
+      {confirming && (
+        <ConfirmJustGotPaidSheet
+          onConfirm={handleConfirmedJustGotPaid}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
 
       {closedSummary && (
         <CycleClosedCard summary={closedSummary} onDismiss={() => setClosedSummary(null)} />
