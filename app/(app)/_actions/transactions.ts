@@ -1,11 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
+import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema } from "@/lib/validations/transactions";
 
 /** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
@@ -24,14 +24,6 @@ export type DeleteTransactionResult =
   | { error: string }
   | { deleted: DeletedTransactionSnapshot }
   | undefined;
-
-/** Any transaction/budget/goal mutation can affect all 4 of these pages. */
-function revalidateAppPages() {
-  revalidatePath("/dashboard");
-  revalidatePath("/transactions");
-  revalidatePath("/budget");
-  revalidatePath("/goals");
-}
 
 export async function addTransactionAction(
   _prevState: TransactionMutationResult,

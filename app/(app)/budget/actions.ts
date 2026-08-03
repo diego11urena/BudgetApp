@@ -1,21 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
+import { revalidateAppPages } from "@/lib/revalidate";
 import { budgetGoalSchema } from "@/lib/validations/budget";
 
 export type BudgetGoalFormState = { error?: string } | undefined;
-
-function revalidateAppPages() {
-  revalidatePath("/dashboard");
-  revalidatePath("/transactions");
-  revalidatePath("/budget");
-  revalidatePath("/goals");
-}
 
 export async function upsertBudgetGoalAction(
   _prevState: BudgetGoalFormState,

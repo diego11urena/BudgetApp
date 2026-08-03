@@ -1,20 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { revalidateAppPages } from "@/lib/revalidate";
 import { goalSchema } from "@/lib/validations/goals";
 
 export type GoalFormState = { error?: string } | undefined;
-
-function revalidateAppPages() {
-  revalidatePath("/dashboard");
-  revalidatePath("/transactions");
-  revalidatePath("/budget");
-  revalidatePath("/goals");
-}
 
 export async function upsertGoalAction(
   _prevState: GoalFormState,
