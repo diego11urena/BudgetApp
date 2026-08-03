@@ -10,6 +10,7 @@ import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
 import { formatCurrency } from "@/lib/format";
+import Link from "next/link";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
 import { BudgetProgressCard } from "./_components/BudgetProgressCard";
@@ -131,12 +132,12 @@ export default async function DashboardPage({
           {recentCycles.map((c) => {
             const cFinancials = summarizeCycleFinancials(c.incomeEntries, c.transactions);
             return (
-              <div className="line-item" key={c.id}>
+              <Link href={`/history/${c.id}`} className="line-item line-item--link" key={c.id}>
                 <span>
                   {c.label} ({c.status})
                 </span>
-                <span>{formatCurrency(cFinancials.amountLeft)} left</span>
-              </div>
+                <span>{formatCurrency(cFinancials.amountLeft)} left ›</span>
+              </Link>
             );
           })}
         </div>
