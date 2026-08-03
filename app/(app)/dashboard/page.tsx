@@ -16,7 +16,7 @@ import { HeroCard } from "./_components/HeroCard";
 import { BudgetProgressCard } from "./_components/BudgetProgressCard";
 import { SummaryRow } from "./_components/SummaryRow";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
-import { QuickActions } from "./_components/QuickActions";
+import { QuickActions } from "../_components/QuickActions";
 import { InsightsCard } from "./_components/InsightsCard";
 import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
 import { TransactionForm } from "../_components/TransactionForm";

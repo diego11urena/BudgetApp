@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { QuickAddSheet } from "../../_components/QuickAddSheet";
+import { QuickAddSheet } from "./QuickAddSheet";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 

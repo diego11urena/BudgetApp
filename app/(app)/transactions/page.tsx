@@ -3,8 +3,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
+import { getLastUsedIncomeName } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
-import { TransactionForm } from "../_components/TransactionForm";
+import { QuickActions } from "../_components/QuickActions";
 import { TransactionList } from "../_components/TransactionList";
 
 export default async function TransactionsPage() {
@@ -16,16 +17,18 @@ export default async function TransactionsPage() {
 
   const cycle = await getOrCreateDraftCycle(userId);
 
-  const [rawTransactions, expenseCategoryNames, savingsCategoryNames] = await Promise.all([
-    prisma.cycleTransaction.findMany({
-      where: { cycle: { userId } },
-      orderBy: { occurredAt: "desc" },
-      take: 100,
-      include: { expenseCategory: true, cycle: true },
-    }),
-    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
-    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-  ]);
+  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, lastUsedIncomeName] =
+    await Promise.all([
+      prisma.cycleTransaction.findMany({
+        where: { cycle: { userId } },
+        orderBy: { occurredAt: "desc" },
+        take: 100,
+        include: { expenseCategory: true, cycle: true },
+      }),
+      getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+      getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+      getLastUsedIncomeName(userId),
+    ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) => ({
     id: tx.id,
@@ -42,11 +45,11 @@ export default async function TransactionsPage() {
     <div className="home-page">
       <h1 className="page-title">Transactions</h1>
 
-      <div className="dashboard-section">
-        <h2>Log a transaction</h2>
-        <TransactionForm
+      <div className="dashboard-section dashboard-section--plain">
+        <QuickActions
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          lastUsedIncomeName={lastUsedIncomeName}
         />
       </div>
 
