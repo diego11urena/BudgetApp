@@ -4,6 +4,7 @@ import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
+import { getBudgetUsage } from "@/lib/budget-status";
 import { formatUSD } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import { ProgressBar } from "../_components/ProgressBar";
@@ -40,29 +41,36 @@ export default async function BudgetPage() {
           <p className="field-hint">No budget categories yet — add one below.</p>
         )}
         <div className="budget-goal-list">
-          {rows.map((row) => (
-            <div className="budget-goal-row" key={row.id}>
-              <div className="progress-bar-label">
-                <span>
-                  {iconForCategoryName(row.categoryName)} {row.categoryName}
-                </span>
-                <span>
+          {rows.map((row) => {
+            const usage = getBudgetUsage(row.actual, row.targetAmount);
+            return (
+              <div className="budget-goal-row" key={row.id}>
+                <div className="progress-bar-label">
+                  <span>
+                    {iconForCategoryName(row.categoryName)} {row.categoryName}
+                  </span>
+                  <span>{usage.percentage}%</span>
+                </div>
+                <ProgressBar current={row.actual} target={row.targetAmount} colorState={usage.state} />
+                <p className="field-hint" style={{ marginTop: "0.35rem" }}>
                   {formatUSD(row.actual)} / {formatUSD(row.targetAmount)}
-                </span>
+                  {usage.overBy > 0 && (
+                    <span className="overage-text"> · {formatUSD(usage.overBy)} over</span>
+                  )}
+                </p>
+                <form action={deleteBudgetGoalAction} style={{ marginTop: "0.5rem" }}>
+                  <input type="hidden" name="goalId" value={row.id} />
+                  <button
+                    type="submit"
+                    className="icon-button"
+                    aria-label={`Remove ${row.categoryName} budget`}
+                  >
+                    Remove
+                  </button>
+                </form>
               </div>
-              <ProgressBar current={row.actual} target={row.targetAmount} />
-              <form action={deleteBudgetGoalAction} style={{ marginTop: "0.5rem" }}>
-                <input type="hidden" name="goalId" value={row.id} />
-                <button
-                  type="submit"
-                  className="icon-button"
-                  aria-label={`Remove ${row.categoryName} budget`}
-                >
-                  Remove
-                </button>
-              </form>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

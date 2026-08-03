@@ -190,6 +190,11 @@ a {
   margin-top: 0.5rem;
 }
 
+.overage-text {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
 .muted-link {
   margin-top: 1.25rem;
   font-size: 0.875rem;

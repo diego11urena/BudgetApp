@@ -12,21 +12,24 @@ export function ProgressBar({
   current,
   target,
   label,
+  colorState,
 }: {
   current: number;
   target: number;
   label?: string;
+  /** Overrides the default good/warning/critical thresholds — e.g. budget bars use their own (see lib/budget-status.ts). */
+  colorState?: ProgressColorState;
 }) {
   const rawPercentage = target > 0 ? (current / target) * 100 : current > 0 ? 100 : 0;
   const displayPercentage = Math.min(rawPercentage, 100);
-  const colorState = getProgressColorState(current, target);
+  const resolvedColorState = colorState ?? getProgressColorState(current, target);
 
   return (
     <div className="progress-bar">
       {label && <div className="progress-bar-label">{label}</div>}
       <div className="progress-bar-track">
         <div
-          className={`progress-bar-fill progress-bar-fill--${colorState}`}
+          className={`progress-bar-fill progress-bar-fill--${resolvedColorState}`}
           style={{ width: `${displayPercentage}%` }}
         />
       </div>
