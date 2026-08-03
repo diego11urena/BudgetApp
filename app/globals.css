@@ -498,6 +498,21 @@ a {
   color: var(--color-success);
 }
 
+/* Home's Income/Expenses/Saved row is secondary to the hero value and the
+   Spent progress bar (0.875rem) between them — demoted below both. */
+.summary-row--home .summary-item {
+  gap: 0.15rem;
+}
+
+.summary-row--home .summary-label {
+  font-size: 0.7rem;
+}
+
+.summary-row--home .summary-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
 /* Quick actions */
 .quick-actions {
   display: flex;

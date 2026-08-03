@@ -10,7 +10,7 @@ export function SummaryRow({
   saved: number;
 }) {
   return (
-    <div className="summary-row">
+    <div className="summary-row summary-row--home">
       <div className="summary-item">
         <span className="summary-label">Income</span>
         <span className="summary-value summary-value--good">{formatUSD(income)}</span>
