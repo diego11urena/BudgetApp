@@ -35,6 +35,7 @@ export default async function TransactionsPage() {
     categoryName: tx.expenseCategory?.name ?? null,
     occurredAt: tx.occurredAt,
     cycleLabel: tx.cycle.label,
+    isEditable: tx.cycle.status !== "CLOSED",
   }));
 
   return (

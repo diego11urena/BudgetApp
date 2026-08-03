@@ -903,6 +903,11 @@ a {
   opacity: 0.6;
 }
 
+.transaction-row--readonly {
+  cursor: default;
+  opacity: 0.75;
+}
+
 .transaction-meta {
   display: flex;
   flex-direction: column;

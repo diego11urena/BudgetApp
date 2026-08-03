@@ -11,6 +11,28 @@ const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
   SAVINGS: "Savings",
 };
 
+function TransactionRowContent({ tx }: { tx: CycleTransactionSummary }) {
+  return (
+    <>
+      <div className="transaction-meta">
+        <span className="transaction-name">{tx.name}</span>
+        <span className="transaction-sub">
+          {TYPE_LABEL[tx.type]}
+          {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
+          {tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
+          {tx.isEditable === false ? " · 🔒 closed" : ""}
+        </span>
+      </div>
+      <span
+        className={`transaction-amount ${tx.type === "INCOME" ? "transaction-amount--income" : ""}`}
+      >
+        {tx.type === "INCOME" ? "+" : "-"}
+        {formatCurrency(tx.amount)}
+      </span>
+    </>
+  );
+}
+
 export function TransactionList({
   transactions,
   expenseCategoryNames,
@@ -30,29 +52,23 @@ export function TransactionList({
 
   return (
     <div>
-      {transactions.map((tx) => (
-        <button
-          type="button"
-          className="transaction-row"
-          key={tx.id}
-          onClick={() => setEditing({ id: tx.id, type: tx.type, name: tx.name, amount: tx.amount })}
-        >
-          <div className="transaction-meta">
-            <span className="transaction-name">{tx.name}</span>
-            <span className="transaction-sub">
-              {TYPE_LABEL[tx.type]}
-              {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
-              {tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
-            </span>
+      {transactions.map((tx) =>
+        tx.isEditable === false ? (
+          // A closed cycle's history is frozen — no edit sheet for this row.
+          <div className="transaction-row transaction-row--readonly" key={tx.id}>
+            <TransactionRowContent tx={tx} />
           </div>
-          <span
-            className={`transaction-amount ${tx.type === "INCOME" ? "transaction-amount--income" : ""}`}
+        ) : (
+          <button
+            type="button"
+            className="transaction-row"
+            key={tx.id}
+            onClick={() => setEditing({ id: tx.id, type: tx.type, name: tx.name, amount: tx.amount })}
           >
-            {tx.type === "INCOME" ? "+" : "-"}
-            {formatCurrency(tx.amount)}
-          </span>
-        </button>
-      ))}
+            <TransactionRowContent tx={tx} />
+          </button>
+        ),
+      )}
 
       {editing && (
         <QuickAddSheet

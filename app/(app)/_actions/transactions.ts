@@ -106,9 +106,16 @@ export async function updateTransactionAction(
   // edit another user's row by guessing an id.
   const existing = await prisma.cycleTransaction.findFirst({
     where: { id: transactionId, cycle: { userId } },
+    include: { cycle: true },
   });
   if (!existing) {
     return { error: "Transaction not found" };
+  }
+  // Frozen history: once a quincena is closed, its totals shouldn't move.
+  // The UI already keeps closed-cycle rows from opening this action's
+  // sheet at all (TransactionList) — this is the server-side backstop.
+  if (existing.cycle.status === "CLOSED") {
+    return { error: "This quincena is closed and can't be edited" };
   }
 
   let expenseCategoryId: string | null = null;
@@ -153,9 +160,14 @@ export async function deleteTransactionAction(
   // delete another user's row by guessing an id.
   const existing = await prisma.cycleTransaction.findFirst({
     where: { id: transactionId, cycle: { userId } },
+    include: { cycle: true },
   });
   if (!existing) {
     return { error: "Transaction not found" };
+  }
+  // Frozen history — see the matching check in updateTransactionAction.
+  if (existing.cycle.status === "CLOSED") {
+    return { error: "This quincena is closed and can't be edited" };
   }
 
   await prisma.cycleTransaction.delete({ where: { id: transactionId } });

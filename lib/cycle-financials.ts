@@ -15,6 +15,13 @@ export interface CycleTransactionSummary {
   occurredAt: Date;
   /** Only set by callers building an all-time (cross-cycle) view. */
   cycleLabel?: string;
+  /**
+   * Only set by callers building an all-time (cross-cycle) view — whether
+   * this row belongs to a still-open cycle. Undefined (the single-cycle
+   * views, e.g. Home's "Recent transactions") always means editable: every
+   * row there is already scoped to the current cycle.
+   */
+  isEditable?: boolean;
 }
 
 export interface CycleFinancials {
