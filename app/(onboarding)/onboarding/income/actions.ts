@@ -39,13 +39,22 @@ export async function saveIncomeAction(
     isPanamaPayroll,
   });
 
-  // Onboarding only supports one income source per cycle. If the user came
-  // back to edit this step, update the existing rows in place instead of
-  // creating a duplicate income source/entry. A cycle is one quincena, so
-  // the quincena breakdown is what's stored — never the monthly figures.
-  const existingEntry = await prisma.cycleIncomeEntry.findFirst({
-    where: { cycleId: cycle.id },
-  });
+  // Onboarding only supports one income source per user. Look up by userId
+  // (not just this cycle's CycleIncomeEntry) so a brand-new cycle that
+  // hasn't gotten its own entry yet — e.g. right after "I just got paid",
+  // or after the dev reset tool deletes a cycle but leaves IncomeSource
+  // rows alone — reuses the existing source instead of quietly creating a
+  // second one that every downstream findFirst({ orderBy: createdAt: "asc" })
+  // would then never pick up. A cycle is one quincena, so the quincena
+  // breakdown is what's stored on its CycleIncomeEntry — never the monthly
+  // figures.
+  const [existingIncomeSource, existingEntry] = await Promise.all([
+    prisma.incomeSource.findFirst({
+      where: { userId, isActive: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.cycleIncomeEntry.findFirst({ where: { cycleId: cycle.id } }),
+  ]);
 
   const entryData = {
     grossAmount: breakdown.grossQuincenaAmount,
@@ -55,16 +64,17 @@ export async function saveIncomeAction(
     netAmount: breakdown.netQuincenaAmount,
   };
 
-  if (existingEntry?.incomeSourceId) {
+  if (existingIncomeSource) {
     await prisma.$transaction([
       prisma.incomeSource.update({
-        where: { id: existingEntry.incomeSourceId },
+        where: { id: existingIncomeSource.id },
         data: { name, grossMonthlyAmount, isPanamaPayroll },
       }),
-      prisma.cycleIncomeEntry.update({
-        where: { id: existingEntry.id },
-        data: entryData,
-      }),
+      existingEntry
+        ? prisma.cycleIncomeEntry.update({ where: { id: existingEntry.id }, data: entryData })
+        : prisma.cycleIncomeEntry.create({
+            data: { cycleId: cycle.id, incomeSourceId: existingIncomeSource.id, ...entryData },
+          }),
     ]);
   } else {
     const incomeSource = await prisma.incomeSource.create({
