@@ -109,6 +109,12 @@ model ExpenseCategory {
   isDefault Boolean      @default(false)
   createdAt DateTime     @default(now())
 
+  // Whether closeCycleAndStartNext auto-carries this category's most recent
+  // CycleBudgetGoal.targetAmount into the next cycle. Defaults true so
+  // existing budget targets keep carrying forward exactly as before this
+  // flag existed; toggled off per category for one-off targets.
+  recurring Boolean @default(true)
+
   // Set only for SAVINGS-type categories the user has turned into a Goal —
   // the overall target total, distinct from CycleBudgetGoal.targetAmount
   // (that's the recurring per-cycle contribution). Non-null == "is a goal".

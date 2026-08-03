@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import { ProgressBar } from "../_components/ProgressBar";
 import { BudgetGoalForm } from "./_components/BudgetGoalForm";
+import { RecurringToggle } from "./_components/RecurringToggle";
 import { deleteBudgetGoalAction } from "./actions";
 
 export default async function BudgetPage() {
@@ -58,16 +59,26 @@ export default async function BudgetPage() {
                     <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
                   )}
                 </p>
-                <form action={deleteBudgetGoalAction} style={{ marginTop: "0.5rem" }}>
-                  <input type="hidden" name="goalId" value={row.id} />
-                  <button
-                    type="submit"
-                    className="icon-button"
-                    aria-label={`Remove ${row.categoryName} budget`}
-                  >
-                    Remove
-                  </button>
-                </form>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  <RecurringToggle categoryId={row.categoryId} recurring={row.recurring} />
+                  <form action={deleteBudgetGoalAction}>
+                    <input type="hidden" name="goalId" value={row.id} />
+                    <button
+                      type="submit"
+                      className="icon-button"
+                      aria-label={`Remove ${row.categoryName} budget`}
+                    >
+                      Remove
+                    </button>
+                  </form>
+                </div>
               </div>
             );
           })}
@@ -77,8 +88,8 @@ export default async function BudgetPage() {
       <div className="dashboard-section">
         <h2>Add or update a target</h2>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          This quincena&apos;s target only — won&apos;t affect future quincenas until you edit
-          those too.
+          Sets this quincena&apos;s amount. New categories start Recurring — tap the 🔁 badge on
+          a target above to stop it from carrying into your next quincena.
         </p>
         <BudgetGoalForm categoryNames={expenseCategoryNames} />
       </div>

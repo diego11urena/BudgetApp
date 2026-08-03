@@ -114,8 +114,11 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
       });
     }
 
+    // Only categories marked recurring auto-carry their most recent target
+    // into the new cycle — a category's own setting, independent of any
+    // one cycle's targetAmount (which is never rewritten by this).
     const previousGoals = await tx.cycleBudgetGoal.findMany({
-      where: { cycleId: closed.id },
+      where: { cycleId: closed.id, expenseCategory: { recurring: true } },
     });
 
     for (const goal of previousGoals) {

@@ -38,6 +38,9 @@ export async function upsertBudgetGoalAction(
   const { name, targetAmount } = parsed.data;
   const cycle = await getOrCreateDraftCycle(userId);
 
+  // Amount edits never touch `recurring` — that's a separate, category-level
+  // setting changed only via toggleCategoryRecurringAction below, so editing
+  // an existing target's amount here can't accidentally flip it.
   const category = await prisma.expenseCategory.upsert({
     where: { userId_name: { userId, name } },
     create: { userId, name, type: "EXPENSE" },
@@ -50,6 +53,28 @@ export async function upsertBudgetGoalAction(
     },
     create: { cycleId: cycle.id, expenseCategoryId: category.id, targetAmount },
     update: { targetAmount },
+  });
+
+  revalidateAppPages();
+}
+
+export async function toggleCategoryRecurringAction(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const categoryId = formData.get("categoryId");
+  const recurring = formData.get("recurring") === "true";
+  if (typeof categoryId !== "string" || !categoryId) {
+    return;
+  }
+
+  // Ownership-scoped: a plain update({ where: { id } }) would let a user
+  // toggle another user's category by guessing an id.
+  await prisma.expenseCategory.updateMany({
+    where: { id: categoryId, userId: session.user.id },
+    data: { recurring },
   });
 
   revalidateAppPages();

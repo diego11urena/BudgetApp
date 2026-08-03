@@ -5,6 +5,7 @@ export interface BudgetGoalWithCategory {
   categoryId: string;
   categoryName: string;
   targetAmount: number;
+  recurring: boolean;
 }
 
 /** A cycle's budget goals for one category type, with plain-number amounts for display. */
@@ -23,5 +24,6 @@ export async function getCycleBudgetGoals(
     categoryId: goal.expenseCategoryId,
     categoryName: goal.expenseCategory.name,
     targetAmount: goal.targetAmount.toNumber(),
+    recurring: goal.expenseCategory.recurring,
   }));
 }
