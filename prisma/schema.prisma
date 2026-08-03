@@ -123,7 +123,12 @@ model ExpenseCategory {
   budgetGoals  CycleBudgetGoal[]
   transactions CycleTransaction[]
 
-  @@unique([userId, name])
+  // Was (userId, name) alone — a Budget (EXPENSE) category and a Goal
+  // (SAVINGS) category with the same name used to collide silently (the
+  // second upsert would just match/mutate the first, wrong-typed row).
+  // type is now part of the identity, so "Travel" the expense and "Travel"
+  // the goal are distinct rows.
+  @@unique([userId, name, type])
 }
 
 enum TransactionType {

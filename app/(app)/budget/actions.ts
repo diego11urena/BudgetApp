@@ -42,7 +42,7 @@ export async function upsertBudgetGoalAction(
   // setting changed only via toggleCategoryRecurringAction below, so editing
   // an existing target's amount here can't accidentally flip it.
   const category = await prisma.expenseCategory.upsert({
-    where: { userId_name: { userId, name } },
+    where: { userId_name_type: { userId, name, type: "EXPENSE" } },
     create: { userId, name, type: "EXPENSE" },
     update: {},
   });

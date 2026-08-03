@@ -42,9 +42,9 @@ export async function saveExpensesAction(
 
     for (const item of parsed.data.items) {
       const category = await tx.expenseCategory.upsert({
-        where: { userId_name: { userId, name: item.name } },
+        where: { userId_name_type: { userId, name: item.name, type: "EXPENSE" } },
         create: { userId, name: item.name, type: "EXPENSE" },
-        update: { type: "EXPENSE" },
+        update: {},
       });
 
       await tx.cycleBudgetGoal.upsert({

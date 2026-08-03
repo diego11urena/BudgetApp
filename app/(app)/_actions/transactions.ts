@@ -58,7 +58,7 @@ export async function addTransactionAction(
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
     const category = await prisma.expenseCategory.upsert({
-      where: { userId_name: { userId, name } },
+      where: { userId_name_type: { userId, name, type } },
       create: { userId, name, type },
       update: {},
     });
@@ -114,7 +114,7 @@ export async function updateTransactionAction(
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
     const category = await prisma.expenseCategory.upsert({
-      where: { userId_name: { userId, name } },
+      where: { userId_name_type: { userId, name, type } },
       create: { userId, name, type },
       update: {},
     });
@@ -217,7 +217,7 @@ export async function restoreTransactionAction(
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
     const category = await prisma.expenseCategory.upsert({
-      where: { userId_name: { userId, name } },
+      where: { userId_name_type: { userId, name, type } },
       create: { userId, name, type },
       update: {},
     });

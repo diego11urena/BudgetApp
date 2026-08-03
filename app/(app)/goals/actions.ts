@@ -39,7 +39,7 @@ export async function upsertGoalAction(
   const { name, lifetimeTargetAmount, recurringAmount } = parsed.data;
 
   const category = await prisma.expenseCategory.upsert({
-    where: { userId_name: { userId, name } },
+    where: { userId_name_type: { userId, name, type: "SAVINGS" } },
     create: { userId, name, type: "SAVINGS", lifetimeTargetAmount },
     update: { lifetimeTargetAmount },
   });
