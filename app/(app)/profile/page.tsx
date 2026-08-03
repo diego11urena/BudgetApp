@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { IncomeSettingsForm } from "./_components/IncomeSettingsForm";
+import { DevResetButton } from "./_components/DevResetButton";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -63,11 +64,7 @@ export default async function ProfilePage() {
       {process.env.NODE_ENV !== "production" && (
         <div className="dashboard-section">
           <h2>Developer tools</h2>
-          <form action={resetOnboardingAction}>
-            <button type="submit" className="button button--secondary">
-              Reset onboarding (dev only)
-            </button>
-          </form>
+          <DevResetButton action={resetOnboardingAction} />
         </div>
       )}
     </div>
