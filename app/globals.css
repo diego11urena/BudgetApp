@@ -391,6 +391,83 @@ a {
   padding: 0.4rem 0.8rem;
 }
 
+.hero-action-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Cycle-closed celebratory summary — shown once right after "I just got paid" */
+.cycle-closed-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 110;
+}
+
+.cycle-closed-card {
+  width: 100%;
+  max-width: 26rem;
+  background: linear-gradient(160deg, var(--color-success-bg), var(--color-card) 65%);
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  padding: 2rem 1.5rem 1.5rem;
+  box-shadow: 0 12px 32px var(--shadow-color);
+  text-align: center;
+  animation: cycle-closed-in 0.25s ease;
+}
+
+@keyframes cycle-closed-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cycle-closed-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.cycle-closed-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.cycle-closed-top-category {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.cycle-closed-card .banner {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.cycle-closed-cta {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding: 0.85rem 1.2rem;
+  font-size: 1.05rem;
+}
+
 /* Income / Expenses / Saved summary */
 .summary-row {
   display: flex;
