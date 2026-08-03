@@ -9,6 +9,7 @@ import { iconForCategoryName } from "@/lib/category-icons";
 import { GoalRing } from "./_components/GoalRing";
 import { GoalForm } from "./_components/GoalForm";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
+import { ContributeButton } from "./_components/ContributeButton";
 
 function formatEtaDate(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -23,7 +24,10 @@ export default async function GoalsPage() {
 
   const cycle = await getOrCreateDraftCycle(userId);
   const goals = await getGoalsWithProgress(userId, cycle.id);
-  const savingsCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "SAVINGS");
+  const [expenseCategoryNames, savingsCategoryNames] = await Promise.all([
+    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+  ]);
 
   return (
     <div className="home-page">
@@ -60,7 +64,12 @@ export default async function GoalsPage() {
                     )}
                   </div>
                 </div>
-                <div style={{ marginTop: "0.5rem" }}>
+                <div className="goal-row-actions">
+                  <ContributeButton
+                    categoryName={goal.name}
+                    expenseCategoryNames={expenseCategoryNames}
+                    savingsCategoryNames={savingsCategoryNames}
+                  />
                   <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} />
                 </div>
               </div>

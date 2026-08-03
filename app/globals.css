@@ -222,6 +222,12 @@ a {
   border: 1px solid var(--color-border);
 }
 
+.button--small {
+  min-height: 36px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+}
+
 .error-text {
   color: var(--color-error);
   font-size: 0.875rem;
@@ -1191,6 +1197,13 @@ a {
 .goal-row-name {
   font-weight: 600;
   margin-bottom: 0.2rem;
+}
+
+.goal-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .goal-projection {
