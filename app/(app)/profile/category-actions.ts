@@ -115,20 +115,28 @@ export async function mergeCategoryAction(
       }
     }
 
-    // Same idea for the overall lifetime Goal target, if either side is one.
-    if (source.lifetimeTargetAmount !== null) {
-      const mergedLifetimeTarget =
-        target.lifetimeTargetAmount !== null
-          ? target.lifetimeTargetAmount.add(source.lifetimeTargetAmount)
-          : source.lifetimeTargetAmount;
-      await tx.expenseCategory.update({
-        where: { id: target.id },
-        data: {
-          lifetimeTargetAmount: mergedLifetimeTarget,
-          recurring: target.recurring || source.recurring,
-        },
-      });
-    }
+    // recurring: true if either side ever was. frequency/dueDay: MONTHLY
+    // only ever arises from a deliberate choice (BIWEEKLY is always the
+    // default), so prefer whichever side is MONTHLY over one still at the
+    // default -- otherwise merging a MONTHLY category (e.g. Rent, due day
+    // 1) into a still-default-BIWEEKLY one silently made it start carrying
+    // forward every quincena instead of once a month, with no warning.
+    // lifetimeTargetAmount (Goals only) sums like budget targets do above.
+    const useSourceFrequency = target.frequency !== "MONTHLY" && source.frequency === "MONTHLY";
+    const mergedLifetimeTarget =
+      source.lifetimeTargetAmount !== null
+        ? (target.lifetimeTargetAmount?.add(source.lifetimeTargetAmount) ?? source.lifetimeTargetAmount)
+        : target.lifetimeTargetAmount;
+
+    await tx.expenseCategory.update({
+      where: { id: target.id },
+      data: {
+        recurring: target.recurring || source.recurring,
+        frequency: useSourceFrequency ? source.frequency : target.frequency,
+        dueDay: useSourceFrequency ? source.dueDay : target.dueDay,
+        lifetimeTargetAmount: mergedLifetimeTarget,
+      },
+    });
 
     await tx.expenseCategory.delete({ where: { id: source.id } });
   });
