@@ -6,7 +6,6 @@ import { signOut } from "@/lib/auth";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
-import { computeNetIncomeForCycle } from "@/lib/panama-tax";
 import { incomeStepSchema } from "@/lib/validations/onboarding";
 
 export async function signOutAction() {
@@ -27,15 +26,14 @@ export async function updateIncomeAction(
 
   const parsed = incomeStepSchema.safeParse({
     name: formData.get("name"),
-    grossMonthlyAmount: formData.get("grossMonthlyAmount"),
-    isPanamaPayroll: formData.get("isPanamaPayroll") === "on",
+    netQuincenaAmount: formData.get("netQuincenaAmount"),
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { name, grossMonthlyAmount, isPanamaPayroll } = parsed.data;
+  const { name, netQuincenaAmount } = parsed.data;
 
   const incomeSource = await prisma.incomeSource.findFirst({
     where: { userId, isActive: true },
@@ -48,7 +46,7 @@ export async function updateIncomeAction(
 
   await prisma.incomeSource.update({
     where: { id: incomeSource.id },
-    data: { name, grossMonthlyAmount, isPanamaPayroll },
+    data: { name, netQuincenaAmount },
   });
 
   // Update the current open cycle's income entry in place, if one exists.
@@ -59,17 +57,9 @@ export async function updateIncomeAction(
   });
 
   if (existingEntry) {
-    const breakdown = computeNetIncomeForCycle({ grossMonthlyAmount, isPanamaPayroll });
-
     await prisma.cycleIncomeEntry.update({
       where: { id: existingEntry.id },
-      data: {
-        grossAmount: breakdown.grossQuincenaAmount,
-        cssDeduction: breakdown.quincenaCssDeduction,
-        seguroEducativoDeduction: breakdown.quincenaSeguroEducativoDeduction,
-        isrDeduction: breakdown.quincenaIsrDeduction,
-        netAmount: breakdown.netQuincenaAmount,
-      },
+      data: { netAmount: netQuincenaAmount },
     });
   }
 

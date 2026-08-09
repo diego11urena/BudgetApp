@@ -144,23 +144,6 @@ a {
   font-weight: 600;
 }
 
-/* A label wrapping a checkbox is the checkbox's whole tap target — make
-   that full row at least 44px tall instead of just the native checkbox box. */
-.checkbox-field-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.checkbox-field-label input[type="checkbox"] {
-  width: 1.15rem;
-  height: 1.15rem;
-  flex-shrink: 0;
-}
-
 .field input:not([type="checkbox"]),
 .field select {
   padding: 0.55rem 0.7rem;

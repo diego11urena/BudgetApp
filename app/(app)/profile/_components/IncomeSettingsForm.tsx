@@ -1,28 +1,17 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
-import { computeNetIncomeForCycle } from "@/lib/panama-tax";
-import { formatCurrency } from "@/lib/format";
+import { useActionState } from "react";
 import { updateIncomeAction, type IncomeSettingsFormState } from "../actions";
 
 const initialState: IncomeSettingsFormState = undefined;
 
 export interface IncomeSettingsInitial {
   name: string;
-  grossMonthlyAmount: string;
-  isPanamaPayroll: boolean;
+  netQuincenaAmount: string;
 }
 
 export function IncomeSettingsForm({ initial }: { initial: IncomeSettingsInitial }) {
   const [state, formAction, pending] = useActionState(updateIncomeAction, initialState);
-  const [grossMonthlyAmount, setGrossMonthlyAmount] = useState(initial.grossMonthlyAmount);
-  const [isPanamaPayroll, setIsPanamaPayroll] = useState(initial.isPanamaPayroll);
-
-  const breakdown = useMemo(() => {
-    const gross = Number(grossMonthlyAmount);
-    if (!grossMonthlyAmount || Number.isNaN(gross) || gross <= 0) return null;
-    return computeNetIncomeForCycle({ grossMonthlyAmount: gross, isPanamaPayroll });
-  }, [grossMonthlyAmount, isPanamaPayroll]);
 
   return (
     <form action={formAction}>
@@ -37,42 +26,20 @@ export function IncomeSettingsForm({ initial }: { initial: IncomeSettingsInitial
         />
       </div>
       <div className="field">
-        <label htmlFor="income-gross">Gross monthly salary (USD)</label>
+        <label htmlFor="income-net">Net pay per quincena (USD)</label>
         <input
-          id="income-gross"
-          name="grossMonthlyAmount"
+          id="income-net"
+          name="netQuincenaAmount"
           type="text"
           inputMode="decimal"
           required
-          value={grossMonthlyAmount}
-          onChange={(e) => setGrossMonthlyAmount(e.target.value)}
+          defaultValue={initial.netQuincenaAmount}
         />
+        <span className="field-hint">
+          What actually lands in your account each quincena — after any taxes or deductions
+          are already taken out elsewhere.
+        </span>
       </div>
-      <div className="field">
-        <label htmlFor="income-panama" className="checkbox-field-label">
-          <input
-            id="income-panama"
-            name="isPanamaPayroll"
-            type="checkbox"
-            checked={isPanamaPayroll}
-            onChange={(e) => setIsPanamaPayroll(e.target.checked)}
-          />
-          Subject to Panama payroll deductions (CSS, Seguro Educativo, ISR)
-        </label>
-      </div>
-
-      {breakdown && (
-        <div className="preview-box">
-          <div className="line-item">
-            <span>Net monthly salary</span>
-            <span>{formatCurrency(breakdown.netMonthlyAmount.toNumber())}</span>
-          </div>
-          <div className="line-item">
-            <strong>Net per quincena</strong>
-            <strong>{formatCurrency(breakdown.netQuincenaAmount.toNumber())}</strong>
-          </div>
-        </div>
-      )}
 
       {state?.error && <p className="error-text">{state.error}</p>}
       {state?.success && (

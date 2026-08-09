@@ -21,8 +21,7 @@ export default async function IncomeStepPage() {
   const initial = existingEntry?.incomeSource
     ? {
         name: existingEntry.incomeSource.name,
-        grossMonthlyAmount: existingEntry.incomeSource.grossMonthlyAmount.toString(),
-        isPanamaPayroll: existingEntry.incomeSource.isPanamaPayroll,
+        netQuincenaAmount: existingEntry.incomeSource.netQuincenaAmount.toString(),
       }
     : undefined;
 
@@ -31,9 +30,8 @@ export default async function IncomeStepPage() {
       <StepProgress current="income" />
       <h1>What&apos;s your income?</h1>
       <p className="field-hint">
-        We&apos;ll use your monthly salary to estimate your Panama payroll deductions
-        (CSS, Seguro Educativo, ISR) and split your take-home pay across each
-        15-day quincena.
+        Your take-home pay for each 15-day quincena — whatever actually deposits, after any
+        deductions are already handled.
       </p>
       <IncomeForm initial={initial} />
     </div>

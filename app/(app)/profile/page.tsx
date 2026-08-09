@@ -62,8 +62,7 @@ export default async function ProfilePage({
           <IncomeSettingsForm
             initial={{
               name: incomeSource.name,
-              grossMonthlyAmount: incomeSource.grossMonthlyAmount.toString(),
-              isPanamaPayroll: incomeSource.isPanamaPayroll,
+              netQuincenaAmount: incomeSource.netQuincenaAmount.toString(),
             }}
           />
         </div>

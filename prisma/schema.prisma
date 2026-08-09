@@ -26,18 +26,16 @@ model User {
 }
 
 model IncomeSource {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name               String
-  // Salaries are quoted/contracted monthly in Panama even though pay is
-  // quincenal (twice a month) -- this is the monthly figure; per-cycle
-  // (quincena) amounts are always derived from it, never stored directly.
-  grossMonthlyAmount Decimal  @db.Decimal(12, 2)
-  isPanamaPayroll    Boolean  @default(true)
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  // What actually lands in the account each quincena — entered directly by
+  // the user, no gross/deduction calculation involved.
+  netQuincenaAmount Decimal  @db.Decimal(12, 2)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   cycleEntries CycleIncomeEntry[]
 
@@ -89,20 +87,13 @@ model BudgetCycle {
 }
 
 model CycleIncomeEntry {
-  id                       String        @id @default(cuid())
-  cycleId                  String
-  cycle                    BudgetCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  incomeSourceId           String?
-  incomeSource             IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
-  grossAmount              Decimal       @db.Decimal(12, 2)
-  cssDeduction             Decimal       @db.Decimal(12, 2)
-  seguroEducativoDeduction Decimal       @db.Decimal(12, 2)
-  isrDeduction             Decimal       @db.Decimal(12, 2)
-  decimoGrossAmount        Decimal?      @db.Decimal(12, 2)
-  decimoCssDeduction       Decimal?      @db.Decimal(12, 2)
-  decimoIsEstimated        Boolean       @default(false)
-  netAmount                Decimal       @db.Decimal(12, 2)
-  createdAt                DateTime      @default(now())
+  id             String        @id @default(cuid())
+  cycleId        String
+  cycle          BudgetCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  incomeSourceId String?
+  incomeSource   IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
+  netAmount      Decimal       @db.Decimal(12, 2)
+  createdAt      DateTime      @default(now())
 
   @@index([cycleId])
   @@index([incomeSourceId])

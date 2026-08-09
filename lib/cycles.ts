@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { computeNetIncomeForCycle } from "@/lib/panama-tax";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle } from "@/app/generated/prisma/client";
 
@@ -117,21 +116,11 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
     });
 
     if (incomeSource) {
-      const breakdown = computeNetIncomeForCycle({
-        grossMonthlyAmount: incomeSource.grossMonthlyAmount,
-        isPanamaPayroll: incomeSource.isPanamaPayroll,
-      });
-
-      // A cycle is one quincena — store the quincena breakdown, not monthly.
       await tx.cycleIncomeEntry.create({
         data: {
           cycleId: created.id,
           incomeSourceId: incomeSource.id,
-          grossAmount: breakdown.grossQuincenaAmount,
-          cssDeduction: breakdown.quincenaCssDeduction,
-          seguroEducativoDeduction: breakdown.quincenaSeguroEducativoDeduction,
-          isrDeduction: breakdown.quincenaIsrDeduction,
-          netAmount: breakdown.netQuincenaAmount,
+          netAmount: incomeSource.netQuincenaAmount,
         },
       });
     }
