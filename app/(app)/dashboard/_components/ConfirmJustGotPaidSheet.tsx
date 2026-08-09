@@ -21,6 +21,11 @@ export function ConfirmJustGotPaidSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
+  // Guards against a fast double-tap on "Yes, I got paid" firing onConfirm
+  // twice — closeCycleAndStartNext has no idempotency guard of its own
+  // (unlike everything it creates), so two concurrent calls would each
+  // close-and-recreate a cycle, leaving one of the two new cycles orphaned.
+  const [confirmed, setConfirmed] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,11 +34,14 @@ export function ConfirmJustGotPaidSheet({
   }, []);
 
   function handleCancel() {
+    if (confirmed) return;
     setVisible(false);
     setTimeout(onCancel, 200);
   }
 
   function handleConfirm() {
+    if (confirmed) return;
+    setConfirmed(true);
     setVisible(false);
     setTimeout(onConfirm, 200);
   }
@@ -43,7 +51,7 @@ export function ConfirmJustGotPaidSheet({
   return (
     <div
       className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleCancel}
+      onClick={confirmed ? undefined : handleCancel}
       role="presentation"
     >
       <div
@@ -61,13 +69,14 @@ export function ConfirmJustGotPaidSheet({
           This closes your current quincena for good and starts a fresh one. Recurring budget
           targets and goal contributions carry forward automatically.
         </p>
-        <button type="button" className="button sheet-submit" onClick={handleConfirm}>
+        <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
           Yes, I got paid →
         </button>
         <button
           type="button"
           className="button button--secondary sheet-submit"
           onClick={handleCancel}
+          disabled={confirmed}
         >
           Cancel
         </button>
