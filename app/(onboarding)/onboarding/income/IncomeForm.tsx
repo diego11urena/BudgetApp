@@ -6,7 +6,6 @@ import { saveIncomeAction, type IncomeFormState } from "./actions";
 const initialState: IncomeFormState = undefined;
 
 export interface IncomeFormInitial {
-  name: string;
   netQuincenaAmount: string;
 }
 
@@ -15,18 +14,6 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
 
   return (
     <form action={formAction}>
-      <div className="field">
-        <label htmlFor="name">Income name</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          placeholder="Main job salary"
-          defaultValue={initial?.name}
-          required
-        />
-      </div>
-
       <div className="field">
         <label htmlFor="netQuincenaAmount">Net pay per quincena (USD)</label>
         <input

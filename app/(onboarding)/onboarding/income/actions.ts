@@ -18,8 +18,11 @@ export async function saveIncomeAction(
   }
   const userId = session.user.id;
 
+  // There's only ever one income source and it's always a biweekly
+  // paycheck — no need to ask for a name. Profile still allows renaming it
+  // afterward for anyone who wants to.
   const parsed = incomeStepSchema.safeParse({
-    name: formData.get("name"),
+    name: "Paycheck",
     netQuincenaAmount: formData.get("netQuincenaAmount"),
   });
 

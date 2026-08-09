@@ -6,6 +6,7 @@ import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
+import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
 
 export function HeroCard({
   amountLeft,
@@ -19,6 +20,7 @@ export function HeroCard({
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
+  const [showIncomePrompt, setShowIncomePrompt] = useState(false);
   // Captured synchronously on click, before either modal mounts, and reused
   // across both — the trigger button gets disabled while pending, so a
   // modal that instead re-derives document.activeElement at its own mount
@@ -34,6 +36,15 @@ export function HeroCard({
     const summary = await justGotPaidAction();
     setPending(false);
     setClosedSummary(summary);
+  }
+
+  function handleDismissSummary() {
+    setShowIncomePrompt(true);
+  }
+
+  function handleFinishIncomePrompt() {
+    setShowIncomePrompt(false);
+    setClosedSummary(null);
   }
 
   return (
@@ -70,10 +81,18 @@ export function HeroCard({
         />
       )}
 
-      {closedSummary && (
+      {closedSummary && !showIncomePrompt && (
         <CycleClosedCard
           summary={closedSummary}
-          onDismiss={() => setClosedSummary(null)}
+          onDismiss={handleDismissSummary}
+          returnFocusTo={triggerElement}
+        />
+      )}
+
+      {closedSummary && showIncomePrompt && (
+        <NewCycleIncomeSheet
+          initialAmount={closedSummary.carriedIncomeAmount}
+          onDone={handleFinishIncomePrompt}
           returnFocusTo={triggerElement}
         />
       )}
