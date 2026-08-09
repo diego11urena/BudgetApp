@@ -61,7 +61,7 @@ export function CycleClosedCard({
         )}
 
         <button type="button" className="button cycle-closed-cta" onClick={onDismiss}>
-          Start new quincena
+          Continue →
         </button>
       </div>
     </div>

@@ -67,7 +67,8 @@ export function ConfirmJustGotPaidSheet({
         <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Close this quincena?</h2>
         <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
           This closes your current quincena for good and starts a fresh one. Recurring budget
-          targets and goal contributions carry forward automatically.
+          targets and goal contributions carry forward automatically — you&apos;ll confirm this
+          quincena&apos;s pay amount next.
         </p>
         <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
           Yes, I got paid →
