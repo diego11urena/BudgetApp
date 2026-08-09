@@ -5,6 +5,7 @@ import { IncomeSettingsForm } from "./_components/IncomeSettingsForm";
 import { DevResetButton } from "./_components/DevResetButton";
 import { ManageCategories } from "./_components/ManageCategories";
 import { GmailConnectionCard } from "./_components/GmailConnectionCard";
+import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -85,6 +86,15 @@ export default async function ProfilePage({
           budget history along with it.
         </p>
         <ManageCategories categories={categories} />
+      </div>
+
+      <div className="dashboard-section">
+        <h2>Reset</h2>
+        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
+          Wipe your quincena history and start fresh — your categories and income setup stay
+          the same.
+        </p>
+        <EraseCyclesButton />
       </div>
 
       <div className="dashboard-section">
