@@ -44,6 +44,24 @@ describe("purchaseNotificationParser", () => {
     });
   });
 
+  it("handles a comma-separated thousands amount", () => {
+    const body = "La tarjeta VISA a nombre de X, terminación 1234 pagó $1,234.56 en BIG PURCHASE STORE.";
+    expect(purchaseNotificationParser.extract(body)).toEqual({
+      type: "EXPENSE",
+      amount: "1234.56",
+      merchant: "BIG PURCHASE STORE",
+    });
+  });
+
+  it("handles a comma-separated thousands amount with no cents", () => {
+    const body = "La tarjeta VISA a nombre de X, terminación 1234 pagó $2,000 en ANOTHER STORE.";
+    expect(purchaseNotificationParser.extract(body)).toEqual({
+      type: "EXPENSE",
+      amount: "2000",
+      merchant: "ANOTHER STORE",
+    });
+  });
+
   it("does not match an unrelated email body", () => {
     const body = "Your monthly statement is now available. Please review your account activity.";
     expect(purchaseNotificationParser.match(body)).toBe(false);

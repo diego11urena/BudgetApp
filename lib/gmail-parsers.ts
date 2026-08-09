@@ -27,10 +27,13 @@ function normalizeWhitespace(body: string): string {
 // system-generated sentence; card name and cardholder name aren't captured
 // since nothing downstream needs them. The merchant capture is non-greedy up
 // to the first ". " (or end of string) after "en ", since the merchant
-// string itself is never expected to contain a period.
+// string itself is never expected to contain a period. The amount group
+// allows comma thousand-separators (e.g. "$1,234.56") since the bank does
+// use them on larger purchases — stripped out below before validation,
+// since decimalString (and the Decimal column it feeds) doesn't accept them.
 // Group 1 = amount, group 2 = merchant.
 const PURCHASE_PATTERN =
-  /La tarjeta .+? a nombre de .+?, terminaci[oó]n \d+ pag[oó] \$(\d+(?:\.\d{2})?) en (.+?)\.(?:\s|$)/;
+  /La tarjeta .+? a nombre de .+?, terminaci[oó]n \d+ pag[oó] \$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?) en (.+?)\.(?:\s|$)/;
 
 export const purchaseNotificationParser: EmailParser = {
   name: "banco-general-purchase",
@@ -39,9 +42,11 @@ export const purchaseNotificationParser: EmailParser = {
   },
   extract(body) {
     const match = normalizeWhitespace(body).match(PURCHASE_PATTERN);
-    const amount = match?.[1];
+    const rawAmount = match?.[1];
     const merchant = match?.[2]?.trim();
-    if (!amount || !merchant) return null;
+    if (!rawAmount || !merchant) return null;
+
+    const amount = rawAmount.replace(/,/g, "");
 
     // Defensive: a regex-captured amount should already satisfy this, but
     // never hand an unvalidated value to Decimal — skip the message instead.
