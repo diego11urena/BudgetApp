@@ -69,7 +69,13 @@ export function TransactionList({
             key={tx.id}
             onClick={(e) => {
               setTriggerElement(e.currentTarget);
-              setEditing({ id: tx.id, type: tx.type, name: tx.name, amount: tx.amount });
+              setEditing({
+                id: tx.id,
+                type: tx.type,
+                name: tx.name,
+                categoryName: tx.categoryName,
+                amount: tx.amount,
+              });
             }}
           >
             <TransactionRowContent tx={tx} />

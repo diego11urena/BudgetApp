@@ -39,18 +39,19 @@ export async function addTransactionAction(
     type: formData.get("type"),
     name: formData.get("name"),
     amount: formData.get("amount"),
+    category: formData.get("category") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { type, name, amount } = parsed.data;
+  const { type, name, amount, category: categoryName } = parsed.data;
   const cycle = await getOrCreateDraftCycle(userId);
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
-    const category = await getOrCreateCategory(prisma, userId, name, type);
+    const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
     expenseCategoryId = category.id;
   }
 
@@ -83,13 +84,14 @@ export async function updateTransactionAction(
     type: formData.get("type"),
     name: formData.get("name"),
     amount: formData.get("amount"),
+    category: formData.get("category") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { type, name, amount } = parsed.data;
+  const { type, name, amount, category: categoryName } = parsed.data;
 
   // Ownership-scoped: a plain update({ where: { id } }) would let a user
   // edit another user's row by guessing an id.
@@ -109,7 +111,7 @@ export async function updateTransactionAction(
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
-    const category = await getOrCreateCategory(prisma, userId, name, type);
+    const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
     expenseCategoryId = category.id;
   }
 

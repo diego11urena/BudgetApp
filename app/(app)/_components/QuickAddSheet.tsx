@@ -17,6 +17,8 @@ export interface EditingTransaction {
   id: string;
   type: TxType;
   name: string;
+  /** Null for INCOME (no category concept) or an uncategorized row. */
+  categoryName: string | null;
   amount: number;
 }
 
@@ -75,38 +77,43 @@ export function QuickAddSheet({
 
   const categoryNames = categoryNamesForType(type);
 
-  // Editing a category that isn't in the known list (renamed/deleted since)
-  // falls back to free-text mode, pre-filled with its current name.
+  // Editing looks at the transaction's actual CATEGORY, not its display
+  // name — those differ for a Gmail-imported transaction (name is the raw
+  // merchant string, category is "Bank Import"). A category that isn't in
+  // the known list (renamed/deleted since, or exactly this imported case)
+  // falls back to free-text mode, pre-filled with its current category.
+  const editingCategoryName =
+    editingTransaction && editingTransaction.type !== "INCOME"
+      ? (editingTransaction.categoryName ?? editingTransaction.name)
+      : null;
+
   const [customMode, setCustomMode] = useState(
     () =>
-      editingTransaction !== null &&
-      editingTransaction.type !== "INCOME" &&
-      !categoryNamesForType(editingTransaction.type).includes(editingTransaction.name),
+      editingCategoryName !== null &&
+      !categoryNamesForType(editingTransaction!.type).includes(editingCategoryName),
   );
   const [customName, setCustomName] = useState(() => {
     if (editingTransaction) {
       if (editingTransaction.type === "INCOME") return editingTransaction.name;
-      return categoryNamesForType(editingTransaction.type).includes(editingTransaction.name)
+      return categoryNamesForType(editingTransaction.type).includes(editingCategoryName!)
         ? ""
-        : editingTransaction.name;
+        : editingCategoryName!;
     }
     return initialType === "INCOME" ? (lastUsedIncomeName ?? "") : "";
   });
   // The list is already ordered most-used-first, so its head is the default
   // when creating; editing pre-selects the transaction's own category.
   const [selectedCategory, setSelectedCategory] = useState(() => {
-    if (editingTransaction && editingTransaction.type !== "INCOME") return editingTransaction.name;
+    if (editingCategoryName !== null) return editingCategoryName;
     return categoryNames[0] ?? "";
   });
   const [amount, setAmount] = useState(editingTransaction ? editingTransaction.amount.toFixed(2) : "");
   // "More…" expands the chip row to the full ordered list — starts expanded
   // if editing a category that wouldn't otherwise be visible in the top 6.
   const [showAllCategories, setShowAllCategories] = useState(() => {
-    if (!editingTransaction || editingTransaction.type === "INCOME") return false;
-    const list = categoryNamesForType(editingTransaction.type);
-    return (
-      list.length > TOP_CHIP_COUNT && !list.slice(0, TOP_CHIP_COUNT).includes(editingTransaction.name)
-    );
+    if (editingCategoryName === null) return false;
+    const list = categoryNamesForType(editingTransaction!.type);
+    return list.length > TOP_CHIP_COUNT && !list.slice(0, TOP_CHIP_COUNT).includes(editingCategoryName);
   });
 
   useEffect(() => {
@@ -217,7 +224,15 @@ export function QuickAddSheet({
   }
 
   const usingCustomInput = type === "INCOME" || customMode || categoryNames.length === 0;
-  const nameValue = usingCustomInput ? customName : selectedCategory;
+  const categoryValue = usingCustomInput ? customName : selectedCategory;
+  // Picking a different category while editing an EXPENSE/SAVINGS
+  // transaction must not silently rewrite its display name — most visible
+  // for a Gmail-imported transaction, whose name is the merchant string,
+  // distinct from its category. INCOME already has its own explicit Name
+  // field (customName); creating has no prior name to preserve, so name and
+  // category stay the same value there, exactly as manual entry always has.
+  const nameValue =
+    type === "INCOME" ? customName : isEditing ? editingTransaction.name : categoryValue;
 
   return (
     <div
@@ -255,6 +270,7 @@ export function QuickAddSheet({
         <form onSubmit={handleSubmit}>
           <input type="hidden" name="type" value={type} />
           <input type="hidden" name="name" value={nameValue} />
+          {type !== "INCOME" && <input type="hidden" name="category" value={categoryValue} />}
           {isEditing && (
             <input type="hidden" name="transactionId" value={editingTransaction.id} />
           )}
