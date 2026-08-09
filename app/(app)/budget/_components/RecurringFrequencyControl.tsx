@@ -60,7 +60,7 @@ export function RecurringFrequencyControl({
             inputMode="numeric"
             min={1}
             max={31}
-            placeholder="Due day"
+            placeholder="Day (1–31)"
             value={selectedDueDay}
             onChange={(e) => setSelectedDueDay(e.target.value)}
             aria-label="Due day of month"
@@ -75,6 +75,11 @@ export function RecurringFrequencyControl({
           {pending ? "Saving..." : "Save"}
         </button>
       </div>
+      <p className="field-hint" style={{ marginTop: "0.35rem" }}>
+        {selectedFrequency === "MONTHLY"
+          ? "Applies only to the quincena containing this day of the month — the other quincena skips it."
+          : "This target reappears in every quincena."}
+      </p>
       {error && <p className="error-text">{error}</p>}
     </div>
   );
