@@ -90,8 +90,19 @@ async function getMessage(client: OAuth2Client, id: string): Promise<GmailMessag
   return res.data;
 }
 
-function isUniqueConstraintViolation(error: unknown): boolean {
+/** Exported so its P2002-detection rule is unit-testable without a live DB connection. */
+export function isUniqueConstraintViolation(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+/**
+ * Forward-only sync window: syncs from the last successful sync, or from
+ * when the connection was first created if this is the very first sync —
+ * never backfills older mail. Pulled out as its own pure function so the
+ * "which timestamp wins" rule is unit-testable without a database.
+ */
+export function syncWindowStartMs(connection: { lastSyncedAt: Date | null; createdAt: Date }): number {
+  return (connection.lastSyncedAt ?? connection.createdAt).getTime();
 }
 
 /**
@@ -113,11 +124,9 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
     });
     client.setCredentials({ refresh_token: refreshToken });
 
-    // Forward-only: sync from the last check, or from when the connection
-    // was created if this is the first sync — never backfills older mail,
-    // so connecting Gmail doesn't suddenly dump old purchases into whatever
+    // So connecting Gmail doesn't suddenly dump old purchases into whatever
     // cycle happens to be open right now.
-    const sinceMs = (connection.lastSyncedAt ?? connection.createdAt).getTime();
+    const sinceMs = syncWindowStartMs(connection);
     const candidateIds = await listMessageIds(client, Math.floor(sinceMs / 1000));
 
     if (candidateIds.length > 0) {

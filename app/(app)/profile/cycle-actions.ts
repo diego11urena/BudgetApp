@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   formatCycleLabel,
   getActiveIncomeSource,
+  latestGoalPerCategory,
   shouldCarryForwardToCycle,
   upsertCycleIncomeEntry,
 } from "@/lib/cycles";
@@ -39,12 +40,7 @@ export async function eraseAllCyclesAction(): Promise<void> {
     include: { expenseCategory: true },
     orderBy: { createdAt: "desc" },
   });
-  const latestGoalByCategory = new Map<string, (typeof recentGoals)[number]>();
-  for (const goal of recentGoals) {
-    if (!latestGoalByCategory.has(goal.expenseCategoryId)) {
-      latestGoalByCategory.set(goal.expenseCategoryId, goal);
-    }
-  }
+  const latestGoalByCategory = latestGoalPerCategory(recentGoals);
 
   await prisma.$transaction(async (tx) => {
     await tx.budgetCycle.deleteMany({ where: { userId } });

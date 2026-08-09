@@ -36,6 +36,25 @@ export function shouldCarryForwardToCycle(
   return quincenaForDay(rule.dueDay) === quincenaForDay(newCyclePeriodStart.getDate());
 }
 
+/**
+ * Given goals ordered newest-first (createdAt desc), keeps only the most
+ * recent one per expenseCategoryId. Used when recreating recurring budget
+ * targets on a brand-new cycle that has no single "previous cycle" to read
+ * from (e.g. erasing all cycles) — pulled out as its own pure function so
+ * the dedup-by-newest rule is unit-testable without a database.
+ */
+export function latestGoalPerCategory<T extends { expenseCategoryId: string }>(
+  goalsNewestFirst: T[],
+): Map<string, T> {
+  const result = new Map<string, T>();
+  for (const goal of goalsNewestFirst) {
+    if (!result.has(goal.expenseCategoryId)) {
+      result.set(goal.expenseCategoryId, goal);
+    }
+  }
+  return result;
+}
+
 /** The user's active income source, if any — reused everywhere a cycle's income entry gets written. */
 export function getActiveIncomeSource(db: Db, userId: string) {
   return db.incomeSource.findFirst({

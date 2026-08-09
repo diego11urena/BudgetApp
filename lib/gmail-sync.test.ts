@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { extractBodyText, filterNewMessageIds } from "./gmail-sync";
+import { Prisma } from "@/app/generated/prisma/client";
+import {
+  extractBodyText,
+  filterNewMessageIds,
+  isUniqueConstraintViolation,
+  syncWindowStartMs,
+} from "./gmail-sync";
 
 describe("filterNewMessageIds", () => {
   it("keeps ids not present in the known set", () => {
@@ -67,5 +73,46 @@ describe("extractBodyText", () => {
   it("returns null when no usable part exists", () => {
     const payload = { mimeType: "multipart/mixed", parts: [{ mimeType: "image/png", body: {} }] };
     expect(extractBodyText(payload)).toBeNull();
+  });
+});
+
+describe("syncWindowStartMs", () => {
+  it("uses lastSyncedAt when present, ignoring createdAt", () => {
+    const lastSyncedAt = new Date(2026, 6, 15);
+    const createdAt = new Date(2026, 0, 1);
+    expect(syncWindowStartMs({ lastSyncedAt, createdAt })).toBe(lastSyncedAt.getTime());
+  });
+
+  it("falls back to createdAt on the very first sync (lastSyncedAt null)", () => {
+    const createdAt = new Date(2026, 0, 1);
+    expect(syncWindowStartMs({ lastSyncedAt: null, createdAt })).toBe(createdAt.getTime());
+  });
+});
+
+describe("isUniqueConstraintViolation", () => {
+  it("returns true for a Prisma P2002 error", () => {
+    const error = new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+      code: "P2002",
+      clientVersion: "test",
+    });
+    expect(isUniqueConstraintViolation(error)).toBe(true);
+  });
+
+  it("returns false for a different Prisma error code", () => {
+    const error = new Prisma.PrismaClientKnownRequestError("Record not found", {
+      code: "P2025",
+      clientVersion: "test",
+    });
+    expect(isUniqueConstraintViolation(error)).toBe(false);
+  });
+
+  it("returns false for a plain Error", () => {
+    expect(isUniqueConstraintViolation(new Error("boom"))).toBe(false);
+  });
+
+  it("returns false for a non-Error value", () => {
+    expect(isUniqueConstraintViolation("some string")).toBe(false);
+    expect(isUniqueConstraintViolation(null)).toBe(false);
+    expect(isUniqueConstraintViolation(undefined)).toBe(false);
   });
 });

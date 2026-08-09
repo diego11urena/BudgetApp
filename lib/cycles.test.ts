@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCycleLabel, quincenaForDay, shouldCarryForwardToCycle } from "./cycles";
+import { formatCycleLabel, latestGoalPerCategory, quincenaForDay, shouldCarryForwardToCycle } from "./cycles";
 
 describe("formatCycleLabel", () => {
   it("formats as zero-padded YYYY-MM-DD", () => {
@@ -85,5 +85,34 @@ describe("shouldCarryForwardToCycle", () => {
     const rule = { frequency: "MONTHLY" as const, dueDay: null };
     expect(shouldCarryForwardToCycle(rule, new Date(2026, 7, 3))).toBe(false);
     expect(shouldCarryForwardToCycle(rule, new Date(2026, 7, 20))).toBe(false);
+  });
+});
+
+describe("latestGoalPerCategory", () => {
+  it("keeps only the first (newest) goal per expenseCategoryId", () => {
+    const goals = [
+      { id: "g3", expenseCategoryId: "gym", targetAmount: 30 },
+      { id: "g2", expenseCategoryId: "gym", targetAmount: 25 },
+      { id: "g1", expenseCategoryId: "gym", targetAmount: 20 },
+    ];
+    const result = latestGoalPerCategory(goals);
+    expect(result.size).toBe(1);
+    expect(result.get("gym")).toEqual(goals[0]);
+  });
+
+  it("tracks each category independently", () => {
+    const goals = [
+      { id: "g1", expenseCategoryId: "gym", targetAmount: 30 },
+      { id: "g2", expenseCategoryId: "panapass", targetAmount: 15 },
+      { id: "g3", expenseCategoryId: "gym", targetAmount: 20 },
+    ];
+    const result = latestGoalPerCategory(goals);
+    expect(result.size).toBe(2);
+    expect(result.get("gym")).toEqual(goals[0]);
+    expect(result.get("panapass")).toEqual(goals[1]);
+  });
+
+  it("returns an empty map for an empty list", () => {
+    expect(latestGoalPerCategory([]).size).toBe(0);
   });
 });
