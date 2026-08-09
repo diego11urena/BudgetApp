@@ -128,33 +128,39 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
       const knownIds = new Set(
         existing.map((t) => t.sourceMessageId).filter((id): id is string => id !== null),
       );
+      const newIds = filterNewMessageIds(candidateIds, knownIds);
 
-      for (const id of filterNewMessageIds(candidateIds, knownIds)) {
-        const message = await getMessage(client, id);
-        const body = extractBodyText(message.payload);
-        const parsed = body ? parseTransactionEmail(body) : null;
-        if (!parsed) continue;
-
+      if (newIds.length > 0) {
+        // Resolved once per sync, not once per message -- both always
+        // resolve to the same row within a single sync (the draft cycle
+        // and the import category don't change mid-loop).
         const cycle = await getOrCreateDraftCycle(userId);
         const category = await getOrCreateCategory(prisma, userId, IMPORT_CATEGORY_NAME, "EXPENSE");
 
-        try {
-          await prisma.cycleTransaction.create({
-            data: {
-              cycleId: cycle.id,
-              type: parsed.type,
-              name: parsed.merchant,
-              amount: parsed.amount,
-              expenseCategoryId: category.id,
-              occurredAt: new Date(Number(message.internalDate)),
-              sourceMessageId: message.id,
-            },
-          });
-        } catch (error) {
-          if (!isUniqueConstraintViolation(error)) throw error;
-          // Already imported (e.g. a race between two near-simultaneous
-          // syncs) — the unique constraint on sourceMessageId is the final
-          // backstop behind the knownIds pre-filter above.
+        for (const id of newIds) {
+          const message = await getMessage(client, id);
+          const body = extractBodyText(message.payload);
+          const parsed = body ? parseTransactionEmail(body) : null;
+          if (!parsed) continue;
+
+          try {
+            await prisma.cycleTransaction.create({
+              data: {
+                cycleId: cycle.id,
+                type: parsed.type,
+                name: parsed.merchant,
+                amount: parsed.amount,
+                expenseCategoryId: category.id,
+                occurredAt: new Date(Number(message.internalDate)),
+                sourceMessageId: message.id,
+              },
+            });
+          } catch (error) {
+            if (!isUniqueConstraintViolation(error)) throw error;
+            // Already imported (e.g. a race between two near-simultaneous
+            // syncs) — the unique constraint on sourceMessageId is the
+            // final backstop behind the knownIds pre-filter above.
+          }
         }
       }
     }
