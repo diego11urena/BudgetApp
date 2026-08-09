@@ -68,6 +68,7 @@ export default async function TransactionsPage({
     amount: tx.amount.toNumber(),
     categoryName: tx.expenseCategory?.name ?? null,
     occurredAt: tx.occurredAt,
+    isImported: tx.sourceMessageId !== null,
     cycleLabel: tx.cycle.label,
     isEditable: tx.cycle.status !== "CLOSED",
   }));

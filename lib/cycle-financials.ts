@@ -13,6 +13,8 @@ export interface CycleTransactionSummary {
   amount: number;
   categoryName: string | null;
   occurredAt: Date;
+  /** Whether this row was auto-imported from Gmail rather than logged by hand. */
+  isImported: boolean;
   /** Only set by callers building an all-time (cross-cycle) view. */
   cycleLabel?: string;
   /**
@@ -52,6 +54,7 @@ interface TransactionLike {
   amount: DecimalLike;
   occurredAt: Date;
   expenseCategory: { id: string; name: string } | null;
+  sourceMessageId?: string | null;
 }
 
 /**
@@ -73,6 +76,7 @@ export function summarizeCycleFinancials(
     amount: tx.amount.toNumber(),
     categoryName: tx.expenseCategory?.name ?? null,
     occurredAt: tx.occurredAt,
+    isImported: (tx.sourceMessageId ?? null) !== null,
   }));
 
   const sumByType = (type: CycleTransactionSummary["type"]) =>

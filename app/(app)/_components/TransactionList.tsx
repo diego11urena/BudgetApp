@@ -20,6 +20,7 @@ function TransactionRowContent({ tx }: { tx: CycleTransactionSummary }) {
           {TYPE_LABEL[tx.type]}
           {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
           {tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
+          {tx.isImported ? " · 📧 Gmail" : ""}
           {tx.isEditable === false ? " · 🔒 closed" : ""}
         </span>
       </div>
