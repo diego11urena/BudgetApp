@@ -7,7 +7,8 @@ import { decryptToken } from "./gmail-crypto";
 import { parseTransactionEmail } from "./gmail-parsers";
 
 const BANK_SENDER = "transaccionesbg@bgeneral.com";
-const IMPORT_CATEGORY_NAME = "Bank Import";
+/** Exported so callers building category suggestion lists (lib/category-order.ts) can exclude it — never a sensible thing to manually pick. */
+export const IMPORT_CATEGORY_NAME = "Bank Import";
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 /** Pure — narrows a batch of candidate Gmail message ids down to the ones not already known. Split out from the rest of the sync so it's unit-testable without a database or a live Gmail connection. */
