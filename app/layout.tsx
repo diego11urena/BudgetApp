@@ -15,10 +15,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "BudgetApp",
   description: "A budgeting app for Panama.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "BudgetApp",
+  },
 };
 
 export const viewport: Viewport = {
   viewportFit: "cover",
+  themeColor: "#5e8f5a",
 };
 
 export default function RootLayout({

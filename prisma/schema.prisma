@@ -22,6 +22,7 @@ model User {
   incomeSources     IncomeSource[]
   expenseCategories ExpenseCategory[]
   budgetCycles      BudgetCycle[]
+  gmailConnection   GmailConnection?
 }
 
 model IncomeSource {
@@ -41,6 +42,21 @@ model IncomeSource {
   cycleEntries CycleIncomeEntry[]
 
   @@index([userId])
+}
+
+// Kept separate from User (rather than columns on it) so the encrypted
+// credential isn't loaded on every ordinary user query throughout the app —
+// only the Gmail sync path ever touches this table.
+model GmailConnection {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  encryptedRefreshToken String
+  googleEmail           String
+  lastSyncedAt          DateTime?
+  lastSyncError         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 enum CycleStatus {
@@ -160,6 +176,13 @@ model CycleTransaction {
   expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
   occurredAt        DateTime         @default(now())
   createdAt         DateTime         @default(now())
+
+  // Set only for transactions auto-imported from Gmail (the message's own
+  // id) — the hard dedupe backstop against re-importing the same email
+  // twice. Null for every hand-entered transaction; Postgres treats
+  // multiple NULLs as distinct under a unique index, so this never
+  // collides with manual entries.
+  sourceMessageId String? @unique
 
   @@index([cycleId])
   @@index([expenseCategoryId])

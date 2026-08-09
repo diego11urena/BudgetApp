@@ -4,17 +4,23 @@ import { prisma } from "@/lib/prisma";
 import { IncomeSettingsForm } from "./_components/IncomeSettingsForm";
 import { DevResetButton } from "./_components/DevResetButton";
 import { ManageCategories } from "./_components/ManageCategories";
+import { GmailConnectionCard } from "./_components/GmailConnectionCard";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gmail?: string }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
   const userId = session.user.id;
+  const { gmail } = await searchParams;
 
-  const [user, incomeSource, categories] = await Promise.all([
+  const [user, incomeSource, categories, gmailConnection] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true, createdAt: true },
@@ -27,6 +33,10 @@ export default async function ProfilePage() {
       where: { userId },
       orderBy: [{ type: "asc" }, { name: "asc" }],
       select: { id: true, name: true, type: true },
+    }),
+    prisma.gmailConnection.findUnique({
+      where: { userId },
+      select: { googleEmail: true, lastSyncedAt: true, lastSyncError: true },
     }),
   ]);
 
@@ -58,6 +68,16 @@ export default async function ProfilePage() {
           />
         </div>
       )}
+
+      <div className="dashboard-section">
+        <h2>Gmail import</h2>
+        {gmail === "error" && (
+          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+            Couldn&apos;t connect Gmail — please try again.
+          </p>
+        )}
+        <GmailConnectionCard connection={gmailConnection} />
+      </div>
 
       <div className="dashboard-section">
         <h2>Manage categories</h2>
