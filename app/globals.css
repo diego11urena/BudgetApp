@@ -211,6 +211,19 @@ a {
   font-size: 0.8rem;
 }
 
+/* For irreversible, high-consequence actions (e.g. erasing all cycle
+   history) — visually distinct from .button--secondary's everyday actions
+   like Sign out, so the two aren't mistakable for each other. */
+.button--danger {
+  background: transparent;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.button--danger:hover {
+  background: var(--color-error-bg);
+}
+
 .error-text {
   color: var(--color-error);
   font-size: 0.875rem;

@@ -27,7 +27,7 @@ export function EraseCyclesButton() {
     <>
       <button
         type="button"
-        className="button button--secondary"
+        className="button button--danger"
         onClick={(e) => {
           setTriggerElement(e.currentTarget);
           setConfirming(true);
@@ -96,7 +96,12 @@ function EraseCyclesConfirmSheet({
           targets, and income records in them. Your categories and income setup stay intact,
           and a fresh cycle starts right away. This can&apos;t be undone.
         </p>
-        <button type="button" className="button sheet-submit" onClick={onConfirm} disabled={pending}>
+        <button
+          type="button"
+          className="button button--danger sheet-submit"
+          onClick={onConfirm}
+          disabled={pending}
+        >
           {pending ? "Erasing..." : "Yes, erase everything"}
         </button>
         <button

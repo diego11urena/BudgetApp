@@ -95,20 +95,20 @@ export default async function ProfilePage({
       </div>
 
       <div className="dashboard-section">
+        <form action={signOutAction}>
+          <button type="submit" className="button button--secondary">
+            Sign out
+          </button>
+        </form>
+      </div>
+
+      <div className="dashboard-section">
         <h2>Reset</h2>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
           Wipe your quincena history and start fresh — your categories and income setup stay
           the same.
         </p>
         <EraseCyclesButton />
-      </div>
-
-      <div className="dashboard-section">
-        <form action={signOutAction}>
-          <button type="submit" className="button button--secondary">
-            Sign out
-          </button>
-        </form>
       </div>
 
       {process.env.NODE_ENV !== "production" && (
