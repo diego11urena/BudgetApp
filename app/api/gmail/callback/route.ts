@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { encryptToken } from "@/lib/gmail-crypto";
 import { verifyGmailOAuthState } from "@/lib/gmail-oauth-state";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const GMAIL_CALLBACK_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -19,6 +22,15 @@ export async function GET(request: NextRequest) {
   // callback being used to attach Gmail access to the wrong account.
   if (!code || !stateUserId || stateUserId !== session.user.id) {
     return NextResponse.redirect(new URL("/profile?gmail=error", request.url));
+  }
+
+  // Keyed by the verified stateUserId (== session.user.id at this point) —
+  // this endpoint performs a real token exchange with Google and a DB
+  // write per call, so it's worth throttling independently of /connect
+  // even though a normal user only ever hits it once per connect attempt.
+  const rateLimit = checkRateLimit(`gmail-callback:${stateUserId}`, GMAIL_CALLBACK_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return NextResponse.redirect(new URL("/profile?gmail=rate_limited", request.url));
   }
 
   const redirectUri = new URL("/api/gmail/callback", request.nextUrl.origin).toString();

@@ -82,6 +82,11 @@ export default async function ProfilePage({
             Couldn&apos;t connect Gmail — please try again.
           </p>
         )}
+        {gmail === "rate_limited" && (
+          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+            Too many attempts — please wait a minute and try again.
+          </p>
+        )}
         <GmailConnectionCard connection={gmailConnection} />
       </div>
 
