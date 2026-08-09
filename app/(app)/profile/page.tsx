@@ -6,6 +6,7 @@ import { DevResetButton } from "./_components/DevResetButton";
 import { ManageCategories } from "./_components/ManageCategories";
 import { GmailConnectionCard } from "./_components/GmailConnectionCard";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
+import { ChangePasswordForm } from "./_components/ChangePasswordForm";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -55,6 +56,11 @@ export default async function ProfilePage({
             year: "numeric",
           })}
         </p>
+      </div>
+
+      <div className="dashboard-section">
+        <h2>Password</h2>
+        <ChangePasswordForm />
       </div>
 
       {incomeSource && (
