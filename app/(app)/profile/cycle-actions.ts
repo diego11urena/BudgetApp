@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatCycleLabel, shouldCarryForwardToCycle } from "@/lib/cycles";
+import {
+  formatCycleLabel,
+  getActiveIncomeSource,
+  shouldCarryForwardToCycle,
+  upsertCycleIncomeEntry,
+} from "@/lib/cycles";
 import { revalidateAppPages } from "@/lib/revalidate";
 
 /**
@@ -49,14 +54,9 @@ export async function eraseAllCyclesAction(): Promise<void> {
       data: { userId, label: formatCycleLabel(now), periodStart: now },
     });
 
-    const incomeSource = await tx.incomeSource.findFirst({
-      where: { userId, isActive: true },
-      orderBy: { createdAt: "asc" },
-    });
+    const incomeSource = await getActiveIncomeSource(tx, userId);
     if (incomeSource) {
-      await tx.cycleIncomeEntry.create({
-        data: { cycleId: cycle.id, incomeSourceId: incomeSource.id, netAmount: incomeSource.netQuincenaAmount },
-      });
+      await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, incomeSource.netQuincenaAmount);
     }
 
     for (const goal of latestGoalByCategory.values()) {

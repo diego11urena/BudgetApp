@@ -95,6 +95,11 @@ model CycleIncomeEntry {
   netAmount      Decimal       @db.Decimal(12, 2)
   createdAt      DateTime      @default(now())
 
+  // Lets a shared upsert helper safely be the single way every callsite
+  // creates-or-updates a cycle's income entry, instead of each one doing
+  // its own separate find-then-branch (a narrow window for two near-
+  // simultaneous calls to both see "missing" and both create).
+  @@unique([cycleId, incomeSourceId])
   @@index([cycleId])
   @@index([incomeSourceId])
 }

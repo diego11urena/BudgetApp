@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { closeCycleAndStartNext, getOrCreateDraftCycle } from "@/lib/cycles";
+import {
+  closeCycleAndStartNext,
+  getActiveIncomeSource,
+  getOrCreateDraftCycle,
+  upsertCycleIncomeEntry,
+} from "@/lib/cycles";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { decimalString } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
@@ -74,29 +79,16 @@ export async function confirmNewCycleIncomeAction(
   }
   const netQuincenaAmount = parsed.data;
 
-  const incomeSource = await prisma.incomeSource.findFirst({
-    where: { userId, isActive: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const incomeSource = await getActiveIncomeSource(prisma, userId);
   if (!incomeSource) {
     return { error: "No income source found yet — complete onboarding first." };
   }
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const existingEntry = await prisma.cycleIncomeEntry.findFirst({
-    where: { cycleId: cycle.id, incomeSourceId: incomeSource.id },
-  });
 
   await prisma.$transaction([
     prisma.incomeSource.update({ where: { id: incomeSource.id }, data: { netQuincenaAmount } }),
-    existingEntry
-      ? prisma.cycleIncomeEntry.update({
-          where: { id: existingEntry.id },
-          data: { netAmount: netQuincenaAmount },
-        })
-      : prisma.cycleIncomeEntry.create({
-          data: { cycleId: cycle.id, incomeSourceId: incomeSource.id, netAmount: netQuincenaAmount },
-        }),
+    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
   ]);
 
   revalidateAppPages();

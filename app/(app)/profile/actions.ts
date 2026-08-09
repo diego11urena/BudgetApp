@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getActiveIncomeSource, getOrCreateDraftCycle, upsertCycleIncomeEntry } from "@/lib/cycles";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { changePasswordSchema, incomeStepSchema } from "@/lib/validations/onboarding";
@@ -84,11 +84,7 @@ export async function updateIncomeAction(
 
   const { name, netQuincenaAmount } = parsed.data;
 
-  const incomeSource = await prisma.incomeSource.findFirst({
-    where: { userId, isActive: true },
-    orderBy: { createdAt: "asc" },
-  });
-
+  const incomeSource = await getActiveIncomeSource(prisma, userId);
   if (!incomeSource) {
     return { error: "No income source found yet — complete onboarding first." };
   }
@@ -98,19 +94,11 @@ export async function updateIncomeAction(
     data: { name, netQuincenaAmount },
   });
 
-  // Update the current open cycle's income entry in place, if one exists.
-  // Past closed cycles are frozen history and are never rewritten.
+  // Updates the current open cycle's income entry in place — creating one
+  // if it's somehow missing, rather than silently doing nothing. Past
+  // closed cycles are frozen history and are never rewritten.
   const cycle = await getOrCreateDraftCycle(userId);
-  const existingEntry = await prisma.cycleIncomeEntry.findFirst({
-    where: { cycleId: cycle.id, incomeSourceId: incomeSource.id },
-  });
-
-  if (existingEntry) {
-    await prisma.cycleIncomeEntry.update({
-      where: { id: existingEntry.id },
-      data: { netAmount: netQuincenaAmount },
-    });
-  }
+  await upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount);
 
   revalidatePath("/profile");
   revalidatePath("/dashboard");

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
-import type { BudgetCycle } from "@/app/generated/prisma/client";
+import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
+
+type Db = PrismaClient | Prisma.TransactionClient;
 
 function pad(n: number): string {
   return n.toString().padStart(2, "0");
@@ -32,6 +34,37 @@ export function shouldCarryForwardToCycle(
   if (rule.frequency === "BIWEEKLY") return true;
   if (rule.dueDay === null) return false;
   return quincenaForDay(rule.dueDay) === quincenaForDay(newCyclePeriodStart.getDate());
+}
+
+/** The user's active income source, if any — reused everywhere a cycle's income entry gets written. */
+export function getActiveIncomeSource(db: Db, userId: string) {
+  return db.incomeSource.findFirst({
+    where: { userId, isActive: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/**
+ * Creates or updates a cycle's income entry for a given income source and
+ * amount — the shared "make this cycle's income reflect this amount" step,
+ * reused by closing a cycle, the post-close pay-amount prompt, editing
+ * income settings, and erasing all cycles. Relies on the
+ * cycleId+incomeSourceId unique constraint, so two near-simultaneous calls
+ * for the same cycle can never create duplicate entries. Accepts either the
+ * top-level Prisma client or an interactive $transaction's tx client, since
+ * some callers need this to participate in a larger atomic write.
+ */
+export function upsertCycleIncomeEntry(
+  db: Db,
+  cycleId: string,
+  incomeSourceId: string,
+  netAmount: Prisma.Decimal | string | number,
+) {
+  return db.cycleIncomeEntry.upsert({
+    where: { cycleId_incomeSourceId: { cycleId, incomeSourceId } },
+    create: { cycleId, incomeSourceId, netAmount },
+    update: { netAmount },
+  });
 }
 
 /**
@@ -110,19 +143,9 @@ export async function closeCycleAndStartNext(userId: string): Promise<CloseCycle
       },
     });
 
-    const incomeSource = await tx.incomeSource.findFirst({
-      where: { userId, isActive: true },
-      orderBy: { createdAt: "asc" },
-    });
-
+    const incomeSource = await getActiveIncomeSource(tx, userId);
     if (incomeSource) {
-      await tx.cycleIncomeEntry.create({
-        data: {
-          cycleId: created.id,
-          incomeSourceId: incomeSource.id,
-          netAmount: incomeSource.netQuincenaAmount,
-        },
-      });
+      await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netQuincenaAmount);
     }
 
     // Only categories marked recurring auto-carry their most recent target
