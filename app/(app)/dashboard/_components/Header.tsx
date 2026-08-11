@@ -9,7 +9,6 @@ function getGreeting(hour: number): string {
 export function Header({ name }: { name?: string | null }) {
   const now = new Date();
   const greeting = getGreeting(now.getHours());
-  const monthLabel = now.toLocaleDateString("en-US", { month: "long" });
   const firstName = name?.trim().split(/\s+/)[0];
 
   return (
@@ -19,7 +18,7 @@ export function Header({ name }: { name?: string | null }) {
           {greeting}
           {firstName ? `, ${firstName}` : ""}
         </p>
-        <p className="home-month">{monthLabel} Budget</p>
+        <p className="home-month">This Quincena&apos;s Budget</p>
       </div>
       <Link href="/profile" className="home-profile-icon" aria-label="Profile">
         👤
