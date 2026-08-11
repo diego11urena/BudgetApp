@@ -45,9 +45,10 @@ export default async function DashboardPage() {
     : null;
 
   const recentCycles = await getRecentCycles(userId);
-  const previousClosedFinancials = recentCycles
-    .filter((c) => c.status === "CLOSED" && c.id !== cycle.id)
-    .map((c) => summarizeCycleFinancials(c.incomeEntries, c.transactions));
+  const closedCycles = recentCycles.filter((c) => c.status === "CLOSED" && c.id !== cycle.id);
+  const previousClosedFinancials = closedCycles.map((c) =>
+    summarizeCycleFinancials(c.incomeEntries, c.transactions),
+  );
 
   const insights = generateInsights(financials, previousClosedFinancials);
 
@@ -88,10 +89,15 @@ export default async function DashboardPage() {
       <div className="dashboard-section">
         <h2>Recent transactions</h2>
         <TransactionList
-          transactions={financials.transactions.slice(0, 5)}
+          transactions={financials.transactions.slice(0, 3)}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
         />
+        {financials.transactions.length > 3 && (
+          <Link href="/transactions" className="line-item line-item--link">
+            See all →
+          </Link>
+        )}
       </div>
 
       <div className="dashboard-section dashboard-section--plain">
@@ -108,19 +114,25 @@ export default async function DashboardPage() {
 
       <div className="dashboard-section">
         <h2>History</h2>
-        <div className="preview-box">
-          {recentCycles.map((c) => {
-            const cFinancials = summarizeCycleFinancials(c.incomeEntries, c.transactions);
-            return (
-              <Link href={`/history/${c.id}`} className="line-item line-item--link" key={c.id}>
-                <span>
-                  {c.label} ({c.status})
-                </span>
-                <span>{formatCurrency(cFinancials.amountLeft)} left ›</span>
-              </Link>
-            );
-          })}
-        </div>
+        {closedCycles.length === 0 ? (
+          <p className="field-hint">
+            No past quincenas yet — this fills in once you close your first one.
+          </p>
+        ) : (
+          <div className="preview-box">
+            {closedCycles.map((c) => {
+              const cFinancials = summarizeCycleFinancials(c.incomeEntries, c.transactions);
+              return (
+                <Link href={`/history/${c.id}`} className="line-item line-item--link" key={c.id}>
+                  <span>
+                    {c.label} ({c.status})
+                  </span>
+                  <span>{formatCurrency(cFinancials.amountLeft)} left ›</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -58,6 +58,28 @@ interface TransactionLike {
 }
 
 /**
+ * Maps one raw transaction row into the shared display shape. `extra` is
+ * for cross-cycle (all-time) callers like the Transactions tab, which know
+ * a row's cycle label and whether that cycle is still editable — the
+ * single-cycle callers (Home, History) leave both undefined.
+ */
+export function toCycleTransactionSummary(
+  tx: TransactionLike,
+  extra?: { cycleLabel?: string; isEditable?: boolean },
+): CycleTransactionSummary {
+  return {
+    id: tx.id,
+    type: tx.type,
+    name: tx.name,
+    amount: tx.amount.toNumber(),
+    categoryName: tx.expenseCategory?.name ?? null,
+    occurredAt: tx.occurredAt,
+    isImported: (tx.sourceMessageId ?? null) !== null,
+    ...extra,
+  };
+}
+
+/**
  * Pure aggregation over already-fetched rows — lets History reuse the same
  * math on data getRecentCycles already pulled, without a query per cycle.
  * Uses plain numbers, not Decimal: this is a display-only aggregation over
@@ -69,15 +91,9 @@ export function summarizeCycleFinancials(
 ): CycleFinancials {
   const baseIncome = incomeEntries.reduce((sum, entry) => sum + entry.netAmount.toNumber(), 0);
 
-  const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) => ({
-    id: tx.id,
-    type: tx.type,
-    name: tx.name,
-    amount: tx.amount.toNumber(),
-    categoryName: tx.expenseCategory?.name ?? null,
-    occurredAt: tx.occurredAt,
-    isImported: (tx.sourceMessageId ?? null) !== null,
-  }));
+  const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
+    toCycleTransactionSummary(tx),
+  );
 
   const sumByType = (type: CycleTransactionSummary["type"]) =>
     transactions.filter((tx) => tx.type === type).reduce((sum, tx) => sum + tx.amount, 0);

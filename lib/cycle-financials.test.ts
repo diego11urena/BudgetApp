@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeCycleFinancials } from "./cycle-financials";
+import { summarizeCycleFinancials, toCycleTransactionSummary } from "./cycle-financials";
 
 function decimal(value: number) {
   return { toNumber: () => value };
@@ -139,5 +139,37 @@ describe("summarizeCycleFinancials", () => {
     expect(expenseRow.name).toBe("Weekly shop");
     expect(expenseRow.categoryName).toBe("Groceries");
     expect(incomeRow.categoryName).toBeNull();
+  });
+});
+
+describe("toCycleTransactionSummary", () => {
+  it("maps a raw transaction into the shared summary shape with no extras by default", () => {
+    const row = tx("EXPENSE", 42, { category: { id: "cat-1", name: "Groceries" }, name: "Weekly shop" });
+    const result = toCycleTransactionSummary(row);
+    expect(result).toEqual({
+      id: row.id,
+      type: "EXPENSE",
+      name: "Weekly shop",
+      amount: 42,
+      categoryName: "Groceries",
+      occurredAt: row.occurredAt,
+      isImported: false,
+    });
+  });
+
+  it("marks isImported true when sourceMessageId is set", () => {
+    const row = { ...tx("EXPENSE", 10), sourceMessageId: "gmail-msg-1" };
+    expect(toCycleTransactionSummary(row).isImported).toBe(true);
+  });
+
+  it("applies cycleLabel and isEditable only when extra is passed", () => {
+    const row = tx("EXPENSE", 10);
+    const withExtra = toCycleTransactionSummary(row, { cycleLabel: "2026-08-01", isEditable: false });
+    expect(withExtra.cycleLabel).toBe("2026-08-01");
+    expect(withExtra.isEditable).toBe(false);
+
+    const withoutExtra = toCycleTransactionSummary(row);
+    expect(withoutExtra.cycleLabel).toBeUndefined();
+    expect(withoutExtra.isEditable).toBeUndefined();
   });
 });

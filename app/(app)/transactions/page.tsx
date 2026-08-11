@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
-import { getLastUsedIncomeName } from "@/lib/cycle-financials";
+import { getLastUsedIncomeName, toCycleTransactionSummary } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { QuickActions } from "../_components/QuickActions";
 import { TransactionList } from "../_components/TransactionList";
@@ -61,17 +61,12 @@ export default async function TransactionsPage({
       getLastUsedIncomeName(userId),
     ]);
 
-  const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) => ({
-    id: tx.id,
-    type: tx.type,
-    name: tx.name,
-    amount: tx.amount.toNumber(),
-    categoryName: tx.expenseCategory?.name ?? null,
-    occurredAt: tx.occurredAt,
-    isImported: tx.sourceMessageId !== null,
-    cycleLabel: tx.cycle.label,
-    isEditable: tx.cycle.status !== "CLOSED",
-  }));
+  const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
+    toCycleTransactionSummary(tx, {
+      cycleLabel: tx.cycle.label,
+      isEditable: tx.cycle.status !== "CLOSED",
+    }),
+  );
 
   return (
     <div className="home-page">
