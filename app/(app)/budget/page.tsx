@@ -4,14 +4,8 @@ import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
-import { getBudgetUsage } from "@/lib/budget-status";
-import { formatCurrency } from "@/lib/format";
-import { iconForCategoryName } from "@/lib/category-icons";
-import { ProgressBar } from "../_components/ProgressBar";
 import { BudgetGoalForm } from "./_components/BudgetGoalForm";
-import { RecurringToggle } from "./_components/RecurringToggle";
-import { RecurringFrequencyControl } from "./_components/RecurringFrequencyControl";
-import { DeleteBudgetGoalButton } from "./_components/DeleteBudgetGoalButton";
+import { BudgetGoalRow } from "./_components/BudgetGoalRow";
 
 export default async function BudgetPage() {
   const session = await auth();
@@ -39,48 +33,27 @@ export default async function BudgetPage() {
 
       <div className="dashboard-section">
         <h2>This quincena&apos;s budget</h2>
+        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
+          Recurring targets carry into every quincena by default — expand a
+          target to switch it to a specific day each month instead.
+        </p>
         {rows.length === 0 && (
           <p className="field-hint">No budget categories yet — add one below.</p>
         )}
         <div className="budget-goal-list">
-          {rows.map((row) => {
-            const usage = getBudgetUsage(row.actual, row.targetAmount);
-            return (
-              <div className="budget-goal-row" key={row.id}>
-                <div className="progress-bar-label">
-                  <span>
-                    {iconForCategoryName(row.categoryName)} {row.categoryName}
-                  </span>
-                  <span>{usage.percentage}%</span>
-                </div>
-                <ProgressBar current={row.actual} target={row.targetAmount} colorState={usage.state} />
-                <p className="field-hint" style={{ marginTop: "0.35rem" }}>
-                  {formatCurrency(row.actual)} / {formatCurrency(row.targetAmount)}
-                  {usage.overBy > 0 && (
-                    <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
-                  )}
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: "0.5rem",
-                  }}
-                >
-                  <RecurringToggle categoryId={row.categoryId} recurring={row.recurring} />
-                  <DeleteBudgetGoalButton goalId={row.id} categoryName={row.categoryName} />
-                </div>
-                {row.recurring && (
-                  <RecurringFrequencyControl
-                    categoryId={row.categoryId}
-                    frequency={row.frequency}
-                    dueDay={row.dueDay}
-                  />
-                )}
-              </div>
-            );
-          })}
+          {rows.map((row) => (
+            <BudgetGoalRow
+              key={row.id}
+              goalId={row.id}
+              categoryId={row.categoryId}
+              categoryName={row.categoryName}
+              actual={row.actual}
+              targetAmount={row.targetAmount}
+              recurring={row.recurring}
+              frequency={row.frequency}
+              dueDay={row.dueDay}
+            />
+          ))}
         </div>
       </div>
 

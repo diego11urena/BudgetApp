@@ -75,11 +75,6 @@ export function RecurringFrequencyControl({
           {pending ? "Saving..." : "Save"}
         </button>
       </div>
-      <p className="field-hint" style={{ marginTop: "0.35rem" }}>
-        {selectedFrequency === "MONTHLY"
-          ? "Applies only to the quincena containing this day of the month — the other quincena skips it."
-          : "This target reappears in every quincena."}
-      </p>
       {error && <p className="error-text">{error}</p>}
     </div>
   );
