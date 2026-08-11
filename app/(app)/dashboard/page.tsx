@@ -19,24 +19,14 @@ import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { QuickActions } from "../_components/QuickActions";
 import { InsightsCard } from "./_components/InsightsCard";
 import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
-import { TransactionForm } from "../_components/TransactionForm";
 import { TransactionList } from "../_components/TransactionList";
 
-type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
-
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string }>;
-}) {
+export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
   const userId = session.user.id;
-
-  const { type } = await searchParams;
-  const initialType: TxType = type === "INCOME" || type === "SAVINGS" ? type : "EXPENSE";
 
   const cycle = await getOrCreateDraftCycle(userId);
   const financials = await getCycleFinancials(cycle.id);
@@ -109,16 +99,6 @@ export default async function DashboardPage({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           lastUsedIncomeName={lastUsedIncomeName}
-        />
-      </div>
-
-      <div className="dashboard-section">
-        <h2>Log a transaction</h2>
-        <TransactionForm
-          key={initialType}
-          initialType={initialType}
-          expenseCategoryNames={expenseCategoryNames}
-          savingsCategoryNames={savingsCategoryNames}
         />
       </div>
 
