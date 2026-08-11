@@ -8,12 +8,12 @@ export function BudgetProgressCard({ spent, budget }: { spent: number; budget: n
   return (
     <div>
       <div className="progress-bar-label">
-        <span>Spent</span>
+        <span>Fixed budget used</span>
         <span>{usage.percentage}%</span>
       </div>
       <ProgressBar current={spent} target={budget} colorState={usage.state} />
       <p className="field-hint" style={{ marginTop: "0.5rem" }}>
-        {formatCurrency(spent)} / {formatCurrency(budget)}
+        {formatCurrency(spent)} of {formatCurrency(budget)} in fixed targets
         {usage.overBy > 0 && <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>}
       </p>
     </div>

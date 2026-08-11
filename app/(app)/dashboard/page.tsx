@@ -75,8 +75,8 @@ export default async function DashboardPage() {
 
       <div className="dashboard-section">
         <SummaryRow
-          income={financials.baseIncome + financials.extraIncome}
-          expenses={financials.totalExpenses}
+          baseIncome={financials.baseIncome}
+          extraIncome={financials.extraIncome}
           saved={financials.totalSavings}
         />
       </div>
