@@ -2,12 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { IncomeSettingsForm } from "./_components/IncomeSettingsForm";
 import { DevResetButton } from "./_components/DevResetButton";
-import { ManageCategories } from "./_components/ManageCategories";
 import { GmailConnectionCard } from "./_components/GmailConnectionCard";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
-import { ChangePasswordForm } from "./_components/ChangePasswordForm";
+import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
+import { EditIncomeSheet } from "./_components/EditIncomeSheet";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -23,7 +22,7 @@ export default async function ProfilePage({
   const userId = session.user.id;
   const { gmail } = await searchParams;
 
-  const [user, incomeSource, categories, gmailConnection] = await Promise.all([
+  const [user, incomeSource, gmailConnection] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true, createdAt: true },
@@ -31,11 +30,6 @@ export default async function ProfilePage({
     prisma.incomeSource.findFirst({
       where: { userId, isActive: true },
       orderBy: { createdAt: "asc" },
-    }),
-    prisma.expenseCategory.findMany({
-      where: { userId },
-      orderBy: [{ type: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, type: true },
     }),
     prisma.gmailConnection.findUnique({
       where: { userId },
@@ -60,14 +54,12 @@ export default async function ProfilePage({
       </div>
 
       <div className="dashboard-section">
-        <h2>Password</h2>
-        <ChangePasswordForm />
+        <ChangePasswordSheet />
       </div>
 
       {incomeSource && (
         <div className="dashboard-section">
-          <h2>Income</h2>
-          <IncomeSettingsForm
+          <EditIncomeSheet
             initial={{
               name: incomeSource.name,
               netQuincenaAmount: incomeSource.netQuincenaAmount.toString(),
@@ -92,12 +84,10 @@ export default async function ProfilePage({
       </div>
 
       <div className="dashboard-section">
-        <h2>Manage categories</h2>
-        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Rename a typo&apos;d category, or merge two into one — moves all its transactions and
-          budget history along with it.
-        </p>
-        <ManageCategories categories={categories} />
+        <Link href="/profile/categories" className="line-item line-item--link">
+          <span>Manage categories</span>
+          <span>›</span>
+        </Link>
       </div>
 
       <div className="dashboard-section">
@@ -109,20 +99,20 @@ export default async function ProfilePage({
       </div>
 
       <div className="dashboard-section">
-        <form action={signOutAction}>
-          <button type="submit" className="button button--secondary">
-            Sign out
-          </button>
-        </form>
-      </div>
-
-      <div className="dashboard-section">
         <h2>Reset</h2>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
           Wipe your quincena history and start fresh — your categories and income setup stay
           the same.
         </p>
         <EraseCyclesButton />
+      </div>
+
+      <div className="dashboard-section">
+        <form action={signOutAction}>
+          <button type="submit" className="button button--secondary">
+            Sign out
+          </button>
+        </form>
       </div>
 
       {process.env.NODE_ENV !== "production" && (

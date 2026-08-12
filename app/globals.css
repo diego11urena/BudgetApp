@@ -316,6 +316,18 @@ a {
   transition: opacity 0.1s ease;
 }
 
+/* A <button> reusing the .line-item--link row style (e.g. a settings row
+   that opens a sheet instead of navigating) needs its native button
+   chrome reset. */
+button.line-item--link {
+  width: 100%;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
 .line-item--link:active {
   opacity: 0.6;
 }
