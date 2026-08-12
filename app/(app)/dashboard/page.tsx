@@ -13,8 +13,7 @@ import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
-import { BudgetProgressCard } from "./_components/BudgetProgressCard";
-import { SummaryRow } from "./_components/SummaryRow";
+import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { QuickActions } from "../_components/QuickActions";
 import { InsightsCard } from "./_components/InsightsCard";
@@ -71,14 +70,12 @@ export default async function DashboardPage() {
       </div>
 
       <div className="dashboard-section">
-        <BudgetProgressCard spent={financials.totalExpenses} budget={totalBudget} />
-      </div>
-
-      <div className="dashboard-section">
-        <SummaryRow
+        <BudgetBreakdownCard
           baseIncome={financials.baseIncome}
           extraIncome={financials.extraIncome}
           saved={financials.totalSavings}
+          spent={financials.totalExpenses}
+          budget={totalBudget}
         />
       </div>
 

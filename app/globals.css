@@ -379,6 +379,13 @@ a {
   color: var(--color-text-primary);
 }
 
+/* Generic divider between two stacked sub-sections within one card. */
+.card-divider {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
 .dashboard-section--plain {
   background: none;
   border: none;
