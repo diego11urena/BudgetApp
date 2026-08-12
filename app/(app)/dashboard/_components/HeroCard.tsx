@@ -56,8 +56,7 @@ export function HeroCard({
         </p>
         <p className="hero-subtitle">Remaining this Quincena</p>
         <p className={`hero-pace ${pace.isOverPace ? "hero-pace--warning" : ""}`}>
-          {formatCurrency(amountLeft)} left · {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"}{" "}
-          left ·{" "}
+          {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left ·{" "}
           {pace.isLastDay ? "Last day of this quincena" : `~${formatCurrency(pace.perDay)}/day`}
         </p>
         <button
