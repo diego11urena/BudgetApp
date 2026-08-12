@@ -4,9 +4,8 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
-import { getLastUsedIncomeName, toCycleTransactionSummary } from "@/lib/cycle-financials";
+import { toCycleTransactionSummary } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
-import { QuickActions } from "../_components/QuickActions";
 import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
 
@@ -48,18 +47,16 @@ export default async function TransactionsPage({
           ? { amount: "asc" }
           : { occurredAt: "desc" };
 
-  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, lastUsedIncomeName] =
-    await Promise.all([
-      prisma.cycleTransaction.findMany({
-        where,
-        orderBy,
-        take: 100,
-        include: { expenseCategory: true, cycle: true },
-      }),
-      getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
-      getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-      getLastUsedIncomeName(userId),
-    ]);
+  const [rawTransactions, expenseCategoryNames, savingsCategoryNames] = await Promise.all([
+    prisma.cycleTransaction.findMany({
+      where,
+      orderBy,
+      take: 100,
+      include: { expenseCategory: true, cycle: true },
+    }),
+    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+  ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
     toCycleTransactionSummary(tx, {
@@ -71,14 +68,6 @@ export default async function TransactionsPage({
   return (
     <div className="home-page">
       <h1 className="page-title">Transactions</h1>
-
-      <div className="dashboard-section dashboard-section--plain">
-        <QuickActions
-          expenseCategoryNames={expenseCategoryNames}
-          savingsCategoryNames={savingsCategoryNames}
-          lastUsedIncomeName={lastUsedIncomeName}
-        />
-      </div>
 
       <div className="dashboard-section">
         <h2>All transactions</h2>

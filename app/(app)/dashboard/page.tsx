@@ -1,11 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
-import {
-  getCycleFinancials,
-  getLastUsedIncomeName,
-  summarizeCycleFinancials,
-} from "@/lib/cycle-financials";
+import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
@@ -15,7 +11,6 @@ import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
 import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
-import { QuickActions } from "../_components/QuickActions";
 import { InsightsCard } from "./_components/InsightsCard";
 import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
 import { TransactionList } from "../_components/TransactionList";
@@ -32,10 +27,9 @@ export default async function DashboardPage() {
   const expenseGoals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
   const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
 
-  const [expenseCategoryNames, savingsCategoryNames, lastUsedIncomeName] = await Promise.all([
+  const [expenseCategoryNames, savingsCategoryNames] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-    getLastUsedIncomeName(userId),
   ]);
 
   const lastClosedCycle = await getMostRecentClosedCycle(userId);
@@ -95,14 +89,6 @@ export default async function DashboardPage() {
             See all →
           </Link>
         )}
-      </div>
-
-      <div className="dashboard-section dashboard-section--plain">
-        <QuickActions
-          expenseCategoryNames={expenseCategoryNames}
-          savingsCategoryNames={savingsCategoryNames}
-          lastUsedIncomeName={lastUsedIncomeName}
-        />
       </div>
 
       <div className="dashboard-section dashboard-section--plain">

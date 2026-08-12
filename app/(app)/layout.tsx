@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncGmailTransactions } from "@/lib/gmail-sync";
+import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getLastUsedIncomeName } from "@/lib/cycle-financials";
+import { getOrderedCategoryNames } from "@/lib/category-order";
 import { BottomNav } from "./_components/BottomNav";
 import { ToastProvider } from "./_components/ToastProvider";
 
@@ -10,9 +13,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const userId = session.user.id;
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { onboardingCompletedAt: true },
   });
 
@@ -24,13 +28,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // into the app, so a freshly-logged transaction shows up no matter which
   // tab is opened first — never throws (see syncGmailTransactions), so a
   // revoked token or a Gmail API hiccup can't break page loads.
-  await syncGmailTransactions(session.user.id);
+  await syncGmailTransactions(userId);
+
+  // Feeds the bottom nav's global "+" action sheet, which needs to open
+  // QuickAddSheet from any page — same three fetches dashboard/page.tsx
+  // and transactions/page.tsx already each make independently.
+  const cycle = await getOrCreateDraftCycle(userId);
+  const [expenseCategoryNames, savingsCategoryNames, lastUsedIncomeName] = await Promise.all([
+    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+    getLastUsedIncomeName(userId),
+  ]);
 
   return (
     <ToastProvider>
       <div className="app-shell">
         <main className="app-content">{children}</main>
-        <BottomNav />
+        <BottomNav
+          expenseCategoryNames={expenseCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
+          lastUsedIncomeName={lastUsedIncomeName}
+        />
       </div>
     </ToastProvider>
   );

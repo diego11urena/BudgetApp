@@ -1182,6 +1182,32 @@ a {
   transition: transform 0.15s ease;
 }
 
+/* Raised center "+" — a plain button, not a nav tab: never gets
+   .is-active and doesn't reflect the current route. */
+.bottom-nav-fab {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin-top: -1.5rem;
+  border-radius: 50%;
+  border: 3px solid var(--color-card);
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
+  font-size: 1.75rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.bottom-nav-fab:active {
+  transform: scale(0.94);
+}
+
 /* Toast — non-blocking feedback for logging/deleting, with an Undo action */
 .toast {
   position: fixed;
