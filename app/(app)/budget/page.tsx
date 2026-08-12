@@ -4,7 +4,7 @@ import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
-import { BudgetGoalForm } from "./_components/BudgetGoalForm";
+import { AddTargetSheet } from "./_components/AddTargetSheet";
 import { BudgetGoalRow } from "./_components/BudgetGoalRow";
 
 export default async function BudgetPage() {
@@ -26,19 +26,30 @@ export default async function BudgetPage() {
 
   return (
     <div className="home-page">
-      <h1 className="page-title">Budget</h1>
+      <h1 className="page-title">Fixed Expenses</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
         Fixed expense targets for this quincena. Savings targets live on the Goals tab.
       </p>
 
       <div className="dashboard-section">
-        <h2>This quincena&apos;s budget</h2>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>This quincena&apos;s fixed expenses</h2>
+          <AddTargetSheet categoryNames={expenseCategoryNames} />
+        </div>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Recurring targets carry into every quincena by default — expand a
-          target to switch it to a specific day each month instead.
+          Recurring targets carry into every quincena by default — tap the
+          edit icon on a target to switch it to a specific day each month
+          instead.
         </p>
         {rows.length === 0 && (
-          <p className="field-hint">No budget categories yet — add one below.</p>
+          <p className="field-hint">No fixed expense targets yet — tap &quot;+ Add target&quot; above.</p>
         )}
         <div className="budget-goal-list">
           {rows.map((row) => (
@@ -55,15 +66,6 @@ export default async function BudgetPage() {
             />
           ))}
         </div>
-      </div>
-
-      <div className="dashboard-section">
-        <h2>Add or update a target</h2>
-        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Sets this quincena&apos;s amount. New categories start Recurring — tap the 🔁 badge on
-          a target above to stop it from carrying into your next quincena.
-        </p>
-        <BudgetGoalForm categoryNames={expenseCategoryNames} />
       </div>
     </div>
   );

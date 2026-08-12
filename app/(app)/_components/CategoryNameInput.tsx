@@ -21,6 +21,7 @@ export function CategoryNameInput({
   defaultValue,
   placeholder,
   required = true,
+  showChips = true,
 }: {
   id: string;
   name: string;
@@ -28,6 +29,8 @@ export function CategoryNameInput({
   defaultValue?: string;
   placeholder?: string;
   required?: boolean;
+  /** Set false to render just the text input + native datalist as a single combobox, with no chip row above it. */
+  showChips?: boolean;
 }) {
   const listId = `${id}-list`;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +44,7 @@ export function CategoryNameInput({
 
   return (
     <>
-      {topCategories.length > 0 && (
+      {showChips && topCategories.length > 0 && (
         <div className="category-chips category-chips--compact">
           {topCategories.map((categoryName) => (
             <button

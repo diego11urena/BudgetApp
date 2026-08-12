@@ -209,6 +209,7 @@ a {
   min-height: 36px;
   padding: 0.4rem 0.9rem;
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 /* For irreversible, high-consequence actions (e.g. erasing all cycle
@@ -1340,6 +1341,18 @@ a {
 .goal-row:last-child {
   border-bottom: none;
   padding-bottom: 0;
+}
+
+.budget-goal-row-controls {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.budget-goal-row-controls-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .goal-row-main {

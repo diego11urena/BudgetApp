@@ -1,13 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { upsertBudgetGoalAction, type BudgetGoalFormState } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 
 const initialState: BudgetGoalFormState = undefined;
 
-export function BudgetGoalForm({ categoryNames }: { categoryNames: string[] }) {
+export function BudgetGoalForm({
+  categoryNames,
+  onSuccess,
+}: {
+  categoryNames: string[];
+  /** Called once, right after a submit completes with no error — lets a caller close the sheet this form lives in. */
+  onSuccess?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(upsertBudgetGoalAction, initialState);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (wasPending.current && !pending && !state?.error) {
+      onSuccess?.();
+    }
+    wasPending.current = pending;
+  }, [pending, state, onSuccess]);
 
   return (
     <form action={formAction}>
@@ -18,7 +33,8 @@ export function BudgetGoalForm({ categoryNames }: { categoryNames: string[] }) {
             id="budget-name"
             name="name"
             categoryNames={categoryNames}
-            placeholder="Groceries"
+            placeholder="Search or add a category…"
+            showChips={false}
           />
         </div>
         <div className="field" style={{ flex: 1, minWidth: "7rem" }}>
