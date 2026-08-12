@@ -1,8 +1,9 @@
 import { decimalString } from "./validations/shared";
 
 export interface ParsedTransaction {
-  type: "EXPENSE";
+  type: "EXPENSE" | "INCOME";
   amount: string;
+  /** Merchant name for a card purchase, or the counterparty's name for a Yappy transfer. */
   merchant: string;
 }
 
@@ -57,12 +58,74 @@ export const purchaseNotificationParser: EmailParser = {
 };
 
 /**
+ * Yappy's rendered notification text has no real whitespace between
+ * adjacent fields once tags/layout are stripped away (e.g.
+ * "Enviado porIsabella E.****-4820Fecha"), so the counterparty name is
+ * captured non-greedily up to the literal "Fecha" that always follows it,
+ * then cleaned of the trailing masked-account noise ("****-4820") or raw
+ * phone digits ("69264820") that get swept up in that capture.
+ */
+function cleanYappyName(raw: string): string {
+  return raw.trim().replace(/[\s*\-\d]+$/, "").trim();
+}
+
+// "Te enviaron por Yappy $1.00 Enviado por Isabella E.****-4820 Fecha ..."
+// — money received via Yappy. Group 1 = amount, group 2 = sender's name.
+const YAPPY_RECEIVED_PATTERN =
+  /Te enviaron por Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Enviado por\s*(.+?)Fecha/;
+
+export const yappyReceivedParser: EmailParser = {
+  name: "yappy-received",
+  match(body) {
+    return YAPPY_RECEIVED_PATTERN.test(normalizeWhitespace(body));
+  },
+  extract(body) {
+    const match = normalizeWhitespace(body).match(YAPPY_RECEIVED_PATTERN);
+    const rawAmount = match?.[1];
+    const merchant = match?.[2] ? cleanYappyName(match[2]) : "";
+    if (!rawAmount || !merchant) return null;
+
+    const amount = rawAmount.replace(/,/g, "");
+    if (!decimalString.safeParse(amount).success) return null;
+
+    return { type: "INCOME", amount, merchant };
+  },
+};
+
+// "Enviaste por Yappy $1.00 Enviado a Isabella Elias69264820 Fecha ..." —
+// money sent via Yappy. Group 1 = amount, group 2 = recipient's name.
+const YAPPY_SENT_PATTERN =
+  /Enviaste por Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Enviado a\s*(.+?)Fecha/;
+
+export const yappySentParser: EmailParser = {
+  name: "yappy-sent",
+  match(body) {
+    return YAPPY_SENT_PATTERN.test(normalizeWhitespace(body));
+  },
+  extract(body) {
+    const match = normalizeWhitespace(body).match(YAPPY_SENT_PATTERN);
+    const rawAmount = match?.[1];
+    const merchant = match?.[2] ? cleanYappyName(match[2]) : "";
+    if (!rawAmount || !merchant) return null;
+
+    const amount = rawAmount.replace(/,/g, "");
+    if (!decimalString.safeParse(amount).success) return null;
+
+    return { type: "EXPENSE", amount, merchant };
+  },
+};
+
+/**
  * Tried in order; the first parser whose match() returns true wins. Adding
  * support for another email template (a reversal, an ATM withdrawal, an
  * incoming transfer) later is just appending one more { match, extract }
  * entry here — nothing else in the Gmail sync pipeline needs to change.
  */
-export const parsers: EmailParser[] = [purchaseNotificationParser];
+export const parsers: EmailParser[] = [
+  purchaseNotificationParser,
+  yappyReceivedParser,
+  yappySentParser,
+];
 
 export function parseTransactionEmail(body: string): ParsedTransaction | null {
   const parser = parsers.find((p) => p.match(body));

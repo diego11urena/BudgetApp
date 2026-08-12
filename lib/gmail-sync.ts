@@ -6,7 +6,8 @@ import { getOrCreateCategory } from "./categories";
 import { decryptToken } from "./gmail-crypto";
 import { parseTransactionEmail } from "./gmail-parsers";
 
-const BANK_SENDER = "transaccionesbg@bgeneral.com";
+/** Every sender address whose mail gets scanned for transactions — the bank (credit/debit card purchases) and Yappy (P2P sent/received). */
+const BANK_SENDERS = ["transaccionesbg@bgeneral.com", "notificaciones@yappy.com.pa"];
 /** Exported so callers building category suggestion lists (lib/category-order.ts) can exclude it — never a sensible thing to manually pick. */
 export const IMPORT_CATEGORY_NAME = "Bank Import";
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
@@ -69,12 +70,13 @@ export function extractBodyText(payload: GmailMessagePart): string | null {
 }
 
 async function listMessageIds(client: OAuth2Client, afterEpochSeconds: number): Promise<string[]> {
+  const senderQuery = BANK_SENDERS.map((sender) => `from:${sender}`).join(" OR ");
   const ids: string[] = [];
   let pageToken: string | undefined;
   do {
     const res = await client.request<GmailListResponse>({
       url: `${GMAIL_API_BASE}/messages`,
-      params: { q: `from:${BANK_SENDER} after:${afterEpochSeconds}`, pageToken },
+      params: { q: `(${senderQuery}) after:${afterEpochSeconds}`, pageToken },
     });
     for (const m of res.data.messages ?? []) ids.push(m.id);
     pageToken = res.data.nextPageToken;
@@ -106,11 +108,12 @@ export function syncWindowStartMs(connection: { lastSyncedAt: Date | null; creat
 }
 
 /**
- * Checks Gmail for new purchase-notification emails from the bank since the
- * last sync and imports them as transactions. Called from the app layout on
- * every navigation (see app/(app)/layout.tsx) — must never throw, since a
- * revoked token or a Gmail API hiccup can't be allowed to break page loads.
- * No-ops immediately if the user hasn't connected Gmail.
+ * Checks Gmail for new transaction-notification emails (bank card purchases,
+ * Yappy sent/received) since the last sync and imports them as
+ * transactions. Called from the app layout on every navigation (see
+ * app/(app)/layout.tsx) — must never throw, since a revoked token or a
+ * Gmail API hiccup can't be allowed to break page loads. No-ops immediately
+ * if the user hasn't connected Gmail.
  */
 export async function syncGmailTransactions(userId: string): Promise<void> {
   const connection = await prisma.gmailConnection.findUnique({ where: { userId } });
@@ -140,17 +143,27 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
       const newIds = filterNewMessageIds(candidateIds, knownIds);
 
       if (newIds.length > 0) {
-        // Resolved once per sync, not once per message -- both always
-        // resolve to the same row within a single sync (the draft cycle
-        // and the import category don't change mid-loop).
+        // Resolved once per sync, not once per message -- always resolves
+        // to the same row within a single sync (the draft cycle doesn't
+        // change mid-loop).
         const cycle = await getOrCreateDraftCycle(userId);
-        const category = await getOrCreateCategory(prisma, userId, IMPORT_CATEGORY_NAME, "EXPENSE");
+        // Lazily resolved on the first EXPENSE-type import (card purchase or
+        // Yappy sent) actually seen this sync -- an INCOME-type import (a
+        // Yappy "you received" notification) has no category concept, same
+        // as a manually-logged Income transaction (see addTransactionAction),
+        // so a sync containing only those never needs this at all.
+        let importCategoryId: string | null = null;
 
         for (const id of newIds) {
           const message = await getMessage(client, id);
           const body = extractBodyText(message.payload);
           const parsed = body ? parseTransactionEmail(body) : null;
           if (!parsed) continue;
+
+          if (parsed.type === "EXPENSE" && importCategoryId === null) {
+            const category = await getOrCreateCategory(prisma, userId, IMPORT_CATEGORY_NAME, "EXPENSE");
+            importCategoryId = category.id;
+          }
 
           try {
             await prisma.cycleTransaction.create({
@@ -159,7 +172,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
                 type: parsed.type,
                 name: parsed.merchant,
                 amount: parsed.amount,
-                expenseCategoryId: category.id,
+                expenseCategoryId: parsed.type === "EXPENSE" ? importCategoryId : null,
                 occurredAt: new Date(Number(message.internalDate)),
                 sourceMessageId: message.id,
               },

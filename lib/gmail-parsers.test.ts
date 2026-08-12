@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseTransactionEmail, purchaseNotificationParser } from "./gmail-parsers";
+import {
+  parseTransactionEmail,
+  purchaseNotificationParser,
+  yappyReceivedParser,
+  yappySentParser,
+} from "./gmail-parsers";
 
 // The exact real sample provided by the user (Banco General, Panama).
 const SAMPLE_BODY =
@@ -74,6 +79,59 @@ describe("purchaseNotificationParser", () => {
   });
 });
 
+// Real samples (with a fictitious counterparty name) — copy-pasted from a
+// rendered Yappy email, so adjacent fields run together with no whitespace
+// between them (e.g. "Enviado porJuan P.****-4820Fecha").
+const YAPPY_RECEIVED_BODY =
+  "Yappy-logoTe enviaron por Yappy$1.00 Enviado porJuan P.****-4820Fecha\t11 ago 2026 03:25 p. m.\t   Mensaje\tDevolucion   Confirmación\tFCXDZ-79530470\t Estamos aquí para ayudarte.";
+const YAPPY_SENT_BODY =
+  "Yappy-logoEnviaste por Yappy$1.00 Enviado aJuan Perez69264820Fecha\t11 ago 2026 03:25 p. m.\t   Mensaje\t   Confirmación\tMIBYK-08548568\t Estamos aquí para ayudarte.";
+
+describe("yappyReceivedParser", () => {
+  it("matches and extracts an INCOME transaction from a real 'Te enviaron por Yappy' email", () => {
+    expect(yappyReceivedParser.match(YAPPY_RECEIVED_BODY)).toBe(true);
+    expect(yappyReceivedParser.extract(YAPPY_RECEIVED_BODY)).toEqual({
+      type: "INCOME",
+      amount: "1.00",
+      merchant: "Juan P.",
+    });
+  });
+
+  it("strips the masked account number that runs into the name", () => {
+    const result = yappyReceivedParser.extract(YAPPY_RECEIVED_BODY);
+    expect(result?.merchant).not.toContain("*");
+    expect(result?.merchant).not.toContain("4820");
+  });
+
+  it("does not match a 'sent' email or an unrelated body", () => {
+    expect(yappyReceivedParser.match(YAPPY_SENT_BODY)).toBe(false);
+    expect(yappyReceivedParser.match("Your statement is ready.")).toBe(false);
+    expect(yappyReceivedParser.extract("Your statement is ready.")).toBeNull();
+  });
+});
+
+describe("yappySentParser", () => {
+  it("matches and extracts an EXPENSE transaction from a real 'Enviaste por Yappy' email", () => {
+    expect(yappySentParser.match(YAPPY_SENT_BODY)).toBe(true);
+    expect(yappySentParser.extract(YAPPY_SENT_BODY)).toEqual({
+      type: "EXPENSE",
+      amount: "1.00",
+      merchant: "Juan Perez",
+    });
+  });
+
+  it("strips the raw phone-number digits that run into the name", () => {
+    const result = yappySentParser.extract(YAPPY_SENT_BODY);
+    expect(result?.merchant).not.toContain("6926");
+  });
+
+  it("does not match a 'received' email or an unrelated body", () => {
+    expect(yappySentParser.match(YAPPY_RECEIVED_BODY)).toBe(false);
+    expect(yappySentParser.match("Your statement is ready.")).toBe(false);
+    expect(yappySentParser.extract("Your statement is ready.")).toBeNull();
+  });
+});
+
 describe("parseTransactionEmail", () => {
   it("returns a parsed transaction for a matching email", () => {
     expect(parseTransactionEmail(SAMPLE_BODY)).toEqual({
@@ -85,5 +143,21 @@ describe("parseTransactionEmail", () => {
 
   it("returns null when no parser matches", () => {
     expect(parseTransactionEmail("Some unrelated marketing email.")).toBeNull();
+  });
+
+  it("dispatches a Yappy 'received' email to an INCOME transaction", () => {
+    expect(parseTransactionEmail(YAPPY_RECEIVED_BODY)).toEqual({
+      type: "INCOME",
+      amount: "1.00",
+      merchant: "Juan P.",
+    });
+  });
+
+  it("dispatches a Yappy 'sent' email to an EXPENSE transaction", () => {
+    expect(parseTransactionEmail(YAPPY_SENT_BODY)).toEqual({
+      type: "EXPENSE",
+      amount: "1.00",
+      merchant: "Juan Perez",
+    });
   });
 });
