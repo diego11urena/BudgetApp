@@ -38,6 +38,7 @@ export default async function TransactionsPage({
       : {}),
   };
 
+  const isAmountSort = sort === "amount_desc" || sort === "amount_asc";
   const orderBy: Prisma.CycleTransactionOrderByWithRelationInput =
     sort === "date_asc"
       ? { occurredAt: "asc" }
@@ -70,7 +71,6 @@ export default async function TransactionsPage({
       <h1 className="page-title">Transactions</h1>
 
       <div className="dashboard-section">
-        <h2>All transactions</h2>
         <TransactionFilters />
         <TransactionList
           transactions={transactions}
@@ -79,6 +79,7 @@ export default async function TransactionsPage({
           emptyMessage={
             q || type ? "No transactions match your search." : "No transactions logged yet."
           }
+          groupByDate={!isAmountSort}
         />
       </div>
     </div>

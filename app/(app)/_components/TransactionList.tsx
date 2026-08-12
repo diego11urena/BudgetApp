@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
+import { groupTransactionsByDate } from "@/lib/transaction-grouping";
 import { QuickAddSheet, type EditingTransaction } from "./QuickAddSheet";
 
 const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
@@ -11,7 +12,13 @@ const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
   SAVINGS: "Savings",
 };
 
-function TransactionRowContent({ tx }: { tx: CycleTransactionSummary }) {
+function TransactionRowContent({
+  tx,
+  showCycleLabel,
+}: {
+  tx: CycleTransactionSummary;
+  showCycleLabel: boolean;
+}) {
   return (
     <>
       <div className="transaction-meta">
@@ -19,7 +26,7 @@ function TransactionRowContent({ tx }: { tx: CycleTransactionSummary }) {
         <span className="transaction-sub">
           {TYPE_LABEL[tx.type]}
           {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
-          {tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
+          {showCycleLabel && tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
           {tx.isImported ? " · 📧 Gmail" : ""}
           {tx.isEditable === false ? " · 🔒 closed" : ""}
         </span>
@@ -34,16 +41,54 @@ function TransactionRowContent({ tx }: { tx: CycleTransactionSummary }) {
   );
 }
 
+function TransactionRow({
+  tx,
+  showCycleLabel,
+  onEdit,
+}: {
+  tx: CycleTransactionSummary;
+  showCycleLabel: boolean;
+  onEdit: (tx: CycleTransactionSummary, trigger: HTMLElement) => void;
+}) {
+  if (tx.isEditable === false) {
+    // A closed cycle's history is frozen — no edit sheet for this row.
+    return (
+      <div className="transaction-row transaction-row--readonly">
+        <TransactionRowContent tx={tx} showCycleLabel={showCycleLabel} />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="transaction-row"
+      onClick={(e) => onEdit(tx, e.currentTarget)}
+    >
+      <TransactionRowContent tx={tx} showCycleLabel={showCycleLabel} />
+    </button>
+  );
+}
+
 export function TransactionList({
   transactions,
   expenseCategoryNames,
   savingsCategoryNames,
   emptyMessage = "Nothing logged yet this quincena.",
+  groupByDate = false,
 }: {
   transactions: CycleTransactionSummary[];
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
   emptyMessage?: string;
+  /**
+   * Renders a "Today"/"Yesterday"/date section header above each
+   * consecutive same-day run instead of repeating a date on every row.
+   * Only makes sense when the list is already sorted by date — the caller
+   * is responsible for not passing this for an amount-sorted list, where
+   * same-day rows aren't contiguous.
+   */
+  groupByDate?: boolean;
 }) {
   const [editing, setEditing] = useState<EditingTransaction | null>(null);
   // Captured synchronously on click, before the sheet mounts — see
@@ -55,33 +100,37 @@ export function TransactionList({
     return <p className="field-hint">{emptyMessage}</p>;
   }
 
+  function handleEdit(tx: CycleTransactionSummary, trigger: HTMLElement) {
+    setTriggerElement(trigger);
+    setEditing({
+      id: tx.id,
+      type: tx.type,
+      name: tx.name,
+      categoryName: tx.categoryName,
+      amount: tx.amount,
+    });
+  }
+
+  // Grouping also drops the per-row cycle label — the group header already
+  // conveys the transaction's actual date, so repeating a cycle's start
+  // date per row (which isn't even the same thing) is just noise.
+  const showCycleLabel = !groupByDate;
+
   return (
     <div>
-      {transactions.map((tx) =>
-        tx.isEditable === false ? (
-          // A closed cycle's history is frozen — no edit sheet for this row.
-          <div className="transaction-row transaction-row--readonly" key={tx.id}>
-            <TransactionRowContent tx={tx} />
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="transaction-row"
-            key={tx.id}
-            onClick={(e) => {
-              setTriggerElement(e.currentTarget);
-              setEditing({
-                id: tx.id,
-                type: tx.type,
-                name: tx.name,
-                categoryName: tx.categoryName,
-                amount: tx.amount,
-              });
-            }}
-          >
-            <TransactionRowContent tx={tx} />
-          </button>
-        ),
+      {groupByDate ? (
+        groupTransactionsByDate(transactions).map((group) => (
+          <Fragment key={group.label + group.items[0].id}>
+            <h3 className="transaction-date-group">{group.label}</h3>
+            {group.items.map((tx) => (
+              <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />
+            ))}
+          </Fragment>
+        ))
+      ) : (
+        transactions.map((tx) => (
+          <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />
+        ))
       )}
 
       {editing && (
