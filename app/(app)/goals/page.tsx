@@ -7,7 +7,7 @@ import { computeGoalProjection } from "@/lib/goal-projection";
 import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
 import { GoalRing } from "./_components/GoalRing";
-import { GoalForm } from "./_components/GoalForm";
+import { AddGoalSheet } from "./_components/AddGoalSheet";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
 import { ContributeButton } from "./_components/ContributeButton";
 
@@ -24,18 +24,27 @@ export default async function GoalsPage() {
 
   const cycle = await getOrCreateDraftCycle(userId);
   const goals = await getGoalsWithProgress(userId, cycle.id);
-  const [expenseCategoryNames, savingsCategoryNames] = await Promise.all([
-    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
-    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-  ]);
+  const savingsCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "SAVINGS");
 
   return (
     <div className="home-page">
       <h1 className="page-title">Goals</h1>
 
       <div className="dashboard-section">
-        <h2>Your savings goals</h2>
-        {goals.length === 0 && <p className="field-hint">No goals yet — add one below.</p>}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <h2 style={{ marginBottom: 0 }}>Your savings goals</h2>
+          <AddGoalSheet categoryNames={savingsCategoryNames} />
+        </div>
+        {goals.length === 0 && (
+          <p className="field-hint">No goals yet — tap &quot;+ Add goal&quot; above.</p>
+        )}
         <div className="goal-list">
           {goals.map((goal) => {
             const projection = computeGoalProjection(goal);
@@ -59,32 +68,19 @@ export default async function GoalsPage() {
                       </p>
                     ) : (
                       <p className="goal-projection goal-projection--muted">
-                        Set a per-cycle contribution below to project a completion date.
+                        Set a per-cycle contribution to project a completion date.
                       </p>
                     )}
                   </div>
                 </div>
                 <div className="goal-row-actions">
-                  <ContributeButton
-                    categoryName={goal.name}
-                    expenseCategoryNames={expenseCategoryNames}
-                    savingsCategoryNames={savingsCategoryNames}
-                  />
+                  <ContributeButton categoryName={goal.name} />
                   <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} />
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
-
-      <div className="dashboard-section">
-        <h2>Add or update a goal</h2>
-        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Log a savings transaction under the same name (e.g. &quot;Pro Futuro&quot;) any time and
-          it&apos;ll count toward this goal automatically.
-        </p>
-        <GoalForm categoryNames={savingsCategoryNames} />
       </div>
     </div>
   );

@@ -1,13 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { upsertGoalAction, type GoalFormState } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 
 const initialState: GoalFormState = undefined;
 
-export function GoalForm({ categoryNames }: { categoryNames: string[] }) {
+export function GoalForm({
+  categoryNames,
+  onSuccess,
+}: {
+  categoryNames: string[];
+  /** Called once, right after a submit completes with no error — lets a caller close the sheet this form lives in. */
+  onSuccess?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(upsertGoalAction, initialState);
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (wasPending.current && !pending && !state?.error) {
+      onSuccess?.();
+    }
+    wasPending.current = pending;
+  }, [pending, state, onSuccess]);
 
   return (
     <form action={formAction}>
@@ -17,7 +32,8 @@ export function GoalForm({ categoryNames }: { categoryNames: string[] }) {
           id="goal-name"
           name="name"
           categoryNames={categoryNames}
-          placeholder="Emergency fund"
+          placeholder="Search or add a goal…"
+          showChips={false}
         />
       </div>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
