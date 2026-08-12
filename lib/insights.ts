@@ -11,7 +11,7 @@ export function generateInsights(
   previousClosedFinancials: CycleFinancials[],
 ): string[] {
   if (previousClosedFinancials.length === 0) {
-    return ["Log a few transactions to start seeing insights."];
+    return [];
   }
 
   const insights: string[] = [];

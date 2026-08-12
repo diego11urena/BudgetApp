@@ -17,9 +17,9 @@ function makeFinancials(overrides: Partial<CycleFinancials> = {}): CycleFinancia
 }
 
 describe("generateInsights", () => {
-  it("returns a fallback for a brand-new user with no closed cycles", () => {
+  it("returns no insights for a brand-new user with no closed cycles yet", () => {
     const insights = generateInsights(makeFinancials(), []);
-    expect(insights).toEqual(["Log a few transactions to start seeing insights."]);
+    expect(insights).toEqual([]);
   });
 
   it("reports a category increase vs the most recent closed cycle", () => {
