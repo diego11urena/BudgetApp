@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -97,6 +98,14 @@ export default async function ProfilePage({
           budget history along with it.
         </p>
         <ManageCategories categories={categories} />
+      </div>
+
+      <div className="dashboard-section">
+        <h2>History</h2>
+        <Link href="/history" className="line-item line-item--link">
+          <span>Past quincenas</span>
+          <span>›</span>
+        </Link>
       </div>
 
       <div className="dashboard-section">

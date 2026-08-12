@@ -128,6 +128,24 @@ export function getRecentCycles(userId: string, limit = 5) {
   });
 }
 
+/**
+ * Every closed cycle for the user, newest first — for the dedicated
+ * History list (Profile -> History), as opposed to getRecentCycles'
+ * smaller preview which also includes the still-open current cycle.
+ * Filters status in the query itself rather than after fetching.
+ */
+export function getClosedCycles(userId: string, limit = 20) {
+  return prisma.budgetCycle.findMany({
+    where: { userId, status: "CLOSED" },
+    orderBy: { periodStart: "desc" },
+    take: limit,
+    include: {
+      incomeEntries: true,
+      transactions: { include: { expenseCategory: true } },
+    },
+  });
+}
+
 export interface CloseCycleResult {
   closedCycle: BudgetCycle;
   newCycle: BudgetCycle;

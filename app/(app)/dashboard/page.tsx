@@ -5,7 +5,6 @@ import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financ
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
-import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
@@ -93,29 +92,6 @@ export default async function DashboardPage() {
 
       <div className="dashboard-section dashboard-section--plain">
         <InsightsCard insights={insights} />
-      </div>
-
-      <div className="dashboard-section">
-        <h2>History</h2>
-        {closedCycles.length === 0 ? (
-          <p className="field-hint">
-            No past quincenas yet — this fills in once you close your first one.
-          </p>
-        ) : (
-          <div className="preview-box">
-            {closedCycles.map((c) => {
-              const cFinancials = summarizeCycleFinancials(c.incomeEntries, c.transactions);
-              return (
-                <Link href={`/history/${c.id}`} className="line-item line-item--link" key={c.id}>
-                  <span>
-                    {c.label} ({c.status})
-                  </span>
-                  <span>{formatCurrency(cFinancials.amountLeft)} left ›</span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );
