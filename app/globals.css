@@ -484,6 +484,21 @@ button.line-item--link {
   margin-bottom: 0.5rem;
 }
 
+/* Same treatment as .field input/.field select (Profile's password/income
+   fields, Transactions' search bar) — these aren't wrapped in .field since
+   each row is its own compact inline form, but they're still standard app
+   inputs and shouldn't fall back to raw browser/OS chrome. */
+.categorize-imports-row-input select,
+.categorize-imports-row-input input {
+  padding: 0.55rem 0.7rem;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--foreground);
+  font-family: inherit;
+}
+
 .home-page {
   display: flex;
   flex-direction: column;
