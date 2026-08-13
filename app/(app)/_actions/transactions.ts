@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
-import { addTransactionSchema } from "@/lib/validations/transactions";
+import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
+import { parseTransactionDate } from "@/lib/pay-date";
 
 /** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
 export type TransactionMutationResult = { error: string } | { transactionId: string } | undefined;
@@ -17,6 +18,7 @@ export interface DeletedTransactionSnapshot {
   name: string;
   amount: number;
   occurredAt: string;
+  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
 }
 
 /** Success carries a snapshot of the deleted row so a "Deleted · Undo" toast can restore it. */
@@ -40,14 +42,25 @@ export async function addTransactionAction(
     name: formData.get("name"),
     amount: formData.get("amount"),
     category: formData.get("category") || undefined,
+    paymentMethod: formData.get("paymentMethod") ?? undefined,
+    occurredAt: formData.get("occurredAt") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { type, name, amount, category: categoryName } = parsed.data;
+  const { type, name, amount, category: categoryName, paymentMethod, occurredAt } = parsed.data;
   const cycle = await getOrCreateDraftCycle(userId);
+
+  let occurredAtDate = new Date();
+  if (occurredAt) {
+    const parsedDate = parseTransactionDate(occurredAt, cycle.periodStart);
+    if (!parsedDate) {
+      return { error: "Date must be within this quincena and not in the future" };
+    }
+    occurredAtDate = parsedDate;
+  }
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
@@ -56,7 +69,15 @@ export async function addTransactionAction(
   }
 
   const created = await prisma.cycleTransaction.create({
-    data: { cycleId: cycle.id, type, name, amount, expenseCategoryId },
+    data: {
+      cycleId: cycle.id,
+      type,
+      name,
+      amount,
+      expenseCategoryId,
+      paymentMethod: type === "EXPENSE" ? (paymentMethod ?? null) : null,
+      occurredAt: occurredAtDate,
+    },
     select: { id: true },
   });
 
@@ -85,13 +106,15 @@ export async function updateTransactionAction(
     name: formData.get("name"),
     amount: formData.get("amount"),
     category: formData.get("category") || undefined,
+    paymentMethod: formData.get("paymentMethod") ?? undefined,
+    occurredAt: formData.get("occurredAt") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { type, name, amount, category: categoryName } = parsed.data;
+  const { type, name, amount, category: categoryName, paymentMethod, occurredAt } = parsed.data;
 
   // Ownership-scoped: a plain update({ where: { id } }) would let a user
   // edit another user's row by guessing an id.
@@ -109,6 +132,15 @@ export async function updateTransactionAction(
     return { error: "This quincena is closed and can't be edited" };
   }
 
+  let occurredAtDate = existing.occurredAt;
+  if (occurredAt) {
+    const parsedDate = parseTransactionDate(occurredAt, existing.cycle.periodStart);
+    if (!parsedDate) {
+      return { error: "Date must be within this quincena and not in the future" };
+    }
+    occurredAtDate = parsedDate;
+  }
+
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
     const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
@@ -120,7 +152,14 @@ export async function updateTransactionAction(
   // no risk of double-counting.
   await prisma.cycleTransaction.update({
     where: { id: transactionId },
-    data: { type, name, amount, expenseCategoryId },
+    data: {
+      type,
+      name,
+      amount,
+      expenseCategoryId,
+      paymentMethod: type === "EXPENSE" ? (paymentMethod ?? null) : null,
+      occurredAt: occurredAtDate,
+    },
   });
 
   revalidateAppPages();
@@ -219,6 +258,7 @@ export async function deleteTransactionAction(
       name: existing.name,
       amount: existing.amount.toNumber(),
       occurredAt: existing.occurredAt.toISOString(),
+      paymentMethod: existing.paymentMethod,
     },
   };
 }
@@ -243,6 +283,7 @@ export async function restoreTransactionAction(
   const name = formData.get("name");
   const amount = formData.get("amount");
   const occurredAt = formData.get("occurredAt");
+  const rawPaymentMethod = formData.get("paymentMethod");
 
   if (
     typeof cycleId !== "string" ||
@@ -257,6 +298,8 @@ export async function restoreTransactionAction(
   ) {
     return { error: "Invalid undo payload" };
   }
+  const paymentMethodParsed = paymentMethodSchema.safeParse(rawPaymentMethod);
+  const paymentMethod = paymentMethodParsed.success ? paymentMethodParsed.data : null;
 
   // Ownership-scoped: only restore into a cycle that belongs to this user.
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
@@ -271,7 +314,15 @@ export async function restoreTransactionAction(
   }
 
   await prisma.cycleTransaction.create({
-    data: { cycleId, type, name, amount, expenseCategoryId, occurredAt: new Date(occurredAt) },
+    data: {
+      cycleId,
+      type,
+      name,
+      amount,
+      expenseCategoryId,
+      paymentMethod: type === "EXPENSE" ? paymentMethod : null,
+      occurredAt: new Date(occurredAt),
+    },
   });
 
   revalidateAppPages();

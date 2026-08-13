@@ -25,7 +25,7 @@ describe("purchaseNotificationParser", () => {
       type: "EXPENSE",
       amount: "36.85",
       merchant: "METRO BELLA VISTA 4730PANAMA PA",
-      source: "bank",
+      paymentMethod: "CREDIT_CARD",
     });
   });
 
@@ -38,7 +38,12 @@ describe("purchaseNotificationParser", () => {
   it("is robust to extra whitespace/line-wrapping around the sentence", () => {
     const wrapped = "  La tarjeta VISA\n  a nombre de DIEGO UREÑA, terminación 9162   pagó $10.00  en\nSTORE X.  \nMore text after.";
     const result = purchaseNotificationParser.extract(wrapped);
-    expect(result).toEqual({ type: "EXPENSE", amount: "10.00", merchant: "STORE X", source: "bank" });
+    expect(result).toEqual({
+      type: "EXPENSE",
+      amount: "10.00",
+      merchant: "STORE X",
+      paymentMethod: "CREDIT_CARD",
+    });
   });
 
   it("handles an amount with no cents", () => {
@@ -47,7 +52,7 @@ describe("purchaseNotificationParser", () => {
       type: "EXPENSE",
       amount: "5",
       merchant: "SOME STORE",
-      source: "bank",
+      paymentMethod: "CREDIT_CARD",
     });
   });
 
@@ -57,7 +62,7 @@ describe("purchaseNotificationParser", () => {
       type: "EXPENSE",
       amount: "1234.56",
       merchant: "BIG PURCHASE STORE",
-      source: "bank",
+      paymentMethod: "CREDIT_CARD",
     });
   });
 
@@ -67,8 +72,24 @@ describe("purchaseNotificationParser", () => {
       type: "EXPENSE",
       amount: "2000",
       merchant: "ANOTHER STORE",
-      source: "bank",
+      paymentMethod: "CREDIT_CARD",
     });
+  });
+
+  it("defaults to CREDIT_CARD when the email doesn't say which kind of card", () => {
+    const result = purchaseNotificationParser.extract(SAMPLE_BODY);
+    expect(result?.paymentMethod).toBe("CREDIT_CARD");
+  });
+
+  it("detects DEBIT_CARD when the email body mentions débito", () => {
+    const body =
+      "La tarjeta de débito VISA a nombre de X, terminación 1234 pagó $15.00 en DEBIT STORE.";
+    expect(purchaseNotificationParser.extract(body)?.paymentMethod).toBe("DEBIT_CARD");
+  });
+
+  it("detects DEBIT_CARD without the accent too (debito)", () => {
+    const body = "La tarjeta debito VISA a nombre de X, terminación 1234 pagó $15.00 en DEBIT STORE.";
+    expect(purchaseNotificationParser.extract(body)?.paymentMethod).toBe("DEBIT_CARD");
   });
 
   it("does not match an unrelated email body", () => {
@@ -98,7 +119,7 @@ describe("yappyReceivedParser", () => {
       type: "INCOME",
       amount: "1.00",
       merchant: "Juan P.",
-      source: "yappy",
+      paymentMethod: null,
     });
   });
 
@@ -122,7 +143,7 @@ describe("yappySentParser", () => {
       type: "EXPENSE",
       amount: "1.00",
       merchant: "Juan Perez",
-      source: "yappy",
+      paymentMethod: "YAPPY",
     });
   });
 
@@ -144,7 +165,7 @@ describe("parseTransactionEmail", () => {
       type: "EXPENSE",
       amount: "36.85",
       merchant: "METRO BELLA VISTA 4730PANAMA PA",
-      source: "bank",
+      paymentMethod: "CREDIT_CARD",
     });
   });
 
@@ -157,7 +178,7 @@ describe("parseTransactionEmail", () => {
       type: "INCOME",
       amount: "1.00",
       merchant: "Juan P.",
-      source: "yappy",
+      paymentMethod: null,
     });
   });
 
@@ -166,7 +187,7 @@ describe("parseTransactionEmail", () => {
       type: "EXPENSE",
       amount: "1.00",
       merchant: "Juan Perez",
-      source: "yappy",
+      paymentMethod: "YAPPY",
     });
   });
 });

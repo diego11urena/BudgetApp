@@ -1,12 +1,14 @@
 import { decimalString } from "./validations/shared";
 
+export type ParsedPaymentMethod = "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY";
+
 export interface ParsedTransaction {
   type: "EXPENSE" | "INCOME";
   amount: string;
   /** Merchant name for a card purchase, or the counterparty's name for a Yappy transfer. */
   merchant: string;
-  /** Which sender this came from — lets gmail-sync.ts file card purchases and Yappy transfers under separate import categories. */
-  source: "bank" | "yappy";
+  /** Null only for a Yappy "received" notification (INCOME) — money coming in has no payment-method concept, same as it has no category. */
+  paymentMethod: ParsedPaymentMethod | null;
 }
 
 export interface EmailParser {
@@ -38,13 +40,23 @@ function normalizeWhitespace(body: string): string {
 const PURCHASE_PATTERN =
   /La tarjeta .+? a nombre de .+?, terminaci[oó]n \d+ pag[oó] \$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?) en (.+?)\.(?:\s|$)/;
 
+/**
+ * The purchase sentence itself never says which kind of card — best-effort:
+ * if "débito"/"debito" appears anywhere in the email (some of the bank's
+ * templates mention it near the card name), it's a debit purchase;
+ * otherwise it defaults to credit, since that's this bank's more common
+ * card product and the sample formats seen so far never say either way.
+ */
+const DEBIT_KEYWORD = /d[eé]bito/i;
+
 export const purchaseNotificationParser: EmailParser = {
   name: "banco-general-purchase",
   match(body) {
     return PURCHASE_PATTERN.test(normalizeWhitespace(body));
   },
   extract(body) {
-    const match = normalizeWhitespace(body).match(PURCHASE_PATTERN);
+    const normalized = normalizeWhitespace(body);
+    const match = normalized.match(PURCHASE_PATTERN);
     const rawAmount = match?.[1];
     const merchant = match?.[2]?.trim();
     if (!rawAmount || !merchant) return null;
@@ -55,7 +67,11 @@ export const purchaseNotificationParser: EmailParser = {
     // never hand an unvalidated value to Decimal — skip the message instead.
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "EXPENSE", amount, merchant, source: "bank" };
+    const paymentMethod: ParsedPaymentMethod = DEBIT_KEYWORD.test(normalized)
+      ? "DEBIT_CARD"
+      : "CREDIT_CARD";
+
+    return { type: "EXPENSE", amount, merchant, paymentMethod };
   },
 };
 
@@ -90,7 +106,7 @@ export const yappyReceivedParser: EmailParser = {
     const amount = rawAmount.replace(/,/g, "");
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "INCOME", amount, merchant, source: "yappy" };
+    return { type: "INCOME", amount, merchant, paymentMethod: null };
   },
 };
 
@@ -113,7 +129,7 @@ export const yappySentParser: EmailParser = {
     const amount = rawAmount.replace(/,/g, "");
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "EXPENSE", amount, merchant, source: "yappy" };
+    return { type: "EXPENSE", amount, merchant, paymentMethod: "YAPPY" };
   },
 };
 

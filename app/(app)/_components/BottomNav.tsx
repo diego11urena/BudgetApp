@@ -29,10 +29,12 @@ export function BottomNav({
   expenseCategoryNames,
   savingsCategoryNames,
   lastUsedIncomeName,
+  cycleStartDate,
 }: {
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
   lastUsedIncomeName: string | null;
+  cycleStartDate: string;
 }) {
   const pathname = usePathname();
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
@@ -97,6 +99,7 @@ export function BottomNav({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           lastUsedIncomeName={lastUsedIncomeName}
+          cycleStartDate={cycleStartDate}
           returnFocusTo={triggerElement}
           onClose={() => setQuickAddType(null)}
         />

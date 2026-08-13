@@ -6,6 +6,7 @@ import { getCycleFinancials, summarizeCycleFinancials, sumFixedTargetSpend } fro
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
+import { formatCycleLabel } from "@/lib/pay-date";
 import Link from "next/link";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
@@ -71,7 +72,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="home-page">
-      <Header name={session.user.name} />
+      <Header
+        name={session.user.name}
+        currentPayAmount={financials.baseIncome}
+        currentPayDate={formatCycleLabel(cycle.periodStart)}
+      />
 
       {uncategorizedTransactions.length > 0 && (
         <div className="dashboard-section dashboard-section--plain">
@@ -116,6 +121,7 @@ export default async function DashboardPage() {
           transactions={financials.transactions.slice(0, 3)}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
         {financials.transactions.length > 3 && (
           <Link href="/transactions" className="line-item line-item--link">

@@ -10,6 +10,14 @@ const TYPE_OPTIONS = [
   { value: "SAVINGS", label: "Savings" },
 ];
 
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "", label: "All payment methods" },
+  { value: "CREDIT_CARD", label: "Credit Card" },
+  { value: "DEBIT_CARD", label: "Debit Card" },
+  { value: "YAPPY", label: "Yappy" },
+  { value: "CASH", label: "Cash" },
+];
+
 const SORT_OPTIONS = [
   { value: "date_desc", label: "Newest first" },
   { value: "date_asc", label: "Oldest first" },
@@ -66,6 +74,17 @@ export function TransactionFilters() {
           aria-label="Filter by type"
         >
           {TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={searchParams.get("paymentMethod") ?? ""}
+          onChange={(e) => updateParam("paymentMethod", e.target.value)}
+          aria-label="Filter by payment method"
+        >
+          {PAYMENT_METHOD_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>

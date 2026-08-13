@@ -8,10 +8,12 @@ import {
   updateTransactionAction,
 } from "../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { useToast } from "./ToastProvider";
 import { useModalFocus } from "./useModalFocus";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
+type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY";
 
 export interface EditingTransaction {
   id: string;
@@ -20,12 +22,23 @@ export interface EditingTransaction {
   /** Null for INCOME (no category concept) or an uncategorized row. */
   categoryName: string | null;
   amount: number;
+  /** EXPENSE-only; null otherwise or if never set. */
+  paymentMethod: PaymentMethod | null;
+  /** "YYYY-MM-DD" — prefills the Date field. */
+  occurredAt: string;
 }
 
 const TYPE_OPTIONS: { value: TxType; label: string }[] = [
   { value: "EXPENSE", label: "Expense" },
   { value: "INCOME", label: "Extra income" },
   { value: "SAVINGS", label: "Savings" },
+];
+
+const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "CASH", label: "Cash" },
+  { value: "CREDIT_CARD", label: "Credit Card" },
+  { value: "DEBIT_CARD", label: "Debit Card" },
+  { value: "YAPPY", label: "Yappy" },
 ];
 
 const SWIPE_DISMISS_THRESHOLD = 90;
@@ -36,6 +49,7 @@ export function QuickAddSheet({
   expenseCategoryNames,
   savingsCategoryNames,
   lastUsedIncomeName = null,
+  cycleStartDate,
   editingTransaction = null,
   returnFocusTo = null,
   onClose,
@@ -47,6 +61,8 @@ export function QuickAddSheet({
   savingsCategoryNames: string[];
   /** Only used to default the Income name field when creating (not editing). */
   lastUsedIncomeName?: string | null;
+  /** "YYYY-MM-DD" — the current cycle's periodStart, the Date field's minimum (can't log something before the quincena it's being logged into started). */
+  cycleStartDate: string;
   /** Present -> the sheet edits (and can delete) this transaction instead of creating a new one. */
   editingTransaction?: EditingTransaction | null;
   /** The button that opened this sheet — focus returns here on close. Needed because the amount field's own autoFocus would otherwise race the trigger-capture. */
@@ -115,6 +131,13 @@ export function QuickAddSheet({
     const list = categoryNamesForType(editingTransaction!.type);
     return list.length > TOP_CHIP_COUNT && !list.slice(0, TOP_CHIP_COUNT).includes(editingCategoryName);
   });
+  // EXPENSE-only, optional — left unset ("") is a valid choice, not every
+  // purchase needs a recorded method.
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
+    editingTransaction?.paymentMethod ?? "",
+  );
+  const [occurredAt, setOccurredAt] = useState(editingTransaction?.occurredAt ?? formatCycleLabel());
+  const todayDate = formatCycleLabel();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -178,6 +201,7 @@ export function QuickAddSheet({
           restoreFd.set("name", d.name);
           restoreFd.set("amount", String(d.amount));
           restoreFd.set("occurredAt", d.occurredAt);
+          if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
           void restoreTransactionAction(restoreFd);
         },
       });
@@ -292,6 +316,20 @@ export function QuickAddSheet({
             />
           </div>
 
+          <div className="field">
+            <label htmlFor="sheet-date">Date</label>
+            <input
+              id="sheet-date"
+              name="occurredAt"
+              type="date"
+              value={occurredAt}
+              min={cycleStartDate}
+              max={todayDate}
+              required
+              onChange={(e) => setOccurredAt(e.target.value)}
+            />
+          </div>
+
           {type === "INCOME" ? (
             <div className="field">
               <label htmlFor="sheet-name">Name</label>
@@ -351,6 +389,25 @@ export function QuickAddSheet({
                   onChange={(e) => setCustomName(e.target.value)}
                 />
               )}
+            </div>
+          )}
+
+          {type === "EXPENSE" && (
+            <div className="field">
+              <label>Payment method</label>
+              <input type="hidden" name="paymentMethod" value={paymentMethod} />
+              <div className="category-chips">
+                {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`category-chip ${paymentMethod === opt.value ? "is-active" : ""}`}
+                    onClick={() => setPaymentMethod((current) => (current === opt.value ? "" : opt.value))}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

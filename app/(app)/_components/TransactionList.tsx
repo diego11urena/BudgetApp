@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { groupTransactionsByDate } from "@/lib/transaction-grouping";
 import { QuickAddSheet, type EditingTransaction } from "./QuickAddSheet";
 
@@ -12,10 +13,11 @@ const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
   SAVINGS: "Savings",
 };
 
-const SOURCE_LABEL: Record<CycleTransactionSummary["source"], string | null> = {
-  MANUAL: null,
-  BANK_IMPORT: "📧 Bank Import",
-  YAPPY: "📧 Yappy",
+const PAYMENT_METHOD_LABEL: Record<NonNullable<CycleTransactionSummary["paymentMethod"]>, string> = {
+  CASH: "Cash",
+  CREDIT_CARD: "Credit Card",
+  DEBIT_CARD: "Debit Card",
+  YAPPY: "Yappy",
 };
 
 function TransactionRowContent({
@@ -33,8 +35,9 @@ function TransactionRowContent({
           {TYPE_LABEL[tx.type]}
           {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
           {!tx.categoryName && tx.type !== "INCOME" ? " · Uncategorized" : ""}
+          {tx.paymentMethod ? ` · ${PAYMENT_METHOD_LABEL[tx.paymentMethod]}` : ""}
           {showCycleLabel && tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
-          {SOURCE_LABEL[tx.source] ? ` · ${SOURCE_LABEL[tx.source]}` : ""}
+          {tx.importSource === "GMAIL" ? " · 📧 Gmail" : ""}
           {tx.isEditable === false ? " · 🔒 closed" : ""}
         </span>
       </div>
@@ -81,12 +84,15 @@ export function TransactionList({
   transactions,
   expenseCategoryNames,
   savingsCategoryNames,
+  cycleStartDate,
   emptyMessage = "Nothing logged yet this quincena.",
   groupByDate = false,
 }: {
   transactions: CycleTransactionSummary[];
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
+  /** "YYYY-MM-DD" — the current open cycle's periodStart, passed through to QuickAddSheet's Date field. Every row this list lets you edit belongs to that cycle (isEditable === false rows, from other cycles, never open the sheet at all). */
+  cycleStartDate: string;
   emptyMessage?: string;
   /**
    * Renders a "Today"/"Yesterday"/date section header above each
@@ -115,6 +121,8 @@ export function TransactionList({
       name: tx.name,
       categoryName: tx.categoryName,
       amount: tx.amount,
+      paymentMethod: tx.paymentMethod,
+      occurredAt: formatCycleLabel(tx.occurredAt),
     });
   }
 
@@ -145,6 +153,7 @@ export function TransactionList({
           initialType={editing.type}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          cycleStartDate={cycleStartDate}
           editingTransaction={editing}
           returnFocusTo={triggerElement}
           onClose={() => setEditing(null)}

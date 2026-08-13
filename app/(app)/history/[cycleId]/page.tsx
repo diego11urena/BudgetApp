@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCurrency } from "@/lib/format";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../../_components/TransactionList";
 
 export default async function CycleHistoryPage({
@@ -74,6 +75,7 @@ export default async function CycleHistoryPage({
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage="Nothing logged in this quincena."
         />
       </div>

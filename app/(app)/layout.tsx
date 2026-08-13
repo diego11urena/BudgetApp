@@ -5,6 +5,7 @@ import { syncGmailTransactions } from "@/lib/gmail-sync";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getLastUsedIncomeName } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { BottomNav } from "./_components/BottomNav";
 import { ToastProvider } from "./_components/ToastProvider";
 
@@ -48,6 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           lastUsedIncomeName={lastUsedIncomeName}
+          cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
       </div>
     </ToastProvider>

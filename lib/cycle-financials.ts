@@ -32,8 +32,10 @@ export interface CycleTransactionSummary {
   occurredAt: Date;
   /** Whether this row was auto-imported from Gmail rather than logged by hand. */
   isImported: boolean;
-  /** How the transaction arrived — never a substitute for categoryName, just a display tag (e.g. "📧 Yappy" next to the row). */
-  source: "MANUAL" | "BANK_IMPORT" | "YAPPY";
+  /** How the transaction arrived — never a substitute for categoryName or paymentMethod, just the "📧 Gmail" display tag. */
+  importSource: "MANUAL" | "GMAIL";
+  /** What it was paid with — null for INCOME (no payment-method concept) and for pre-this-feature manual entries. */
+  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
   /** Only set by callers building an all-time (cross-cycle) view. */
   cycleLabel?: string;
   /**
@@ -74,7 +76,8 @@ interface TransactionLike {
   occurredAt: Date;
   expenseCategory: { id: string; name: string } | null;
   sourceMessageId?: string | null;
-  source?: "MANUAL" | "BANK_IMPORT" | "YAPPY";
+  importSource?: "MANUAL" | "GMAIL";
+  paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
 }
 
 /**
@@ -95,7 +98,8 @@ export function toCycleTransactionSummary(
     categoryName: tx.expenseCategory?.name ?? null,
     occurredAt: tx.occurredAt,
     isImported: (tx.sourceMessageId ?? null) !== null,
-    source: tx.source ?? "MANUAL",
+    importSource: tx.importSource ?? "MANUAL",
+    paymentMethod: tx.paymentMethod ?? null,
     ...extra,
   };
 }

@@ -162,26 +162,37 @@ enum TransactionType {
 }
 
 // How the transaction arrived — never a substitute for its category (what
-// it was for). Bank/Yappy rows are always Gmail-imported; Manual is
-// anything hand-entered via the add/edit sheet.
-enum TransactionSource {
+// it was for) or its payment method (how it was paid). Manual is anything
+// hand-entered via the add/edit sheet; Gmail is anything auto-imported.
+enum ImportSource {
   MANUAL
-  BANK_IMPORT
+  GMAIL
+}
+
+// What was actually paid with — orthogonal to both category and import
+// source. Parsed from the Gmail email for an import (best-effort: card
+// purchases default to Credit unless the body says "débito"; a Yappy send
+// is always Yappy), or picked by the user for a manual entry.
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
   YAPPY
 }
 
 model CycleTransaction {
-  id                String            @id @default(cuid())
+  id                String           @id @default(cuid())
   cycleId           String
-  cycle             BudgetCycle       @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  cycle             BudgetCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   type              TransactionType
   name              String
-  amount            Decimal           @db.Decimal(12, 2)
+  amount            Decimal          @db.Decimal(12, 2)
   expenseCategoryId String?
-  expenseCategory   ExpenseCategory?  @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
-  source            TransactionSource @default(MANUAL)
-  occurredAt        DateTime          @default(now())
-  createdAt         DateTime          @default(now())
+  expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
+  importSource      ImportSource     @default(MANUAL)
+  paymentMethod     PaymentMethod?
+  occurredAt        DateTime         @default(now())
+  createdAt         DateTime         @default(now())
 
   // Set only for transactions auto-imported from Gmail (the message's own
   // id) — the hard dedupe backstop against re-importing the same email

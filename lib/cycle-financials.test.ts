@@ -154,7 +154,8 @@ describe("toCycleTransactionSummary", () => {
       categoryName: "Groceries",
       occurredAt: row.occurredAt,
       isImported: false,
-      source: "MANUAL",
+      importSource: "MANUAL",
+      paymentMethod: null,
     });
   });
 
@@ -163,12 +164,14 @@ describe("toCycleTransactionSummary", () => {
     expect(toCycleTransactionSummary(row).isImported).toBe(true);
   });
 
-  it("defaults source to MANUAL when not provided, and passes through an explicit source", () => {
+  it("defaults importSource to MANUAL and paymentMethod to null when not provided, and passes through explicit values", () => {
     const manualRow = tx("EXPENSE", 10);
-    expect(toCycleTransactionSummary(manualRow).source).toBe("MANUAL");
+    expect(toCycleTransactionSummary(manualRow).importSource).toBe("MANUAL");
+    expect(toCycleTransactionSummary(manualRow).paymentMethod).toBeNull();
 
-    const yappyRow = { ...tx("EXPENSE", 10), source: "YAPPY" as const };
-    expect(toCycleTransactionSummary(yappyRow).source).toBe("YAPPY");
+    const importedRow = { ...tx("EXPENSE", 10), importSource: "GMAIL" as const, paymentMethod: "YAPPY" as const };
+    expect(toCycleTransactionSummary(importedRow).importSource).toBe("GMAIL");
+    expect(toCycleTransactionSummary(importedRow).paymentMethod).toBe("YAPPY");
   });
 
   it("applies cycleLabel and isEditable only when extra is passed", () => {

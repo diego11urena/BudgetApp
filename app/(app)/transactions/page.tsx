@@ -6,15 +6,17 @@ import { getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
 
 const TX_TYPES = ["EXPENSE", "INCOME", "SAVINGS"] as const;
+const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY"] as const;
 
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; sort?: string; paymentMethod?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -23,11 +25,14 @@ export default async function TransactionsPage({
   const userId = session.user.id;
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const { q, type, sort } = await searchParams;
+  const { q, type, sort, paymentMethod } = await searchParams;
 
   const where: Prisma.CycleTransactionWhereInput = {
     cycle: { userId },
     ...(TX_TYPES.includes(type as (typeof TX_TYPES)[number]) ? { type: type as (typeof TX_TYPES)[number] } : {}),
+    ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
+      ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
+      : {}),
     ...(q
       ? {
           OR: [
@@ -76,8 +81,11 @@ export default async function TransactionsPage({
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
-            q || type ? "No transactions match your search." : "No transactions logged yet."
+            q || type || paymentMethod
+              ? "No transactions match your search."
+              : "No transactions logged yet."
           }
           groupByDate={!isAmountSort}
         />
