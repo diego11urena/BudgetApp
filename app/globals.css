@@ -3,64 +3,101 @@
  * everything below references these variables, no hardcoded colors.
  */
 :root {
-  --color-bg: #f8f6f1;
-  --color-bg-secondary: #f2eee6;
-  --color-card: #fffdf9;
-  --color-primary-green: #7fae7b;
-  --color-secondary-green: #a8cfa5;
-  --color-accent-green: #5e8f5a;
-  --color-text-primary: #2f3a2f;
-  --color-text-secondary: #6c756c;
-  --color-border: #e5e1d8;
-  --color-success: #7fae7b;
+  /* "Subtle Gradient" design system — Gradient Indigo brand, near-black
+     text, cool-gray neutrals. --color-*-green names are kept as-is (just
+     retinted) to avoid touching every var() call site across the file for
+     a values-only reskin; they now hold indigo, not green. */
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f5f8;
+  --color-card: #ffffff;
+  /* One step lighter than the main accent — used for chart fills. */
+  --color-primary-green: #7c6ce8;
+  /* Lightest tier — decorative hover fills, and as text (.toast-action) on
+     the toast's dark-in-light-mode surface (background: var(--color-text-primary)). */
+  --color-secondary-green: #a99cf2;
+  --color-accent-green: #6c5ce7;
+  --color-text-primary: #101114;
+  --color-text-secondary: #686b82;
+  --color-border: #dedee5;
+  --color-success: #149e61;
   --color-warning: #d9a05b;
   --color-error: #c1706a;
-  --color-on-accent: #fffdf9;
-  --color-success-bg: rgba(127, 174, 123, 0.15);
+  --color-on-accent: #ffffff;
+  --color-success-bg: rgba(20, 158, 97, 0.16);
   --color-warning-bg: rgba(217, 160, 91, 0.15);
   --color-error-bg: rgba(193, 112, 106, 0.15);
-  --shadow-color: rgba(47, 58, 47, 0.08);
+  --shadow-color: rgba(0, 0, 0, 0.03);
   /* Filled surfaces with --color-on-accent text on top (buttons, active
      chips) — same as --color-accent-green in light mode; dark mode gives
      it its own darker shade so it can both hold light text AND still let
      --color-accent-green stay light enough for its text-on-dark uses. */
   --color-button-bg: var(--color-accent-green);
+  /* Reserved for hero surfaces and the primary button only — everywhere
+     else uses flat --color-accent-green/--color-button-bg for restraint. */
+  --gradient-brand: linear-gradient(135deg, #6c5ce7 0%, #4c3fc7 100%);
+  /* Translucent indigo tint for hero-card/cycle-closed-card's background
+     wash — the spec's Primary Gradient is fully opaque with white text,
+     but these cards mix that gradient with existing dark text/content, so
+     they get a subtle tinted version of the same hue instead (same role
+     --color-success-bg played before this reskin), keeping "sparingly...
+     not decorative" without needing to recolor every child element. */
+  --color-accent-bg: rgba(108, 92, 231, 0.12);
 
   /* Aliases so existing rules referencing page-level bg/fg stay in sync. */
   --background: var(--color-bg);
   --foreground: var(--color-text-primary);
+
+  /* Display/heading font — Manrope, bold weight, slightly tightened
+     tracking. Body text uses --font-inter directly (set once on `body`,
+     inherited everywhere) rather than a variable, since nothing overrides it. */
+  --font-display: var(--font-manrope), IBM Plex Sans, Helvetica, Arial, sans-serif;
+
+  /* Radius scale — every border-radius in this file references one of
+     these instead of a hardcoded literal. .bottom-nav-fab's 50% circle is
+     the one intentional exception (not a step in this scale). */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-button: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #1e1d18;
-    --color-bg-secondary: #26241e;
-    --color-card: #2a2822;
-    --color-primary-green: #8fbf8a;
-    /* Darkened from #6fa36a (same hue, ~53% -> ~36% lightness): as text
-       (.toast-action) on the toast's light surface it read at 2.55:1;
-       now 4.93:1. Still used unmodified as a decorative hover fill
-       elsewhere, where text contrast doesn't apply. */
-    --color-secondary-green: #487047;
-    --color-accent-green: #7fae7b;
-    --color-text-primary: #f2eee6;
-    --color-text-secondary: #b8b2a5;
-    --color-border: #3a3830;
-    --color-success: #8fbf8a;
+    --color-bg: #1a1a20;
+    --color-bg-secondary: #212128;
+    --color-card: #232329;
+    --color-primary-green: #9d90f5;
+    /* Darkened for contrast as text (.toast-action) on the toast's light
+       surface in dark mode (background: var(--color-text-primary), which
+       flips light here) — same reasoning the green values this replaced
+       had (see git history). Still used unmodified as a decorative hover
+       fill elsewhere, where text contrast doesn't apply. */
+    --color-secondary-green: #453aa8;
+    --color-accent-green: #8f7ff0;
+    --color-text-primary: #f5f5f7;
+    /* Spec's Silver Blue — its own defined "secondary text, muted
+       elements" color, and light enough to read on this mode's dark bg. */
+    --color-text-secondary: #9497a9;
+    --color-border: #38383f;
+    --color-success: #22b976;
     --color-warning: #e0b378;
     --color-error: #d68b84;
-    --color-on-accent: #fffdf9;
-    --color-success-bg: rgba(143, 191, 138, 0.15);
+    --color-on-accent: #ffffff;
+    --color-success-bg: rgba(34, 185, 118, 0.18);
     --color-warning-bg: rgba(224, 179, 120, 0.15);
     --color-error-bg: rgba(214, 139, 132, 0.15);
     --shadow-color: rgba(0, 0, 0, 0.25);
-    /* --color-accent-green (#7fae7b) is light enough to read well as text
+    /* --color-accent-green (#8f7ff0) is light enough to read well as text
        on this mode's dark surfaces (hero-action-link, active nav/tabs),
        but that's too light for --color-on-accent (near-white) text to sit
-       on top of as a button fill — was 2.51:1. Darkened same hue instead
-       of touching --color-accent-green, which would break those other
-       passing uses. */
-    --color-button-bg: #4d7a49;
+       on top of as a button fill. Darkened same hue instead of touching
+       --color-accent-green, which would break those other passing uses. */
+    --color-button-bg: #5b4fc4;
+    --gradient-brand: linear-gradient(135deg, #8f7ff0 0%, #5b4fc4 100%);
+    --color-accent-bg: rgba(143, 127, 240, 0.14);
 
     --background: var(--color-bg);
     --foreground: var(--color-text-primary);
@@ -83,7 +120,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Helvetica Neue, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -118,7 +155,7 @@ a {
   max-width: 28rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-button);
   padding: 2rem;
   box-shadow: 0 1px 3px var(--shadow-color);
 }
@@ -128,7 +165,10 @@ a {
 }
 
 .card h1 {
+  font-family: var(--font-display);
   font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 1.5rem;
 }
 
@@ -148,7 +188,7 @@ a {
 .field select {
   padding: 0.55rem 0.7rem;
   min-height: 44px;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
@@ -174,9 +214,11 @@ a {
   justify-content: center;
   min-height: 44px;
   padding: 0.6rem 1.2rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-button);
   border: none;
-  background: var(--color-button-bg);
+  /* Primary CTA — one of only two places the brand gradient appears (the
+     other is hero surfaces); everything else stays flat for restraint. */
+  background: var(--gradient-brand);
   color: var(--color-on-accent);
   font-size: 1rem;
   font-weight: 600;
@@ -199,10 +241,12 @@ a {
   cursor: not-allowed;
 }
 
+/* "Secondary Gray" — most .button--secondary uses (Cancel, Sign out) are
+   neutral actions, not brand-colored ones. */
 .button--secondary {
-  background: transparent;
-  color: var(--foreground);
-  border: 1px solid var(--color-border);
+  background: rgba(148, 151, 169, 0.08);
+  color: var(--color-text-primary);
+  border: none;
 }
 
 .button--small {
@@ -257,7 +301,7 @@ a {
   flex: 1;
   display: block;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--color-border);
 }
 
@@ -344,7 +388,7 @@ button.line-item--link {
 
 .preview-box {
   border: 1px dashed var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin-top: 0.5rem;
   font-size: 0.875rem;
@@ -352,7 +396,7 @@ button.line-item--link {
 }
 
 .banner {
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
   font-weight: 600;
@@ -380,14 +424,16 @@ button.line-item--link {
   margin-top: 1.5rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 1rem;
+  border-radius: var(--radius-xl);
   padding: 1.4rem;
   box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .dashboard-section h2 {
+  font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 0.85rem;
   color: var(--color-text-primary);
 }
@@ -415,8 +461,10 @@ button.line-item--link {
 }
 
 .home-greeting {
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .home-month {
@@ -433,15 +481,15 @@ button.line-item--link {
   height: 44px;
   font-size: 1.5rem;
   line-height: 1;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-bg-secondary);
 }
 
 /* Hero card */
 .hero-card {
-  background: linear-gradient(160deg, var(--color-success-bg), transparent);
+  background: linear-gradient(160deg, var(--color-accent-bg), transparent);
   border: 1px solid var(--color-border);
-  border-radius: 1.25rem;
+  border-radius: var(--radius-xl);
   padding: 1.85rem 1.5rem;
   text-align: center;
 }
@@ -453,9 +501,11 @@ button.line-item--link {
 }
 
 .hero-value {
+  font-family: var(--font-display);
   font-size: 3.25rem;
   font-weight: 700;
   line-height: 1.1;
+  letter-spacing: -0.02em;
   margin: 0.4rem 0;
   font-variant-numeric: proportional-nums;
 }
@@ -519,9 +569,9 @@ button.line-item--link {
 .cycle-closed-card {
   width: 100%;
   max-width: 26rem;
-  background: linear-gradient(160deg, var(--color-success-bg), var(--color-card) 65%);
+  background: linear-gradient(160deg, var(--color-accent-bg), var(--color-card) 65%);
   border: 1px solid var(--color-border);
-  border-radius: 1.25rem;
+  border-radius: var(--radius-xl);
   padding: 2rem 1.5rem 1.5rem;
   box-shadow: 0 12px 32px var(--shadow-color);
   text-align: center;
@@ -546,8 +596,10 @@ button.line-item--link {
 }
 
 .cycle-closed-title {
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 1.5rem;
 }
 
@@ -639,7 +691,7 @@ button.line-item--link {
   align-items: center;
   gap: 0.3rem;
   padding: 0.85rem 0.5rem;
-  border-radius: 1rem;
+  border-radius: var(--radius-xl);
   background: var(--color-card);
   border: 1px solid var(--color-border);
   box-shadow: 0 1px 3px var(--shadow-color);
@@ -681,7 +733,7 @@ button.line-item--link {
   width: 100%;
   max-width: 30rem;
   background: var(--color-card);
-  border-radius: 1.25rem 1.25rem 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
   box-shadow: 0 -4px 20px var(--shadow-color);
   transform: translateY(100%);
@@ -696,16 +748,25 @@ button.line-item--link {
 .sheet-handle {
   width: 2.5rem;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   background: var(--color-border);
   margin: 0 auto 1rem;
+}
+
+/* Every sheet's title is a bare <h2> with only inline layout styles
+   (text-align/margin) — this covers all of them, same pattern as
+   .dashboard-section h2. */
+.sheet h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .type-toggle {
   display: flex;
   gap: 0.4rem;
   background: var(--color-bg-secondary);
-  border-radius: 0.6rem;
+  border-radius: var(--radius-lg);
   padding: 0.25rem;
   margin-bottom: 1.25rem;
 }
@@ -723,7 +784,7 @@ button.line-item--link {
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.5rem 0.3rem;
-  border-radius: 0.45rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background 0.15s ease,
@@ -778,7 +839,7 @@ button.line-item--link {
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.5rem 0.9rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -807,7 +868,7 @@ button.line-item--link {
   min-height: 44px;
   margin-top: 0.75rem;
   padding: 0.7rem 1.2rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-button);
   border: 1px solid var(--color-error);
   background: transparent;
   color: var(--color-error);
@@ -822,10 +883,12 @@ button.line-item--link {
 }
 
 /* Insights card */
+/* Flat — not a hero moment, so it doesn't get the gradient treatment
+   (spec: reserve the gradient for hero surfaces and primary buttons only). */
 .insights-card {
-  background: linear-gradient(160deg, var(--color-success-bg), transparent);
+  background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 1rem;
+  border-radius: var(--radius-xl);
   padding: 1.4rem;
 }
 
@@ -849,7 +912,7 @@ button.line-item--link {
 /* KPI stat tile */
 .kpi-tile {
   border: 1px solid var(--color-border);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-button);
   padding: 1.5rem;
   background: var(--color-card);
 }
@@ -907,7 +970,7 @@ button.line-item--link {
 
 .bar-chart-track {
   background: var(--color-bg-secondary);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   height: 20px;
 }
 
@@ -915,7 +978,7 @@ button.line-item--link {
   height: 20px;
   max-height: 24px;
   min-width: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--color-primary-green);
 }
 
@@ -1003,7 +1066,7 @@ button.line-item--link {
 .transaction-filters-row select {
   padding: 0.55rem 0.7rem;
   min-height: 44px;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
@@ -1075,7 +1138,7 @@ button.line-item--link {
   min-width: 0;
   padding: 0.5rem 0.6rem;
   min-height: 40px;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
@@ -1085,7 +1148,7 @@ button.line-item--link {
 
 .category-manage-merge-confirm {
   background: var(--color-bg-secondary);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-md);
   padding: 0.75rem;
 }
 
@@ -1101,7 +1164,7 @@ button.line-item--link {
   align-items: center;
   min-height: 44px;
   padding: 0.4rem 0.7rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
@@ -1132,7 +1195,7 @@ button.line-item--link {
 .recurring-frequency-fields input {
   padding: 0.4rem 0.6rem;
   min-height: 36px;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
@@ -1164,7 +1227,10 @@ button.line-item--link {
 
 .page-content h1,
 .page-title {
+  font-family: var(--font-display);
   font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 1rem;
 }
 
@@ -1245,7 +1311,7 @@ button.line-item--link {
   max-width: calc(30rem - 2rem);
   width: calc(100% - 2rem);
   padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-button);
   background: var(--color-text-primary);
   color: var(--color-bg);
   box-shadow: 0 4px 16px var(--shadow-color);
@@ -1312,14 +1378,14 @@ button.line-item--link {
 
 .progress-bar-track {
   background: var(--color-bg-secondary);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   height: 10px;
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: width 0.2s ease;
 }
 
@@ -1439,14 +1505,16 @@ button.line-item--link {
 }
 
 .profile-name {
+  font-family: var(--font-display);
   font-size: 1.2rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 /* Route-level loading skeleton */
 .skeleton-block {
   height: 1rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-secondary);
   animation: skeleton-pulse 1.2s ease-in-out infinite;
 }
