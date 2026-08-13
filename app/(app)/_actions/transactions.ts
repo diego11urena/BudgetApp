@@ -163,8 +163,11 @@ export async function categorizeTransactionAction(
   if (existing.cycle.status === "CLOSED") {
     return { error: "This quincena is closed and can't be edited" };
   }
+  if (existing.type === "INCOME") {
+    return { error: "Income transactions don't have a category" };
+  }
 
-  const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), "EXPENSE");
+  const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), existing.type);
 
   await prisma.cycleTransaction.update({
     where: { id: transactionId },

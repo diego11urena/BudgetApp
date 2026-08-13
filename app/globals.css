@@ -125,6 +125,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* iOS Safari auto-zooms the viewport on focus when a field's *computed*
+   font-size is under 16px. A literal px value (not rem) so this holds even
+   if the device's own text-size setting shrinks what 1rem resolves to —
+   every input/select/textarea gets this floor; a component can still size
+   up from here (e.g. .sheet-amount-input), just never below it. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -192,7 +203,6 @@ a {
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
-  font-size: 1rem;
 }
 
 .field-hint {
@@ -468,6 +478,9 @@ button.line-item--link {
 }
 
 .categorize-imports-row-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
@@ -1126,7 +1139,6 @@ button.line-item--link {
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
-  font-size: 1rem;
   font-family: inherit;
 }
 
@@ -1198,7 +1210,6 @@ button.line-item--link {
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
-  font-size: 0.9rem;
   font-family: inherit;
 }
 
@@ -1255,7 +1266,6 @@ button.line-item--link {
   border: 1px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
-  font-size: 0.8rem;
   font-family: inherit;
 }
 

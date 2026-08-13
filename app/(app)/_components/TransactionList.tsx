@@ -12,6 +12,12 @@ const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
   SAVINGS: "Savings",
 };
 
+const SOURCE_LABEL: Record<CycleTransactionSummary["source"], string | null> = {
+  MANUAL: null,
+  BANK_IMPORT: "📧 Bank Import",
+  YAPPY: "📧 Yappy",
+};
+
 function TransactionRowContent({
   tx,
   showCycleLabel,
@@ -26,8 +32,9 @@ function TransactionRowContent({
         <span className="transaction-sub">
           {TYPE_LABEL[tx.type]}
           {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
+          {!tx.categoryName && tx.type !== "INCOME" ? " · Uncategorized" : ""}
           {showCycleLabel && tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
-          {tx.isImported ? " · 📧 Gmail" : ""}
+          {SOURCE_LABEL[tx.source] ? ` · ${SOURCE_LABEL[tx.source]}` : ""}
           {tx.isEditable === false ? " · 🔒 closed" : ""}
         </span>
       </div>

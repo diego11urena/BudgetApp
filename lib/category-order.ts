@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { IMPORT_CATEGORY_NAME, YAPPY_CATEGORY_NAME } from "@/lib/gmail-sync";
 
 export interface CategoryUsageInfo {
   name: string;
@@ -42,15 +41,10 @@ export async function getOrderedCategoryNames(
   cycleId: string,
   type: "EXPENSE" | "SAVINGS",
 ): Promise<string[]> {
-  // Bank Import and Yappy are system-managed buckets for Gmail-imported
-  // transactions, never a sensible thing to manually pick as a category for
-  // a new transaction or budget target — excluded from suggestions entirely.
-  const categories = (
-    await prisma.expenseCategory.findMany({
-      where: { userId, type },
-      select: { id: true, name: true },
-    })
-  ).filter((c) => c.name !== IMPORT_CATEGORY_NAME && c.name !== YAPPY_CATEGORY_NAME);
+  const categories = await prisma.expenseCategory.findMany({
+    where: { userId, type },
+    select: { id: true, name: true },
+  });
   if (categories.length === 0) return [];
 
   const categoryIds = categories.map((c) => c.id);

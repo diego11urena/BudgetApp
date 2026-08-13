@@ -6,6 +6,23 @@ export interface CategoryTotal {
   amount: number;
 }
 
+/**
+ * Sums only the categories that are actually fixed-expense targets this
+ * cycle — "Fixed budget used" must reflect rent/subscriptions/etc. against
+ * their own targets, not every expense category (groceries, an
+ * uncategorized import) lumped in with them just because they're all
+ * EXPENSE type.
+ */
+export function sumFixedTargetSpend(
+  categoryTotals: CategoryTotal[],
+  fixedTargetCategoryIds: string[],
+): number {
+  const targetIds = new Set(fixedTargetCategoryIds);
+  return categoryTotals
+    .filter((c) => targetIds.has(c.categoryId))
+    .reduce((sum, c) => sum + c.amount, 0);
+}
+
 export interface CycleTransactionSummary {
   id: string;
   type: "EXPENSE" | "INCOME" | "SAVINGS";
@@ -15,6 +32,8 @@ export interface CycleTransactionSummary {
   occurredAt: Date;
   /** Whether this row was auto-imported from Gmail rather than logged by hand. */
   isImported: boolean;
+  /** How the transaction arrived — never a substitute for categoryName, just a display tag (e.g. "📧 Yappy" next to the row). */
+  source: "MANUAL" | "BANK_IMPORT" | "YAPPY";
   /** Only set by callers building an all-time (cross-cycle) view. */
   cycleLabel?: string;
   /**
@@ -55,6 +74,7 @@ interface TransactionLike {
   occurredAt: Date;
   expenseCategory: { id: string; name: string } | null;
   sourceMessageId?: string | null;
+  source?: "MANUAL" | "BANK_IMPORT" | "YAPPY";
 }
 
 /**
@@ -75,6 +95,7 @@ export function toCycleTransactionSummary(
     categoryName: tx.expenseCategory?.name ?? null,
     occurredAt: tx.occurredAt,
     isImported: (tx.sourceMessageId ?? null) !== null,
+    source: tx.source ?? "MANUAL",
     ...extra,
   };
 }

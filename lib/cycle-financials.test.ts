@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeCycleFinancials, toCycleTransactionSummary } from "./cycle-financials";
+import { summarizeCycleFinancials, sumFixedTargetSpend, toCycleTransactionSummary } from "./cycle-financials";
 
 function decimal(value: number) {
   return { toNumber: () => value };
@@ -154,12 +154,21 @@ describe("toCycleTransactionSummary", () => {
       categoryName: "Groceries",
       occurredAt: row.occurredAt,
       isImported: false,
+      source: "MANUAL",
     });
   });
 
   it("marks isImported true when sourceMessageId is set", () => {
     const row = { ...tx("EXPENSE", 10), sourceMessageId: "gmail-msg-1" };
     expect(toCycleTransactionSummary(row).isImported).toBe(true);
+  });
+
+  it("defaults source to MANUAL when not provided, and passes through an explicit source", () => {
+    const manualRow = tx("EXPENSE", 10);
+    expect(toCycleTransactionSummary(manualRow).source).toBe("MANUAL");
+
+    const yappyRow = { ...tx("EXPENSE", 10), source: "YAPPY" as const };
+    expect(toCycleTransactionSummary(yappyRow).source).toBe("YAPPY");
   });
 
   it("applies cycleLabel and isEditable only when extra is passed", () => {
@@ -171,5 +180,31 @@ describe("toCycleTransactionSummary", () => {
     const withoutExtra = toCycleTransactionSummary(row);
     expect(withoutExtra.cycleLabel).toBeUndefined();
     expect(withoutExtra.isEditable).toBeUndefined();
+  });
+});
+
+describe("sumFixedTargetSpend", () => {
+  it("only sums categories that are in the fixed-target id list", () => {
+    const total = sumFixedTargetSpend(
+      [
+        { categoryId: "rent", categoryName: "Rent", amount: 500 },
+        { categoryId: "groceries", categoryName: "Groceries", amount: 200 },
+        { categoryId: "spotify", categoryName: "Spotify", amount: 10 },
+      ],
+      ["rent", "spotify"],
+    );
+    expect(total).toBe(510);
+  });
+
+  it("returns 0 when no category totals match a fixed target", () => {
+    const total = sumFixedTargetSpend(
+      [{ categoryId: "groceries", categoryName: "Groceries", amount: 200 }],
+      ["rent"],
+    );
+    expect(total).toBe(0);
+  });
+
+  it("returns 0 for an empty category totals list", () => {
+    expect(sumFixedTargetSpend([], ["rent"])).toBe(0);
   });
 });

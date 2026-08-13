@@ -22,11 +22,19 @@ const FOCUSABLE_SELECTOR =
  * the trigger element itself, synchronously in its onClick, before the
  * modal mounts. Omit it for modals with no internal autoFocus, where
  * document.activeElement at mount time is reliable on its own.
+ *
+ * autoFocus (default true) controls what happens when nothing inside the
+ * modal already has focus: true focuses the first focusable child, same as
+ * always; false focuses the container itself instead, so no text field
+ * silently grabs the keyboard/cursor on open. Needed for a sheet whose
+ * first focusable child is a text-ish input under 16px — auto-focusing it
+ * is what triggers iOS Safari's viewport zoom (see CategorizeImportsSheet).
  */
 export function useModalFocus(
   containerRef: React.RefObject<HTMLElement | null>,
   onClose: () => void,
   returnFocusTo?: HTMLElement | null,
+  autoFocus = true,
 ) {
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -74,7 +82,7 @@ export function useModalFocus(
     // completes before any passive effect (including this one) runs — so
     // by now, an autoFocus target has already won if there is one.
     if (!container.contains(document.activeElement)) {
-      const focusable = getFocusable();
+      const focusable = autoFocus ? getFocusable() : [];
       (focusable[0] ?? container).focus();
     }
 

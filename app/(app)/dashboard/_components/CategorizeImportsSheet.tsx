@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useModalFocus } from "../../_components/useModalFocus";
-import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import { categorizeTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
+
+const NEW_CATEGORY_VALUE = "__new__";
 
 export interface UncategorizedTransaction {
   id: string;
@@ -45,7 +46,9 @@ export function CategorizeImportsSheet({
     });
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
+  // autoFocus off: this sheet should appear passively, with no field
+  // grabbing the keyboard/cursor until the user deliberately taps one.
+  useModalFocus(sheetRef, handleClose, returnFocusTo, false);
 
   return (
     <div
@@ -59,7 +62,7 @@ export function CategorizeImportsSheet({
         className={`sheet ${visible ? "is-open" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Categorize imported transactions"
+        aria-label="Categorize transactions"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet-handle" />
@@ -102,11 +105,15 @@ function CategorizeImportRow({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [creatingNew, setCreatingNew] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     fd.set("transactionId", transaction.id);
+    if (fd.get("category") === NEW_CATEGORY_VALUE) {
+      fd.set("category", String(fd.get("newCategory") ?? ""));
+    }
     setPending(true);
     setError(null);
     const result = await categorizeTransactionAction(fd);
@@ -125,13 +132,32 @@ function CategorizeImportRow({
         <span className="categorize-imports-row-amount">{formatCurrency(transaction.amount)}</span>
       </div>
       <div className="categorize-imports-row-input">
-        <CategoryNameInput
+        <select
           id={`categorize-${transaction.id}`}
           name="category"
-          categoryNames={categoryNames}
-          placeholder="Category"
-          showChips={false}
-        />
+          defaultValue=""
+          required
+          onChange={(e) => setCreatingNew(e.target.value === NEW_CATEGORY_VALUE)}
+        >
+          <option value="" disabled>
+            Choose a category
+          </option>
+          {categoryNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+          <option value={NEW_CATEGORY_VALUE}>+ New category…</option>
+        </select>
+        {creatingNew && (
+          <input
+            type="text"
+            name="newCategory"
+            placeholder="New category name"
+            required
+            autoComplete="off"
+          />
+        )}
       </div>
       {error && <p className="error-text">{error}</p>}
       <button type="submit" className="button button--small" disabled={pending}>

@@ -2,16 +2,11 @@ import { OAuth2Client } from "google-auth-library";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "./prisma";
 import { getOrCreateDraftCycle } from "./cycles";
-import { getOrCreateCategory } from "./categories";
 import { decryptToken } from "./gmail-crypto";
 import { parseTransactionEmail } from "./gmail-parsers";
 
 /** Every sender address whose mail gets scanned for transactions — the bank (credit/debit card purchases) and Yappy (P2P sent/received). */
 const BANK_SENDERS = ["transaccionesbg@bgeneral.com", "notificaciones@yappy.com.pa"];
-/** Exported so callers building category suggestion lists (lib/category-order.ts) can exclude it — never a sensible thing to manually pick. */
-export const IMPORT_CATEGORY_NAME = "Bank Import";
-/** Category for Yappy-sent transactions, kept separate from card purchases so it reads clearly in the transaction list. */
-export const YAPPY_CATEGORY_NAME = "Yappy";
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 /** Pure — narrows a batch of candidate Gmail message ids down to the ones not already known. Split out from the rest of the sync so it's unit-testable without a database or a live Gmail connection. */
@@ -100,15 +95,14 @@ export function isUniqueConstraintViolation(error: unknown): boolean {
 }
 
 /**
- * Merchant-name learning: if this user has ever manually categorized a
- * transaction with this exact name (case-insensitive) into a real category
- * (i.e. not the "Bank Import"/"Yappy" system buckets themselves), reuse
- * that category for this newly-imported one instead of dropping it in the
- * generic bucket again. There's no separate mapping table -- a prior
- * categorization *is* the mapping, so editing a transaction's category
- * anywhere in the app (see updateTransactionAction/categorizeTransactionAction)
- * is what teaches this. Most-recently-used wins if a merchant was ever
- * filed under more than one category.
+ * Merchant-name learning: if this user has ever categorized a transaction
+ * with this exact name (case-insensitive) into a real category, reuse that
+ * category for this newly-imported one instead of leaving it uncategorized
+ * again. There's no separate mapping table -- a prior categorization *is*
+ * the mapping, so editing a transaction's category anywhere in the app
+ * (see updateTransactionAction/categorizeTransactionAction) is what teaches
+ * this. Most-recently-used wins if a merchant was ever filed under more
+ * than one category.
  */
 async function findLearnedCategoryId(userId: string, merchant: string): Promise<string | null> {
   const match = await prisma.cycleTransaction.findFirst({
@@ -116,7 +110,6 @@ async function findLearnedCategoryId(userId: string, merchant: string): Promise<
       cycle: { userId },
       name: { equals: merchant, mode: "insensitive" },
       expenseCategoryId: { not: null },
-      expenseCategory: { name: { notIn: [IMPORT_CATEGORY_NAME, YAPPY_CATEGORY_NAME] } },
     },
     orderBy: { occurredAt: "desc" },
     select: { expenseCategoryId: true },
@@ -174,13 +167,6 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
         // to the same row within a single sync (the draft cycle doesn't
         // change mid-loop).
         const cycle = await getOrCreateDraftCycle(userId);
-        // Lazily resolved on the first EXPENSE-type import of each source
-        // actually seen this sync -- an INCOME-type import (a Yappy "you
-        // received" notification) has no category concept, same as a
-        // manually-logged Income transaction (see addTransactionAction), so
-        // a sync containing only those never needs either of these at all.
-        let bankCategoryId: string | null = null;
-        let yappyCategoryId: string | null = null;
         // Per-sync cache so a merchant repeated across several messages in
         // one sync (e.g. two coffee runs) only costs one lookup query.
         const learnedCategoryCache = new Map<string, string | null>();
@@ -191,29 +177,17 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
           const parsed = body ? parseTransactionEmail(body) : null;
           if (!parsed) continue;
 
+          // Category and source are independent: category is "what it was
+          // for" (left null -- never a fake stand-in -- until a real match
+          // is learned or the user picks one), source is "how it arrived"
+          // (always known for an import, shown as a separate tag in the UI).
           let expenseCategoryId: string | null = null;
           if (parsed.type === "EXPENSE") {
             const merchantKey = parsed.merchant.toLowerCase();
             if (!learnedCategoryCache.has(merchantKey)) {
               learnedCategoryCache.set(merchantKey, await findLearnedCategoryId(userId, parsed.merchant));
             }
-            const learnedCategoryId = learnedCategoryCache.get(merchantKey) ?? null;
-
-            if (learnedCategoryId !== null) {
-              expenseCategoryId = learnedCategoryId;
-            } else if (parsed.source === "yappy") {
-              if (yappyCategoryId === null) {
-                const category = await getOrCreateCategory(prisma, userId, YAPPY_CATEGORY_NAME, "EXPENSE");
-                yappyCategoryId = category.id;
-              }
-              expenseCategoryId = yappyCategoryId;
-            } else {
-              if (bankCategoryId === null) {
-                const category = await getOrCreateCategory(prisma, userId, IMPORT_CATEGORY_NAME, "EXPENSE");
-                bankCategoryId = category.id;
-              }
-              expenseCategoryId = bankCategoryId;
-            }
+            expenseCategoryId = learnedCategoryCache.get(merchantKey) ?? null;
           }
 
           try {
@@ -224,6 +198,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
                 name: parsed.merchant,
                 amount: parsed.amount,
                 expenseCategoryId,
+                source: parsed.source === "yappy" ? "YAPPY" : "BANK_IMPORT",
                 occurredAt: new Date(Number(message.internalDate)),
                 sourceMessageId: message.id,
               },

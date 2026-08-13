@@ -2,11 +2,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
-import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
+import { getCycleFinancials, summarizeCycleFinancials, sumFixedTargetSpend } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
-import { IMPORT_CATEGORY_NAME, YAPPY_CATEGORY_NAME } from "@/lib/gmail-sync";
 import Link from "next/link";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
@@ -28,6 +27,10 @@ export default async function DashboardPage() {
   const financials = await getCycleFinancials(cycle.id);
   const expenseGoals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
   const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const fixedSpent = sumFixedTargetSpend(
+    financials.categoryTotals,
+    expenseGoals.map((goal) => goal.categoryId),
+  );
 
   const [expenseCategoryNames, savingsCategoryNames] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
@@ -47,16 +50,19 @@ export default async function DashboardPage() {
 
   const insights = generateInsights(financials, previousClosedFinancials);
 
-  // Gmail-imported transactions still sitting in a system bucket because
-  // no merchant-learning match was found (see findLearnedCategoryId in
-  // lib/gmail-sync.ts) — surfaced here so they don't just sit uncategorized
-  // and skew "Top categories" forever. Scoped to the current cycle only,
-  // consistent with the rest of this page.
-  const uncategorizedImports = (
+  // Any transaction with no real category yet — most commonly a Gmail
+  // import with no merchant-learning match (see findLearnedCategoryId in
+  // lib/gmail-sync.ts), but this catches a null category regardless of how
+  // it got that way. Surfaced here so it doesn't just sit uncategorized and
+  // skew "Top categories"/"Fixed budget used" forever. Scoped to the
+  // current cycle only, consistent with the rest of this page. INCOME is
+  // excluded since it never has a category concept to begin with.
+  const uncategorizedTransactions = (
     await prisma.cycleTransaction.findMany({
       where: {
         cycleId: cycle.id,
-        expenseCategory: { name: { in: [IMPORT_CATEGORY_NAME, YAPPY_CATEGORY_NAME] } },
+        expenseCategoryId: null,
+        type: { not: "INCOME" },
       },
       select: { id: true, name: true, amount: true },
       orderBy: { occurredAt: "desc" },
@@ -67,10 +73,10 @@ export default async function DashboardPage() {
     <div className="home-page">
       <Header name={session.user.name} />
 
-      {uncategorizedImports.length > 0 && (
+      {uncategorizedTransactions.length > 0 && (
         <div className="dashboard-section dashboard-section--plain">
           <UncategorizedImportsBanner
-            transactions={uncategorizedImports}
+            transactions={uncategorizedTransactions}
             categoryNames={expenseCategoryNames}
           />
         </div>
@@ -95,7 +101,7 @@ export default async function DashboardPage() {
           baseIncome={financials.baseIncome}
           extraIncome={financials.extraIncome}
           saved={financials.totalSavings}
-          spent={financials.totalExpenses}
+          spent={fixedSpent}
           budget={totalBudget}
         />
       </div>
