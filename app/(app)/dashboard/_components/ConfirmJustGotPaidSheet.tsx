@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useModalFocus } from "../../_components/useModalFocus";
+import { formatCycleLabel, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
+
+function daysAgo(days: number): Date {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date;
+}
 
 /**
  * Closing a quincena is the one significant, hard-to-undo action in the
@@ -16,7 +23,7 @@ export function ConfirmJustGotPaidSheet({
   onCancel,
   returnFocusTo = null,
 }: {
-  onConfirm: () => void;
+  onConfirm: (payDate: string) => void;
   onCancel: () => void;
   returnFocusTo?: HTMLElement | null;
 }) {
@@ -26,7 +33,14 @@ export function ConfirmJustGotPaidSheet({
   // (unlike everything it creates), so two concurrent calls would each
   // close-and-recreate a cycle, leaving one of the two new cycles orphaned.
   const [confirmed, setConfirmed] = useState(false);
+  // Defaults to today (the moment this sheet opens), but editable to an
+  // actual past payday — see lib/cycles.ts's parsePayDate for why this
+  // matters to days-remaining/pace math downstream.
+  const [payDate, setPayDate] = useState(() => formatCycleLabel());
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
+  const maxDate = formatCycleLabel();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -43,7 +57,7 @@ export function ConfirmJustGotPaidSheet({
     if (confirmed) return;
     setConfirmed(true);
     setVisible(false);
-    setTimeout(onConfirm, 200);
+    setTimeout(() => onConfirm(payDate), 200);
   }
 
   useModalFocus(sheetRef, handleCancel, returnFocusTo);
@@ -70,6 +84,18 @@ export function ConfirmJustGotPaidSheet({
           targets and goal contributions carry forward automatically — you&apos;ll confirm this
           quincena&apos;s pay amount next.
         </p>
+        <div className="field">
+          <label htmlFor="pay-date">When did you get paid?</label>
+          <input
+            id="pay-date"
+            type="date"
+            value={payDate}
+            min={minDate}
+            max={maxDate}
+            disabled={confirmed}
+            onChange={(e) => setPayDate(e.target.value)}
+          />
+        </div>
         <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
           Yes, I got paid →
         </button>

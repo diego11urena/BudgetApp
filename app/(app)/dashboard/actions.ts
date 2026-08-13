@@ -7,6 +7,7 @@ import {
   closeCycleAndStartNext,
   getActiveIncomeSource,
   getOrCreateDraftCycle,
+  parsePayDate,
   upsertCycleIncomeEntry,
 } from "@/lib/cycles";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
@@ -24,14 +25,23 @@ export interface CycleClosedSummary {
   carriedIncomeAmount: number;
 }
 
-export async function justGotPaidAction(): Promise<CycleClosedSummary> {
+/**
+ * payDateStr is the "When did you get paid?" date input's value
+ * ("YYYY-MM-DD"). An invalid/out-of-range value (the field's own min/max
+ * already constrain this client-side; this is the server-side backstop)
+ * falls back to today rather than failing the whole close-cycle action.
+ */
+export async function justGotPaidAction(payDateStr?: string): Promise<CycleClosedSummary> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
 
+  const payDate = (payDateStr && parsePayDate(payDateStr)) || new Date();
+
   const { closedCycle, newCycle, closedCycleFinancials } = await closeCycleAndStartNext(
     session.user.id,
+    payDate,
   );
   const [goals, carriedEntry] = await Promise.all([
     getCycleBudgetGoals(closedCycle.id, "EXPENSE"),

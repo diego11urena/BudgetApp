@@ -1,17 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
+import { formatCycleLabel, parsePayDate } from "@/lib/pay-date";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
-function pad(n: number): string {
-  return n.toString().padStart(2, "0");
-}
-
-/** "YYYY-MM-DD" label for the given date — a cycle's start date, for display. */
-export function formatCycleLabel(date: Date = new Date()): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
+// Re-exported so every existing "@/lib/cycles" call site keeps working
+// unchanged — these two now live in lib/pay-date.ts (a Prisma-free module)
+// so ConfirmJustGotPaidSheet, a client component, can import them directly
+// without pulling this file's server-only dependencies into the browser.
+export { formatCycleLabel, parsePayDate };
 
 export type Quincena = "FIRST" | "SECOND";
 
@@ -158,24 +156,32 @@ export interface CloseCycleResult {
  * targets) so the user never has to redo onboarding-style setup for a new
  * paycheck. Logged transactions do NOT carry forward — the closed cycle
  * keeps its own transaction history forever, exactly as it was.
+ *
+ * payDate anchors the new cycle's periodStart (and the old cycle's
+ * periodEnd) — defaults to now, but the caller can pass an actual past pay
+ * date (see ConfirmJustGotPaidSheet) for when the user opens the app a day
+ * or two after actually getting paid, so days-remaining/daily-pace math
+ * (lib/quincena-pace.ts) anchors to the real payday, not to whenever they
+ * happened to tap the button.
  */
-export async function closeCycleAndStartNext(userId: string): Promise<CloseCycleResult> {
+export async function closeCycleAndStartNext(
+  userId: string,
+  payDate: Date = new Date(),
+): Promise<CloseCycleResult> {
   const currentCycle = await getOrCreateDraftCycle(userId);
   const closedCycleFinancials = await getCycleFinancials(currentCycle.id);
-
-  const now = new Date();
 
   const { closed: closedCycle, created: newCycle } = await prisma.$transaction(async (tx) => {
     const closed = await tx.budgetCycle.update({
       where: { id: currentCycle.id },
-      data: { status: "CLOSED", periodEnd: now },
+      data: { status: "CLOSED", periodEnd: payDate },
     });
 
     const created = await tx.budgetCycle.create({
       data: {
         userId,
-        label: formatCycleLabel(now),
-        periodStart: now,
+        label: formatCycleLabel(payDate),
+        periodStart: payDate,
         status: "ACTIVE",
       },
     });

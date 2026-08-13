@@ -30,10 +30,10 @@ export function HeroCard({
   const isPositive = amountLeft >= 0;
   const pace = computeQuincenaPace({ periodStart, now: new Date(), amountLeft, totalExpenses });
 
-  async function handleConfirmedJustGotPaid() {
+  async function handleConfirmedJustGotPaid(payDate: string) {
     setConfirming(false);
     setPending(true);
-    const summary = await justGotPaidAction();
+    const summary = await justGotPaidAction(payDate);
     setPending(false);
     setClosedSummary(summary);
   }
