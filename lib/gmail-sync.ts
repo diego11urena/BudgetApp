@@ -10,6 +10,8 @@ import { parseTransactionEmail } from "./gmail-parsers";
 const BANK_SENDERS = ["transaccionesbg@bgeneral.com", "notificaciones@yappy.com.pa"];
 /** Exported so callers building category suggestion lists (lib/category-order.ts) can exclude it — never a sensible thing to manually pick. */
 export const IMPORT_CATEGORY_NAME = "Bank Import";
+/** Category for Yappy-sent transactions, kept separate from card purchases so it reads clearly in the transaction list. */
+export const YAPPY_CATEGORY_NAME = "Yappy";
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
 /** Pure — narrows a batch of candidate Gmail message ids down to the ones not already known. Split out from the rest of the sync so it's unit-testable without a database or a live Gmail connection. */
@@ -147,12 +149,13 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
         // to the same row within a single sync (the draft cycle doesn't
         // change mid-loop).
         const cycle = await getOrCreateDraftCycle(userId);
-        // Lazily resolved on the first EXPENSE-type import (card purchase or
-        // Yappy sent) actually seen this sync -- an INCOME-type import (a
-        // Yappy "you received" notification) has no category concept, same
-        // as a manually-logged Income transaction (see addTransactionAction),
-        // so a sync containing only those never needs this at all.
-        let importCategoryId: string | null = null;
+        // Lazily resolved on the first EXPENSE-type import of each source
+        // actually seen this sync -- an INCOME-type import (a Yappy "you
+        // received" notification) has no category concept, same as a
+        // manually-logged Income transaction (see addTransactionAction), so
+        // a sync containing only those never needs either of these at all.
+        let bankCategoryId: string | null = null;
+        let yappyCategoryId: string | null = null;
 
         for (const id of newIds) {
           const message = await getMessage(client, id);
@@ -160,9 +163,21 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
           const parsed = body ? parseTransactionEmail(body) : null;
           if (!parsed) continue;
 
-          if (parsed.type === "EXPENSE" && importCategoryId === null) {
-            const category = await getOrCreateCategory(prisma, userId, IMPORT_CATEGORY_NAME, "EXPENSE");
-            importCategoryId = category.id;
+          let expenseCategoryId: string | null = null;
+          if (parsed.type === "EXPENSE") {
+            if (parsed.source === "yappy") {
+              if (yappyCategoryId === null) {
+                const category = await getOrCreateCategory(prisma, userId, YAPPY_CATEGORY_NAME, "EXPENSE");
+                yappyCategoryId = category.id;
+              }
+              expenseCategoryId = yappyCategoryId;
+            } else {
+              if (bankCategoryId === null) {
+                const category = await getOrCreateCategory(prisma, userId, IMPORT_CATEGORY_NAME, "EXPENSE");
+                bankCategoryId = category.id;
+              }
+              expenseCategoryId = bankCategoryId;
+            }
           }
 
           try {
@@ -172,7 +187,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
                 type: parsed.type,
                 name: parsed.merchant,
                 amount: parsed.amount,
-                expenseCategoryId: parsed.type === "EXPENSE" ? importCategoryId : null,
+                expenseCategoryId,
                 occurredAt: new Date(Number(message.internalDate)),
                 sourceMessageId: message.id,
               },

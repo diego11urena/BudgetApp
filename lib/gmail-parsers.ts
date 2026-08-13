@@ -5,6 +5,8 @@ export interface ParsedTransaction {
   amount: string;
   /** Merchant name for a card purchase, or the counterparty's name for a Yappy transfer. */
   merchant: string;
+  /** Which sender this came from — lets gmail-sync.ts file card purchases and Yappy transfers under separate import categories. */
+  source: "bank" | "yappy";
 }
 
 export interface EmailParser {
@@ -53,7 +55,7 @@ export const purchaseNotificationParser: EmailParser = {
     // never hand an unvalidated value to Decimal — skip the message instead.
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "EXPENSE", amount, merchant };
+    return { type: "EXPENSE", amount, merchant, source: "bank" };
   },
 };
 
@@ -88,7 +90,7 @@ export const yappyReceivedParser: EmailParser = {
     const amount = rawAmount.replace(/,/g, "");
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "INCOME", amount, merchant };
+    return { type: "INCOME", amount, merchant, source: "yappy" };
   },
 };
 
@@ -111,7 +113,7 @@ export const yappySentParser: EmailParser = {
     const amount = rawAmount.replace(/,/g, "");
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "EXPENSE", amount, merchant };
+    return { type: "EXPENSE", amount, merchant, source: "yappy" };
   },
 };
 
