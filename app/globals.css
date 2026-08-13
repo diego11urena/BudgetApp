@@ -587,6 +587,17 @@ button.line-item--link {
   margin-top: 0.15rem;
 }
 
+.home-header-edit-link {
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-green);
+  padding: 0;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
 .home-profile-icon {
   display: inline-flex;
   align-items: center;

@@ -10,6 +10,7 @@ import {
   parsePayDate,
   upsertCycleIncomeEntry,
 } from "@/lib/cycles";
+import { formatCycleLabel, parseDateOnly } from "@/lib/pay-date";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { decimalString } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
@@ -99,6 +100,73 @@ export async function confirmNewCycleIncomeAction(
   await prisma.$transaction([
     prisma.incomeSource.update({ where: { id: incomeSource.id }, data: { netQuincenaAmount } }),
     upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
+  ]);
+
+  revalidateAppPages();
+}
+
+/** How far back "Edit" (correcting an already-recorded pay date, possibly
+ * days into an already-running quincena) allows — deliberately wider than
+ * PAY_DATE_LOOKBACK_DAYS (7), since it must always be able to re-select the
+ * cycle's own current periodStart, which can be up to a full quincena old. */
+const EDIT_PAY_DATE_LOOKBACK_DAYS = 30;
+
+export type EditPayInfoResult = { error?: string } | undefined;
+
+/**
+ * "Edit" on the Home hero card — corrects the CURRENT cycle's already-
+ * recorded pay amount and/or pay date in place, as opposed to "I just got
+ * paid" which always closes the cycle and starts a new one. Updates
+ * IncomeSource.netQuincenaAmount too, same as confirmNewCycleIncomeAction,
+ * so the correction becomes the new baseline. Recalculating Available to
+ * spend/days remaining/etc. falls out for free: they're all derived live
+ * from the cycle's stored periodStart/income on every render.
+ */
+export async function editCyclePayInfoAction(formData: FormData): Promise<EditPayInfoResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const parsedAmount = decimalString.safeParse(formData.get("netQuincenaAmount"));
+  if (!parsedAmount.success) {
+    return { error: parsedAmount.error.issues[0]?.message ?? "Invalid amount" };
+  }
+
+  const payDateStr = formData.get("payDate");
+  if (typeof payDateStr !== "string" || !payDateStr) {
+    return { error: "Date is required" };
+  }
+  const payDate = parseDateOnly(payDateStr);
+  if (!payDate) {
+    return { error: "Invalid date" };
+  }
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const earliest = new Date(todayStart);
+  earliest.setDate(earliest.getDate() - EDIT_PAY_DATE_LOOKBACK_DAYS);
+  if (payDate.getTime() > todayStart.getTime() || payDate.getTime() < earliest.getTime()) {
+    return { error: "Date must be within the last 30 days and not in the future" };
+  }
+
+  const incomeSource = await getActiveIncomeSource(prisma, userId);
+  if (!incomeSource) {
+    return { error: "No income source found yet — complete onboarding first." };
+  }
+
+  const cycle = await getOrCreateDraftCycle(userId);
+
+  await prisma.$transaction([
+    prisma.incomeSource.update({
+      where: { id: incomeSource.id },
+      data: { netQuincenaAmount: parsedAmount.data },
+    }),
+    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, parsedAmount.data),
+    prisma.budgetCycle.update({
+      where: { id: cycle.id },
+      data: { periodStart: payDate, label: formatCycleLabel(payDate) },
+    }),
   ]);
 
   revalidateAppPages();
