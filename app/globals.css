@@ -1273,8 +1273,15 @@ button.line-item--link {
   transition: transform 0.15s ease;
 }
 
+.bottom-nav-label {
+  text-align: center;
+}
+
 /* Raised center "+" — a plain button, not a nav tab: never gets
-   .is-active and doesn't reflect the current route. */
+   .is-active and doesn't reflect the current route. An SVG cross
+   (not a "+" text glyph) so it's pixel-centered regardless of the
+   font's own glyph metrics, which vary enough across platforms to
+   read as visibly off-center at this size. */
 .bottom-nav-fab {
   flex: 0 0 auto;
   align-self: flex-start;
@@ -1285,14 +1292,17 @@ button.line-item--link {
   border: 3px solid var(--color-card);
   background: var(--color-button-bg);
   color: var(--color-on-accent);
-  font-size: 1.75rem;
-  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px var(--shadow-color);
   cursor: pointer;
   transition: transform 0.1s ease;
+}
+
+.bottom-nav-fab svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .bottom-nav-fab:active {
