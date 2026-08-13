@@ -911,6 +911,11 @@ button.line-item--link {
   box-shadow: 0 1px 3px var(--shadow-color);
 }
 
+.type-toggle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .sheet-amount-field {
   text-align: center;
 }

@@ -1,10 +1,32 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
-import { getCycleFinancials } from "@/lib/cycle-financials";
-import { computeBreakdown, groupRecentTransactionsBySlice } from "@/lib/paycheck-breakdown";
-import { BreakdownScreen } from "./_components/BreakdownScreen";
+import { getMostRecentClosedCycle, getOrCreateDraftCycle } from "@/lib/cycles";
+import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
+import {
+  computePaymentMethodTotals,
+  withUncategorizedBucket,
+  type GroupTotal,
+} from "@/lib/paycheck-breakdown";
+import { BreakdownScreen, type BreakdownCycleData } from "./_components/BreakdownScreen";
+
+function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
+  const categoryTotals: GroupTotal[] = financials.categoryTotals.map((c) => ({
+    id: c.categoryId,
+    name: c.categoryName,
+    amount: c.amount,
+  }));
+
+  return {
+    baseIncome: financials.baseIncome,
+    extraIncome: financials.extraIncome,
+    totalExpenses: financials.totalExpenses,
+    totalSavings: financials.totalSavings,
+    categoryTotals: withUncategorizedBucket(categoryTotals, financials.totalExpenses),
+    paymentMethodTotals: computePaymentMethodTotals(financials.transactions),
+    transactions: financials.transactions,
+  };
+}
 
 export default async function PaycheckBreakdownPage() {
   const session = await auth();
@@ -14,13 +36,15 @@ export default async function PaycheckBreakdownPage() {
   const userId = session.user.id;
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const financials = await getCycleFinancials(cycle.id);
+  const lastClosedCycle = await getMostRecentClosedCycle(userId);
 
-  const breakdown = computeBreakdown(financials);
-  const recentTransactionsBySlice = groupRecentTransactionsBySlice(
-    financials.transactions,
-    financials.categoryTotals,
-  );
+  const [financials, lastFinancials] = await Promise.all([
+    getCycleFinancials(cycle.id),
+    lastClosedCycle ? getCycleFinancials(lastClosedCycle.id) : Promise.resolve(null),
+  ]);
+
+  const currentCycle = toBreakdownCycleData(financials);
+  const lastCycle = lastFinancials ? toBreakdownCycleData(lastFinancials) : null;
 
   return (
     <div className="home-page">
@@ -29,15 +53,11 @@ export default async function PaycheckBreakdownPage() {
       </Link>
       <h1 className="page-title">Paycheck Breakdown</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        100% of this quincena&apos;s income — where it went, and what&apos;s left.
+        Where this quincena&apos;s income went, and what&apos;s left.
       </p>
 
       <div className="dashboard-section">
-        {breakdown.pieTotal <= 0 ? (
-          <p className="field-hint">Nothing to show yet this quincena.</p>
-        ) : (
-          <BreakdownScreen breakdown={breakdown} recentTransactionsBySlice={recentTransactionsBySlice} />
-        )}
+        <BreakdownScreen currentCycle={currentCycle} lastCycle={lastCycle} />
       </div>
     </div>
   );

@@ -1,9 +1,18 @@
-import type { CategoryTotal, CycleTransactionSummary } from "./cycle-financials";
+import type { CycleTransactionSummary } from "./cycle-financials";
 
 export type SliceKind = "expense" | "savings" | "remaining" | "other";
+export type BreakdownScope = "full" | "spending";
+export type BreakdownGroupBy = "category" | "paymentMethod";
+
+/** A generic amount bucket to slice — either an expense category or a payment method, both reduced to the same {id, name, amount} shape so computeBreakdown doesn't need to know which. */
+export interface GroupTotal {
+  id: string;
+  name: string;
+  amount: number;
+}
 
 export interface BreakdownSlice {
-  /** categoryId for an expense category, "savings"/"remaining"/"other" for the fixed buckets — stable across renders, used for selection and as the recent-transactions map key. */
+  /** A category/payment-method's id, or "savings"/"remaining"/"other" for the fixed buckets — stable across renders, used for selection and as the recent-transactions map key. */
   key: string;
   label: string;
   amount: number;
@@ -12,7 +21,7 @@ export interface BreakdownSlice {
   kind: SliceKind;
   /** CSS custom property name (e.g. "--chart-cat-3") this slice fills with — see app/globals.css. */
   colorVar: string;
-  /** Only set on an "other" slice — the individual expense-category slices folded into it, for the drill-down when Other is selected. */
+  /** Only set on an "other" slice — the individual slices folded into it, for the drill-down when Other is selected. */
   members?: BreakdownSlice[];
 }
 
@@ -20,24 +29,41 @@ export interface PaycheckBreakdown {
   pieTotal: number;
   /** Every individual slice, ungrouped — for the legend, nothing hidden. */
   legendSlices: BreakdownSlice[];
-  /** Same underlying data, but small/excess expense categories fold into one "Other" slice — for the chart only. */
+  /** Same underlying data, but small/excess slices fold into one "Other" slice — for the chart only. */
   chartSlices: BreakdownSlice[];
 }
 
 const DEFAULT_THRESHOLD_PERCENT = 5;
-/** Matches the number of fixed categorical chart colors (--chart-cat-1..6) — beyond this, even an above-threshold category folds into "Other" so the chart never has to cycle/reuse a color. */
-const MAX_CHART_CATEGORY_SLICES = 6;
+/** Matches the number of fixed categorical chart colors (--chart-cat-1..6) — beyond this, even an above-threshold group folds into "Other" so the chart never has to cycle/reuse a color. */
+const MAX_CHART_GROUP_SLICES = 6;
 const CATEGORY_COLOR_COUNT = 6;
+
+/** Payment methods are a small, fixed set — direct color assignment, no hashing/collision-resolution needed (unlike the unbounded set of user categories). */
+const PAYMENT_METHOD_COLOR_VAR: Record<string, string> = {
+  CASH: "--chart-cat-1",
+  CREDIT_CARD: "--chart-cat-2",
+  DEBIT_CARD: "--chart-cat-3",
+  YAPPY: "--chart-cat-4",
+  UNSPECIFIED: "--chart-other",
+};
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  CASH: "Cash",
+  CREDIT_CARD: "Credit Card",
+  DEBIT_CARD: "Debit Card",
+  YAPPY: "Yappy",
+  UNSPECIFIED: "Unspecified",
+};
 
 /**
  * Deterministic hash -> preferred palette index, so a category's chart
  * color is anchored to its own identity (categoryId), not to amounts —
  * "color follows the entity, never its rank."
  */
-function preferredColorIndex(categoryId: string): number {
+function preferredColorIndex(id: string): number {
   let hash = 0;
-  for (let i = 0; i < categoryId.length; i++) {
-    hash = (hash * 31 + categoryId.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   }
   return hash % CATEGORY_COLOR_COUNT;
 }
@@ -45,33 +71,85 @@ function preferredColorIndex(categoryId: string): number {
 /**
  * Assigns each category its hash-preferred color, resolving collisions by
  * probing to the next free slot — categories are processed in a fixed
- * (categoryId-sorted) order so the resolution itself is deterministic.
- * Guarantees every category gets a *distinct* color whenever there are no
- * more categories than the palette has slots (the common case); beyond
- * that, reuse becomes unavoidable and is resolved the same deterministic
- * way. A pure hash alone can't make this guarantee — with 6 categories in
- * 6 slots, an unresolved collision is more likely than not.
+ * (id-sorted) order so the resolution itself is deterministic. Guarantees
+ * every category gets a *distinct* color whenever there are no more
+ * categories than the palette has slots (the common case); beyond that,
+ * reuse becomes unavoidable and is resolved the same deterministic way.
  */
-function assignCategoryColorIndexes(categoryIds: string[]): Map<string, number> {
+function assignCategoryColorIndexes(ids: string[]): Map<string, number> {
   const used = new Set<number>();
   const assignment = new Map<string, number>();
-  for (const categoryId of [...categoryIds].sort()) {
-    let index = preferredColorIndex(categoryId);
+  for (const id of [...ids].sort()) {
+    let index = preferredColorIndex(id);
     for (let attempts = 0; used.has(index) && attempts < CATEGORY_COLOR_COUNT; attempts++) {
       index = (index + 1) % CATEGORY_COLOR_COUNT;
     }
     used.add(index);
-    assignment.set(categoryId, index);
+    assignment.set(id, index);
   }
   return assignment;
 }
 
+function colorVarFor(id: string, groupBy: BreakdownGroupBy, colorIndexes: Map<string, number>): string {
+  // Neither bucket is a real category/payment-method identity — route both
+  // to the neutral "other" color rather than letting them consume (or
+  // collide with) a real slot in either palette.
+  if (id === "UNSPECIFIED" || id === "UNCATEGORIZED") return "--chart-other";
+  if (groupBy === "paymentMethod") {
+    return PAYMENT_METHOD_COLOR_VAR[id] ?? "--chart-other";
+  }
+  return `--chart-cat-${(colorIndexes.get(id) ?? 0) + 1}`;
+}
+
 /**
- * Computes the Paycheck Breakdown pie: every spending category, a Savings
- * slice, and a Remaining slice, all as a share of the quincena's income —
- * except when spending+savings exceeds income (overspent), in which case
- * the pie's total is the spent+saved amount instead (so slices always sum
- * to exactly 100% and Remaining is never negative).
+ * Sums a cycle's EXPENSE transactions by payment method — the "Payment
+ * method" group-by axis, parallel to categoryTotals. A transaction with no
+ * recorded payment method (pre-this-feature manual entries) still needs a
+ * bucket so the pie always sums to exactly 100% — "Unspecified" is that
+ * bucket, not a real PaymentMethod enum value.
+ */
+export function computePaymentMethodTotals(transactions: CycleTransactionSummary[]): GroupTotal[] {
+  const totals = new Map<string, number>();
+  for (const tx of transactions) {
+    if (tx.type !== "EXPENSE") continue;
+    const key = tx.paymentMethod ?? "UNSPECIFIED";
+    totals.set(key, (totals.get(key) ?? 0) + tx.amount);
+  }
+  return Array.from(totals.entries())
+    .map(([id, amount]) => ({ id, name: PAYMENT_METHOD_LABEL[id] ?? id, amount }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+/**
+ * Appends a synthetic "Uncategorized" bucket sized as the residual between
+ * totalExpenses and the sum of real category totals. categoryTotals (see
+ * lib/cycle-financials.ts) deliberately excludes EXPENSE transactions with
+ * no category — correct for "Top categories"/"Fixed budget used", but for
+ * this pie it would otherwise mean that spending just vanishes from the
+ * category-grouped legend/chart while still being subtracted from
+ * Remaining, so slices would sum to less than 100%. Mirrors how
+ * computePaymentMethodTotals buckets a null payment method as "Unspecified".
+ */
+export function withUncategorizedBucket(categoryTotals: GroupTotal[], totalExpenses: number): GroupTotal[] {
+  const categorized = categoryTotals.reduce((sum, c) => sum + c.amount, 0);
+  const uncategorized = totalExpenses - categorized;
+  if (uncategorized <= 0.005) return categoryTotals;
+  return [...categoryTotals, { id: "UNCATEGORIZED", name: "Uncategorized", amount: uncategorized }];
+}
+
+/**
+ * Computes the Paycheck Breakdown pie. `groupTotals` is the EXPENSE
+ * breakdown along whichever axis the caller picked (category or payment
+ * method) — it must sum to exactly `totalExpenses`.
+ *
+ * scope "full" (default): every group, a Savings slice, and a Remaining
+ * slice, all as a share of the quincena's income — except when
+ * spending+savings exceeds income (overspent), in which case the pie's
+ * total is the spent+saved amount instead (so slices always sum to exactly
+ * 100% and Remaining is never negative).
+ *
+ * scope "spending": just the EXPENSE groups, no Savings/Remaining — the
+ * pie's total is totalExpenses, so it's purely "how spending split up."
  */
 export function computeBreakdown(
   financials: {
@@ -79,32 +157,49 @@ export function computeBreakdown(
     extraIncome: number;
     totalExpenses: number;
     totalSavings: number;
-    categoryTotals: CategoryTotal[];
+    groupTotals: GroupTotal[];
   },
-  thresholdPercent: number = DEFAULT_THRESHOLD_PERCENT,
+  options: {
+    scope?: BreakdownScope;
+    groupBy?: BreakdownGroupBy;
+    thresholdPercent?: number;
+  } = {},
 ): PaycheckBreakdown {
-  const income = financials.baseIncome + financials.extraIncome;
-  const spentAndSaved = financials.totalExpenses + financials.totalSavings;
-  const pieTotal = Math.max(income, spentAndSaved);
+  const { scope = "full", groupBy = "category", thresholdPercent = DEFAULT_THRESHOLD_PERCENT } = options;
+
+  const pieTotal =
+    scope === "spending"
+      ? financials.totalExpenses
+      : Math.max(
+          financials.baseIncome + financials.extraIncome,
+          financials.totalExpenses + financials.totalSavings,
+        );
 
   if (pieTotal <= 0) {
     return { pieTotal: 0, legendSlices: [], chartSlices: [] };
   }
 
-  const remaining = Math.max(pieTotal - spentAndSaved, 0);
+  const colorIndexes =
+    groupBy === "category"
+      ? assignCategoryColorIndexes(
+          financials.groupTotals.filter((g) => g.id !== "UNCATEGORIZED").map((g) => g.id),
+        )
+      : new Map();
 
-  const colorIndexes = assignCategoryColorIndexes(financials.categoryTotals.map((c) => c.categoryId));
-  const categorySlices: BreakdownSlice[] = financials.categoryTotals.map((c) => ({
-    key: c.categoryId,
-    label: c.categoryName,
-    amount: c.amount,
-    percentage: (c.amount / pieTotal) * 100,
+  const groupSlices: BreakdownSlice[] = financials.groupTotals.map((g) => ({
+    key: g.id,
+    label: g.name,
+    amount: g.amount,
+    percentage: (g.amount / pieTotal) * 100,
     kind: "expense",
-    colorVar: `--chart-cat-${(colorIndexes.get(c.categoryId) ?? 0) + 1}`,
+    colorVar: colorVarFor(g.id, groupBy, colorIndexes),
   }));
 
+  const remaining =
+    scope === "full" ? Math.max(pieTotal - financials.totalExpenses - financials.totalSavings, 0) : 0;
+
   const savingsSlice: BreakdownSlice | null =
-    financials.totalSavings > 0
+    scope === "full" && financials.totalSavings > 0
       ? {
           key: "savings",
           label: "Savings",
@@ -116,7 +211,7 @@ export function computeBreakdown(
       : null;
 
   const remainingSlice: BreakdownSlice | null =
-    remaining > 0
+    scope === "full" && remaining > 0
       ? {
           key: "remaining",
           label: "Remaining",
@@ -128,40 +223,40 @@ export function computeBreakdown(
       : null;
 
   const legendSlices = [
-    ...categorySlices,
+    ...groupSlices,
     ...(savingsSlice ? [savingsSlice] : []),
     ...(remainingSlice ? [remainingSlice] : []),
   ].sort((a, b) => b.amount - a.amount);
 
-  // Chart-only grouping: fold sub-threshold categories, and (if there are
-  // still more than the palette can give a distinct color to) the smallest
-  // excess too, into one "Other" slice.
-  const sortedCategories = [...categorySlices].sort((a, b) => b.amount - a.amount);
-  const keptCategories: BreakdownSlice[] = [];
-  const foldedCategories: BreakdownSlice[] = [];
-  sortedCategories.forEach((slice, i) => {
-    if (slice.percentage < thresholdPercent || i >= MAX_CHART_CATEGORY_SLICES) {
-      foldedCategories.push(slice);
+  // Chart-only grouping: fold sub-threshold groups, and (if there are still
+  // more than the palette can give a distinct color to) the smallest excess
+  // too, into one "Other" slice.
+  const sortedGroups = [...groupSlices].sort((a, b) => b.amount - a.amount);
+  const keptGroups: BreakdownSlice[] = [];
+  const foldedGroups: BreakdownSlice[] = [];
+  sortedGroups.forEach((slice, i) => {
+    if (slice.percentage < thresholdPercent || i >= MAX_CHART_GROUP_SLICES) {
+      foldedGroups.push(slice);
     } else {
-      keptCategories.push(slice);
+      keptGroups.push(slice);
     }
   });
 
   const otherSlice: BreakdownSlice | null =
-    foldedCategories.length > 0
+    foldedGroups.length > 0
       ? {
           key: "other",
           label: "Other",
-          amount: foldedCategories.reduce((sum, s) => sum + s.amount, 0),
-          percentage: foldedCategories.reduce((sum, s) => sum + s.percentage, 0),
+          amount: foldedGroups.reduce((sum, s) => sum + s.amount, 0),
+          percentage: foldedGroups.reduce((sum, s) => sum + s.percentage, 0),
           kind: "other",
           colorVar: "--chart-other",
-          members: foldedCategories.sort((a, b) => b.amount - a.amount),
+          members: foldedGroups.sort((a, b) => b.amount - a.amount),
         }
       : null;
 
   const chartSlices = [
-    ...keptCategories,
+    ...keptGroups,
     ...(savingsSlice ? [savingsSlice] : []),
     ...(remainingSlice ? [remainingSlice] : []),
     ...(otherSlice ? [otherSlice] : []),
@@ -171,25 +266,34 @@ export function computeBreakdown(
 }
 
 /**
- * Buckets each transaction under its slice's key (an expense category's
- * id, or "savings"), capped at maxPerSlice — the "2-3 most recent
- * transactions" preview in the breakdown's detail panel. Relies on
+ * Buckets each transaction under its slice's key (a category's id, a
+ * payment method, or "savings"), capped at maxPerSlice — the "2-3 most
+ * recent transactions" preview in the breakdown's detail panel. Relies on
  * `transactions` already being sorted newest-first (see getCycleFinancials),
  * so simply taking the first N per bucket gives the most recent N. Income
  * has no slice (Remaining/Other aren't real transaction buckets either).
  */
 export function groupRecentTransactionsBySlice(
   transactions: CycleTransactionSummary[],
-  categoryTotals: CategoryTotal[],
+  groupBy: BreakdownGroupBy,
+  categoryTotals: GroupTotal[],
   maxPerSlice = 3,
 ): Record<string, CycleTransactionSummary[]> {
-  const nameToId = new Map(categoryTotals.map((c) => [c.categoryName, c.categoryId]));
+  const nameToId = new Map(categoryTotals.map((c) => [c.name, c.id]));
   const result: Record<string, CycleTransactionSummary[]> = {};
 
   for (const tx of transactions) {
     let key: string | null = null;
-    if (tx.type === "EXPENSE" && tx.categoryName) {
-      key = nameToId.get(tx.categoryName) ?? null;
+    if (tx.type === "EXPENSE") {
+      // Falls into the same "UNCATEGORIZED"/"UNSPECIFIED" bucket the totals
+      // functions use for a transaction with no category or no payment
+      // method, whether that's because it never had one or (categoryName
+      // set but not in categoryTotals) it points at a category that's since
+      // been renamed/merged away — either way, it's not any *known* group.
+      key =
+        groupBy === "category"
+          ? ((tx.categoryName && nameToId.get(tx.categoryName)) ?? "UNCATEGORIZED")
+          : (tx.paymentMethod ?? "UNSPECIFIED");
     } else if (tx.type === "SAVINGS") {
       key = "savings";
     }
