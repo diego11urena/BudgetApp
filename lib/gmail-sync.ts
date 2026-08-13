@@ -100,6 +100,31 @@ export function isUniqueConstraintViolation(error: unknown): boolean {
 }
 
 /**
+ * Merchant-name learning: if this user has ever manually categorized a
+ * transaction with this exact name (case-insensitive) into a real category
+ * (i.e. not the "Bank Import"/"Yappy" system buckets themselves), reuse
+ * that category for this newly-imported one instead of dropping it in the
+ * generic bucket again. There's no separate mapping table -- a prior
+ * categorization *is* the mapping, so editing a transaction's category
+ * anywhere in the app (see updateTransactionAction/categorizeTransactionAction)
+ * is what teaches this. Most-recently-used wins if a merchant was ever
+ * filed under more than one category.
+ */
+async function findLearnedCategoryId(userId: string, merchant: string): Promise<string | null> {
+  const match = await prisma.cycleTransaction.findFirst({
+    where: {
+      cycle: { userId },
+      name: { equals: merchant, mode: "insensitive" },
+      expenseCategoryId: { not: null },
+      expenseCategory: { name: { notIn: [IMPORT_CATEGORY_NAME, YAPPY_CATEGORY_NAME] } },
+    },
+    orderBy: { occurredAt: "desc" },
+    select: { expenseCategoryId: true },
+  });
+  return match?.expenseCategoryId ?? null;
+}
+
+/**
  * Forward-only sync window: syncs from the last successful sync, or from
  * when the connection was first created if this is the very first sync —
  * never backfills older mail. Pulled out as its own pure function so the
@@ -156,6 +181,9 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
         // a sync containing only those never needs either of these at all.
         let bankCategoryId: string | null = null;
         let yappyCategoryId: string | null = null;
+        // Per-sync cache so a merchant repeated across several messages in
+        // one sync (e.g. two coffee runs) only costs one lookup query.
+        const learnedCategoryCache = new Map<string, string | null>();
 
         for (const id of newIds) {
           const message = await getMessage(client, id);
@@ -165,7 +193,15 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
 
           let expenseCategoryId: string | null = null;
           if (parsed.type === "EXPENSE") {
-            if (parsed.source === "yappy") {
+            const merchantKey = parsed.merchant.toLowerCase();
+            if (!learnedCategoryCache.has(merchantKey)) {
+              learnedCategoryCache.set(merchantKey, await findLearnedCategoryId(userId, parsed.merchant));
+            }
+            const learnedCategoryId = learnedCategoryCache.get(merchantKey) ?? null;
+
+            if (learnedCategoryId !== null) {
+              expenseCategoryId = learnedCategoryId;
+            } else if (parsed.source === "yappy") {
               if (yappyCategoryId === null) {
                 const category = await getOrCreateCategory(prisma, userId, YAPPY_CATEGORY_NAME, "EXPENSE");
                 yappyCategoryId = category.id;

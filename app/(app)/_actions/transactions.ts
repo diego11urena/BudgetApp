@@ -128,6 +128,54 @@ export async function updateTransactionAction(
   return { transactionId };
 }
 
+/**
+ * Lighter-weight sibling of updateTransactionAction for the "categorize
+ * this import" flow (see dashboard's uncategorized-imports banner) — only
+ * the category changes, so it skips re-validating type/name/amount and
+ * doesn't require resubmitting them.
+ */
+export async function categorizeTransactionAction(
+  formData: FormData,
+): Promise<{ error: string } | { transactionId: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const transactionId = formData.get("transactionId");
+  const categoryName = formData.get("category");
+  if (typeof transactionId !== "string" || !transactionId) {
+    return { error: "Missing transaction" };
+  }
+  if (typeof categoryName !== "string" || !categoryName.trim()) {
+    return { error: "Category is required" };
+  }
+
+  // Ownership-scoped — see updateTransactionAction for why.
+  const existing = await prisma.cycleTransaction.findFirst({
+    where: { id: transactionId, cycle: { userId } },
+    include: { cycle: true },
+  });
+  if (!existing) {
+    return { error: "Transaction not found" };
+  }
+  if (existing.cycle.status === "CLOSED") {
+    return { error: "This quincena is closed and can't be edited" };
+  }
+
+  const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), "EXPENSE");
+
+  await prisma.cycleTransaction.update({
+    where: { id: transactionId },
+    data: { expenseCategoryId: category.id },
+  });
+
+  revalidateAppPages();
+
+  return { transactionId };
+}
+
 export async function deleteTransactionAction(
   _prevState: DeleteTransactionResult,
   formData: FormData,
