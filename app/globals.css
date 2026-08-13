@@ -62,6 +62,23 @@
   --radius-button: 12px;
   --radius-xl: 16px;
   --radius-pill: 9999px;
+
+  /* Paycheck Breakdown pie chart — a fixed categorical order for expense
+     category slices (lib/paycheck-breakdown.ts hashes a category's id to
+     one of these 6, so a category's color never shifts just because
+     another category's amount changed rank). Savings/Remaining/Other are
+     their own fixed buckets, not "series 7/8/9". Savings reuses the
+     existing success green — a real status match ("this went somewhere
+     good"), not an arbitrary categorical color. */
+  --chart-cat-1: #6c5ce7;
+  --chart-cat-2: #2f6fed;
+  --chart-cat-3: #d97706;
+  --chart-cat-4: #c2478d;
+  --chart-cat-5: #7c4a2d;
+  --chart-cat-6: #4a5578;
+  --chart-savings: var(--color-success);
+  --chart-remaining: #b7b9c6;
+  --chart-other: #8a8d9c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,6 +115,19 @@
     --color-button-bg: #5b4fc4;
     --gradient-brand: linear-gradient(135deg, #8f7ff0 0%, #5b4fc4 100%);
     --color-accent-bg: rgba(143, 127, 240, 0.14);
+
+    /* Same hue family as light mode, lightened for contrast against this
+       mode's dark card surface — same treatment as --color-accent-green
+       above. */
+    --chart-cat-1: #8f7ff0;
+    --chart-cat-2: #5b9bff;
+    --chart-cat-3: #e2a33f;
+    --chart-cat-4: #dd6fae;
+    --chart-cat-5: #a97a52;
+    --chart-cat-6: #7a84ab;
+    --chart-savings: var(--color-success);
+    --chart-remaining: #55586a;
+    --chart-other: #6c6f82;
 
     --background: var(--color-bg);
     --foreground: var(--color-text-primary);
@@ -991,6 +1021,146 @@ button.line-item--link {
 
 .bar-chart-icon {
   margin-right: 0.4rem;
+}
+
+/* Paycheck Breakdown pie chart */
+.pie-chart {
+  display: block;
+  width: 100%;
+  max-width: 15rem;
+  margin: 0 auto 1.25rem;
+}
+
+.pie-chart-slice {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+  stroke: var(--color-card);
+  stroke-width: 1.5;
+}
+
+.pie-chart-slice:focus-visible {
+  outline: 2px solid var(--color-accent-green);
+  outline-offset: 2px;
+}
+
+.pie-chart-slice.is-dimmed {
+  opacity: 0.45;
+}
+
+.breakdown-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.breakdown-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.4rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.breakdown-legend-row.is-selected {
+  background: var(--color-bg-secondary);
+}
+
+.breakdown-legend-swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.breakdown-legend-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breakdown-legend-amount {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.breakdown-legend-percent {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.breakdown-detail-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.breakdown-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.breakdown-detail-title {
+  flex: 1;
+  font-weight: 600;
+}
+
+.breakdown-detail-amount {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.breakdown-detail-transactions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.breakdown-detail-tx-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.breakdown-detail-members {
+  margin-bottom: 0.25rem;
+}
+
+.breakdown-detail-member-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.4rem 0;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  font: inherit;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.breakdown-detail-member-row:last-child {
+  border-bottom: none;
 }
 
 /* KPI stat tile */

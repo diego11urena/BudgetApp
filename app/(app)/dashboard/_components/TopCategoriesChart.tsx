@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { iconForCategoryName } from "@/lib/category-icons";
@@ -8,6 +9,10 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
       <div>
         <h2>Top categories this quincena</h2>
         <p className="field-hint">No expenses logged yet this quincena.</p>
+        <Link href="/dashboard/breakdown" className="line-item line-item--link">
+          <span>View breakdown</span>
+          <span>→</span>
+        </Link>
       </div>
     );
   }
@@ -34,6 +39,10 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
           </div>
         ))}
       </div>
+      <Link href="/dashboard/breakdown" className="line-item line-item--link">
+        <span>View breakdown</span>
+        <span>→</span>
+      </Link>
     </div>
   );
 }
