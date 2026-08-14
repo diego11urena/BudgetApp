@@ -7,7 +7,7 @@ import { findCycleForDate, getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
-import { parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
+import { nowInPanama, parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
 
 /** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
 export type TransactionMutationResult = { error: string } | { transactionId: string } | undefined;
@@ -56,7 +56,7 @@ export async function addTransactionAction(
     parsed.data;
   const cycle = await getOrCreateDraftCycle(userId);
 
-  let occurredAtDate = new Date();
+  let occurredAtDate = nowInPanama();
   if (occurredAt) {
     const parsedDate = parseTransactionDate(occurredAt, cycle.periodStart);
     if (!parsedDate) {
@@ -148,8 +148,7 @@ export async function updateTransactionAction(
     if (!parsedDate) {
       return { error: "Invalid date" };
     }
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayStart = nowInPanama();
     if (parsedDate.getTime() > todayStart.getTime()) {
       return { error: "Date can't be in the future" };
     }

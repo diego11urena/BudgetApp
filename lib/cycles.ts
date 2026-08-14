@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
-import { formatCycleLabel, parsePayDate } from "@/lib/pay-date";
+import { formatCycleLabel, nowInPanama, parsePayDate } from "@/lib/pay-date";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -98,7 +98,7 @@ export async function getOrCreateDraftCycle(userId: string): Promise<BudgetCycle
   });
   if (existing) return existing;
 
-  const now = new Date();
+  const now = nowInPanama();
   return prisma.budgetCycle.create({
     data: { userId, label: formatCycleLabel(now), periodStart: now },
   });
@@ -182,7 +182,7 @@ export interface CloseCycleResult {
  */
 export async function closeCycleAndStartNext(
   userId: string,
-  payDate: Date = new Date(),
+  payDate: Date = nowInPanama(),
 ): Promise<CloseCycleResult> {
   const currentCycle = await getOrCreateDraftCycle(userId);
   const closedCycleFinancials = await getCycleFinancials(currentCycle.id);

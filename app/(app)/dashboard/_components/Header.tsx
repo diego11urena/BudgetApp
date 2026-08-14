@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { User } from "lucide-react";
+import { hourInPanama } from "@/lib/pay-date";
 import { EditPayInfoButton } from "./EditPayInfoButton";
 
 function getGreeting(hour: number): string {
@@ -19,8 +20,7 @@ export function Header({
   /** "YYYY-MM-DD" — this cycle's periodStart, prefills the "Edit" sheet. */
   currentPayDate: string;
 }) {
-  const now = new Date();
-  const greeting = getGreeting(now.getHours());
+  const greeting = getGreeting(hourInPanama());
   const firstName = name?.trim().split(/\s+/)[0];
 
   return (

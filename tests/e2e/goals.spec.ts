@@ -26,6 +26,12 @@ test.describe("savings goals", () => {
     // "Contribute" trigger button is text-identical to the sheet's submit
     // button and would otherwise make this locator ambiguous.
     await page.locator(".sheet").getByRole("button", { name: "Contribute", exact: true }).click();
+    // A cold Turbopack compile of the server action on its first hit can
+    // run well past the default 5s assertion timeout locally under `next
+    // dev` (CI runs against a production build specifically to avoid
+    // this) -- wait for the sheet to actually close before asserting on
+    // what it should have updated.
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
     await expect(goalRow.getByText("$150.00 / $3,000.00")).toBeVisible();
 

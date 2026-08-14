@@ -1,4 +1,5 @@
 import { nextQuincenaStart } from "./quincena-pace";
+import { nowInPanama } from "./pay-date";
 
 export interface GoalProjection {
   /** Amount left to save, clamped to 0. */
@@ -25,7 +26,7 @@ export function computeGoalProjection(input: {
   now?: Date;
 }): GoalProjection {
   const { savedSoFar, lifetimeTargetAmount, currentCycleRecurringAmount } = input;
-  const now = input.now ?? new Date();
+  const now = input.now ?? nowInPanama();
 
   const remaining = Math.max(lifetimeTargetAmount - savedSoFar, 0);
   const percentage =

@@ -10,6 +10,7 @@ import {
   shouldCarryForwardToCycle,
   upsertCycleIncomeEntry,
 } from "@/lib/cycles";
+import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
 
 /**
@@ -45,7 +46,7 @@ export async function eraseAllCyclesAction(): Promise<void> {
   await prisma.$transaction(async (tx) => {
     await tx.budgetCycle.deleteMany({ where: { userId } });
 
-    const now = new Date();
+    const now = nowInPanama();
     const cycle = await tx.budgetCycle.create({
       data: { userId, label: formatCycleLabel(now), periodStart: now },
     });

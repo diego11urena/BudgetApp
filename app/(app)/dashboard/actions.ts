@@ -10,7 +10,7 @@ import {
   parsePayDate,
   upsertCycleIncomeEntry,
 } from "@/lib/cycles";
-import { formatCycleLabel, parseDateOnly } from "@/lib/pay-date";
+import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { decimalString } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
@@ -38,7 +38,7 @@ export async function justGotPaidAction(payDateStr?: string): Promise<CycleClose
     redirect("/login");
   }
 
-  const payDate = (payDateStr && parsePayDate(payDateStr)) || new Date();
+  const payDate = (payDateStr && parsePayDate(payDateStr)) || nowInPanama();
 
   const { closedCycle, newCycle, closedCycleFinancials } = await closeCycleAndStartNext(
     session.user.id,
@@ -142,8 +142,7 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
   if (!payDate) {
     return { error: "Invalid date" };
   }
-  const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStart = nowInPanama();
   const earliest = new Date(todayStart);
   earliest.setDate(earliest.getDate() - EDIT_PAY_DATE_LOOKBACK_DAYS);
   if (payDate.getTime() > todayStart.getTime() || payDate.getTime() < earliest.getTime()) {
