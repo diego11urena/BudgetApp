@@ -106,6 +106,7 @@ model CycleIncomeEntry {
 
 enum CategoryType {
   EXPENSE
+  INCOME
   SAVINGS
 }
 

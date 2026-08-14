@@ -28,12 +28,12 @@ const TABS_AFTER_FAB: Tab[] = [
 export function BottomNav({
   expenseCategoryNames,
   savingsCategoryNames,
-  lastUsedIncomeName,
+  incomeCategoryNames,
   cycleStartDate,
 }: {
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
-  lastUsedIncomeName: string | null;
+  incomeCategoryNames: string[];
   cycleStartDate: string;
 }) {
   const pathname = usePathname();
@@ -98,7 +98,7 @@ export function BottomNav({
           initialType={quickAddType}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
-          lastUsedIncomeName={lastUsedIncomeName}
+          incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
           returnFocusTo={triggerElement}
           onClose={() => setQuickAddType(null)}

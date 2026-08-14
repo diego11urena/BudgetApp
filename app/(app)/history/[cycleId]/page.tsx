@@ -29,11 +29,13 @@ export default async function CycleHistoryPage({
 
   const isEditable = cycle.status !== "CLOSED";
 
-  const [financials, expenseCategoryNames, savingsCategoryNames] = await Promise.all([
-    getCycleFinancials(cycle.id),
-    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
-    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-  ]);
+  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] =
+    await Promise.all([
+      getCycleFinancials(cycle.id),
+      getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+      getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+      getOrderedCategoryNames(userId, cycle.id, "INCOME"),
+    ]);
 
   const transactions = financials.transactions.map((tx) => ({ ...tx, isEditable }));
 
@@ -75,6 +77,7 @@ export default async function CycleHistoryPage({
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage="Nothing logged in this quincena."
         />

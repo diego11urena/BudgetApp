@@ -20,7 +20,7 @@ export interface EditingTransaction {
   id: string;
   type: TxType;
   name: string;
-  /** Null for INCOME (no category concept) or an uncategorized row. */
+  /** Null only for an uncategorized row — every type has a category concept now. */
   categoryName: string | null;
   amount: number;
   /** SAVINGS never has one; null on EXPENSE/INCOME just means never set. */
@@ -54,7 +54,7 @@ export function QuickAddSheet({
   initialType,
   expenseCategoryNames,
   savingsCategoryNames,
-  lastUsedIncomeName = null,
+  incomeCategoryNames,
   cycleStartDate,
   editingTransaction = null,
   returnFocusTo = null,
@@ -65,8 +65,8 @@ export function QuickAddSheet({
   expenseCategoryNames: string[];
   /** Pre-ordered, same rule as expenseCategoryNames. */
   savingsCategoryNames: string[];
-  /** Only used to default the Income name field when creating (not editing). */
-  lastUsedIncomeName?: string | null;
+  /** Pre-ordered, same rule as expenseCategoryNames. */
+  incomeCategoryNames: string[];
   /** "YYYY-MM-DD" — the current cycle's periodStart, the Date field's minimum (can't log something before the quincena it's being logged into started). */
   cycleStartDate: string;
   /** Present -> the sheet edits (and can delete) this transaction instead of creating a new one. */
@@ -95,7 +95,7 @@ export function QuickAddSheet({
   const dragStartY = useRef<number | null>(null);
 
   function categoryNamesForType(t: TxType): string[] {
-    return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : [];
+    return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : incomeCategoryNames;
   }
 
   const categoryNames = categoryNamesForType(type);
@@ -105,10 +105,9 @@ export function QuickAddSheet({
   // merchant string, category is "Bank Import"). A category that isn't in
   // the known list (renamed/deleted since, or exactly this imported case)
   // falls back to free-text mode, pre-filled with its current category.
-  const editingCategoryName =
-    editingTransaction && editingTransaction.type !== "INCOME"
-      ? (editingTransaction.categoryName ?? editingTransaction.name)
-      : null;
+  const editingCategoryName = editingTransaction
+    ? (editingTransaction.categoryName ?? editingTransaction.name)
+    : null;
 
   const [customMode, setCustomMode] = useState(
     () =>
@@ -117,12 +116,11 @@ export function QuickAddSheet({
   );
   const [customName, setCustomName] = useState(() => {
     if (editingTransaction) {
-      if (editingTransaction.type === "INCOME") return editingTransaction.name;
       return categoryNamesForType(editingTransaction.type).includes(editingCategoryName!)
         ? ""
         : editingCategoryName!;
     }
-    return initialType === "INCOME" ? (lastUsedIncomeName ?? "") : "";
+    return "";
   });
   // The list is already ordered most-used-first, so its head is the default
   // when creating; editing pre-selects the transaction's own category.
@@ -169,10 +167,7 @@ export function QuickAddSheet({
     if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
       return "Enter a valid amount";
     }
-    if (type === "INCOME" && !customName.trim()) {
-      return "Give it a name";
-    }
-    if (type !== "INCOME" && !categoryValue.trim()) {
+    if (!categoryValue.trim()) {
       return "Choose or enter a category";
     }
     if (!occurredAt) {
@@ -261,10 +256,6 @@ export function QuickAddSheet({
     setType(next);
     setCustomMode(false);
     setShowAllCategories(false);
-    if (next === "INCOME") {
-      setCustomName(lastUsedIncomeName ?? "");
-      return;
-    }
     const nextCategoryNames = categoryNamesForType(next);
     setSelectedCategory(nextCategoryNames[0] ?? "");
   }
@@ -293,16 +284,14 @@ export function QuickAddSheet({
     }
   }
 
-  const usingCustomInput = type === "INCOME" || customMode || categoryNames.length === 0;
+  const usingCustomInput = customMode || categoryNames.length === 0;
   const categoryValue = usingCustomInput ? customName : selectedCategory;
-  // Picking a different category while editing an EXPENSE/SAVINGS
-  // transaction must not silently rewrite its display name — most visible
-  // for a Gmail-imported transaction, whose name is the merchant string,
-  // distinct from its category. INCOME already has its own explicit Name
-  // field (customName); creating has no prior name to preserve, so name and
-  // category stay the same value there, exactly as manual entry always has.
-  const nameValue =
-    type === "INCOME" ? customName : isEditing ? editingTransaction.name : categoryValue;
+  // Picking a different category while editing must not silently rewrite
+  // the display name — most visible for a Gmail-imported transaction,
+  // whose name is the merchant string, distinct from its category.
+  // Creating has no prior name to preserve, so name and category stay the
+  // same value there, same as every type now.
+  const nameValue = isEditing ? editingTransaction.name : categoryValue;
 
   return (
     <div
@@ -340,7 +329,7 @@ export function QuickAddSheet({
         <form onSubmit={handleSubmit} noValidate>
           <input type="hidden" name="type" value={type} />
           <input type="hidden" name="name" value={nameValue} />
-          {type !== "INCOME" && <input type="hidden" name="category" value={categoryValue} />}
+          <input type="hidden" name="category" value={categoryValue} />
           {isEditing && (
             <input type="hidden" name="transactionId" value={editingTransaction.id} />
           )}
@@ -381,67 +370,53 @@ export function QuickAddSheet({
             />
           </div>
 
-          {type === "INCOME" ? (
-            <div className="field">
-              <label htmlFor="sheet-name">Name</label>
+          <div className="field">
+            <label>Category</label>
+            {!customMode && categoryNames.length > 0 && (
+              <div className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""}`}>
+                {(showAllCategories ? categoryNames : categoryNames.slice(0, TOP_CHIP_COUNT)).map(
+                  (name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`category-chip ${selectedCategory === name ? "is-active" : ""}`}
+                      onClick={() => setSelectedCategory(name)}
+                    >
+                      {name}
+                    </button>
+                  ),
+                )}
+                {!showAllCategories && categoryNames.length > TOP_CHIP_COUNT && (
+                  <button
+                    type="button"
+                    className="category-chip category-chip--more"
+                    onClick={() => setShowAllCategories(true)}
+                  >
+                    More…
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="category-chip category-chip--other"
+                  onClick={() => {
+                    setCustomMode(true);
+                    setCustomName("");
+                  }}
+                >
+                  Other…
+                </button>
+              </div>
+            )}
+            {(customMode || categoryNames.length === 0) && (
               <input
-                id="sheet-name"
                 type="text"
-                placeholder="Bonus, freelance gig…"
+                placeholder="Category name"
                 required
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
               />
-            </div>
-          ) : (
-            <div className="field">
-              <label>Category</label>
-              {!customMode && categoryNames.length > 0 && (
-                <div className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""}`}>
-                  {(showAllCategories ? categoryNames : categoryNames.slice(0, TOP_CHIP_COUNT)).map(
-                    (name) => (
-                      <button
-                        key={name}
-                        type="button"
-                        className={`category-chip ${selectedCategory === name ? "is-active" : ""}`}
-                        onClick={() => setSelectedCategory(name)}
-                      >
-                        {name}
-                      </button>
-                    ),
-                  )}
-                  {!showAllCategories && categoryNames.length > TOP_CHIP_COUNT && (
-                    <button
-                      type="button"
-                      className="category-chip category-chip--more"
-                      onClick={() => setShowAllCategories(true)}
-                    >
-                      More…
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="category-chip category-chip--other"
-                    onClick={() => {
-                      setCustomMode(true);
-                      setCustomName("");
-                    }}
-                  >
-                    Other…
-                  </button>
-                </div>
-              )}
-              {(customMode || categoryNames.length === 0) && (
-                <input
-                  type="text"
-                  placeholder="Category name"
-                  required
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                />
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           {type !== "SAVINGS" && (
             <div className="field">

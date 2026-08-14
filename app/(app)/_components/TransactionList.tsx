@@ -38,11 +38,13 @@ function TransactionRowContent({
   // trailing separator, no placeholder) when missing. Gmail/source stays a
   // model field (see cycle-financials.ts), just not surfaced on the row
   // itself anymore — provenance metadata belongs in the detail sheet or as
-  // a Transactions filter, not on every line.
+  // a Transactions filter, not on every line. Every type has a category
+  // concept now, so this no longer special-cases INCOME — a sent and a
+  // received Yappy render identically apart from sign and color.
   const subline = [
     tx.categoryName && tx.categoryName !== tx.name
       ? tx.categoryName
-      : !tx.categoryName && tx.type !== "INCOME"
+      : !tx.categoryName
         ? "Uncategorized"
         : null,
     tx.paymentMethod ? PAYMENT_METHOD_LABEL[tx.paymentMethod] : null,
@@ -95,6 +97,7 @@ export function TransactionList({
   transactions,
   expenseCategoryNames,
   savingsCategoryNames,
+  incomeCategoryNames,
   cycleStartDate,
   emptyMessage = "Nothing logged yet this quincena.",
   groupByDate = false,
@@ -102,6 +105,7 @@ export function TransactionList({
   transactions: CycleTransactionSummary[];
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
+  incomeCategoryNames: string[];
   /** "YYYY-MM-DD" — the current open cycle's periodStart, passed through to QuickAddSheet's Date field. Every row this list lets you edit belongs to that cycle (isEditable === false rows, from other cycles, never open the sheet at all). */
   cycleStartDate: string;
   emptyMessage?: string;
@@ -168,6 +172,7 @@ export function TransactionList({
           initialType={editing.type}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
           editingTransaction={editing}
           returnFocusTo={triggerElement}

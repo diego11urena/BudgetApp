@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { syncGmailTransactions } from "@/lib/gmail-sync";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
-import { getLastUsedIncomeName } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { BottomNav } from "./_components/BottomNav";
@@ -35,10 +34,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // QuickAddSheet from any page — same three fetches dashboard/page.tsx
   // and transactions/page.tsx already each make independently.
   const cycle = await getOrCreateDraftCycle(userId);
-  const [expenseCategoryNames, savingsCategoryNames, lastUsedIncomeName] = await Promise.all([
+  const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-    getLastUsedIncomeName(userId),
+    getOrderedCategoryNames(userId, cycle.id, "INCOME"),
   ]);
 
   return (
@@ -48,7 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <BottomNav
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
-          lastUsedIncomeName={lastUsedIncomeName}
+          incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
       </div>

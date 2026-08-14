@@ -16,7 +16,13 @@ const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"] as
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; sort?: string; paymentMethod?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    sort?: string;
+    paymentMethod?: string;
+    category?: string;
+  }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -25,7 +31,7 @@ export default async function TransactionsPage({
   const userId = session.user.id;
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const { q, type, sort, paymentMethod } = await searchParams;
+  const { q, type, sort, paymentMethod, category } = await searchParams;
 
   const where: Prisma.CycleTransactionWhereInput = {
     cycle: { userId },
@@ -33,6 +39,7 @@ export default async function TransactionsPage({
     ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
       ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
       : {}),
+    ...(category === "uncategorized" ? { expenseCategoryId: null } : {}),
     ...(q
       ? {
           OR: [
@@ -53,16 +60,18 @@ export default async function TransactionsPage({
           ? { amount: "asc" }
           : { occurredAt: "desc" };
 
-  const [rawTransactions, expenseCategoryNames, savingsCategoryNames] = await Promise.all([
-    prisma.cycleTransaction.findMany({
-      where,
-      orderBy,
-      take: 100,
-      include: { expenseCategory: true, cycle: true },
-    }),
-    getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
-    getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-  ]);
+  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] =
+    await Promise.all([
+      prisma.cycleTransaction.findMany({
+        where,
+        orderBy,
+        take: 100,
+        include: { expenseCategory: true, cycle: true },
+      }),
+      getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
+      getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+      getOrderedCategoryNames(userId, cycle.id, "INCOME"),
+    ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
     toCycleTransactionSummary(tx, {
@@ -81,9 +90,10 @@ export default async function TransactionsPage({
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
-            q || type || paymentMethod
+            q || type || paymentMethod || category
               ? "No transactions match your search."
               : "No transactions logged yet."
           }

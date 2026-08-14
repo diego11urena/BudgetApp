@@ -65,11 +65,9 @@ export async function addTransactionAction(
     occurredAtDate = parsedDate;
   }
 
-  let expenseCategoryId: string | null = null;
-  if (type !== "INCOME") {
-    const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
-    expenseCategoryId = category.id;
-  }
+  // Every type has a category concept now — Extra income included.
+  const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
+  const expenseCategoryId = category.id;
 
   const created = await prisma.cycleTransaction.create({
     data: {
@@ -166,11 +164,9 @@ export async function updateTransactionAction(
   const correctCycle = await findCycleForDate(userId, occurredAtDate);
   const targetCycleId = correctCycle?.id ?? existing.cycleId;
 
-  let expenseCategoryId: string | null = null;
-  if (type !== "INCOME") {
-    const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
-    expenseCategoryId = category.id;
-  }
+  // Every type has a category concept now — Extra income included.
+  const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
+  const expenseCategoryId = category.id;
 
   // Updates the existing row in place — balances are always derived live
   // from CycleTransaction, so there's no separate total to reconcile and
@@ -236,9 +232,6 @@ export async function categorizeTransactionAction(
   }
   if (existing.cycle.status === "CLOSED") {
     return { error: "This quincena is closed and can't be edited" };
-  }
-  if (existing.type === "INCOME") {
-    return { error: "Income transactions don't have a category" };
   }
 
   const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), existing.type);
@@ -389,11 +382,13 @@ export async function restoreTransactionAction(
     return { error: "Cycle not found" };
   }
 
-  let expenseCategoryId: string | null = null;
-  if (type !== "INCOME") {
-    const category = await getOrCreateCategory(prisma, userId, name, type);
-    expenseCategoryId = category.id;
-  }
+  // Every type has a category concept now — Extra income included. The
+  // snapshot never captured a separate category name (only Gmail imports
+  // ever have one distinct from their name, and imports aren't
+  // user-deletable via this flow the same way), so this always matches
+  // create/update's own categoryName-falls-back-to-name behavior.
+  const category = await getOrCreateCategory(prisma, userId, name, type);
+  const expenseCategoryId = category.id;
 
   await prisma.cycleTransaction.create({
     data: {

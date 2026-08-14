@@ -34,9 +34,10 @@ export default async function DashboardPage() {
     expenseGoals.map((goal) => goal.categoryId),
   );
 
-  const [expenseCategoryNames, savingsCategoryNames] = await Promise.all([
+  const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
+    getOrderedCategoryNames(userId, cycle.id, "INCOME"),
   ]);
 
   const lastClosedCycle = await getMostRecentClosedCycle(userId);
@@ -55,21 +56,21 @@ export default async function DashboardPage() {
   // Any transaction with no real category yet — most commonly a Gmail
   // import with no merchant-learning match (see findLearnedCategoryId in
   // lib/gmail-sync.ts), but this catches a null category regardless of how
-  // it got that way. Surfaced here so it doesn't just sit uncategorized and
-  // skew "Top categories"/"Fixed budget used" forever. Scoped to the
-  // current cycle only, consistent with the rest of this page. INCOME is
-  // excluded since it never has a category concept to begin with.
+  // it got that way. Every type has a category concept now (Extra income
+  // included, see lib/categories.ts), so this is the same backfill tool
+  // for all three — surfaced here so nothing sits uncategorized and skews
+  // "Top categories"/"Fixed budget used" (EXPENSE) forever. Scoped to the
+  // current cycle only, consistent with the rest of this page.
   const uncategorizedTransactions = (
     await prisma.cycleTransaction.findMany({
       where: {
         cycleId: cycle.id,
         expenseCategoryId: null,
-        type: { not: "INCOME" },
       },
-      select: { id: true, name: true, amount: true },
+      select: { id: true, name: true, amount: true, type: true },
       orderBy: { occurredAt: "desc" },
     })
-  ).map((t) => ({ id: t.id, name: t.name, amount: t.amount.toNumber() }));
+  ).map((t) => ({ id: t.id, name: t.name, amount: t.amount.toNumber(), type: t.type }));
 
   // Yappy is P2P, so the counterparty's name alone (the only thing every
   // notification email guarantees) doesn't say what the money was for.
@@ -108,7 +109,9 @@ export default async function DashboardPage() {
         <div className="dashboard-section dashboard-section--plain">
           <UncategorizedImportsBanner
             transactions={uncategorizedTransactions}
-            categoryNames={expenseCategoryNames}
+            expenseCategoryNames={expenseCategoryNames}
+            incomeCategoryNames={incomeCategoryNames}
+            savingsCategoryNames={savingsCategoryNames}
           />
         </div>
       )}
@@ -153,6 +156,7 @@ export default async function DashboardPage() {
           transactions={financials.transactions.slice(0, 3)}
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
+          incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
         {financials.transactions.length > 3 && (

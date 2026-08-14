@@ -12,19 +12,32 @@ export interface UncategorizedTransaction {
   id: string;
   name: string;
   amount: number;
+  type: "EXPENSE" | "INCOME" | "SAVINGS";
 }
 
 export function CategorizeImportsSheet({
   initialTransactions,
-  categoryNames,
+  expenseCategoryNames,
+  incomeCategoryNames,
+  savingsCategoryNames,
   returnFocusTo = null,
   onClose,
 }: {
   initialTransactions: UncategorizedTransaction[];
-  categoryNames: string[];
+  /** Each row picks its list by its own type — a Savings row must never be offered Expense category names, and vice versa. */
+  expenseCategoryNames: string[];
+  incomeCategoryNames: string[];
+  savingsCategoryNames: string[];
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
+  function categoryNamesForType(type: UncategorizedTransaction["type"]): string[] {
+    return type === "EXPENSE"
+      ? expenseCategoryNames
+      : type === "SAVINGS"
+        ? savingsCategoryNames
+        : incomeCategoryNames;
+  }
   const [visible, setVisible] = useState(false);
   const [transactions, setTransactions] = useState(initialTransactions);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -77,7 +90,7 @@ export function CategorizeImportsSheet({
             <CategorizeImportRow
               key={transaction.id}
               transaction={transaction}
-              categoryNames={categoryNames}
+              categoryNames={categoryNamesForType(transaction.type)}
               onCategorized={() => handleCategorized(transaction.id)}
             />
           ))}

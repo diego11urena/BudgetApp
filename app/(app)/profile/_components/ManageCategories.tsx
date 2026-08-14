@@ -7,7 +7,7 @@ import { mergeCategoryAction, renameCategoryAction } from "../category-actions";
 export interface ManageableCategory {
   id: string;
   name: string;
-  type: "EXPENSE" | "SAVINGS";
+  type: "EXPENSE" | "INCOME" | "SAVINGS";
 }
 
 export function ManageCategories({ categories }: { categories: ManageableCategory[] }) {

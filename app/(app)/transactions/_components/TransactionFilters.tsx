@@ -19,6 +19,11 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "CASH", label: "Cash" },
 ];
 
+const CATEGORY_OPTIONS = [
+  { value: "", label: "All categories" },
+  { value: "uncategorized", label: "Uncategorized" },
+];
+
 const SORT_OPTIONS = [
   { value: "date_desc", label: "Newest first" },
   { value: "date_asc", label: "Oldest first" },
@@ -86,6 +91,17 @@ export function TransactionFilters() {
           aria-label="Filter by payment method"
         >
           {PAYMENT_METHOD_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={searchParams.get("category") ?? ""}
+          onChange={(e) => updateParam("category", e.target.value)}
+          aria-label="Filter by category"
+        >
+          {CATEGORY_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>

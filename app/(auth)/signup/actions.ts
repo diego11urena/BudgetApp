@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/password";
 import { signIn } from "@/lib/auth";
 import { signupSchema } from "@/lib/validations/onboarding";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { seedDefaultIncomeCategories } from "@/lib/categories";
 
 export type SignupFormState = { error?: string } | undefined;
 
@@ -38,7 +39,11 @@ export async function signupAction(
   }
 
   const hashedPassword = await hashPassword(password);
-  await prisma.user.create({ data: { name, email, hashedPassword } });
+  const user = await prisma.user.create({ data: { name, email, hashedPassword } });
+  // Income has no organic way to build up a category list the way
+  // onboarding's expenses/savings steps do (add a fixed expense/goal) --
+  // seed a starting set so the picker isn't empty on day one.
+  await seedDefaultIncomeCategories(prisma, user.id);
 
   await signIn("credentials", { email, password, redirect: false });
 

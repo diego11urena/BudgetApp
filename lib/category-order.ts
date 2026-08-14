@@ -39,7 +39,7 @@ export function orderCategoriesByUsage(usage: CategoryUsageInfo[]): string[] {
 export async function getOrderedCategoryNames(
   userId: string,
   cycleId: string,
-  type: "EXPENSE" | "SAVINGS",
+  type: "EXPENSE" | "INCOME" | "SAVINGS",
 ): Promise<string[]> {
   const categories = await prisma.expenseCategory.findMany({
     where: { userId, type },

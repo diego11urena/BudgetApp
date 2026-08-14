@@ -5,10 +5,14 @@ import { CategorizeImportsSheet, type UncategorizedTransaction } from "./Categor
 
 export function UncategorizedImportsBanner({
   transactions,
-  categoryNames,
+  expenseCategoryNames,
+  incomeCategoryNames,
+  savingsCategoryNames,
 }: {
   transactions: UncategorizedTransaction[];
-  categoryNames: string[];
+  expenseCategoryNames: string[];
+  incomeCategoryNames: string[];
+  savingsCategoryNames: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -33,7 +37,9 @@ export function UncategorizedImportsBanner({
       {open && (
         <CategorizeImportsSheet
           initialTransactions={transactions}
-          categoryNames={categoryNames}
+          expenseCategoryNames={expenseCategoryNames}
+          incomeCategoryNames={incomeCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
           returnFocusTo={triggerElement}
           onClose={() => setOpen(false)}
         />
