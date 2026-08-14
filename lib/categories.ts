@@ -40,20 +40,34 @@ export async function seedDefaultIncomeCategories(db: Db, userId: string) {
  * a larger atomic write (onboarding's expenses/savings steps) still need it
  * to participate in that transaction.
  *
+ * Matches case-insensitively (and trims first) so "rent" reuses an existing
+ * "Rent" instead of silently creating a second, competing category —
+ * CategoryNameInput's dropdown is the client-side half of this same fix
+ * (it nudges picking the exact existing spelling), but this is the actual
+ * backstop: it holds regardless of which UI path a name came through.
+ * Postgres text equality is case-sensitive by default, so this can't be
+ * expressed as the unique constraint itself (userId_name_type) — it's a
+ * find-then-create instead of a single upsert, which isn't atomic against
+ * a true concurrent double-submit of two different-cased spellings, an
+ * acceptable trade-off at this app's personal-budgeting scale rather than
+ * a functional unique index migration.
+ *
  * Not used by callers that need the upsert's *update* branch to do real
  * work (e.g. goals/actions.ts sets lifetimeTargetAmount/recurring on every
  * upsert, not just on create) — those aren't this same "resolve a name"
  * pattern and stay as their own explicit upsert.
  */
-export function getOrCreateCategory(
+export async function getOrCreateCategory(
   db: Db,
   userId: string,
   name: string,
   type: "EXPENSE" | "INCOME" | "SAVINGS",
 ) {
-  return db.expenseCategory.upsert({
-    where: { userId_name_type: { userId, name, type } },
-    create: { userId, name, type },
-    update: {},
+  const trimmed = name.trim();
+  const existing = await db.expenseCategory.findFirst({
+    where: { userId, type, name: { equals: trimmed, mode: "insensitive" } },
   });
+  if (existing) return existing;
+
+  return db.expenseCategory.create({ data: { userId, name: trimmed, type } });
 }
