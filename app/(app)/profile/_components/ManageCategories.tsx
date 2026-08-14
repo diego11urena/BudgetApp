@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { mergeCategoryAction, renameCategoryAction } from "../category-actions";
 
 export interface ManageableCategory {
@@ -36,6 +37,7 @@ function CategoryManageRow({
   category: ManageableCategory;
   otherCategories: ManageableCategory[];
 }) {
+  const router = useRouter();
   const [name, setName] = useState(category.name);
   const [renamePending, setRenamePending] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
@@ -55,7 +57,11 @@ function CategoryManageRow({
     fd.set("name", trimmed);
     const result = await renameCategoryAction(fd);
     setRenamePending(false);
-    if (result?.error) setRenameError(result.error);
+    if (result?.error) {
+      setRenameError(result.error);
+      return;
+    }
+    router.refresh();
   }
 
   async function handleMerge() {
@@ -71,6 +77,7 @@ function CategoryManageRow({
       setMergeError(result.error);
       return;
     }
+    router.refresh();
     setConfirmingMerge(false);
   }
 

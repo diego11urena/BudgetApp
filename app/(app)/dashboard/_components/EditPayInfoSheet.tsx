@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction } from "../actions";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { formatCycleLabel } from "@/lib/pay-date";
@@ -31,6 +32,7 @@ export function EditPayInfoSheet({
   onDone: () => void;
   returnFocusTo?: HTMLElement | null;
 }) {
+  const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [amount, setAmount] = useState(initialAmount.toFixed(2));
   const [payDate, setPayDate] = useState(initialPayDate);
@@ -55,6 +57,17 @@ export function EditPayInfoSheet({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Explicit checks instead of relying on the amount/date inputs' native
+    // required/min/max — those silently block submission with no in-app
+    // feedback (the form has noValidate specifically so this runs instead).
+    if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
+      setError("Enter a valid amount");
+      return;
+    }
+    if (!payDate || payDate < minDate || payDate > maxDate) {
+      setError(`Date must be between ${minDate} and ${maxDate}`);
+      return;
+    }
     setPending(true);
     setError(null);
     const fd = new FormData();
@@ -69,6 +82,10 @@ export function EditPayInfoSheet({
     }
 
     setPending(false);
+    // revalidatePath alone isn't reliably enough to refresh an already-
+    // mounted client tree across every environment — explicit refresh so
+    // Home's days-remaining/pace/etc. update the moment this sheet closes.
+    router.refresh();
     handleClose();
   }
 
@@ -96,7 +113,7 @@ export function EditPayInfoSheet({
           quincena.
         </p>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="field">
             <label htmlFor="edit-pay-amount">Net pay (USD)</label>
             <input
@@ -105,7 +122,6 @@ export function EditPayInfoSheet({
               inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              required
               className="sheet-amount-input"
               onFocus={(e) => e.target.select()}
             />
@@ -119,7 +135,6 @@ export function EditPayInfoSheet({
               value={payDate}
               min={minDate}
               max={maxDate}
-              required
               onChange={(e) => setPayDate(e.target.value)}
             />
           </div>

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "../../_components/ToastProvider";
 import { removeGoalAction, restoreGoalAction } from "../actions";
 
 export function RemoveGoalButton({ categoryId, name }: { categoryId: string; name: string }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
 
@@ -14,6 +16,7 @@ export function RemoveGoalButton({ categoryId, name }: { categoryId: string; nam
     fd.set("categoryId", categoryId);
     const result = await removeGoalAction(fd);
     setPending(false);
+    router.refresh();
 
     if (result && "removed" in result) {
       const r = result.removed;
@@ -27,7 +30,7 @@ export function RemoveGoalButton({ categoryId, name }: { categoryId: string; nam
             restoreFd.set("cycleId", r.currentCycleContribution.cycleId);
             restoreFd.set("targetAmount", String(r.currentCycleContribution.targetAmount));
           }
-          void restoreGoalAction(restoreFd);
+          restoreGoalAction(restoreFd).then(() => router.refresh());
         },
       });
     }

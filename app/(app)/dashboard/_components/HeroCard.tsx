@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
@@ -17,6 +18,7 @@ export function HeroCard({
   periodStart: Date;
   totalExpenses: number;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
@@ -36,6 +38,11 @@ export function HeroCard({
     const summary = await justGotPaidAction(payDate);
     setPending(false);
     setClosedSummary(summary);
+    // The new cycle exists in the DB now, even while CycleClosedCard's own
+    // overlay (built from this response, not a re-fetch) is still showing —
+    // refresh so the Home content underneath is already correct once the
+    // overlay dismisses, instead of relying only on revalidatePath.
+    router.refresh();
   }
 
   function handleDismissSummary() {
@@ -45,6 +52,9 @@ export function HeroCard({
   function handleFinishIncomePrompt() {
     setShowIncomePrompt(false);
     setClosedSummary(null);
+    // Catches confirmNewCycleIncomeAction's write too (NewCycleIncomeSheet,
+    // the very last step of this flow).
+    router.refresh();
   }
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { updateCategoryFrequencyAction } from "../actions";
 
 type Frequency = "BIWEEKLY" | "MONTHLY";
@@ -22,6 +23,7 @@ export function RecurringFrequencyControl({
   frequency: Frequency;
   dueDay: number | null;
 }) {
+  const router = useRouter();
   const [selectedFrequency, setSelectedFrequency] = useState<Frequency>(frequency);
   const [selectedDueDay, setSelectedDueDay] = useState(dueDay !== null ? String(dueDay) : "");
   const [pending, setPending] = useState(false);
@@ -40,7 +42,11 @@ export function RecurringFrequencyControl({
     if (selectedDueDay) fd.set("dueDay", selectedDueDay);
     const result = await updateCategoryFrequencyAction(fd);
     setPending(false);
-    if (result?.error) setError(result.error);
+    if (result?.error) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
   }
 
   return (

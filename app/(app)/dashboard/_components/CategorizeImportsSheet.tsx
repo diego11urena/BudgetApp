@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { categorizeTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
@@ -103,6 +104,7 @@ function CategorizeImportRow({
   categoryNames: string[];
   onCategorized: () => void;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
@@ -122,6 +124,7 @@ function CategorizeImportRow({
       setError(result.error);
       return;
     }
+    router.refresh();
     onCategorized();
   }
 

@@ -68,4 +68,46 @@ describe("computeQuincenaPace", () => {
     expect(pace.perDay).toBeLessThan(0);
     expect(pace.isOverPace).toBe(true);
   });
+
+  // Regression anchor for the "Edit pay info doesn't update Home" bug:
+  // computeQuincenaPace itself was never the problem (it's always derived
+  // live from periodStart, nothing stored/stale) — these two cases pin
+  // down that moving periodStart earlier changes daysRemaining/perDay
+  // exactly as it should, so a future regression in the *propagation*
+  // (revalidation/refresh) can't hide behind "well, the math might be
+  // wrong too."
+  it("editing the pay date backward shortens daysRemaining accordingly (matches the reported repro)", () => {
+    const before = computeQuincenaPace({
+      periodStart: new Date(2026, 7, 12), // Aug 12
+      now: new Date(2026, 7, 13), // Aug 13
+      amountLeft: 226.39,
+      totalExpenses: 0,
+    });
+    const afterEditingPayDateBack = computeQuincenaPace({
+      periodStart: new Date(2026, 6, 31), // Jul 31 (moved 13 days earlier)
+      now: new Date(2026, 7, 13), // same "today"
+      amountLeft: 226.39,
+      totalExpenses: 0,
+    });
+    expect(afterEditingPayDateBack.daysRemaining).toBeLessThan(before.daysRemaining);
+    expect(afterEditingPayDateBack.daysRemaining).toBe(2);
+    expect(afterEditingPayDateBack.perDay).toBeCloseTo(113.2, 1);
+  });
+
+  it("editing the pay date forward lengthens daysRemaining accordingly", () => {
+    const before = computeQuincenaPace({
+      periodStart: new Date(2026, 7, 1),
+      now: new Date(2026, 7, 5),
+      amountLeft: 500,
+      totalExpenses: 0,
+    });
+    const afterEditingPayDateForward = computeQuincenaPace({
+      periodStart: new Date(2026, 7, 5), // moved to today
+      now: new Date(2026, 7, 5),
+      amountLeft: 500,
+      totalExpenses: 0,
+    });
+    expect(afterEditingPayDateForward.daysRemaining).toBeGreaterThan(before.daysRemaining);
+    expect(afterEditingPayDateForward.daysRemaining).toBe(15);
+  });
 });

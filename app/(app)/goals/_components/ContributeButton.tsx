@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { addTransactionAction, deleteTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "../../_components/ToastProvider";
@@ -55,6 +56,7 @@ function ContributeSheet({
   returnFocusTo: HTMLElement | null;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [visible, setVisible] = useState(false);
   const [amount, setAmount] = useState("");
@@ -99,12 +101,13 @@ function ContributeSheet({
         onClick: () => {
           const delFd = new FormData();
           delFd.set("transactionId", newTransactionId);
-          void deleteTransactionAction(undefined, delFd);
+          deleteTransactionAction(undefined, delFd).then(() => router.refresh());
         },
       });
     }
 
     setPending(false);
+    router.refresh();
     handleClose();
   }
 

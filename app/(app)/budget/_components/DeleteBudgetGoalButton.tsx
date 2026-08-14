@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "../../_components/ToastProvider";
 import { deleteBudgetGoalAction, restoreBudgetGoalAction } from "../actions";
 
@@ -11,6 +12,7 @@ export function DeleteBudgetGoalButton({
   goalId: string;
   categoryName: string;
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
 
@@ -20,6 +22,7 @@ export function DeleteBudgetGoalButton({
     fd.set("goalId", goalId);
     const result = await deleteBudgetGoalAction(fd);
     setPending(false);
+    router.refresh();
 
     if (result && "deleted" in result) {
       const d = result.deleted;
@@ -30,7 +33,7 @@ export function DeleteBudgetGoalButton({
           restoreFd.set("cycleId", d.cycleId);
           restoreFd.set("expenseCategoryId", d.expenseCategoryId);
           restoreFd.set("targetAmount", String(d.targetAmount));
-          void restoreBudgetGoalAction(restoreFd);
+          restoreBudgetGoalAction(restoreFd).then(() => router.refresh());
         },
       });
     }
