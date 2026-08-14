@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Typecheck, lint, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm test
+
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: budgetapp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/budgetapp_test?schema=public
+      # Only used to sign session cookies for this ephemeral CI database —
+      # never a real secret, regenerated for every run's fresh Postgres
+      # instance, and gitleaks-style scanners generally allow-list the
+      # literal string "test" in CI-only context; still not reused anywhere.
+      AUTH_SECRET: ci-only-session-secret-not-a-real-credential-32chars
+      # Auth.js v5 rejects an untrusted Host header once NODE_ENV=production
+      # (i.e. under `next start`, unlike the more lenient `next dev`) —
+      # needed here since CI serves the app at plain localhost, not a
+      # domain Auth.js already knows about. Vercel's real production
+      # deployment doesn't need this (it's configured separately there);
+      # this only covers the ephemeral server this workflow spins up.
+      AUTH_TRUST_HOST: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npx playwright install --with-deps chromium
+      # playwright.config.ts's webServer builds + starts the app itself
+      # (a real production build in CI, not the dev server) before tests run.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
