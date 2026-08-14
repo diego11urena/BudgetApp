@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { CategorizeImportsSheet, type UncategorizedTransaction } from "./CategorizeImportsSheet";
 
 export function UncategorizedImportsBanner({
@@ -31,7 +32,7 @@ export function UncategorizedImportsBanner({
           {transactions.length} transaction{transactions.length === 1 ? "" : "s"} need
           {transactions.length === 1 ? "s" : ""} a category
         </span>
-        <span aria-hidden="true">→</span>
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       {open && (

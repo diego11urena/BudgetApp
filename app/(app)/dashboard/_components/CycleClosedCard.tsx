@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef } from "react";
+import { ArrowRight, PartyPopper } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import { iconForCategoryName } from "@/lib/category-icons";
+import { CategoryIcon } from "@/lib/category-icons";
 import { useModalFocus } from "../../_components/useModalFocus";
 import type { CycleClosedSummary } from "../actions";
 
@@ -23,7 +24,9 @@ export function CycleClosedCard({
   return (
     <div className="cycle-closed-overlay" role="dialog" aria-modal="true" aria-label="Quincena closed">
       <div ref={cardRef} tabIndex={-1} className="cycle-closed-card">
-        <p className="cycle-closed-emoji">🎉</p>
+        <p className="cycle-closed-emoji">
+          <PartyPopper size={40} aria-hidden="true" />
+        </p>
         <h1 className="cycle-closed-title">Quincena closed</h1>
 
         <div className="summary-row">
@@ -48,7 +51,8 @@ export function CycleClosedCard({
         {summary.topCategory && (
           <div className="cycle-closed-top-category">
             <span>
-              {iconForCategoryName(summary.topCategory.name)} Top category: {summary.topCategory.name}
+              <CategoryIcon name={summary.topCategory.name} size={16} aria-hidden="true" /> Top
+              category: {summary.topCategory.name}
             </span>
             <span>{formatCurrency(summary.topCategory.amount)}</span>
           </div>
@@ -61,7 +65,7 @@ export function CycleClosedCard({
         )}
 
         <button type="button" className="button cycle-closed-cta" onClick={onDismiss}>
-          Continue →
+          Continue <ArrowRight size={16} aria-hidden="true" className="inline-arrow" />
         </button>
       </div>
     </div>

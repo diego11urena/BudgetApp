@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMostRecentClosedCycle, getOrCreateDraftCycle } from "@/lib/cycles";
@@ -49,7 +50,7 @@ export default async function PaycheckBreakdownPage() {
   return (
     <div className="home-page">
       <Link href="/dashboard" className="back-link">
-        ← Back
+        <ChevronLeft size={16} aria-hidden="true" /> Back
       </Link>
       <h1 className="page-title">Paycheck Breakdown</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>

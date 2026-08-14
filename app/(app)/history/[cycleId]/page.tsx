@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -42,7 +43,7 @@ export default async function CycleHistoryPage({
   return (
     <div className="home-page">
       <Link href="/dashboard" className="back-link">
-        ← Back
+        <ChevronLeft size={16} aria-hidden="true" /> Back
       </Link>
       <h1 className="page-title">
         {cycle.label} ({cycle.status})

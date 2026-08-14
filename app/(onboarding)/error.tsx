@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 
 export default function Error({
   error,
@@ -15,7 +16,9 @@ export default function Error({
 
   return (
     <div className="card error-boundary">
-      <p className="error-boundary-emoji">⚠️</p>
+      <p className="error-boundary-emoji">
+        <AlertTriangle size={40} aria-hidden="true" />
+      </p>
       <h1>Something went wrong</h1>
       <p className="field-hint">
         We hit a snag setting things up. Nothing you&apos;ve entered so far is lost — try again.

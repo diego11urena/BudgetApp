@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { Lock } from "lucide-react";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
@@ -40,7 +41,9 @@ function TransactionRowContent({
   // itself anymore — provenance metadata belongs in the detail sheet or as
   // a Transactions filter, not on every line. Every type has a category
   // concept now, so this no longer special-cases INCOME — a sent and a
-  // received Yappy render identically apart from sign and color.
+  // received Yappy render identically apart from sign and color. The
+  // closed-cycle marker is rendered as its own trailing icon+text (not
+  // folded into this string) since it needs a real <Lock> icon, not text.
   const subline = [
     tx.categoryName && tx.categoryName !== tx.name
       ? tx.categoryName
@@ -49,16 +52,26 @@ function TransactionRowContent({
         : null,
     tx.paymentMethod ? PAYMENT_METHOD_LABEL[tx.paymentMethod] : null,
     showCycleLabel && tx.cycleLabel ? tx.cycleLabel : null,
-    tx.isEditable === false ? "🔒 closed" : null,
   ]
     .filter((part): part is string => part !== null)
     .join(" · ");
+  const isClosed = tx.isEditable === false;
 
   return (
     <>
       <div className="transaction-meta">
         <span className="transaction-name">{tx.name}</span>
-        {subline && <span className="transaction-sub">{subline}</span>}
+        {(subline || isClosed) && (
+          <span className="transaction-sub">
+            {subline}
+            {isClosed && (
+              <>
+                {subline && " · "}
+                <Lock size={12} aria-hidden="true" className="inline-lock" /> closed
+              </>
+            )}
+          </span>
+        )}
       </div>
       <span className={`transaction-amount ${AMOUNT_CLASS[tx.type]}`}>
         {tx.type === "INCOME" ? "+" : "-"}

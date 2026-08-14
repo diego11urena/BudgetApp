@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { User } from "lucide-react";
 import { EditPayInfoButton } from "./EditPayInfoButton";
 
 function getGreeting(hour: number): string {
@@ -35,7 +36,7 @@ export function Header({
         </div>
       </div>
       <Link href="/profile" className="home-profile-icon" aria-label="Profile">
-        👤
+        <User size={22} aria-hidden="true" />
       </Link>
     </div>
   );

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { CreditCard, Home, LayoutGrid, Target, type LucideIcon } from "lucide-react";
 import { AddActionSheet } from "./AddActionSheet";
 import { QuickAddSheet } from "./QuickAddSheet";
 
@@ -11,18 +12,18 @@ type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 interface Tab {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
 }
 
 // Rendered either side of the center "+" — Profile isn't a tab here since
 // the avatar icon on Home already opens it.
 const TABS_BEFORE_FAB: Tab[] = [
-  { href: "/dashboard", label: "Home", icon: "🏠" },
-  { href: "/transactions", label: "Transactions", icon: "💳" },
+  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/transactions", label: "Transactions", icon: CreditCard },
 ];
 const TABS_AFTER_FAB: Tab[] = [
-  { href: "/budget", label: "Fixed Expenses", icon: "📊" },
-  { href: "/goals", label: "Goals", icon: "🎯" },
+  { href: "/budget", label: "Fixed Expenses", icon: LayoutGrid },
+  { href: "/goals", label: "Goals", icon: Target },
 ];
 
 export function BottomNav({
@@ -45,13 +46,14 @@ export function BottomNav({
 
   function renderTab(tab: Tab) {
     const isActive = pathname.startsWith(tab.href);
+    const Icon = tab.icon;
     return (
       <Link
         key={tab.href}
         href={tab.href}
         className={`bottom-nav-item ${isActive ? "is-active" : ""}`}
       >
-        <span className="bottom-nav-icon">{tab.icon}</span>
+        <Icon className="bottom-nav-icon" size={22} aria-hidden="true" />
         <span className="bottom-nav-label">{tab.label}</span>
       </Link>
     );

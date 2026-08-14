@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
+import { PartyPopper, ArrowRight } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import { formatCurrency } from "@/lib/format";
-import { iconForCategoryName } from "@/lib/category-icons";
+import { CategoryIcon } from "@/lib/category-icons";
 import { GoalRing } from "./_components/GoalRing";
 import { AddGoalSheet } from "./_components/AddGoalSheet";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
@@ -54,17 +55,20 @@ export default async function GoalsPage() {
                   <GoalRing percentage={projection.percentage} complete={projection.isComplete} />
                   <div className="goal-row-details">
                     <p className="goal-row-name">
-                      {iconForCategoryName(goal.name)} {goal.name}
+                      <CategoryIcon name={goal.name} size={16} aria-hidden="true" /> {goal.name}
                     </p>
                     <p className="field-hint">
                       {formatCurrency(goal.savedSoFar)} / {formatCurrency(goal.lifetimeTargetAmount)}
                     </p>
                     {projection.isComplete ? (
-                      <p className="goal-projection goal-projection--complete">🎉 Goal reached!</p>
+                      <p className="goal-projection goal-projection--complete">
+                        <PartyPopper size={16} aria-hidden="true" /> Goal reached!
+                      </p>
                     ) : goal.currentCycleRecurringAmount !== null && projection.etaDate ? (
                       <p className="goal-projection">
-                        Per-cycle contribution: {formatCurrency(goal.currentCycleRecurringAmount)} →
-                        on track to hit goal by {formatEtaDate(projection.etaDate)}
+                        Per-cycle contribution: {formatCurrency(goal.currentCycleRecurringAmount)}{" "}
+                        <ArrowRight size={14} aria-hidden="true" className="inline-arrow" /> on track
+                        to hit goal by {formatEtaDate(projection.etaDate)}
                       </p>
                     ) : (
                       <p className="goal-projection goal-projection--muted">

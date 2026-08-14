@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
-import { iconForCategoryName } from "@/lib/category-icons";
+import { CategoryIcon } from "@/lib/category-icons";
 
 export function TopCategoriesChart({ categories }: { categories: CategoryTotal[] }) {
   if (categories.length === 0) {
@@ -11,7 +12,7 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
         <p className="field-hint">No expenses logged yet this quincena.</p>
         <Link href="/dashboard/breakdown" className="line-item line-item--link">
           <span>View breakdown</span>
-          <span>→</span>
+          <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </div>
     );
@@ -26,7 +27,12 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
         {categories.map((category) => (
           <div className="bar-chart-row" key={category.categoryId}>
             <span className="bar-chart-label">
-              <span className="bar-chart-icon">{iconForCategoryName(category.categoryName)}</span>
+              <CategoryIcon
+                name={category.categoryName}
+                className="bar-chart-icon"
+                size={16}
+                aria-hidden="true"
+              />
               {category.categoryName}
             </span>
             <div className="bar-chart-track">
@@ -41,7 +47,7 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
       </div>
       <Link href="/dashboard/breakdown" className="line-item line-item--link">
         <span>View breakdown</span>
-        <span>→</span>
+        <ArrowRight size={16} aria-hidden="true" />
       </Link>
     </div>
   );

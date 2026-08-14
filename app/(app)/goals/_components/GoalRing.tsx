@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 const SIZE = 88;
 const STROKE = 8;
 const RADIUS = (SIZE - STROKE) / 2;
@@ -38,7 +40,9 @@ export function GoalRing({ percentage, complete }: { percentage: number; complet
           strokeDashoffset={offset}
         />
       </svg>
-      <span className="goal-ring-label">{complete ? "🎉" : `${Math.round(percentage)}%`}</span>
+      <span className="goal-ring-label">
+        {complete ? <Check size={24} aria-hidden="true" /> : `${Math.round(percentage)}%`}
+      </span>
     </div>
   );
 }

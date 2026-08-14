@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 
 /**
  * Root-level fallback — catches anything not already handled by a nested
@@ -22,7 +23,9 @@ export default function Error({
   return (
     <div className="page-center">
       <div className="card error-boundary">
-        <p className="error-boundary-emoji">⚠️</p>
+        <p className="error-boundary-emoji">
+          <AlertTriangle size={40} aria-hidden="true" />
+        </p>
         <h1>Something went wrong</h1>
         <p className="field-hint">We hit a snag. Try again.</p>
         <button type="button" className="button" onClick={() => reset()}>

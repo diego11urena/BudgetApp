@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Minus, PiggyBank, Plus, type LucideIcon } from "lucide-react";
 import { useModalFocus } from "./useModalFocus";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 
-const ACTIONS: { type: TxType; icon: string; label: string }[] = [
-  { type: "EXPENSE", icon: "➖", label: "Add Expense" },
-  { type: "INCOME", icon: "➕", label: "Add Income" },
-  { type: "SAVINGS", icon: "🐷", label: "Add Savings" },
+const ACTIONS: { type: TxType; icon: LucideIcon; label: string }[] = [
+  { type: "EXPENSE", icon: Minus, label: "Add Expense" },
+  { type: "INCOME", icon: Plus, label: "Add Income" },
+  { type: "SAVINGS", icon: PiggyBank, label: "Add Savings" },
 ];
 
 /**
@@ -73,7 +74,7 @@ export function AddActionSheet({
               className="quick-action"
               onClick={() => handleSelect(action.type)}
             >
-              <span className="quick-action-icon">{action.icon}</span>
+              <action.icon className="quick-action-icon" size={22} aria-hidden="true" />
               <span>{action.label}</span>
             </button>
           ))}

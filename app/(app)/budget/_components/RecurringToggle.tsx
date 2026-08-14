@@ -1,3 +1,4 @@
+import { Repeat } from "lucide-react";
 import { toggleCategoryRecurringAction } from "../actions";
 
 /**
@@ -22,7 +23,8 @@ export function RecurringToggle({
         className={`recurring-toggle ${recurring ? "is-on" : ""}`}
         aria-label={recurring ? "Recurring — carries into next quincena" : "One-time — won't carry forward"}
       >
-        🔁 {recurring ? "Recurring" : "One-time"}
+        {recurring && <Repeat size={14} aria-hidden="true" />}
+        {recurring ? "Recurring" : "One-time"}
       </button>
     </form>
   );

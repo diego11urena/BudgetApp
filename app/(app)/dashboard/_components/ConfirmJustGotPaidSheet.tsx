@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { formatCycleLabel, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 
@@ -113,7 +114,7 @@ export function ConfirmJustGotPaidSheet({
         </div>
         {error && <p className="error-text">{error}</p>}
         <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
-          Yes, I got paid →
+          Yes, I got paid <ArrowRight size={16} aria-hidden="true" />
         </button>
         <button
           type="button"

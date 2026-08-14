@@ -1,7 +1,7 @@
 import { ProgressBar } from "../../_components/ProgressBar";
 import { formatCurrency } from "@/lib/format";
 import { getBudgetUsage } from "@/lib/budget-status";
-import { iconForCategoryName } from "@/lib/category-icons";
+import { CategoryIcon } from "@/lib/category-icons";
 import { RecurringToggle } from "./RecurringToggle";
 import { RecurringFrequencyControl } from "./RecurringFrequencyControl";
 import { DeleteBudgetGoalButton } from "./DeleteBudgetGoalButton";
@@ -41,7 +41,7 @@ export function BudgetGoalRow({
     <div className="budget-goal-row">
       <div className="progress-bar-label">
         <span>
-          {iconForCategoryName(categoryName)} {categoryName}
+          <CategoryIcon name={categoryName} size={16} aria-hidden="true" /> {categoryName}
         </span>
         <span>{usage.percentage}%</span>
       </div>

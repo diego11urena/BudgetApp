@@ -8,6 +8,7 @@ import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
 import { formatCycleLabel } from "@/lib/pay-date";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
 import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
@@ -161,7 +162,8 @@ export default async function DashboardPage() {
         />
         {financials.transactions.length > 3 && (
           <Link href="/transactions" className="line-item line-item--link">
-            See all →
+            <span>See all</span>
+            <ChevronRight size={18} aria-hidden="true" />
           </Link>
         )}
       </div>

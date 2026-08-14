@@ -259,6 +259,7 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
   min-height: 44px;
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-button);
@@ -424,13 +425,14 @@ button.line-item--link {
 }
 
 .back-link {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
   min-height: 44px;
-  line-height: 44px;
 }
 
 .preview-box {
@@ -671,6 +673,7 @@ button.line-item--link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.3rem;
   min-height: 44px;
   background: none;
   border: none;
@@ -1368,6 +1371,15 @@ button.line-item--link {
   color: var(--color-text-secondary);
 }
 
+/* Small lucide-react icons dropped inline into running text (a subline, a
+   sentence, a card title) — nudged down slightly so they sit on the text
+   baseline instead of the slight-high default an inline <svg> has, the
+   same way the emoji glyphs they replaced always sat on the line. */
+.inline-arrow,
+.inline-lock {
+  vertical-align: -2px;
+}
+
 .transaction-amount {
   font-weight: 600;
   white-space: nowrap;
@@ -1489,6 +1501,7 @@ button.line-item--link {
 .recurring-toggle {
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   min-height: 44px;
   padding: 0.4rem 0.7rem;
   border-radius: var(--radius-pill);

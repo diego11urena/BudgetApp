@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import {
   computeBreakdown,
   groupRecentTransactionsBySlice,
@@ -264,7 +265,8 @@ function SliceDetailPanel({
           )}
           {!hasNoRealFilter && (
             <Link href={seeAllHref} className="line-item line-item--link">
-              <span>See all →</span>
+              <span>See all</span>
+              <ChevronRight size={18} aria-hidden="true" />
             </Link>
           )}
         </>

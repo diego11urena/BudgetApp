@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
@@ -78,7 +79,13 @@ export function HeroCard({
           }}
           disabled={pending}
         >
-          {pending ? "Closing quincena..." : "I just got paid →"}
+          {pending ? (
+            "Closing quincena..."
+          ) : (
+            <>
+              I just got paid <ArrowRight size={16} aria-hidden="true" />
+            </>
+          )}
         </button>
       </div>
 
