@@ -3,11 +3,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { findCycleForDate, getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
-import { parseTransactionDate } from "@/lib/pay-date";
+import { parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
 
 /** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
 export type TransactionMutationResult = { error: string } | { transactionId: string } | undefined;
@@ -125,21 +125,36 @@ export async function updateTransactionAction(
   if (!existing) {
     return { error: "Transaction not found" };
   }
-  // Frozen history: once a quincena is closed, its totals shouldn't move.
-  // The UI already keeps closed-cycle rows from opening this action's
-  // sheet at all (TransactionList) — this is the server-side backstop.
-  if (existing.cycle.status === "CLOSED") {
-    return { error: "This quincena is closed and can't be edited" };
-  }
+  // Editing (unlike deleting) is always allowed, including on a closed
+  // cycle's history — backfilling a payment method or fixing a category on
+  // an old transaction is exactly what "frozen history" was never meant to
+  // block. See deleteTransactionAction for why deletion stays restricted.
 
+  // No cycle bound here (unlike addTransactionAction's create-time min) —
+  // just "not in the future", since a transaction can't have happened yet.
+  // A date is never required on edit; leaving it alone keeps the existing
+  // value, matching how every other unset field on this form behaves.
   let occurredAtDate = existing.occurredAt;
   if (occurredAt) {
-    const parsedDate = parseTransactionDate(occurredAt, existing.cycle.periodStart);
+    const parsedDate = parseDateOnly(occurredAt);
     if (!parsedDate) {
-      return { error: "Date must be within this quincena and not in the future" };
+      return { error: "Invalid date" };
+    }
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (parsedDate.getTime() > todayStart.getTime()) {
+      return { error: "Date can't be in the future" };
     }
     occurredAtDate = parsedDate;
   }
+
+  // The transaction moves to whichever cycle actually covers its (possibly
+  // just-edited, possibly already-mismatched from an earlier pay-date edit)
+  // date — cycle membership was always this transaction's cycleId, never a
+  // date-range computation, so an edited date has to explicitly carry it
+  // over instead of just silently disagreeing with its own cycle.
+  const correctCycle = await findCycleForDate(userId, occurredAtDate);
+  const targetCycleId = correctCycle?.id ?? existing.cycleId;
 
   let expenseCategoryId: string | null = null;
   if (type !== "INCOME") {
@@ -153,6 +168,7 @@ export async function updateTransactionAction(
   await prisma.cycleTransaction.update({
     where: { id: transactionId },
     data: {
+      cycleId: targetCycleId,
       type,
       name,
       amount,

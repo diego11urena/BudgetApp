@@ -112,6 +112,22 @@ export function getMostRecentClosedCycle(userId: string) {
   });
 }
 
+/**
+ * Which cycle actually covers a given date — the most recently-started
+ * cycle whose periodStart is on or before it. Cycle membership has always
+ * been a fixed cycleId set at creation time, never computed from a date
+ * range, so this is only needed when a transaction's date is edited and
+ * needs to move to whichever cycle its new (or already-mismatched) date
+ * really belongs to (see updateTransactionAction). Null only if the date
+ * predates every cycle the user has ever had.
+ */
+export function findCycleForDate(userId: string, date: Date) {
+  return prisma.budgetCycle.findFirst({
+    where: { userId, periodStart: { lte: date } },
+    orderBy: { periodStart: "desc" },
+  });
+}
+
 /** The user's most recent cycles, newest first. Retains all history — never deletes. */
 export function getRecentCycles(userId: string, limit = 5) {
   return prisma.budgetCycle.findMany({

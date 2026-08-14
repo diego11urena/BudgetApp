@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   addTransactionAction,
   deleteTransactionAction,
@@ -26,6 +27,8 @@ export interface EditingTransaction {
   paymentMethod: PaymentMethod | null;
   /** "YYYY-MM-DD" — prefills the Date field. */
   occurredAt: string;
+  /** False only for a row from an already-closed cycle — every field stays editable there, but deleting the row outright stays blocked (frozen totals), so the Delete button is hidden instead of erroring after the fact. Defaults true when omitted. */
+  isDeletable?: boolean;
 }
 
 const TYPE_OPTIONS: { value: TxType; label: string }[] = [
@@ -78,6 +81,7 @@ export function QuickAddSheet({
   // tear this component down before a separate "pending -> false" effect
   // gets a chance to run — dropping the toast. Awaiting inline sidesteps
   // that race entirely.
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletePending, setDeletePending] = useState(false);
@@ -151,8 +155,43 @@ export function QuickAddSheet({
 
   useModalFocus(sheetRef, handleClose, returnFocusTo);
 
+  // Runs the same checks the date/amount inputs' native `required`/`min`/
+  // `max` attributes used to enforce — but explicitly, in JS, so a blocked
+  // submit always shows this sheet's own inline error instead of silently
+  // doing nothing (or nothing visible) the way native constraint
+  // validation could. The server re-validates independently regardless;
+  // this is purely for instant feedback without a round trip.
+  function validate(): string | null {
+    if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
+      return "Enter a valid amount";
+    }
+    if (type === "INCOME" && !customName.trim()) {
+      return "Give it a name";
+    }
+    if (type !== "INCOME" && !categoryValue.trim()) {
+      return "Choose or enter a category";
+    }
+    if (!occurredAt) {
+      return "Date is required";
+    }
+    if (occurredAt > todayDate) {
+      return "Date can't be in the future";
+    }
+    // The cycle-start floor is a create-time-only affordance — editing
+    // allows any past date (see updateTransactionAction).
+    if (!isEditing && occurredAt < cycleStartDate) {
+      return "Date must be within this quincena";
+    }
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setPending(true);
     setError(null);
     const formData = new FormData(e.currentTarget);
@@ -174,12 +213,13 @@ export function QuickAddSheet({
         onClick: () => {
           const fd = new FormData();
           fd.set("transactionId", newTransactionId);
-          void deleteTransactionAction(undefined, fd);
+          deleteTransactionAction(undefined, fd).then(() => router.refresh());
         },
       });
     }
 
     setPending(false);
+    router.refresh();
     handleClose();
   }
 
@@ -202,11 +242,12 @@ export function QuickAddSheet({
           restoreFd.set("amount", String(d.amount));
           restoreFd.set("occurredAt", d.occurredAt);
           if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
-          void restoreTransactionAction(restoreFd);
+          restoreTransactionAction(restoreFd).then(() => router.refresh());
         },
       });
     }
 
+    router.refresh();
     setDeletePending(false);
     handleClose();
   }
@@ -291,7 +332,7 @@ export function QuickAddSheet({
           ))}
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <input type="hidden" name="type" value={type} />
           <input type="hidden" name="name" value={nameValue} />
           {type !== "INCOME" && <input type="hidden" name="category" value={categoryValue} />}
@@ -323,9 +364,14 @@ export function QuickAddSheet({
               name="occurredAt"
               type="date"
               value={occurredAt}
-              min={cycleStartDate}
+              // The cycle-start floor is a create-time affordance only —
+              // an existing transaction can be edited to any past date (it
+              // moves to whichever cycle that date actually belongs to;
+              // see updateTransactionAction). Form has noValidate, and
+              // validate() re-checks this explicitly either way, so this
+              // is just the picker widget's own hint, never a submit-blocker.
+              min={isEditing ? undefined : cycleStartDate}
               max={todayDate}
-              required
               onChange={(e) => setOccurredAt(e.target.value)}
             />
           </div>
@@ -418,7 +464,7 @@ export function QuickAddSheet({
           </button>
         </form>
 
-        {isEditing && (
+        {isEditing && editingTransaction.isDeletable !== false && (
           <button
             type="button"
             className="sheet-delete"
@@ -427,6 +473,11 @@ export function QuickAddSheet({
           >
             {deletePending ? "Deleting..." : "Delete transaction"}
           </button>
+        )}
+        {isEditing && editingTransaction.isDeletable === false && (
+          <p className="field-hint" style={{ textAlign: "center", marginTop: "0.75rem" }}>
+            This quincena is closed, so this transaction can be edited but not deleted.
+          </p>
         )}
       </div>
     </div>

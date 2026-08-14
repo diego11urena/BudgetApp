@@ -37,6 +37,7 @@ export function ConfirmJustGotPaidSheet({
   // actual past payday — see lib/cycles.ts's parsePayDate for why this
   // matters to days-remaining/pace math downstream.
   const [payDate, setPayDate] = useState(() => formatCycleLabel());
+  const [error, setError] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
@@ -55,6 +56,17 @@ export function ConfirmJustGotPaidSheet({
 
   function handleConfirm() {
     if (confirmed) return;
+    // There's no <form> here (this button isn't a submit), so the date
+    // input's min/max never get a chance to block anything — they're just
+    // the picker widget's own hint. Without this check, an out-of-range
+    // value would reach justGotPaidAction, which silently substitutes
+    // today's date (see lib/pay-date.ts's parsePayDate) with no feedback
+    // that the date you picked was ignored.
+    if (payDate < minDate || payDate > maxDate) {
+      setError(`Date must be between ${minDate} and ${maxDate}`);
+      return;
+    }
+    setError(null);
     setConfirmed(true);
     setVisible(false);
     setTimeout(() => onConfirm(payDate), 200);
@@ -93,9 +105,13 @@ export function ConfirmJustGotPaidSheet({
             min={minDate}
             max={maxDate}
             disabled={confirmed}
-            onChange={(e) => setPayDate(e.target.value)}
+            onChange={(e) => {
+              setPayDate(e.target.value);
+              setError(null);
+            }}
           />
         </div>
+        {error && <p className="error-text">{error}</p>}
         <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
           Yes, I got paid →
         </button>
