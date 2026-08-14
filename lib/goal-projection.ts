@@ -1,4 +1,4 @@
-const QUINCENA_DAYS = 15;
+import { nextQuincenaStart } from "./quincena-pace";
 
 export interface GoalProjection {
   /** Amount left to save, clamped to 0. */
@@ -37,8 +37,14 @@ export function computeGoalProjection(input: {
   }
 
   const quincenasNeeded = Math.ceil(remaining / currentCycleRecurringAmount);
-  const etaDate = new Date(now);
-  etaDate.setDate(etaDate.getDate() + quincenasNeeded * QUINCENA_DAYS);
+  // Walks forward through quincenasNeeded *real* quincenas (13-16 days
+  // each, depending on where each one falls in the calendar) instead of a
+  // flat 15-day step per quincena — the same fix as lib/quincena-pace.ts,
+  // reusing its boundary logic so the two can't quietly disagree.
+  let etaDate = new Date(now);
+  for (let i = 0; i < quincenasNeeded; i++) {
+    etaDate = nextQuincenaStart(etaDate);
+  }
 
   return { remaining, percentage, isComplete, quincenasNeeded, etaDate };
 }

@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { computeQuincenaPace } from "./quincena-pace";
+import { computeQuincenaPace, quincenaLengthDays } from "./quincena-pace";
+
+// Regression anchor for the "hardcoded 15-day quincena" bug: a first-half
+// cycle really is always 15 days (day 1-15, every month), but a
+// second-half cycle's real length is "days in this month minus 15" —
+// 16 in a 31-day month, 15 in a 30-day month, 13 in a (non-leap) February.
+// Before this fix, every one of these silently used 15 regardless.
+describe("quincenaLengthDays", () => {
+  it("is always 15 for a first-half cycle, regardless of the month's length", () => {
+    expect(quincenaLengthDays(new Date(2026, 0, 1))).toBe(15); // Jan, 31 days
+    expect(quincenaLengthDays(new Date(2026, 1, 1))).toBe(15); // Feb, 28 days
+    expect(quincenaLengthDays(new Date(2026, 8, 1))).toBe(15); // Sep, 30 days
+  });
+
+  it("is 16 for a second-half cycle in a 31-day month", () => {
+    expect(quincenaLengthDays(new Date(2026, 6, 16))).toBe(16); // Jul
+  });
+
+  it("is 15 for a second-half cycle in a 30-day month", () => {
+    expect(quincenaLengthDays(new Date(2026, 8, 16))).toBe(15); // Sep
+  });
+
+  it("is 13 for a second-half cycle in a non-leap February", () => {
+    expect(quincenaLengthDays(new Date(2026, 1, 16))).toBe(13); // Feb 2026 (28 days)
+  });
+});
 
 describe("computeQuincenaPace", () => {
   it("counts today as one of the 15 days on day 1 of the cycle", () => {
@@ -12,6 +37,17 @@ describe("computeQuincenaPace", () => {
     expect(pace.daysRemaining).toBe(15);
     expect(pace.perDay).toBeCloseTo(50, 2);
     expect(pace.isLastDay).toBe(false);
+  });
+
+  it("gives a second-half cycle in a 31-day month its real 16-day length, not a hardcoded 15", () => {
+    const pace = computeQuincenaPace({
+      periodStart: new Date(2026, 6, 16), // Jul 16
+      now: new Date(2026, 6, 16),
+      amountLeft: 800,
+      totalExpenses: 0,
+    });
+    expect(pace.daysRemaining).toBe(16);
+    expect(pace.perDay).toBeCloseTo(50, 2);
   });
 
   it("flags the last day of the quincena", () => {
@@ -90,8 +126,12 @@ describe("computeQuincenaPace", () => {
       totalExpenses: 0,
     });
     expect(afterEditingPayDateBack.daysRemaining).toBeLessThan(before.daysRemaining);
-    expect(afterEditingPayDateBack.daysRemaining).toBe(2);
-    expect(afterEditingPayDateBack.perDay).toBeCloseTo(113.2, 1);
+    // 3, not 2: Jul 31 falls in July's second half, which is 16 days (July
+    // has 31 days) rather than the old hardcoded 15 — quincenaLengthDays'
+    // whole fix. Jul31 + 15 days (16-day length) = Aug15; Aug13..Aug15
+    // inclusive is 3 days.
+    expect(afterEditingPayDateBack.daysRemaining).toBe(3);
+    expect(afterEditingPayDateBack.perDay).toBeCloseTo(75.46, 2);
   });
 
   it("editing the pay date forward lengthens daysRemaining accordingly", () => {

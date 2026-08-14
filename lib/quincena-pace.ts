@@ -1,4 +1,3 @@
-const QUINCENA_DAYS = 15;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function startOfDay(date: Date): Date {
@@ -7,6 +6,43 @@ function startOfDay(date: Date): Date {
 
 function calendarDaysBetween(from: Date, to: Date): number {
   return Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / MS_PER_DAY);
+}
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+/**
+ * A quincena's real length in days — 15 for a cycle starting in the first
+ * half of the month (always true: day 1-15 is 15 days in every month), or
+ * "days in this month minus 15" for one starting in the second half
+ * (13-16 days depending on the month, not always 15 — the bug this fixes:
+ * a 31-day month's second half is 16 days, a 28-day February's is only
+ * 13). Applied relative to periodStart itself, not by snapping periodStart
+ * to a canonical 1st/16th boundary — an edited or otherwise irregular
+ * periodStart (see EditPayInfoSheet/ConfirmJustGotPaidSheet's lookback
+ * window, which deliberately lets a payday land on any day) still gets a
+ * sensible, non-zero runway instead of "your quincena already ended" just
+ * because it happens to land late in a calendar half.
+ */
+export function quincenaLengthDays(periodStart: Date): number {
+  const day = periodStart.getDate();
+  if (day <= 15) return 15;
+  return daysInMonth(periodStart.getFullYear(), periodStart.getMonth()) - 15;
+}
+
+/** The real calendar end of the quincena periodStart belongs to (inclusive). */
+export function quincenaEnd(periodStart: Date): Date {
+  const end = new Date(periodStart);
+  end.setDate(end.getDate() + quincenaLengthDays(periodStart) - 1);
+  return end;
+}
+
+/** The day after quincenaEnd — used to walk forward through consecutive real quincenas (see lib/goal-projection.ts). */
+export function nextQuincenaStart(periodStart: Date): Date {
+  const next = new Date(quincenaEnd(periodStart));
+  next.setDate(next.getDate() + 1);
+  return next;
 }
 
 export interface QuincenaPace {
@@ -22,7 +58,7 @@ export interface QuincenaPace {
 
 /**
  * A cycle's periodEnd is only set when it's closed, so the nominal end of an
- * open quincena is derived as periodStart + 15 days (day 1..15), not read
+ * open quincena is derived from the calendar (see quincenaEnd), not read
  * from state.
  */
 export function computeQuincenaPace(input: {
@@ -33,8 +69,7 @@ export function computeQuincenaPace(input: {
 }): QuincenaPace {
   const { periodStart, now, amountLeft, totalExpenses } = input;
 
-  const cycleEnd = new Date(periodStart);
-  cycleEnd.setDate(cycleEnd.getDate() + QUINCENA_DAYS - 1);
+  const cycleEnd = quincenaEnd(periodStart);
 
   const daysRemaining = Math.max(calendarDaysBetween(now, cycleEnd) + 1, 0);
   const perDay = amountLeft / Math.max(daysRemaining, 1);

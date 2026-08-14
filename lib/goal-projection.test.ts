@@ -9,12 +9,15 @@ describe("computeGoalProjection", () => {
       currentCycleRecurringAmount: 200,
       now: new Date(2026, 7, 2),
     });
-    // remaining 800, /200 per cycle = 4 quincenas = 60 days.
+    // remaining 800, /200 per cycle = 4 quincenas. Walking 4 *real*
+    // quincenas forward from Aug 2, 2026 (15 + 16 + 15 + 15 days -- the
+    // Aug16-31 leg is 16 days since August has 31) lands on Oct 2, not a
+    // flat 60-day (4*15) jump to Oct 1.
     expect(result.remaining).toBe(800);
     expect(result.percentage).toBe(20);
     expect(result.isComplete).toBe(false);
     expect(result.quincenasNeeded).toBe(4);
-    expect(result.etaDate).toEqual(new Date(2026, 9, 1));
+    expect(result.etaDate).toEqual(new Date(2026, 9, 2));
   });
 
   it("rounds up partial quincenas", () => {
