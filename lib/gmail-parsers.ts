@@ -9,6 +9,8 @@ export interface ParsedTransaction {
   merchant: string;
   /** Null only for a Yappy "received" notification (INCOME) — money coming in has no payment-method concept, same as it has no category. */
   paymentMethod: ParsedPaymentMethod | null;
+  /** Yappy's optional free-text "Mensaje" field -- present (non-null) only when the sender actually filled one in. Always null for a bank card purchase, which has no such field. */
+  description: string | null;
 }
 
 export interface EmailParser {
@@ -71,7 +73,7 @@ export const purchaseNotificationParser: EmailParser = {
       ? "DEBIT_CARD"
       : "CREDIT_CARD";
 
-    return { type: "EXPENSE", amount, merchant, paymentMethod };
+    return { type: "EXPENSE", amount, merchant, paymentMethod, description: null };
   },
 };
 
@@ -87,6 +89,21 @@ function cleanYappyName(raw: string): string {
   return raw.trim().replace(/[\s*\-\d]+$/, "").trim();
 }
 
+// Yappy renders an optional free-text note the sender can attach, labeled
+// "Mensaje", between the date and the confirmation code -- e.g.
+// "...Fecha 11 ago 2026 03:25 p. m. Mensaje Devolucion Confirmación
+// FCXDZ-79530470...". The label is always present even when the sender
+// left it blank ("Mensaje Confirmación" with nothing between), which is
+// exactly the case that needs surfacing to the user -- a P2P transfer's
+// only other context is the counterparty's name, which doesn't say what
+// the money was actually for.
+const YAPPY_MESSAGE_PATTERN = /Mensaje\s*(.*?)\s*Confirmaci[oó]n/;
+
+function extractYappyMessage(normalized: string): string | null {
+  const raw = normalized.match(YAPPY_MESSAGE_PATTERN)?.[1]?.trim();
+  return raw ? raw : null;
+}
+
 // "Te enviaron por Yappy $1.00 Enviado por Isabella E.****-4820 Fecha ..."
 // — money received via Yappy. Group 1 = amount, group 2 = sender's name.
 const YAPPY_RECEIVED_PATTERN =
@@ -98,7 +115,8 @@ export const yappyReceivedParser: EmailParser = {
     return YAPPY_RECEIVED_PATTERN.test(normalizeWhitespace(body));
   },
   extract(body) {
-    const match = normalizeWhitespace(body).match(YAPPY_RECEIVED_PATTERN);
+    const normalized = normalizeWhitespace(body);
+    const match = normalized.match(YAPPY_RECEIVED_PATTERN);
     const rawAmount = match?.[1];
     const merchant = match?.[2] ? cleanYappyName(match[2]) : "";
     if (!rawAmount || !merchant) return null;
@@ -106,7 +124,13 @@ export const yappyReceivedParser: EmailParser = {
     const amount = rawAmount.replace(/,/g, "");
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "INCOME", amount, merchant, paymentMethod: null };
+    return {
+      type: "INCOME",
+      amount,
+      merchant,
+      paymentMethod: null,
+      description: extractYappyMessage(normalized),
+    };
   },
 };
 
@@ -121,7 +145,8 @@ export const yappySentParser: EmailParser = {
     return YAPPY_SENT_PATTERN.test(normalizeWhitespace(body));
   },
   extract(body) {
-    const match = normalizeWhitespace(body).match(YAPPY_SENT_PATTERN);
+    const normalized = normalizeWhitespace(body);
+    const match = normalized.match(YAPPY_SENT_PATTERN);
     const rawAmount = match?.[1];
     const merchant = match?.[2] ? cleanYappyName(match[2]) : "";
     if (!rawAmount || !merchant) return null;
@@ -129,7 +154,13 @@ export const yappySentParser: EmailParser = {
     const amount = rawAmount.replace(/,/g, "");
     if (!decimalString.safeParse(amount).success) return null;
 
-    return { type: "EXPENSE", amount, merchant, paymentMethod: "YAPPY" };
+    return {
+      type: "EXPENSE",
+      amount,
+      merchant,
+      paymentMethod: "YAPPY",
+      description: extractYappyMessage(normalized),
+    };
   },
 };
 

@@ -36,6 +36,8 @@ export interface CycleTransactionSummary {
   importSource: "MANUAL" | "GMAIL";
   /** What it was paid with — null for INCOME (no payment-method concept) and for pre-this-feature manual entries. */
   paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
+  /** What the money was for, beyond name/merchant — mainly Yappy's own optional "Mensaje" note. Null for everything else. */
+  description: string | null;
   /** Only set by callers building an all-time (cross-cycle) view. */
   cycleLabel?: string;
   /**
@@ -78,6 +80,7 @@ interface TransactionLike {
   sourceMessageId?: string | null;
   importSource?: "MANUAL" | "GMAIL";
   paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
+  description?: string | null;
 }
 
 /**
@@ -100,6 +103,7 @@ export function toCycleTransactionSummary(
     isImported: (tx.sourceMessageId ?? null) !== null,
     importSource: tx.importSource ?? "MANUAL",
     paymentMethod: tx.paymentMethod ?? null,
+    description: tx.description ?? null,
     ...extra,
   };
 }

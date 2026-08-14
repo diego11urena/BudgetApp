@@ -19,6 +19,7 @@ export interface DeletedTransactionSnapshot {
   amount: number;
   occurredAt: string;
   paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
+  description: string | null;
 }
 
 /** Success carries a snapshot of the deleted row so a "Deleted · Undo" toast can restore it. */
@@ -44,13 +45,15 @@ export async function addTransactionAction(
     category: formData.get("category") || undefined,
     paymentMethod: formData.get("paymentMethod") ?? undefined,
     occurredAt: formData.get("occurredAt") || undefined,
+    description: formData.get("description") ?? undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { type, name, amount, category: categoryName, paymentMethod, occurredAt } = parsed.data;
+  const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } =
+    parsed.data;
   const cycle = await getOrCreateDraftCycle(userId);
 
   let occurredAtDate = new Date();
@@ -76,6 +79,7 @@ export async function addTransactionAction(
       amount,
       expenseCategoryId,
       paymentMethod: type === "EXPENSE" ? (paymentMethod ?? null) : null,
+      description: description ?? null,
       occurredAt: occurredAtDate,
     },
     select: { id: true },
@@ -108,13 +112,15 @@ export async function updateTransactionAction(
     category: formData.get("category") || undefined,
     paymentMethod: formData.get("paymentMethod") ?? undefined,
     occurredAt: formData.get("occurredAt") || undefined,
+    description: formData.get("description") ?? undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { type, name, amount, category: categoryName, paymentMethod, occurredAt } = parsed.data;
+  const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } =
+    parsed.data;
 
   // Ownership-scoped: a plain update({ where: { id } }) would let a user
   // edit another user's row by guessing an id.
@@ -174,6 +180,11 @@ export async function updateTransactionAction(
       amount,
       expenseCategoryId,
       paymentMethod: type === "EXPENSE" ? (paymentMethod ?? null) : null,
+      // Blank on the form means "leave alone" (same convention as
+      // occurredAt above), not "clear" — there's no dedicated affordance to
+      // erase an already-set description, matching every other optional
+      // field on this sheet.
+      description: description ?? existing.description,
       occurredAt: occurredAtDate,
     },
   });
@@ -234,6 +245,51 @@ export async function categorizeTransactionAction(
   return { transactionId };
 }
 
+/**
+ * Lighter-weight sibling of updateTransactionAction for the "describe this
+ * Yappy transfer" flow (see dashboard's needs-description banner) — only
+ * the description changes. Unlike categorizeTransactionAction, this isn't
+ * blocked on a closed cycle: a Yappy transfer imported into a cycle that's
+ * since closed still needs to be describable, same reasoning as
+ * updateTransactionAction's own "editing history is always allowed" (see
+ * its comment) — the description just wasn't known yet at import time.
+ */
+export async function describeTransactionAction(
+  formData: FormData,
+): Promise<{ error: string } | { transactionId: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const transactionId = formData.get("transactionId");
+  const description = formData.get("description");
+  if (typeof transactionId !== "string" || !transactionId) {
+    return { error: "Missing transaction" };
+  }
+  if (typeof description !== "string" || !description.trim()) {
+    return { error: "Tell us what it was for" };
+  }
+
+  // Ownership-scoped — see updateTransactionAction for why.
+  const existing = await prisma.cycleTransaction.findFirst({
+    where: { id: transactionId, cycle: { userId } },
+  });
+  if (!existing) {
+    return { error: "Transaction not found" };
+  }
+
+  await prisma.cycleTransaction.update({
+    where: { id: transactionId },
+    data: { description: description.trim() },
+  });
+
+  revalidateAppPages();
+
+  return { transactionId };
+}
+
 export async function deleteTransactionAction(
   _prevState: DeleteTransactionResult,
   formData: FormData,
@@ -275,6 +331,7 @@ export async function deleteTransactionAction(
       amount: existing.amount.toNumber(),
       occurredAt: existing.occurredAt.toISOString(),
       paymentMethod: existing.paymentMethod,
+      description: existing.description,
     },
   };
 }
@@ -300,6 +357,7 @@ export async function restoreTransactionAction(
   const amount = formData.get("amount");
   const occurredAt = formData.get("occurredAt");
   const rawPaymentMethod = formData.get("paymentMethod");
+  const description = formData.get("description");
 
   if (
     typeof cycleId !== "string" ||
@@ -337,6 +395,7 @@ export async function restoreTransactionAction(
       amount,
       expenseCategoryId,
       paymentMethod: type === "EXPENSE" ? paymentMethod : null,
+      description: typeof description === "string" && description ? description : null,
       occurredAt: new Date(occurredAt),
     },
   });

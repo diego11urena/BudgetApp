@@ -26,6 +26,7 @@ describe("purchaseNotificationParser", () => {
       amount: "36.85",
       merchant: "METRO BELLA VISTA 4730PANAMA PA",
       paymentMethod: "CREDIT_CARD",
+      description: null,
     });
   });
 
@@ -43,6 +44,7 @@ describe("purchaseNotificationParser", () => {
       amount: "10.00",
       merchant: "STORE X",
       paymentMethod: "CREDIT_CARD",
+      description: null,
     });
   });
 
@@ -53,6 +55,7 @@ describe("purchaseNotificationParser", () => {
       amount: "5",
       merchant: "SOME STORE",
       paymentMethod: "CREDIT_CARD",
+      description: null,
     });
   });
 
@@ -63,6 +66,7 @@ describe("purchaseNotificationParser", () => {
       amount: "1234.56",
       merchant: "BIG PURCHASE STORE",
       paymentMethod: "CREDIT_CARD",
+      description: null,
     });
   });
 
@@ -73,6 +77,7 @@ describe("purchaseNotificationParser", () => {
       amount: "2000",
       merchant: "ANOTHER STORE",
       paymentMethod: "CREDIT_CARD",
+      description: null,
     });
   });
 
@@ -120,6 +125,7 @@ describe("yappyReceivedParser", () => {
       amount: "1.00",
       merchant: "Juan P.",
       paymentMethod: null,
+      description: "Devolucion",
     });
   });
 
@@ -127,6 +133,12 @@ describe("yappyReceivedParser", () => {
     const result = yappyReceivedParser.extract(YAPPY_RECEIVED_BODY);
     expect(result?.merchant).not.toContain("*");
     expect(result?.merchant).not.toContain("4820");
+  });
+
+  it("extracts null (not an empty string) when the sender left the Mensaje field blank", () => {
+    const bodyWithBlankMessage =
+      "Yappy-logoTe enviaron por Yappy$5.00 Enviado porAna R.****-1234Fecha 12 ago 2026 09:00 a. m.    Mensaje    Confirmación GHIJK-11111111 Estamos aquí para ayudarte.";
+    expect(yappyReceivedParser.extract(bodyWithBlankMessage)?.description).toBeNull();
   });
 
   it("does not match a 'sent' email or an unrelated body", () => {
@@ -144,12 +156,19 @@ describe("yappySentParser", () => {
       amount: "1.00",
       merchant: "Juan Perez",
       paymentMethod: "YAPPY",
+      description: null,
     });
   });
 
   it("strips the raw phone-number digits that run into the name", () => {
     const result = yappySentParser.extract(YAPPY_SENT_BODY);
     expect(result?.merchant).not.toContain("6926");
+  });
+
+  it("extracts a filled-in Mensaje too, same as the received side", () => {
+    const bodyWithMessage =
+      "Yappy-logoEnviaste por Yappy$25.00 Enviado aMaria Lopez98765432Fecha 12 ago 2026 09:00 a. m.    Mensaje    Almuerzo   Confirmación LMNOP-22222222 Estamos aquí para ayudarte.";
+    expect(yappySentParser.extract(bodyWithMessage)?.description).toBe("Almuerzo");
   });
 
   it("does not match a 'received' email or an unrelated body", () => {
@@ -166,6 +185,7 @@ describe("parseTransactionEmail", () => {
       amount: "36.85",
       merchant: "METRO BELLA VISTA 4730PANAMA PA",
       paymentMethod: "CREDIT_CARD",
+      description: null,
     });
   });
 
@@ -179,6 +199,7 @@ describe("parseTransactionEmail", () => {
       amount: "1.00",
       merchant: "Juan P.",
       paymentMethod: null,
+      description: "Devolucion",
     });
   });
 
@@ -188,6 +209,7 @@ describe("parseTransactionEmail", () => {
       amount: "1.00",
       merchant: "Juan Perez",
       paymentMethod: "YAPPY",
+      description: null,
     });
   });
 });

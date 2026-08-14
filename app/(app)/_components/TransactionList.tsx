@@ -133,6 +133,7 @@ export function TransactionList({
       amount: tx.amount,
       paymentMethod: tx.paymentMethod,
       occurredAt: formatCycleLabel(tx.occurredAt),
+      description: tx.description,
       // Undefined (the single-cycle callers, e.g. Home) means "editable" —
       // same default toCycleTransactionSummary itself uses.
       isDeletable: tx.isEditable !== false,

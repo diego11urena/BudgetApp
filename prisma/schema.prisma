@@ -191,6 +191,13 @@ model CycleTransaction {
   expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
   importSource      ImportSource     @default(MANUAL)
   paymentMethod     PaymentMethod?
+  // What the money was for, beyond the name/merchant -- mainly for a Yappy
+  // P2P transfer, where "name" is just the counterparty's name and carries
+  // no purpose on its own. Populated from Yappy's own "Mensaje" field when
+  // the sender filled one in (see lib/gmail-parsers.ts); null when they
+  // didn't, which is what prompts the user to fill it in by hand (see the
+  // "needs a description" banner alongside the existing category one).
+  description       String?
   occurredAt        DateTime         @default(now())
   createdAt         DateTime         @default(now())
 

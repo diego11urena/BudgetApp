@@ -15,6 +15,7 @@ import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { InsightsCard } from "./_components/InsightsCard";
 import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
 import { UncategorizedImportsBanner } from "./_components/UncategorizedImportsBanner";
+import { NeedsDescriptionBanner } from "./_components/NeedsDescriptionBanner";
 import { TransactionList } from "../_components/TransactionList";
 
 export default async function DashboardPage() {
@@ -70,6 +71,31 @@ export default async function DashboardPage() {
     })
   ).map((t) => ({ id: t.id, name: t.name, amount: t.amount.toNumber() }));
 
+  // Yappy is P2P, so the counterparty's name alone (the only thing every
+  // notification email guarantees) doesn't say what the money was for.
+  // Yappy's own optional "Mensaje" note fills that gap when the sender used
+  // it (see lib/gmail-parsers.ts) -- this catches the rest, in both
+  // directions: a sent transfer is EXPENSE/paymentMethod YAPPY, a received
+  // one is INCOME/importSource GMAIL (the only way an INCOME import can
+  // exist at all -- see gmail-parsers.ts's yappyReceivedParser). Scoped to
+  // the current cycle only, same as uncategorizedTransactions above.
+  const undescribedYappyTransactions = (
+    await prisma.cycleTransaction.findMany({
+      where: {
+        cycleId: cycle.id,
+        description: null,
+        OR: [{ paymentMethod: "YAPPY" }, { type: "INCOME", importSource: "GMAIL" }],
+      },
+      select: { id: true, name: true, amount: true, type: true },
+      orderBy: { occurredAt: "desc" },
+    })
+  ).map((t) => ({
+    id: t.id,
+    name: t.name,
+    amount: t.amount.toNumber(),
+    direction: t.type === "INCOME" ? ("received" as const) : ("sent" as const),
+  }));
+
   return (
     <div className="home-page">
       <Header
@@ -84,6 +110,12 @@ export default async function DashboardPage() {
             transactions={uncategorizedTransactions}
             categoryNames={expenseCategoryNames}
           />
+        </div>
+      )}
+
+      {undescribedYappyTransactions.length > 0 && (
+        <div className="dashboard-section dashboard-section--plain">
+          <NeedsDescriptionBanner transactions={undescribedYappyTransactions} />
         </div>
       )}
 

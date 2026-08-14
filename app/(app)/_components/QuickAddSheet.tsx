@@ -27,6 +27,8 @@ export interface EditingTransaction {
   paymentMethod: PaymentMethod | null;
   /** "YYYY-MM-DD" — prefills the Date field. */
   occurredAt: string;
+  /** What it was for, beyond name/merchant — e.g. Yappy's own "Mensaje" note. Null if never set. */
+  description: string | null;
   /** False only for a row from an already-closed cycle — every field stays editable there, but deleting the row outright stays blocked (frozen totals), so the Delete button is hidden instead of erroring after the fact. Defaults true when omitted. */
   isDeletable?: boolean;
 }
@@ -141,6 +143,7 @@ export function QuickAddSheet({
     editingTransaction?.paymentMethod ?? "",
   );
   const [occurredAt, setOccurredAt] = useState(editingTransaction?.occurredAt ?? formatCycleLabel());
+  const [description, setDescription] = useState(editingTransaction?.description ?? "");
   const todayDate = formatCycleLabel();
 
   useEffect(() => {
@@ -242,6 +245,7 @@ export function QuickAddSheet({
           restoreFd.set("amount", String(d.amount));
           restoreFd.set("occurredAt", d.occurredAt);
           if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
+          if (d.description) restoreFd.set("description", d.description);
           restoreTransactionAction(restoreFd).then(() => router.refresh());
         },
       });
@@ -456,6 +460,19 @@ export function QuickAddSheet({
               </div>
             </div>
           )}
+
+          <div className="field">
+            <label htmlFor="sheet-description">Note (optional)</label>
+            <input
+              id="sheet-description"
+              name="description"
+              type="text"
+              placeholder="What was this for?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={200}
+            />
+          </div>
 
           {error && <p className="error-text">{error}</p>}
 

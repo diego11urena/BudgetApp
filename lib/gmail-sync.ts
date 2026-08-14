@@ -200,6 +200,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
                 expenseCategoryId,
                 importSource: "GMAIL",
                 paymentMethod: parsed.paymentMethod,
+                description: parsed.description,
                 occurredAt: new Date(Number(message.internalDate)),
                 sourceMessageId: message.id,
               },

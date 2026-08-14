@@ -321,6 +321,7 @@ describe("computePaymentMethodTotals", () => {
         | "DEBIT_CARD"
         | "YAPPY"
         | null,
+      description: null,
     };
   }
 
@@ -385,6 +386,7 @@ describe("groupRecentTransactionsBySlice", () => {
         | "DEBIT_CARD"
         | "YAPPY"
         | null,
+      description: null,
     };
   }
 

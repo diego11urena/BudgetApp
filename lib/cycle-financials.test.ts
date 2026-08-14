@@ -156,6 +156,7 @@ describe("toCycleTransactionSummary", () => {
       isImported: false,
       importSource: "MANUAL",
       paymentMethod: null,
+      description: null,
     });
   });
 

@@ -25,6 +25,10 @@ export const addTransactionSchema = z.object({
   // cycle's bounds by the action itself (needs cycle.periodStart, which
   // isn't available to a standalone schema), not here.
   occurredAt: z.string().trim().min(1).optional(),
+  // Free-form "what was this for" — optional everywhere. Empty string (the
+  // sheet's untouched-field state) is normalized to undefined so it clears
+  // to null downstream rather than persisting as "".
+  description: z.preprocess((v) => (v === "" ? undefined : v), z.string().trim().max(200).optional()),
 });
 
 export type AddTransactionInput = z.infer<typeof addTransactionSchema>;
