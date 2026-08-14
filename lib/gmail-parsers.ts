@@ -7,7 +7,7 @@ export interface ParsedTransaction {
   amount: string;
   /** Merchant name for a card purchase, or the counterparty's name for a Yappy transfer. */
   merchant: string;
-  /** Null only for a Yappy "received" notification (INCOME) — money coming in has no payment-method concept, same as it has no category. */
+  /** Never actually null today -- every parser here always knows the rail (a card purchase defaults to Credit, a Yappy match of either direction is always Yappy) -- kept nullable for a future template that genuinely can't tell. */
   paymentMethod: ParsedPaymentMethod | null;
   /** Yappy's optional free-text "Mensaje" field -- present (non-null) only when the sender actually filled one in. Always null for a bank card purchase, which has no such field. */
   description: string | null;
@@ -128,7 +128,7 @@ export const yappyReceivedParser: EmailParser = {
       type: "INCOME",
       amount,
       merchant,
-      paymentMethod: null,
+      paymentMethod: "YAPPY",
       description: extractYappyMessage(normalized),
     };
   },

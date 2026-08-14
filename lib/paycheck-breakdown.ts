@@ -44,6 +44,7 @@ const PAYMENT_METHOD_COLOR_VAR: Record<string, string> = {
   CREDIT_CARD: "--chart-cat-2",
   DEBIT_CARD: "--chart-cat-3",
   YAPPY: "--chart-cat-4",
+  ACH: "--chart-cat-5",
   UNSPECIFIED: "--chart-other",
 };
 
@@ -52,6 +53,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   CREDIT_CARD: "Credit Card",
   DEBIT_CARD: "Debit Card",
   YAPPY: "Yappy",
+  ACH: "ACH",
   UNSPECIFIED: "Unspecified",
 };
 

@@ -124,7 +124,7 @@ describe("yappyReceivedParser", () => {
       type: "INCOME",
       amount: "1.00",
       merchant: "Juan P.",
-      paymentMethod: null,
+      paymentMethod: "YAPPY",
       description: "Devolucion",
     });
   });
@@ -198,7 +198,7 @@ describe("parseTransactionEmail", () => {
       type: "INCOME",
       amount: "1.00",
       merchant: "Juan P.",
-      paymentMethod: null,
+      paymentMethod: "YAPPY",
       description: "Devolucion",
     });
   });

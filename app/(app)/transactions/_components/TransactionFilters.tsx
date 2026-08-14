@@ -15,6 +15,7 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "CREDIT_CARD", label: "Credit Card" },
   { value: "DEBIT_CARD", label: "Debit Card" },
   { value: "YAPPY", label: "Yappy" },
+  { value: "ACH", label: "ACH" },
   { value: "CASH", label: "Cash" },
 ];
 

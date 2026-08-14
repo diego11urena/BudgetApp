@@ -3,7 +3,7 @@ import { decimalString } from "./shared";
 
 export const transactionTypeSchema = z.enum(["EXPENSE", "INCOME", "SAVINGS"]);
 
-export const paymentMethodSchema = z.enum(["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY"]);
+export const paymentMethodSchema = z.enum(["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"]);
 
 export const addTransactionSchema = z.object({
   type: transactionTypeSchema,
@@ -15,9 +15,9 @@ export const addTransactionSchema = z.object({
   // Falls back to `name` when absent, matching manual-entry create — where
   // the two have always been the same value.
   category: z.string().trim().min(1).max(100).optional(),
-  // EXPENSE-only, optional — the picker in QuickAddSheet lets the user
-  // leave it unset. Empty string (the "not selected" state) is normalized
-  // to undefined rather than failing enum validation.
+  // Optional for EXPENSE/INCOME — the picker in QuickAddSheet lets the
+  // user leave it unset. Empty string (the "not selected" state) is
+  // normalized to undefined rather than failing enum validation.
   paymentMethod: z
     .preprocess((v) => (v === "" ? undefined : v), paymentMethodSchema.optional())
     .optional(),

@@ -18,7 +18,7 @@ export interface DeletedTransactionSnapshot {
   name: string;
   amount: number;
   occurredAt: string;
-  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
+  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
   description: string | null;
 }
 
@@ -78,7 +78,11 @@ export async function addTransactionAction(
       name,
       amount,
       expenseCategoryId,
-      paymentMethod: type === "EXPENSE" ? (paymentMethod ?? null) : null,
+      // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
+      // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
+      // rails that work either direction, money coming in (INCOME) too. A
+      // savings contribution has never had this concept and still doesn't.
+      paymentMethod: type !== "SAVINGS" ? (paymentMethod ?? null) : null,
       description: description ?? null,
       occurredAt: occurredAtDate,
     },
@@ -179,7 +183,11 @@ export async function updateTransactionAction(
       name,
       amount,
       expenseCategoryId,
-      paymentMethod: type === "EXPENSE" ? (paymentMethod ?? null) : null,
+      // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
+      // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
+      // rails that work either direction, money coming in (INCOME) too. A
+      // savings contribution has never had this concept and still doesn't.
+      paymentMethod: type !== "SAVINGS" ? (paymentMethod ?? null) : null,
       // Blank on the form means "leave alone" (same convention as
       // occurredAt above), not "clear" — there's no dedicated affordance to
       // erase an already-set description, matching every other optional
@@ -394,7 +402,7 @@ export async function restoreTransactionAction(
       name,
       amount,
       expenseCategoryId,
-      paymentMethod: type === "EXPENSE" ? paymentMethod : null,
+      paymentMethod: type !== "SAVINGS" ? paymentMethod : null,
       description: typeof description === "string" && description ? description : null,
       occurredAt: new Date(occurredAt),
     },

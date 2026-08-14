@@ -12,6 +12,7 @@ const PAYMENT_METHOD_LABEL: Record<NonNullable<CycleTransactionSummary["paymentM
   CREDIT_CARD: "Credit Card",
   DEBIT_CARD: "Debit Card",
   YAPPY: "Yappy",
+  ACH: "ACH",
 };
 
 const AMOUNT_CLASS: Record<CycleTransactionSummary["type"], string> = {

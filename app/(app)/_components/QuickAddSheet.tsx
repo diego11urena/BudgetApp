@@ -14,7 +14,7 @@ import { useToast } from "./ToastProvider";
 import { useModalFocus } from "./useModalFocus";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
-type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY";
+type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
 
 export interface EditingTransaction {
   id: string;
@@ -23,7 +23,7 @@ export interface EditingTransaction {
   /** Null for INCOME (no category concept) or an uncategorized row. */
   categoryName: string | null;
   amount: number;
-  /** EXPENSE-only; null otherwise or if never set. */
+  /** SAVINGS never has one; null on EXPENSE/INCOME just means never set. */
   paymentMethod: PaymentMethod | null;
   /** "YYYY-MM-DD" — prefills the Date field. */
   occurredAt: string;
@@ -44,6 +44,7 @@ const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
   { value: "CREDIT_CARD", label: "Credit Card" },
   { value: "DEBIT_CARD", label: "Debit Card" },
   { value: "YAPPY", label: "Yappy" },
+  { value: "ACH", label: "ACH" },
 ];
 
 const SWIPE_DISMISS_THRESHOLD = 90;
@@ -137,8 +138,8 @@ export function QuickAddSheet({
     const list = categoryNamesForType(editingTransaction!.type);
     return list.length > TOP_CHIP_COUNT && !list.slice(0, TOP_CHIP_COUNT).includes(editingCategoryName);
   });
-  // EXPENSE-only, optional — left unset ("") is a valid choice, not every
-  // purchase needs a recorded method.
+  // Optional for EXPENSE/INCOME — left unset ("") is a valid choice, not
+  // every purchase or deposit needs a recorded method.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
     editingTransaction?.paymentMethod ?? "",
   );
@@ -442,7 +443,7 @@ export function QuickAddSheet({
             </div>
           )}
 
-          {type === "EXPENSE" && (
+          {type !== "SAVINGS" && (
             <div className="field">
               <label>Payment method</label>
               <input type="hidden" name="paymentMethod" value={paymentMethod} />

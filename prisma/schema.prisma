@@ -169,15 +169,18 @@ enum ImportSource {
   GMAIL
 }
 
-// What was actually paid with — orthogonal to both category and import
-// source. Parsed from the Gmail email for an import (best-effort: card
-// purchases default to Credit unless the body says "débito"; a Yappy send
-// is always Yappy), or picked by the user for a manual entry.
+// What was actually paid or received with — orthogonal to both category
+// and import source. Parsed from the Gmail email for an import
+// (best-effort: card purchases default to Credit unless the body says
+// "débito"; a Yappy transfer, sent or received, is always Yappy), or
+// picked by the user for a manual entry. Null for SAVINGS, which has no
+// payment-method concept.
 enum PaymentMethod {
   CASH
   CREDIT_CARD
   DEBIT_CARD
   YAPPY
+  ACH
 }
 
 model CycleTransaction {

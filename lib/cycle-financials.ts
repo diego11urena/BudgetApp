@@ -34,8 +34,8 @@ export interface CycleTransactionSummary {
   isImported: boolean;
   /** How the transaction arrived — never a substitute for categoryName or paymentMethod, just the "📧 Gmail" display tag. */
   importSource: "MANUAL" | "GMAIL";
-  /** What it was paid with — null for INCOME (no payment-method concept) and for pre-this-feature manual entries. */
-  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
+  /** What it was paid or received with — null for SAVINGS (no payment-method concept) or when never set. */
+  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
   /** What the money was for, beyond name/merchant — mainly Yappy's own optional "Mensaje" note. Null for everything else. */
   description: string | null;
   /** Only set by callers building an all-time (cross-cycle) view. */
@@ -79,7 +79,7 @@ interface TransactionLike {
   expenseCategory: { id: string; name: string } | null;
   sourceMessageId?: string | null;
   importSource?: "MANUAL" | "GMAIL";
-  paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | null;
+  paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
   description?: string | null;
 }
 

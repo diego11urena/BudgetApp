@@ -11,7 +11,7 @@ import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
 
 const TX_TYPES = ["EXPENSE", "INCOME", "SAVINGS"] as const;
-const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY"] as const;
+const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"] as const;
 
 export default async function TransactionsPage({
   searchParams,
