@@ -22,6 +22,11 @@
   --color-success: #149e61;
   --color-warning: #d9a05b;
   --color-error: #c1706a;
+  /* A savings contribution is still a minus on the transaction row (money
+     left the spendable balance) but isn't spending — this keeps it from
+     reading identically to an Expense row at a glance. Same blue as
+     --chart-cat-2 for one consistent "this is savings-related" hue. */
+  --color-savings: #2f6fed;
   --color-on-accent: #ffffff;
   --color-success-bg: rgba(20, 158, 97, 0.16);
   --color-warning-bg: rgba(217, 160, 91, 0.15);
@@ -102,6 +107,8 @@
     --color-success: #22b976;
     --color-warning: #e0b378;
     --color-error: #d68b84;
+    /* Same hue as --chart-cat-2's dark-mode value, lightened for contrast. */
+    --color-savings: #5b9bff;
     --color-on-accent: #ffffff;
     --color-success-bg: rgba(34, 185, 118, 0.18);
     --color-warning-bg: rgba(224, 179, 120, 0.15);
@@ -1318,6 +1325,10 @@ button.line-item--link {
 
 .transaction-amount--income {
   color: var(--color-success);
+}
+
+.transaction-amount--savings {
+  color: var(--color-savings);
 }
 
 .transaction-filters {

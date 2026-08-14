@@ -7,17 +7,23 @@ import { formatCycleLabel } from "@/lib/pay-date";
 import { groupTransactionsByDate } from "@/lib/transaction-grouping";
 import { QuickAddSheet, type EditingTransaction } from "./QuickAddSheet";
 
-const TYPE_LABEL: Record<CycleTransactionSummary["type"], string> = {
-  EXPENSE: "Expense",
-  INCOME: "Extra income",
-  SAVINGS: "Savings",
-};
-
 const PAYMENT_METHOD_LABEL: Record<NonNullable<CycleTransactionSummary["paymentMethod"]>, string> = {
   CASH: "Cash",
   CREDIT_CARD: "Credit Card",
   DEBIT_CARD: "Debit Card",
   YAPPY: "Yappy",
+};
+
+const AMOUNT_CLASS: Record<CycleTransactionSummary["type"], string> = {
+  EXPENSE: "",
+  // The sign+color alone already distinguish Expense (white/red, minus)
+  // from Income (green, plus) — no need to spell out the type in words.
+  // Savings still needs its own look: it's also a minus (money leaving
+  // spendable balance), so without a distinct color it would be visually
+  // identical to an Expense row despite being fundamentally different
+  // (money moved, not spent).
+  INCOME: "transaction-amount--income",
+  SAVINGS: "transaction-amount--savings",
 };
 
 function TransactionRowContent({
@@ -27,23 +33,31 @@ function TransactionRowContent({
   tx: CycleTransactionSummary;
   showCycleLabel: boolean;
 }) {
+  // "Category · Payment method" — either half is dropped cleanly (no
+  // trailing separator, no placeholder) when missing. Gmail/source stays a
+  // model field (see cycle-financials.ts), just not surfaced on the row
+  // itself anymore — provenance metadata belongs in the detail sheet or as
+  // a Transactions filter, not on every line.
+  const subline = [
+    tx.categoryName && tx.categoryName !== tx.name
+      ? tx.categoryName
+      : !tx.categoryName && tx.type !== "INCOME"
+        ? "Uncategorized"
+        : null,
+    tx.paymentMethod ? PAYMENT_METHOD_LABEL[tx.paymentMethod] : null,
+    showCycleLabel && tx.cycleLabel ? tx.cycleLabel : null,
+    tx.isEditable === false ? "🔒 closed" : null,
+  ]
+    .filter((part): part is string => part !== null)
+    .join(" · ");
+
   return (
     <>
       <div className="transaction-meta">
         <span className="transaction-name">{tx.name}</span>
-        <span className="transaction-sub">
-          {TYPE_LABEL[tx.type]}
-          {tx.categoryName && tx.categoryName !== tx.name ? ` · ${tx.categoryName}` : ""}
-          {!tx.categoryName && tx.type !== "INCOME" ? " · Uncategorized" : ""}
-          {tx.paymentMethod ? ` · ${PAYMENT_METHOD_LABEL[tx.paymentMethod]}` : ""}
-          {showCycleLabel && tx.cycleLabel ? ` · ${tx.cycleLabel}` : ""}
-          {tx.importSource === "GMAIL" ? " · 📧 Gmail" : ""}
-          {tx.isEditable === false ? " · 🔒 closed" : ""}
-        </span>
+        {subline && <span className="transaction-sub">{subline}</span>}
       </div>
-      <span
-        className={`transaction-amount ${tx.type === "INCOME" ? "transaction-amount--income" : ""}`}
-      >
+      <span className={`transaction-amount ${AMOUNT_CLASS[tx.type]}`}>
         {tx.type === "INCOME" ? "+" : "-"}
         {formatCurrency(tx.amount)}
       </span>
@@ -60,15 +74,11 @@ function TransactionRow({
   showCycleLabel: boolean;
   onEdit: (tx: CycleTransactionSummary, trigger: HTMLElement) => void;
 }) {
-  if (tx.isEditable === false) {
-    // A closed cycle's history is frozen — no edit sheet for this row.
-    return (
-      <div className="transaction-row transaction-row--readonly">
-        <TransactionRowContent tx={tx} showCycleLabel={showCycleLabel} />
-      </div>
-    );
-  }
-
+  // Every row opens the edit sheet, including a closed cycle's — a past
+  // quincena's transactions must stay correctable (payment method,
+  // category, amount, date...). Only *deleting* stays blocked on a closed
+  // cycle (see QuickAddSheet/deleteTransactionAction) — removing a row
+  // outright is a step further than correcting one of its fields in place.
   return (
     <button
       type="button"
@@ -123,6 +133,9 @@ export function TransactionList({
       amount: tx.amount,
       paymentMethod: tx.paymentMethod,
       occurredAt: formatCycleLabel(tx.occurredAt),
+      // Undefined (the single-cycle callers, e.g. Home) means "editable" —
+      // same default toCycleTransactionSummary itself uses.
+      isDeletable: tx.isEditable !== false,
     });
   }
 
