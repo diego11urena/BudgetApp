@@ -1405,12 +1405,15 @@ button.line-item--link {
 
 .transaction-filters-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .transaction-filters-row select {
-  flex: 1;
-  min-width: 0;
+  /* min-width first, then grow to share leftover space -- four selects on
+     a narrow screen wrap to two rows of two rather than every label
+     clipping mid-word to fit one cramped row. */
+  flex: 1 1 8rem;
 }
 
 .icon-button {

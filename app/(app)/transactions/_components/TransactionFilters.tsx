@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const TYPE_OPTIONS = [
-  { value: "", label: "All types" },
+  { value: "", label: "Type" },
   { value: "EXPENSE", label: "Expense" },
   { value: "INCOME", label: "Extra income" },
   { value: "SAVINGS", label: "Savings" },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
-  { value: "", label: "All payment methods" },
+  { value: "", label: "Payment" },
   { value: "CREDIT_CARD", label: "Credit Card" },
   { value: "DEBIT_CARD", label: "Debit Card" },
   { value: "YAPPY", label: "Yappy" },
@@ -19,19 +19,19 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "CASH", label: "Cash" },
 ];
 
-const CATEGORY_OPTIONS = [
-  { value: "", label: "All categories" },
-  { value: "uncategorized", label: "Uncategorized" },
-];
-
 const SORT_OPTIONS = [
-  { value: "date_desc", label: "Newest first" },
-  { value: "date_asc", label: "Oldest first" },
-  { value: "amount_desc", label: "Amount: high to low" },
-  { value: "amount_asc", label: "Amount: low to high" },
+  { value: "date_desc", label: "Newest" },
+  { value: "date_asc", label: "Oldest" },
+  { value: "amount_desc", label: "Highest amount" },
+  { value: "amount_asc", label: "Lowest amount" },
 ];
 
-export function TransactionFilters() {
+export function TransactionFilters({
+  categories,
+}: {
+  /** Every category across all three types, pre-sorted by type then name — same source of truth Manage Categories uses. */
+  categories: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -101,9 +101,11 @@ export function TransactionFilters() {
           onChange={(e) => updateParam("category", e.target.value)}
           aria-label="Filter by category"
         >
-          {CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          <option value="">Category</option>
+          <option value="uncategorized">Uncategorized</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>

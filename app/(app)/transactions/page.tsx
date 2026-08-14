@@ -39,7 +39,11 @@ export default async function TransactionsPage({
     ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
       ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
       : {}),
-    ...(category === "uncategorized" ? { expenseCategoryId: null } : {}),
+    ...(category === "uncategorized"
+      ? { expenseCategoryId: null }
+      : category
+        ? { expenseCategoryId: category }
+        : {}),
     ...(q
       ? {
           OR: [
@@ -60,7 +64,7 @@ export default async function TransactionsPage({
           ? { amount: "asc" }
           : { occurredAt: "desc" };
 
-  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] =
+  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, allCategories] =
     await Promise.all([
       prisma.cycleTransaction.findMany({
         where,
@@ -71,6 +75,14 @@ export default async function TransactionsPage({
       getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
       getOrderedCategoryNames(userId, cycle.id, "INCOME"),
+      // Filtered by id, not name -- a name alone can collide across types
+      // (e.g. an "Other" Expense category and a distinct "Other" Income
+      // one), so the filter dropdown's options need to stay unambiguous.
+      prisma.expenseCategory.findMany({
+        where: { userId },
+        select: { id: true, name: true },
+        orderBy: [{ type: "asc" }, { name: "asc" }],
+      }),
     ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
@@ -85,7 +97,7 @@ export default async function TransactionsPage({
       <h1 className="page-title">Transactions</h1>
 
       <div className="dashboard-section">
-        <TransactionFilters />
+        <TransactionFilters categories={allCategories} />
         <TransactionList
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}
