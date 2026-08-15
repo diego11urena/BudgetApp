@@ -9,6 +9,30 @@ import { parseTransactionEmail } from "./gmail-parsers";
 const BANK_SENDERS = ["transaccionesbg@bgeneral.com", "notificaciones@yappy.com.pa"];
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
+// Gmail's per-user quota isn't documented anywhere in this codebase, so
+// this is a conservative cap rather than a measured one — enough to turn a
+// long sync from "one request at a time" into meaningfully parallel
+// without risking a burst large enough to trip Google's rate limiting.
+const MESSAGE_FETCH_CONCURRENCY = 5;
+
+/** Runs `fn` over `items` with at most `concurrency` in flight at once, preserving input order in the returned array. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < items.length) {
+      const i = nextIndex++;
+      results[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
+}
+
 /** Pure — narrows a batch of candidate Gmail message ids down to the ones not already known. Split out from the rest of the sync so it's unit-testable without a database or a live Gmail connection. */
 export function filterNewMessageIds(candidateIds: string[], knownIds: Set<string>): string[] {
   return candidateIds.filter((id) => !knownIds.has(id));
@@ -171,8 +195,14 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
         // one sync (e.g. two coffee runs) only costs one lookup query.
         const learnedCategoryCache = new Map<string, string | null>();
 
-        for (const id of newIds) {
-          const message = await getMessage(client, id);
+        // The Gmail fetch itself is the slow part and safe to parallelize
+        // (each message.get is independent); the DB reads/writes below stay
+        // sequential to avoid overwhelming Prisma's connection pool.
+        const messages = await mapWithConcurrency(newIds, MESSAGE_FETCH_CONCURRENCY, (id) =>
+          getMessage(client, id),
+        );
+
+        for (const message of messages) {
           const body = extractBodyText(message.payload);
           const parsed = body ? parseTransactionEmail(body) : null;
           if (!parsed) continue;

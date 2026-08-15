@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { syncGmailTransactions } from "@/lib/gmail-sync";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { BottomNav } from "./_components/BottomNav";
 import { ToastProvider } from "./_components/ToastProvider";
+import { GmailSyncTrigger } from "./_components/GmailSyncTrigger";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -24,11 +24,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/onboarding");
   }
 
-  // Checks Gmail for new bank purchase notifications on every navigation
-  // into the app, so a freshly-logged transaction shows up no matter which
-  // tab is opened first — never throws (see syncGmailTransactions), so a
-  // revoked token or a Gmail API hiccup can't break page loads.
-  await syncGmailTransactions(userId);
+  // Whether to mount GmailSyncTrigger at all — a cheap existence check, not
+  // the full sync itself (that now runs client-side, see below, instead of
+  // blocking this render like it used to).
+  const gmailConnection = await prisma.gmailConnection.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
 
   // Feeds the bottom nav's global "+" action sheet, which needs to open
   // QuickAddSheet from any page — same three fetches dashboard/page.tsx
@@ -43,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <ToastProvider>
       <div className="app-shell">
+        {gmailConnection && <GmailSyncTrigger />}
         <main className="app-content">{children}</main>
         <BottomNav
           expenseCategoryNames={expenseCategoryNames}
