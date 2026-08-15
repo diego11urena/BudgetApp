@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
@@ -90,8 +91,12 @@ export function upsertCycleIncomeEntry(
  * related rows. A cycle is a paycheck period, not a calendar month — it
  * stays open until explicitly closed via closeCycleAndStartNext, however
  * often that happens (e.g. twice a month for semi-monthly pay).
+ *
+ * Wrapped in cache() so layout.tsx, dashboard/page.tsx, and
+ * transactions/page.tsx — which each call this once per request for the
+ * same userId — share a single Prisma round-trip instead of three.
  */
-export async function getOrCreateDraftCycle(userId: string): Promise<BudgetCycle> {
+export const getOrCreateDraftCycle = cache(async (userId: string): Promise<BudgetCycle> => {
   const existing = await prisma.budgetCycle.findFirst({
     where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
     orderBy: { periodStart: "desc" },
@@ -102,7 +107,7 @@ export async function getOrCreateDraftCycle(userId: string): Promise<BudgetCycle
   return prisma.budgetCycle.create({
     data: { userId, label: formatCycleLabel(now), periodStart: now },
   });
-}
+});
 
 /** The user's most recently closed cycle, if any — for a "last paycheck" summary. */
 export function getMostRecentClosedCycle(userId: string) {

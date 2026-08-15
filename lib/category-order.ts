@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export interface CategoryUsageInfo {
@@ -35,12 +36,17 @@ export function orderCategoriesByUsage(usage: CategoryUsageInfo[]): string[] {
  * transactions already live in) rather than a separate denormalized
  * counter, so there's nothing to keep in sync when a transaction is
  * logged or deleted.
+ *
+ * Wrapped in cache() so layout.tsx, dashboard/page.tsx, and
+ * transactions/page.tsx — which each call this 3x per request (once per
+ * type) with the same userId/cycleId — share one set of queries instead
+ * of tripling them.
  */
-export async function getOrderedCategoryNames(
+export const getOrderedCategoryNames = cache(async (
   userId: string,
   cycleId: string,
   type: "EXPENSE" | "INCOME" | "SAVINGS",
-): Promise<string[]> {
+): Promise<string[]> => {
   const categories = await prisma.expenseCategory.findMany({
     where: { userId, type },
     select: { id: true, name: true },
@@ -76,4 +82,4 @@ export async function getOrderedCategoryNames(
   }));
 
   return orderCategoriesByUsage(usage);
-}
+});
