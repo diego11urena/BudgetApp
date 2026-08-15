@@ -5,16 +5,12 @@ import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { computeGoalProjection } from "@/lib/goal-projection";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
 import { GoalRing } from "./_components/GoalRing";
 import { AddGoalSheet } from "./_components/AddGoalSheet";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
 import { ContributeButton } from "./_components/ContributeButton";
-
-function formatEtaDate(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
 
 export default async function GoalsPage() {
   const session = await auth();
@@ -68,7 +64,7 @@ export default async function GoalsPage() {
                       <p className="goal-projection">
                         Per-cycle contribution: {formatCurrency(goal.currentCycleRecurringAmount)}{" "}
                         <ArrowRight size={14} aria-hidden="true" className="inline-arrow" /> on track
-                        to hit goal by {formatEtaDate(projection.etaDate)}
+                        to hit goal by {formatFriendlyDate(projection.etaDate)}
                       </p>
                     ) : (
                       <p className="goal-projection goal-projection--muted">

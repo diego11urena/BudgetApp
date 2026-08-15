@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
@@ -20,7 +21,7 @@ export function ChangePasswordSheet() {
         }}
       >
         <span>Change password</span>
-        <span>›</span>
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       {open && (

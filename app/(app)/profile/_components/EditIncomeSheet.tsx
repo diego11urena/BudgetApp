@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { IncomeSettingsForm, type IncomeSettingsInitial } from "./IncomeSettingsForm";
 
@@ -20,7 +21,7 @@ export function EditIncomeSheet({ initial }: { initial: IncomeSettingsInitial })
         }}
       >
         <span>Edit income</span>
-        <span>›</span>
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       {open && (

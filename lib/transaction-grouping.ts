@@ -1,3 +1,5 @@
+import { formatFriendlyDate } from "./format";
+
 export interface TransactionDateGroup<T> {
   label: string;
   items: T[];
@@ -11,14 +13,14 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
   );
 }
 
-/** "Today" / "Yesterday" / "Aug 1, 2026" — same short-date style used elsewhere in the app (e.g. a goal's ETA). */
+/** "Today" / "Yesterday" / "Aug 1, 2026" — lib/format.ts's formatFriendlyDate for anything older. */
 export function formatGroupDateLabel(date: Date, now: Date = new Date()): string {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
 
   if (isSameCalendarDay(date, now)) return "Today";
   if (isSameCalendarDay(date, yesterday)) return "Yesterday";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return formatFriendlyDate(date);
 }
 
 /**

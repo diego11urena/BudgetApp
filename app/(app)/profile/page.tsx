@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -86,7 +87,7 @@ export default async function ProfilePage({
       <div className="dashboard-section">
         <Link href="/profile/categories" className="line-item line-item--link">
           <span>Manage categories</span>
-          <span>›</span>
+          <ChevronRight size={18} aria-hidden="true" />
         </Link>
       </div>
 
@@ -94,7 +95,7 @@ export default async function ProfilePage({
         <h2>History</h2>
         <Link href="/history" className="line-item line-item--link">
           <span>Past quincenas</span>
-          <span>›</span>
+          <ChevronRight size={18} aria-hidden="true" />
         </Link>
       </div>
 
