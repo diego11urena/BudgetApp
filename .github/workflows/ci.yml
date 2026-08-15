@@ -16,6 +16,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Generated code (app/generated/prisma), gitignored on purpose — only
+      # `npm run build` regenerates it normally, which none of these steps
+      # run. Without this, every file importing the generated client fails
+      # to resolve ("Cannot find module '@/app/generated/prisma/client'").
+      - run: npx prisma generate
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm test
@@ -58,6 +63,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npx prisma migrate deploy
       # DB-backed concurrency tests (lib/*.concurrency.test.ts) are skipped
       # in the fast checks job (no DATABASE_URL there) — this is the only
