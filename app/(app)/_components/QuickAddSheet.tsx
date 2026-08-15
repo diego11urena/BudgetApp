@@ -87,6 +87,8 @@ export function QuickAddSheet({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Which field validate() blamed, so it (not just the red text) gets the invalid-state ring. Null for a server-side error, which validate() never produced and isn't reliably attributable to one field. */
+  const [errorField, setErrorField] = useState<"amount" | "category" | "date" | null>(null);
   const [deletePending, setDeletePending] = useState(false);
 
   const [visible, setVisible] = useState(false);
@@ -163,23 +165,23 @@ export function QuickAddSheet({
   // doing nothing (or nothing visible) the way native constraint
   // validation could. The server re-validates independently regardless;
   // this is purely for instant feedback without a round trip.
-  function validate(): string | null {
+  function validate(): { field: "amount" | "category" | "date"; message: string } | null {
     if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
-      return "Enter a valid amount";
+      return { field: "amount", message: "Enter a valid amount" };
     }
     if (!categoryValue.trim()) {
-      return "Choose or enter a category";
+      return { field: "category", message: "Choose or enter a category" };
     }
     if (!occurredAt) {
-      return "Date is required";
+      return { field: "date", message: "Date is required" };
     }
     if (occurredAt > todayDate) {
-      return "Date can't be in the future";
+      return { field: "date", message: "Date can't be in the future" };
     }
     // The cycle-start floor is a create-time-only affordance — editing
     // allows any past date (see updateTransactionAction).
     if (!isEditing && occurredAt < cycleStartDate) {
-      return "Date must be within this quincena";
+      return { field: "date", message: "Date must be within this quincena" };
     }
     return null;
   }
@@ -188,11 +190,13 @@ export function QuickAddSheet({
     e.preventDefault();
     const validationError = validate();
     if (validationError) {
-      setError(validationError);
+      setError(validationError.message);
+      setErrorField(validationError.field);
       return;
     }
     setPending(true);
     setError(null);
+    setErrorField(null);
     const formData = new FormData(e.currentTarget);
     const action = isEditing ? updateTransactionAction : addTransactionAction;
     const result = await action(undefined, formData);
@@ -346,7 +350,7 @@ export function QuickAddSheet({
               onChange={(e) => setAmount(e.target.value)}
               autoFocus
               required
-              className="sheet-amount-input"
+              className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
             />
           </div>
@@ -367,13 +371,16 @@ export function QuickAddSheet({
               min={isEditing ? undefined : cycleStartDate}
               max={todayDate}
               onChange={(e) => setOccurredAt(e.target.value)}
+              className={errorField === "date" ? "is-invalid" : ""}
             />
           </div>
 
           <div className="field">
             <label>Category</label>
             {!customMode && categoryNames.length > 0 && (
-              <div className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""}`}>
+              <div
+                className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""} ${errorField === "category" ? "is-invalid" : ""}`}
+              >
                 {(showAllCategories ? categoryNames : categoryNames.slice(0, TOP_CHIP_COUNT)).map(
                   (name) => (
                     <button
@@ -414,6 +421,7 @@ export function QuickAddSheet({
                 required
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
+                className={errorField === "category" ? "is-invalid" : ""}
               />
             )}
           </div>

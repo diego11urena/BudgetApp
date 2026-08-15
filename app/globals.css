@@ -330,6 +330,19 @@ a {
   margin-top: 0.5rem;
 }
 
+/* Applied to whichever input/select actually failed validation, alongside
+   its .error-text sibling — a red border ring, not just red text below
+   the field, so the invalid field itself is obvious at a glance. A
+   box-shadow ring (not a wider border) so it never shifts layout.
+   !important is deliberate here: this is a state override meant to win
+   over whatever other component-specific class (.sheet-amount-input,
+   etc.) also sets this same field's border, not a specificity hack to
+   route around. */
+.is-invalid {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 2px var(--color-error-bg);
+}
+
 .overage-text {
   color: var(--color-error);
   font-weight: 600;

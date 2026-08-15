@@ -45,6 +45,7 @@ export function ChangePasswordForm() {
           required
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          className={mismatch ? "is-invalid" : ""}
         />
         {mismatch && <span className="error-text">Passwords don&apos;t match</span>}
       </div>

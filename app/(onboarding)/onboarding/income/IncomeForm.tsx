@@ -24,6 +24,7 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
           placeholder="1000.00"
           defaultValue={initial?.netQuincenaAmount}
           required
+          className={state?.error ? "is-invalid" : ""}
         />
         <span className="field-hint">
           What actually lands in your account each quincena — after any taxes or deductions

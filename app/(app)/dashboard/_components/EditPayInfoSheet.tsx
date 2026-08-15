@@ -38,6 +38,7 @@ export function EditPayInfoSheet({
   const [payDate, setPayDate] = useState(initialPayDate);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<"amount" | "date" | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   // The min bound has to cover the cycle's own current periodStart (which
@@ -62,14 +63,17 @@ export function EditPayInfoSheet({
     // feedback (the form has noValidate specifically so this runs instead).
     if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
       setError("Enter a valid amount");
+      setErrorField("amount");
       return;
     }
     if (!payDate || payDate < minDate || payDate > maxDate) {
       setError(`Date must be between ${minDate} and ${maxDate}`);
+      setErrorField("date");
       return;
     }
     setPending(true);
     setError(null);
+    setErrorField(null);
     const fd = new FormData();
     fd.set("netQuincenaAmount", amount);
     fd.set("payDate", payDate);
@@ -122,7 +126,7 @@ export function EditPayInfoSheet({
               inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="sheet-amount-input"
+              className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
             />
           </div>
@@ -136,6 +140,7 @@ export function EditPayInfoSheet({
               min={minDate}
               max={maxDate}
               onChange={(e) => setPayDate(e.target.value)}
+              className={errorField === "date" ? "is-invalid" : ""}
             />
           </div>
 

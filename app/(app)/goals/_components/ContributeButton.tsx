@@ -141,7 +141,7 @@ function ContributeSheet({
               onChange={(e) => setAmount(e.target.value)}
               autoFocus
               required
-              className="sheet-amount-input"
+              className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
             />
           </div>

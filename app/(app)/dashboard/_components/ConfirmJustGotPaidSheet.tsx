@@ -106,6 +106,7 @@ export function ConfirmJustGotPaidSheet({
             min={minDate}
             max={maxDate}
             disabled={confirmed}
+            className={error ? "is-invalid" : ""}
             onChange={(e) => {
               setPayDate(e.target.value);
               setError(null);
