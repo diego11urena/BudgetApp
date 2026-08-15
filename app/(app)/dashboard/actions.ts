@@ -12,7 +12,7 @@ import {
 } from "@/lib/cycles";
 import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
-import { decimalString } from "@/lib/validations/shared";
+import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
 
 export interface CycleClosedSummary {
@@ -86,7 +86,7 @@ export async function confirmNewCycleIncomeAction(
 
   const parsed = decimalString.safeParse(formData.get("netQuincenaAmount"));
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid amount" };
+    return { error: parsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
   }
   const netQuincenaAmount = parsed.data;
 
@@ -131,7 +131,7 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
 
   const parsedAmount = decimalString.safeParse(formData.get("netQuincenaAmount"));
   if (!parsedAmount.success) {
-    return { error: parsedAmount.error.issues[0]?.message ?? "Invalid amount" };
+    return { error: parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
   }
 
   const payDateStr = formData.get("payDate");

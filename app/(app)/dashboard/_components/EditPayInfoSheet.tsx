@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction } from "../actions";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { formatCycleLabel } from "@/lib/pay-date";
+import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 
 const EDIT_PAY_DATE_LOOKBACK_DAYS = 30;
 
@@ -61,8 +62,13 @@ export function EditPayInfoSheet({
     // Explicit checks instead of relying on the amount/date inputs' native
     // required/min/max — those silently block submission with no in-app
     // feedback (the form has noValidate specifically so this runs instead).
-    if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
-      setError("Enter a valid amount");
+    if (!amount.trim() || Number.isNaN(Number(amount))) {
+      setError(INVALID_AMOUNT_FORMAT_MESSAGE);
+      setErrorField("amount");
+      return;
+    }
+    if (Number(amount) <= 0) {
+      setError(AMOUNT_NOT_POSITIVE_MESSAGE);
       setErrorField("amount");
       return;
     }

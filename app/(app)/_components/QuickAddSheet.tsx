@@ -10,6 +10,7 @@ import {
 } from "../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
+import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { useToast } from "./ToastProvider";
 import { useModalFocus } from "./useModalFocus";
 
@@ -166,8 +167,11 @@ export function QuickAddSheet({
   // validation could. The server re-validates independently regardless;
   // this is purely for instant feedback without a round trip.
   function validate(): { field: "amount" | "category" | "date"; message: string } | null {
-    if (!amount.trim() || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
-      return { field: "amount", message: "Enter a valid amount" };
+    if (!amount.trim() || Number.isNaN(Number(amount))) {
+      return { field: "amount", message: INVALID_AMOUNT_FORMAT_MESSAGE };
+    }
+    if (Number(amount) <= 0) {
+      return { field: "amount", message: AMOUNT_NOT_POSITIVE_MESSAGE };
     }
     if (!categoryValue.trim()) {
       return { field: "category", message: "Choose or enter a category" };
