@@ -1,6 +1,11 @@
 # BudgetApp
 
-A personal budgeting web app for Panama, built with Next.js, TypeScript, and Postgres (via Prisma). It models Panama-specific payroll rules — CSS, Seguro Educativo, ISR, and Décimo Tercer Mes — and retains full history for past budget cycles.
+A personal budgeting web app built with Next.js, TypeScript, and Postgres (via
+Prisma), designed around biweekly "quincena" pay periods (as is standard in
+Panama and other countries). You enter your net take-home pay per quincena
+directly — the app doesn't calculate payroll deductions itself — and it
+tracks spending, savings goals, and fixed-budget targets against that income,
+retaining full history for every past budget cycle.
 
 ## Getting Started
 
@@ -20,15 +25,16 @@ A personal budgeting web app for Panama, built with Next.js, TypeScript, and Pos
    ```bash
    npm run dev
    ```
-5. Visit `http://localhost:3000` — you'll be redirected to sign up, then through onboarding (income → expenses → accounts).
+5. Visit `http://localhost:3000` — you'll be redirected to sign up, then through onboarding (income → expenses → savings).
 
 Optional: `npm run db:seed` creates a demo user (`demo@example.com` / `password123`).
 
 ## Gmail import setup (optional)
 
-Profile has a "Connect Gmail" feature that auto-imports purchase notification
-emails from Banco General as transactions. It's entirely optional — the rest
-of the app works fully without it. To enable it locally:
+Profile has a "Connect Gmail" feature that auto-imports transaction
+notification emails (Banco General card purchases, Yappy sent/received) as
+transactions. It's entirely optional — the rest of the app works fully
+without it. To enable it locally:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com), create a
    new project, and enable the **Gmail API** (APIs & Services → Library).
@@ -45,8 +51,9 @@ of the app works fully without it. To enable it locally:
    (`openssl rand -base64 32`) — this encrypts the stored refresh token.
 5. Restart the dev server, go to Profile, click "Connect Gmail."
 
-Only emails from `transaccionesbg@bgeneral.com` are ever queried — see
-`lib/gmail-parsers.ts` to add support for other senders/email formats.
+Only emails from Banco General (`transaccionesbg@bgeneral.com`) and Yappy
+(`notificaciones@yappy.com.pa`) are ever queried — see `lib/gmail-parsers.ts`
+to add support for other senders/email formats.
 
 ## Deployment
 
@@ -77,6 +84,6 @@ Local dev is unaffected by any of this — `lib/prisma.ts` always reads
 
 - `npm run dev` — start the dev server
 - `npm run build` / `npm run start` — production build/run
-- `npm test` — run unit tests (Panama tax/payroll calculations)
+- `npm test` — run unit tests
 - `npx prisma studio` — inspect the database
 - `npx prisma migrate dev` — apply schema changes

@@ -32,27 +32,22 @@ Playwright is a devDependency. System Chrome works without downloading Chromium:
 const browser = await chromium.launch({ channel: "chrome" });
 ```
 Flow to drive (3 steps, no accounts step): `/signup` -> `/onboarding/income` (fill name +
-`#grossMonthlyAmount` — **the full monthly salary, as quoted in a Panama employment
-contract** — check live preview math in `.preview-box`, which shows both the monthly
-breakdown and the derived quincena net) -> `/onboarding/expenses` (fixed expenses —
-starts with **zero rows**, click "+ Add a fixed expense" to add each one, no pre-added
-categories) -> `/onboarding/savings` (savings goals — same zero-rows-allowed pattern,
-"+ Add a savings goal") -> `/dashboard`. Both expenses and savings can be submitted with
-zero rows and still advance.
+`#netQuincenaAmount` — **net take-home pay for one quincena, entered directly**, no
+payroll math involved) -> `/onboarding/expenses` (fixed expenses — starts with **zero
+rows**, click "+ Add a fixed expense" to add each one, no pre-added categories) ->
+`/onboarding/savings` (savings goals — same zero-rows-allowed pattern, "+ Add a savings
+goal") -> `/dashboard`. Both expenses and savings can be submitted with zero rows and
+still advance.
 
-**Income model (monthly input, quincena derived, no décimo auto-calc)**:
-`IncomeSource.grossMonthlyAmount` is the full monthly salary. `computeNetIncomeForCycle`
-(`lib/panama-tax.ts`) computes CSS (9.75%), Seguro Educativo (1.25%), and ISR (annualized
-`×12`) on that monthly gross — same as a real payslip — then derives the quincena figures
-as **exactly half** of every monthly one (CSS/SE are flat percentages and ISR is already
-monthly, so halving is exact, not an approximation). The result has **both** bases
-explicit: `netMonthlyAmount` / `netQuincenaAmount` etc. — **only the `quincena*` fields
-ever get stored on `CycleIncomeEntry`** (a `BudgetCycle` is one quincena, not a month) —
-storing the monthly figures there was an actual bug fixed earlier this session (it
-overstated "available to spend" ~2x). Décimo Tercer Mes is **not auto-calculated at
-all** — the user logs it manually via "Add Income" (already fully supports arbitrary
-one-off income by name+amount). Sanity check for $2,000/month: CSS $195, SE $25, ISR
-$162.50, net monthly $1,617.50, net quincena **$808.75**.
+**Income model (direct quincena entry, no payroll calculation)**:
+`IncomeSource.netQuincenaAmount` is exactly what the user types in — their actual
+take-home pay for one quincena. An earlier version of the app instead took a monthly
+gross salary and derived net pay via a `lib/panama-tax.ts` module (CSS/Seguro
+Educativo/ISR/Décimo Tercer Mes calculations); that module and model were removed, since
+deductions are already handled elsewhere by the time the number lands in the user's
+account — asking for net pay directly is both simpler and more accurate. One-off income
+outside the regular paycheck (e.g. a bonus) is logged manually via "Add Income," which
+already supports arbitrary one-off income by name+amount.
 
 **Editing income later**: `/profile` has an "Income" section (`IncomeSettingsForm.tsx`,
 `updateIncomeAction`) — this didn't exist before and was a real gap (no way to change your
@@ -215,9 +210,9 @@ has a `(userId, label)` unique constraint, so clicking the button twice in the s
 error. `label` is just a display string (the start date, `YYYY-MM-DD`) now, not a dedupe key.
 
 Clicking closes the current cycle (`status: CLOSED`, `periodEnd` set) and opens a new
-`ACTIVE` one, **carrying forward** the primary `IncomeSource` (recomputed from
-`grossMonthlyAmount`, storing the derived quincena breakdown — same amount every time
-unless the salary was edited from Profile in between) and all of the just-closed cycle's
+`ACTIVE` one, **carrying forward** the primary `IncomeSource` (its `netQuincenaAmount`
+copied as-is — same amount every time unless it was edited from Profile in between) and
+all of the just-closed cycle's
 `CycleBudgetGoal` rows (fixed expenses + savings targets) — but **not**
 `CycleTransaction` rows, which stay on their original (now closed) cycle forever. Worth
 checking in the DB after a click: exactly the same `IncomeSource`/category ids reused (not
@@ -276,9 +271,5 @@ feature) but nothing in onboarding writes to them; expect 0 rows there always.
 - Prisma 7's `prisma-client` generator requires an explicit driver adapter at
   runtime — `lib/prisma.ts` uses `@prisma/adapter-pg`'s `PrismaPg`. A bare
   `new PrismaClient()` throws "Expected 1 arguments, but got 0".
-- `lib/panama-tax.ts` imports `Decimal` from the standalone `decimal.js` package,
-  NOT from `@/app/generated/prisma/client` — the generated client bundles
-  Node-only engine code that breaks if pulled into a `'use client'` component
-  (it's imported by `IncomePreview.tsx` for the live preview).
 - Next.js 16 renamed `middleware.ts` to `proxy.ts` (old name still works but
   warns "deprecated, use proxy instead").
