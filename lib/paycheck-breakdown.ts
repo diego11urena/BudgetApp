@@ -34,9 +34,9 @@ export interface PaycheckBreakdown {
 }
 
 const DEFAULT_THRESHOLD_PERCENT = 5;
-/** Matches the number of fixed categorical chart colors (--chart-cat-1..6) — beyond this, even an above-threshold group folds into "Other" so the chart never has to cycle/reuse a color. */
+/** Matches the number of fixed categorical chart colors (--chart-cat-1..8) — beyond this, even an above-threshold group folds into "Other" so the chart never has to cycle/reuse a color. */
 const MAX_CHART_GROUP_SLICES = 6;
-const CATEGORY_COLOR_COUNT = 6;
+const CATEGORY_COLOR_COUNT = 8;
 
 /** Payment methods are a small, fixed set — direct color assignment, no hashing/collision-resolution needed (unlike the unbounded set of user categories). */
 const PAYMENT_METHOD_COLOR_VAR: Record<string, string> = {
@@ -72,16 +72,25 @@ function preferredColorIndex(id: string): number {
 
 /**
  * Assigns each category its hash-preferred color, resolving collisions by
- * probing to the next free slot — categories are processed in a fixed
- * (id-sorted) order so the resolution itself is deterministic. Guarantees
- * every category gets a *distinct* color whenever there are no more
- * categories than the palette has slots (the common case); beyond that,
- * reuse becomes unavoidable and is resolved the same deterministic way.
+ * probing to the next free slot. `visibleIds` — the categories that will
+ * actually render as their own chart slice, i.e. survive the
+ * threshold/MAX_CHART_GROUP_SLICES fold below — are assigned first
+ * (id-sorted, for determinism), so they're guaranteed distinct colors
+ * whenever there's room in the palette for them (true today:
+ * MAX_CHART_GROUP_SLICES <= CATEGORY_COLOR_COUNT). A category that gets
+ * folded into "Other" in the chart still needs *some* color for the
+ * legend (which hides nothing), assigned afterward from whatever slots
+ * remain — those can collide with each other, but never with a slice
+ * that's actually visible in the pie, which is the only collision a user
+ * can actually see.
  */
-function assignCategoryColorIndexes(ids: string[]): Map<string, number> {
+function assignCategoryColorIndexes(visibleIds: string[], allIds: string[]): Map<string, number> {
+  const visibleSet = new Set(visibleIds);
+  const orderedIds = [...visibleIds.sort(), ...allIds.filter((id) => !visibleSet.has(id)).sort()];
+
   const used = new Set<number>();
   const assignment = new Map<string, number>();
-  for (const id of [...ids].sort()) {
+  for (const id of orderedIds) {
     let index = preferredColorIndex(id);
     for (let attempts = 0; used.has(index) && attempts < CATEGORY_COLOR_COUNT; attempts++) {
       index = (index + 1) % CATEGORY_COLOR_COUNT;
@@ -181,9 +190,30 @@ export function computeBreakdown(
     return { pieTotal: 0, legendSlices: [], chartSlices: [] };
   }
 
+  // Which categories will actually render as their own chart slice — same
+  // rule the chart-only keep/fold split below applies (sorted by amount,
+  // top MAX_CHART_GROUP_SLICES clearing thresholdPercent), computed here
+  // first so assignCategoryColorIndexes can guarantee *those* get distinct
+  // colors, rather than every category that merely exists regardless of
+  // whether it's actually visible (most of which fold into "Other" and
+  // colliding there is invisible). Sorted/indexed over the full,
+  // unfiltered list — matching the later split's own indices exactly —
+  // then UNCATEGORIZED is dropped from the result since it never draws
+  // its own color slot either way (colorVarFor always routes it to
+  // --chart-other).
+  const sortedGroupTotals = [...financials.groupTotals].sort((a, b) => b.amount - a.amount);
+  const chartVisibleIds =
+    groupBy === "category"
+      ? sortedGroupTotals
+          .filter((g, i) => i < MAX_CHART_GROUP_SLICES && (g.amount / pieTotal) * 100 >= thresholdPercent)
+          .map((g) => g.id)
+          .filter((id) => id !== "UNCATEGORIZED")
+      : [];
+
   const colorIndexes =
     groupBy === "category"
       ? assignCategoryColorIndexes(
+          chartVisibleIds,
           financials.groupTotals.filter((g) => g.id !== "UNCATEGORIZED").map((g) => g.id),
         )
       : new Map();

@@ -81,6 +81,11 @@
   --chart-cat-4: #c2478d;
   --chart-cat-5: #7c4a2d;
   --chart-cat-6: #4a5578;
+  /* 7-8 added so a category-grouped pie with more than 6 categories has
+     more room before two chart slices are forced to share a color (see
+     lib/paycheck-breakdown.ts's assignCategoryColorIndexes). */
+  --chart-cat-7: #0d9488;
+  --chart-cat-8: #65a30d;
   --chart-savings: var(--color-success);
   --chart-remaining: #b7b9c6;
   --chart-other: #8a8d9c;
@@ -132,6 +137,8 @@
     --chart-cat-4: #dd6fae;
     --chart-cat-5: #a97a52;
     --chart-cat-6: #7a84ab;
+    --chart-cat-7: #14b8a6;
+    --chart-cat-8: #84cc16;
     --chart-savings: var(--color-success);
     --chart-remaining: #55586a;
     --chart-other: #6c6f82;

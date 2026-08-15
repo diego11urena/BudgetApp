@@ -179,6 +179,39 @@ describe("computeBreakdown", () => {
     expect(new Set(colors).size).toBe(colors.length);
   });
 
+  it("gives the 6 visible chart slices distinct colors even with more categories than the palette has slots, even though a folded 'Other' member can still collide with one", () => {
+    // 9 categories, all clearing the 5% threshold and none tied on amount
+    // -- exactly the top 6 by amount end up as their own chart slice, the
+    // bottom 3 fold into "Other". Before this fix, color assignment ran
+    // across all 9 regardless of which 6 would actually be visible, so two
+    // of the *visible* slices could land on the same hash-preferred color
+    // once there were more categories than palette slots (confirmed live:
+    // "Rent" and "Entertainment" rendering as nearly the same pink).
+    const groupTotals = Array.from({ length: 9 }, (_, i) => ({
+      id: `cat-${i}`,
+      name: `Category ${i}`,
+      amount: 100 - i, // strictly descending, so rank order is unambiguous
+    }));
+    const result = computeBreakdown({
+      baseIncome: groupTotals.reduce((sum, c) => sum + c.amount, 0),
+      extraIncome: 0,
+      totalExpenses: groupTotals.reduce((sum, c) => sum + c.amount, 0),
+      totalSavings: 0,
+      groupTotals,
+    });
+
+    const visibleColors = result.chartSlices
+      .filter((s) => s.kind === "expense")
+      .map((s) => s.colorVar);
+    expect(visibleColors).toHaveLength(6);
+    expect(new Set(visibleColors).size).toBe(6);
+
+    // The "Other" slice exists (3 categories folded into it) — confirming
+    // this test actually exercises the >6-categories case, not just a
+    // 6-or-fewer one that would trivially pass either way.
+    expect(result.chartSlices.some((s) => s.kind === "other")).toBe(true);
+  });
+
   describe("scope: spending", () => {
     it("excludes Savings and Remaining even when income exceeds spending", () => {
       const result = computeBreakdown(
