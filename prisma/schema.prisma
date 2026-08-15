@@ -40,6 +40,9 @@ model IncomeSource {
   cycleEntries CycleIncomeEntry[]
 
   @@index([userId])
+  // Also enforced by a partial unique index NOT representable here: at
+  // most one row per userId with isActive = true. See
+  // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
 }
 
 // Kept separate from User (rather than columns on it) so the encrypted
@@ -84,6 +87,9 @@ model BudgetCycle {
   transactions  CycleTransaction[]
 
   @@index([userId, periodStart])
+  // Also enforced by a partial unique index NOT representable here: at
+  // most one row per userId with status IN (DRAFT, ACTIVE). See
+  // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
 }
 
 model CycleIncomeEntry {
@@ -154,6 +160,11 @@ model ExpenseCategory {
   // type is now part of the identity, so "Travel" the expense and "Travel"
   // the goal are distinct rows.
   @@unique([userId, name, type])
+  // Also enforced case-insensitively by an expression unique index NOT
+  // representable here: UNIQUE(userId, LOWER(name), type). getOrCreateCategory
+  // treats "Rent" and "rent" as the same category; this constraint above
+  // alone can't catch that collision. See
+  // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
 }
 
 enum TransactionType {

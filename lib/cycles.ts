@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parsePayDate } from "@/lib/pay-date";
+import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -85,6 +86,13 @@ export function upsertCycleIncomeEntry(
   });
 }
 
+function findOpenCycle(userId: string) {
+  return prisma.budgetCycle.findFirst({
+    where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
+    orderBy: { periodStart: "desc" },
+  });
+}
+
 /**
  * Returns the user's current open (DRAFT or ACTIVE) cycle, creating one if
  * none exists yet. Onboarding writes progressively into this same cycle's
@@ -92,21 +100,38 @@ export function upsertCycleIncomeEntry(
  * stays open until explicitly closed via closeCycleAndStartNext, however
  * often that happens (e.g. twice a month for semi-monthly pay).
  *
+ * The find-then-create below is not atomic on its own — two concurrent
+ * calls (two tabs, a retried request) could both see no open cycle and
+ * both try to create one. What actually prevents the duplicate is a
+ * partial unique index on (userId) WHERE status IN (DRAFT, ACTIVE) — see
+ * prisma/migrations/20260815035814_race_condition_partial_unique_indexes
+ * — so the loser's create() throws P2002 instead of succeeding; catching
+ * that and re-reading is what makes this function itself race-safe.
+ *
  * Wrapped in cache() so layout.tsx, dashboard/page.tsx, and
  * transactions/page.tsx — which each call this once per request for the
- * same userId — share a single Prisma round-trip instead of three.
+ * same userId — share a single Prisma round-trip instead of three. That's
+ * a per-request dedupe only, not a concurrency fix — it doesn't help two
+ * different concurrent requests, which is why the DB constraint above is
+ * still required.
  */
 export const getOrCreateDraftCycle = cache(async (userId: string): Promise<BudgetCycle> => {
-  const existing = await prisma.budgetCycle.findFirst({
-    where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
-    orderBy: { periodStart: "desc" },
-  });
+  const existing = await findOpenCycle(userId);
   if (existing) return existing;
 
   const now = nowInPanama();
-  return prisma.budgetCycle.create({
-    data: { userId, label: formatCycleLabel(now), periodStart: now },
-  });
+  try {
+    return await prisma.budgetCycle.create({
+      data: { userId, label: formatCycleLabel(now), periodStart: now },
+    });
+  } catch (error) {
+    if (!isUniqueConstraintViolation(error)) throw error;
+    // Lost the race to a concurrent call that also passed the check above
+    // — the unique index guarantees exactly one winner; re-read it.
+    const winner = await findOpenCycle(userId);
+    if (winner) return winner;
+    throw error;
+  }
 });
 
 /** The user's most recently closed cycle, if any — for a "last paycheck" summary. */

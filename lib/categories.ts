@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@/app/generated/prisma/client";
+import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -45,12 +46,15 @@ export async function seedDefaultIncomeCategories(db: Db, userId: string) {
  * CategoryNameInput's dropdown is the client-side half of this same fix
  * (it nudges picking the exact existing spelling), but this is the actual
  * backstop: it holds regardless of which UI path a name came through.
- * Postgres text equality is case-sensitive by default, so this can't be
- * expressed as the unique constraint itself (userId_name_type) — it's a
- * find-then-create instead of a single upsert, which isn't atomic against
- * a true concurrent double-submit of two different-cased spellings, an
- * acceptable trade-off at this app's personal-budgeting scale rather than
- * a functional unique index migration.
+ * Postgres text equality is case-sensitive by default, so this can't rely
+ * on the schema-native unique constraint (userId_name_type) — the find
+ * below is case-insensitive, but the find-then-create as a whole still
+ * isn't atomic against two concurrent different-cased submits on its own.
+ * What actually closes that race is a separate case-insensitive expression
+ * unique index (UNIQUE(userId, LOWER(name), type)) — see
+ * prisma/migrations/20260815035814_race_condition_partial_unique_indexes
+ * — so a losing concurrent create() throws P2002 instead of succeeding;
+ * catching that and re-reading is what makes this function race-safe.
  *
  * Not used by callers that need the upsert's *update* branch to do real
  * work (e.g. goals/actions.ts sets lifetimeTargetAmount/recurring on every
@@ -64,10 +68,20 @@ export async function getOrCreateCategory(
   type: "EXPENSE" | "INCOME" | "SAVINGS",
 ) {
   const trimmed = name.trim();
-  const existing = await db.expenseCategory.findFirst({
-    where: { userId, type, name: { equals: trimmed, mode: "insensitive" } },
-  });
+  const findExisting = () =>
+    db.expenseCategory.findFirst({
+      where: { userId, type, name: { equals: trimmed, mode: "insensitive" } },
+    });
+
+  const existing = await findExisting();
   if (existing) return existing;
 
-  return db.expenseCategory.create({ data: { userId, name: trimmed, type } });
+  try {
+    return await db.expenseCategory.create({ data: { userId, name: trimmed, type } });
+  } catch (error) {
+    if (!isUniqueConstraintViolation(error)) throw error;
+    const winner = await findExisting();
+    if (winner) return winner;
+    throw error;
+  }
 }

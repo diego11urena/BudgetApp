@@ -1,9 +1,9 @@
 import { OAuth2Client } from "google-auth-library";
-import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "./prisma";
 import { getOrCreateDraftCycle } from "./cycles";
 import { decryptToken } from "./gmail-crypto";
 import { parseTransactionEmail } from "./gmail-parsers";
+import { isUniqueConstraintViolation } from "./prisma-errors";
 
 /** Every sender address whose mail gets scanned for transactions — the bank (credit/debit card purchases) and Yappy (P2P sent/received). */
 const BANK_SENDERS = ["transaccionesbg@bgeneral.com", "notificaciones@yappy.com.pa"];
@@ -111,11 +111,6 @@ async function getMessage(client: OAuth2Client, id: string): Promise<GmailMessag
     params: { format: "full" },
   });
   return res.data;
-}
-
-/** Exported so its P2002-detection rule is unit-testable without a live DB connection. */
-export function isUniqueConstraintViolation(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 /**
