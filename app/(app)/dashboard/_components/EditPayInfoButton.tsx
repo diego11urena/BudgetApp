@@ -4,17 +4,31 @@ import { useState } from "react";
 import { EditPayInfoSheet } from "./EditPayInfoSheet";
 
 /**
- * Plain-text "Edit" trigger for correcting this quincena's already-recorded
+ * Plain-text "Edit" trigger for correcting a quincena's already-recorded
  * pay amount/date — separate from "I just got paid" (HeroCard), which
- * always starts a new cycle instead of correcting the current one.
+ * always starts a new cycle instead of correcting the current one. Also
+ * used on a past cycle's own page (via cycleId), where it corrects that
+ * specific closed cycle instead of the current draft one.
  */
 export function EditPayInfoButton({
   currentAmount,
   currentPayDate,
+  cycleId,
+  closed = false,
+  previousBoundDate = null,
+  nextBoundDate = null,
 }: {
   currentAmount: number;
-  /** "YYYY-MM-DD" — the current cycle's periodStart. */
+  /** "YYYY-MM-DD" — the cycle's periodStart. */
   currentPayDate: string;
+  /** Present -> edits this specific cycle instead of the current draft one. */
+  cycleId?: string;
+  /** True for a closed cycle — swaps the 30-day-lookback/not-future date window for one bounded by this cycle's actual neighbors, and previews/confirms a pay-date change that would reassign transactions. */
+  closed?: boolean;
+  /** "YYYY-MM-DD", exclusive — the earliest valid pay date (the previous cycle's own periodStart), or null if this is the oldest cycle. Only meaningful when closed. */
+  previousBoundDate?: string | null;
+  /** "YYYY-MM-DD", exclusive — the latest valid pay date (the next cycle's periodStart), or null if somehow none exists. Only meaningful when closed. */
+  nextBoundDate?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -36,6 +50,10 @@ export function EditPayInfoButton({
         <EditPayInfoSheet
           initialAmount={currentAmount}
           initialPayDate={currentPayDate}
+          cycleId={cycleId}
+          closed={closed}
+          previousBoundDate={previousBoundDate}
+          nextBoundDate={nextBoundDate}
           returnFocusTo={triggerElement}
           onDone={() => setOpen(false)}
         />

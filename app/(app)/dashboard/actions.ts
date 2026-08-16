@@ -4,12 +4,15 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  assessPayDateChange,
   closeCycleAndStartNext,
   getActiveIncomeSource,
   getOrCreateDraftCycle,
   parsePayDate,
   upsertCycleIncomeEntry,
+  type PayDateChangeResult,
 } from "@/lib/cycles";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
@@ -114,13 +117,24 @@ const EDIT_PAY_DATE_LOOKBACK_DAYS = 30;
 export type EditPayInfoResult = { error?: string } | undefined;
 
 /**
- * "Edit" on the Home hero card — corrects the CURRENT cycle's already-
- * recorded pay amount and/or pay date in place, as opposed to "I just got
- * paid" which always closes the cycle and starts a new one. Updates
- * IncomeSource.netQuincenaAmount too, same as confirmNewCycleIncomeAction,
- * so the correction becomes the new baseline. Recalculating Available to
- * spend/days remaining/etc. falls out for free: they're all derived live
- * from the cycle's stored periodStart/income on every render.
+ * "Edit" on the Home hero card, and (via an explicit cycleId in formData)
+ * the same "Edit" trigger on a past cycle's own page — corrects a cycle's
+ * already-recorded pay amount and/or pay date in place, as opposed to "I
+ * just got paid" which always closes the cycle and starts a new one.
+ *
+ * On the current draft cycle (no cycleId, or cycleId resolving to it):
+ * unchanged behavior — updates IncomeSource.netQuincenaAmount too, so the
+ * correction becomes the new baseline, and the pay date is bounded to the
+ * last 30 days / not in the future.
+ *
+ * On a CLOSED cycle: the IncomeSource baseline is left alone (only the
+ * currently-open cycle's edits should change what prefills the *next*
+ * cycle's income prompt), and a pay-date change is bounded by its
+ * neighbors' own periodStart instead of "today" — reassigning whichever
+ * transactions now fall on the other side of the shifted boundary, via
+ * the exact same assessPayDateChange the preview action already showed
+ * the user (see previewPayDateChangeAction) — so what gets reassigned can
+ * never disagree with what the confirmation said would happen.
  */
 export async function editCyclePayInfoAction(formData: FormData): Promise<EditPayInfoResult> {
   const session = await auth();
@@ -142,11 +156,33 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
   if (!payDate) {
     return { error: "Invalid date" };
   }
-  const todayStart = nowInPanama();
-  const earliest = new Date(todayStart);
-  earliest.setDate(earliest.getDate() - EDIT_PAY_DATE_LOOKBACK_DAYS);
-  if (payDate.getTime() > todayStart.getTime() || payDate.getTime() < earliest.getTime()) {
-    return { error: "Date must be within the last 30 days and not in the future" };
+
+  const hintedCycleId = formData.get("cycleId");
+  const cycle =
+    typeof hintedCycleId === "string" && hintedCycleId
+      ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
+      : await getOrCreateDraftCycle(userId);
+  if (!cycle) {
+    return { error: "Quincena not found" };
+  }
+
+  let assessment: PayDateChangeResult | null = null;
+  const payDateChanging = payDate.getTime() !== cycle.periodStart.getTime();
+
+  if (cycle.status === "CLOSED") {
+    if (payDateChanging) {
+      assessment = await assessPayDateChange(userId, cycle, payDate);
+      if (!assessment.ok) {
+        return { error: assessment.error };
+      }
+    }
+  } else {
+    const todayStart = nowInPanama();
+    const earliest = new Date(todayStart);
+    earliest.setDate(earliest.getDate() - EDIT_PAY_DATE_LOOKBACK_DAYS);
+    if (payDate.getTime() > todayStart.getTime() || payDate.getTime() < earliest.getTime()) {
+      return { error: "Date must be within the last 30 days and not in the future" };
+    }
   }
 
   const incomeSource = await getActiveIncomeSource(prisma, userId);
@@ -154,19 +190,64 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
     return { error: "No income source found yet — complete onboarding first." };
   }
 
-  const cycle = await getOrCreateDraftCycle(userId);
-
-  await prisma.$transaction([
-    prisma.incomeSource.update({
-      where: { id: incomeSource.id },
-      data: { netQuincenaAmount: parsedAmount.data },
-    }),
-    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, parsedAmount.data),
+  const writes: Prisma.PrismaPromise<unknown>[] = [];
+  if (cycle.status !== "CLOSED") {
+    writes.push(
+      prisma.incomeSource.update({
+        where: { id: incomeSource.id },
+        data: { netQuincenaAmount: parsedAmount.data },
+      }),
+    );
+  }
+  writes.push(upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, parsedAmount.data));
+  writes.push(
     prisma.budgetCycle.update({
       where: { id: cycle.id },
       data: { periodStart: payDate, label: formatCycleLabel(payDate) },
     }),
-  ]);
+  );
+
+  if (assessment?.ok && assessment.changed && assessment.movingCount > 0 && assessment.moveRange) {
+    const sourceForMoved = assessment.direction === "in" ? assessment.otherCycleId! : cycle.id;
+    const targetForMoved = assessment.direction === "in" ? cycle.id : assessment.otherCycleId!;
+    writes.push(
+      prisma.cycleTransaction.updateMany({
+        where: { cycleId: sourceForMoved, occurredAt: assessment.moveRange },
+        data: { cycleId: targetForMoved },
+      }),
+    );
+  }
+
+  await prisma.$transaction(writes);
 
   revalidateAppPages();
+}
+
+/**
+ * Read-only preview for a past cycle's pay-date edit — how many
+ * transactions would move, and which quincena they'd move to/from, before
+ * the user confirms. Shares assessPayDateChange with the actual commit
+ * (editCyclePayInfoAction) so this can never show a different outcome than
+ * what saving actually does.
+ */
+export async function previewPayDateChangeAction(
+  cycleId: string,
+  newPayDateStr: string,
+): Promise<PayDateChangeResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
+  if (!cycle) {
+    return { ok: false, error: "Quincena not found" };
+  }
+  const newDate = parseDateOnly(newPayDateStr);
+  if (!newDate) {
+    return { ok: false, error: "Invalid date" };
+  }
+
+  return assessPayDateChange(userId, cycle, newDate);
 }
