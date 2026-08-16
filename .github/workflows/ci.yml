@@ -74,9 +74,15 @@ jobs:
       # playwright.config.ts's webServer builds + starts the app itself
       # (a real production build in CI, not the dev server) before tests run.
       - run: npm run test:e2e
+      # test-results/ is where Playwright actually writes trace.zip,
+      # screenshots, and error-context.md on failure (per playwright.config.ts's
+      # trace/screenshot settings) regardless of which reporter is active —
+      # the "github" reporter used above prints inline annotations but never
+      # writes an HTML report, so playwright-report/ never exists and a prior
+      # version of this step silently uploaded nothing on every failure.
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-test-results
+          path: test-results/
           retention-days: 7
