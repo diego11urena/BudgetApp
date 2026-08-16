@@ -26,6 +26,7 @@ export function CategoryNameInput({
   placeholder,
   required = true,
   showChips = true,
+  invalid = false,
 }: {
   id: string;
   name: string;
@@ -35,6 +36,8 @@ export function CategoryNameInput({
   required?: boolean;
   /** Set false to render just the text input + dropdown as a single combobox, with no chip row above it. */
   showChips?: boolean;
+  /** Applies the shared .is-invalid treatment to the text input — same conditional-class pattern as QuickAddSheet's category input. */
+  invalid?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState(defaultValue ?? "");
@@ -96,6 +99,7 @@ export function CategoryNameInput({
           aria-expanded={open}
           aria-controls={`${id}-listbox`}
           aria-autocomplete="list"
+          className={invalid ? "is-invalid" : ""}
           onChange={(e) => {
             setValue(e.target.value);
             setOpen(true);

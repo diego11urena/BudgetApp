@@ -8,7 +8,7 @@ import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { budgetGoalSchema, recurringFrequencySchema } from "@/lib/validations/budget";
 
-export type BudgetGoalFormState = { error?: string } | undefined;
+export type BudgetGoalFormState = { error?: string; field?: "name" | "targetAmount" } | undefined;
 
 export async function upsertBudgetGoalAction(
   _prevState: BudgetGoalFormState,
@@ -26,7 +26,8 @@ export async function upsertBudgetGoalAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    const issue = parsed.error.issues[0];
+    return { error: issue?.message ?? "Invalid input", field: issue?.path[0] as "name" | "targetAmount" | undefined };
   }
 
   const { name, targetAmount } = parsed.data;

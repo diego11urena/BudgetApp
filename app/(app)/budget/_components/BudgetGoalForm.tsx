@@ -35,6 +35,7 @@ export function BudgetGoalForm({
             categoryNames={categoryNames}
             placeholder="Search or add a category…"
             showChips={false}
+            invalid={state?.field === "name"}
           />
         </div>
         <div className="field" style={{ flex: 1, minWidth: "7rem" }}>
@@ -46,6 +47,7 @@ export function BudgetGoalForm({
             inputMode="decimal"
             placeholder="0.00"
             required
+            className={state?.field === "targetAmount" ? "is-invalid" : ""}
           />
         </div>
         <div className="field">
