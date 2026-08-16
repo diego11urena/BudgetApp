@@ -14,10 +14,13 @@ export function HeroCard({
   amountLeft,
   periodStart,
   totalExpenses,
+  closed = false,
 }: {
   amountLeft: number;
   periodStart: Date;
   totalExpenses: number;
+  /** True for a past/closed cycle being viewed historically — swaps the label to "Final available," drops the days-left/per-day pace line (meaningless for a period that's already over), and hides "I just got paid" (that flow only ever closes *the* current open cycle). Defaults false so every active-cycle caller is unchanged. */
+  closed?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -31,7 +34,9 @@ export function HeroCard({
   // <body> if that mount happens to land while the button is disabled.
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const isPositive = amountLeft >= 0;
-  const pace = computeQuincenaPace({ periodStart, now: new Date(), amountLeft, totalExpenses });
+  const pace = closed
+    ? null
+    : computeQuincenaPace({ periodStart, now: new Date(), amountLeft, totalExpenses });
 
   async function handleConfirmedJustGotPaid(payDate: string) {
     setConfirming(false);
@@ -61,32 +66,38 @@ export function HeroCard({
   return (
     <>
       <div className="hero-card">
-        <p className="hero-label">Available to spend</p>
+        <p className="hero-label">{closed ? "Final available" : "Available to spend"}</p>
         <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
           {formatCurrency(amountLeft)}
         </p>
-        <p className="hero-subtitle">Remaining this Quincena</p>
-        <p className={`hero-pace ${pace.isOverPace ? "hero-pace--warning" : ""}`}>
-          {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left ·{" "}
-          {pace.isLastDay ? "Last day of this quincena" : `~${formatCurrency(pace.perDay)}/day`}
-        </p>
-        <button
-          type="button"
-          className="hero-action-link"
-          onClick={(e) => {
-            setTriggerElement(e.currentTarget);
-            setConfirming(true);
-          }}
-          disabled={pending}
-        >
-          {pending ? (
-            "Closing quincena..."
-          ) : (
-            <>
-              I just got paid <ArrowRight size={16} aria-hidden="true" />
-            </>
-          )}
-        </button>
+        {!closed && (
+          <>
+            <p className="hero-subtitle">Remaining this Quincena</p>
+            {pace && (
+              <p className={`hero-pace ${pace.isOverPace ? "hero-pace--warning" : ""}`}>
+                {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left ·{" "}
+                {pace.isLastDay ? "Last day of this quincena" : `~${formatCurrency(pace.perDay)}/day`}
+              </p>
+            )}
+            <button
+              type="button"
+              className="hero-action-link"
+              onClick={(e) => {
+                setTriggerElement(e.currentTarget);
+                setConfirming(true);
+              }}
+              disabled={pending}
+            >
+              {pending ? (
+                "Closing quincena..."
+              ) : (
+                <>
+                  I just got paid <ArrowRight size={16} aria-hidden="true" />
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       {confirming && (

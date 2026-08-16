@@ -4,16 +4,28 @@ import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
 
-export function TopCategoriesChart({ categories }: { categories: CategoryTotal[] }) {
+export function TopCategoriesChart({
+  categories,
+  title = "Top categories this quincena",
+  showBreakdownLink = true,
+}: {
+  categories: CategoryTotal[];
+  /** "This quincena" only reads correctly on Home — a past cycle's own page passes a plain "Top categories" instead. */
+  title?: string;
+  /** /dashboard/breakdown only ever compares "this cycle vs. last" — irrelevant (and pointing at the wrong cycle) when this chart is rendering a past cycle's own page. Defaults true so Home is unchanged. */
+  showBreakdownLink?: boolean;
+}) {
   if (categories.length === 0) {
     return (
       <div>
-        <h2>Top categories this quincena</h2>
+        <h2>{title}</h2>
         <p className="field-hint">No expenses logged yet this quincena.</p>
-        <Link href="/dashboard/breakdown" className="line-item line-item--link">
-          <span>View breakdown</span>
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>
+        {showBreakdownLink && (
+          <Link href="/dashboard/breakdown" className="line-item line-item--link">
+            <span>View breakdown</span>
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        )}
       </div>
     );
   }
@@ -22,7 +34,7 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
 
   return (
     <div>
-      <h2>Top categories this quincena</h2>
+      <h2>{title}</h2>
       <div className="bar-chart">
         {categories.map((category) => (
           <div className="bar-chart-row" key={category.categoryId}>
@@ -45,10 +57,12 @@ export function TopCategoriesChart({ categories }: { categories: CategoryTotal[]
           </div>
         ))}
       </div>
-      <Link href="/dashboard/breakdown" className="line-item line-item--link">
-        <span>View breakdown</span>
-        <ArrowRight size={16} aria-hidden="true" />
-      </Link>
+      {showBreakdownLink && (
+        <Link href="/dashboard/breakdown" className="line-item line-item--link">
+          <span>View breakdown</span>
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      )}
     </div>
   );
 }
