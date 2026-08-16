@@ -3,10 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useModalFocus } from "../../_components/useModalFocus";
-import { formatCycleLabel, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
+import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 
+// Based on Panama time, not the device's own local clock — parsePayDate
+// validates this same window against nowInPanama() server-side regardless
+// of where the user's device thinks it is, so the client's bound has to
+// agree (see the same fix in EditPayInfoSheet.tsx).
 function daysAgo(days: number): Date {
-  const date = new Date();
+  const date = nowInPanama();
   date.setDate(date.getDate() - days);
   return date;
 }
@@ -37,12 +41,12 @@ export function ConfirmJustGotPaidSheet({
   // Defaults to today (the moment this sheet opens), but editable to an
   // actual past payday — see lib/cycles.ts's parsePayDate for why this
   // matters to days-remaining/pace math downstream.
-  const [payDate, setPayDate] = useState(() => formatCycleLabel());
+  const [payDate, setPayDate] = useState(() => formatCycleLabel(nowInPanama()));
   const [error, setError] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
   const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
-  const maxDate = formatCycleLabel();
+  const maxDate = formatCycleLabel(nowInPanama());
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));

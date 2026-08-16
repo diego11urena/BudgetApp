@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction, previewPayDateChangeAction } from "../actions";
 import type { PayDateChangeResult } from "@/lib/cycles";
 import { useModalFocus } from "../../_components/useModalFocus";
-import { formatCycleLabel } from "@/lib/pay-date";
+import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 
 const EDIT_PAY_DATE_LOOKBACK_DAYS = 30;
 
+// Based on Panama time, not the device's own local clock — the server
+// validates this same window against nowInPanama() regardless of where
+// the user's device thinks it is, so the client's bound has to agree.
 function daysAgo(days: number): Date {
-  const date = new Date();
+  const date = nowInPanama();
   date.setDate(date.getDate() - days);
   return date;
 }
@@ -63,7 +66,7 @@ export function EditPayInfoSheet({
   // used for the current draft cycle — a closed cycle's valid range comes
   // from its own neighbors instead (previousBoundDate/nextBoundDate).
   const minDate = closed ? (previousBoundDate ?? undefined) : formatCycleLabel(daysAgo(EDIT_PAY_DATE_LOOKBACK_DAYS));
-  const maxDate = closed ? (nextBoundDate ?? undefined) : formatCycleLabel();
+  const maxDate = closed ? (nextBoundDate ?? undefined) : formatCycleLabel(nowInPanama());
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));

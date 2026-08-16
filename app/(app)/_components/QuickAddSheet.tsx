@@ -11,7 +11,7 @@ import {
   type CyclePreview,
 } from "../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
-import { formatCycleLabel } from "@/lib/pay-date";
+import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { useToast } from "./ToastProvider";
 import { useModalFocus } from "./useModalFocus";
@@ -163,10 +163,17 @@ export function QuickAddSheet({
   // own start — "today" would often fall well outside it, misfiring the
   // cross-cycle move confirmation the moment the sheet opens.
   const [occurredAt, setOccurredAt] = useState(
-    editingTransaction?.occurredAt ?? (targetCycleId ? cycleStartDate : formatCycleLabel()),
+    editingTransaction?.occurredAt ?? (targetCycleId ? cycleStartDate : formatCycleLabel(nowInPanama())),
   );
   const [description, setDescription] = useState(editingTransaction?.description ?? "");
-  const todayDate = formatCycleLabel();
+  // Panama time, not the device's own local clock — a transaction date is
+  // validated server-side against nowInPanama() regardless of where the
+  // user's device thinks it is (traveling, a misconfigured clock, or just
+  // any non-Panama timezone), so "today" has to agree with that here too.
+  // Using the browser's own new Date() let this field silently disagree
+  // with the server by up to a full day whenever the two didn't share a
+  // calendar date yet (e.g. late evening in a timezone ahead of Panama).
+  const todayDate = formatCycleLabel(nowInPanama());
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
