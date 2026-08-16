@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction, previewPayDateChangeAction } from "../actions";
 import type { PayDateChangeResult } from "@/lib/cycles";
 import { useModalFocus } from "../../_components/useModalFocus";
-import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
+import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 
 /**
@@ -53,11 +53,14 @@ export function EditPayInfoSheet({
   // The lower bound always comes from this cycle's own previous neighbor
   // (null only for the account's very first cycle ever) — same boundary
   // assessPayDateChange itself enforces, whether this cycle is open or
-  // closed. The upper bound differs: a closed cycle is capped by its own
-  // next neighbor's start, but the current draft cycle has no "next" cycle
-  // to bound it (nothing exists after it yet), so it's capped at today
-  // instead — a draft cycle's pay date can't be in the future.
-  const minDate = previousBoundDate ?? undefined;
+  // closed. For that one no-previous case, mirror assessPayDateChange's
+  // own backdate floor here too, so the date picker itself hints at the
+  // same bound the server will actually enforce. The upper bound differs:
+  // a closed cycle is capped by its own next neighbor's start, but the
+  // current draft cycle has no "next" cycle to bound it (nothing exists
+  // after it yet), so it's capped at today instead — a draft cycle's pay
+  // date can't be in the future.
+  const minDate = previousBoundDate ?? formatCycleLabel(addDays(nowInPanama(), -FIRST_CYCLE_BACKDATE_FLOOR_DAYS));
   const maxDate = closed ? (nextBoundDate ?? undefined) : formatCycleLabel(nowInPanama());
 
   useEffect(() => {
@@ -118,10 +121,9 @@ export function EditPayInfoSheet({
       setErrorField("date");
       return;
     }
-    if (payDate < (minDate ?? "") || payDate > (maxDate ?? "")) {
-      const minLabel = minDate ?? "the start of your history";
+    if (payDate < minDate || payDate > (maxDate ?? "")) {
       const maxLabel = maxDate ?? "today";
-      setError(`Date must be between ${minLabel} and ${maxLabel}`);
+      setError(`Date must be between ${minDate} and ${maxLabel}`);
       setErrorField("date");
       return;
     }

@@ -2,7 +2,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
-import { formatCycleLabel, nowInPanama, parsePayDate } from "@/lib/pay-date";
+import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama, parsePayDate } from "@/lib/pay-date";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 import { quincenaEnd } from "@/lib/quincena-pace";
 import { formatFriendlyDate } from "@/lib/format";
@@ -255,6 +255,19 @@ export async function assessPayDateChange(
   }
 
   if (!previous) {
+    // The account's very first cycle has no previous neighbor to bound it
+    // below, so an accidental backdate (a fat-fingered year, say) would
+    // otherwise go through unchecked. Generous on purpose -- a legitimate
+    // correction is realistically at most a few weeks off, never years --
+    // and only applies to an actual change, never to re-saving whatever
+    // value is already stored (see the unchanged-value return above).
+    const earliestAllowed = addDays(nowInPanama(), -FIRST_CYCLE_BACKDATE_FLOOR_DAYS);
+    if (newPeriodStart.getTime() < earliestAllowed.getTime()) {
+      return {
+        ok: false,
+        error: `Pay date can't be more than ${FIRST_CYCLE_BACKDATE_FLOOR_DAYS} days in the past for your first quincena.`,
+      };
+    }
     // Nothing before this cycle to pull from or push into.
     return {
       ok: true,

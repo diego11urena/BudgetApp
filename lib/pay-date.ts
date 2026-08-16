@@ -128,6 +128,16 @@ export function parseDateOnly(value: string): Date | null {
 export const PAY_DATE_LOOKBACK_DAYS = 7;
 
 /**
+ * How far back the account's very first cycle's pay date can be moved —
+ * see assessPayDateChange's !previous branch in lib/cycles.ts, the only
+ * case with no neighbor to bound it naturally. Lives here rather than
+ * lib/cycles.ts (which EditPayInfoSheet, a client component, must never
+ * import — see this file's own top comment) so both the server check and
+ * the sheet's own date-picker min can share one value.
+ */
+export const FIRST_CYCLE_BACKDATE_FLOOR_DAYS = 730; // ~2 years
+
+/**
  * Parses "When did you get paid?"'s date input ("YYYY-MM-DD"), rejecting
  * anything outside [today - PAY_DATE_LOOKBACK_DAYS, today] — the input's
  * own min/max already constrain this in the browser, this is the
