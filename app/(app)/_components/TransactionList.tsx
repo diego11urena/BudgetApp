@@ -145,6 +145,7 @@ export function TransactionList({
     setTriggerElement(trigger);
     setEditing({
       id: tx.id,
+      cycleId: tx.cycleId,
       type: tx.type,
       name: tx.name,
       categoryName: tx.categoryName,
@@ -152,9 +153,6 @@ export function TransactionList({
       paymentMethod: tx.paymentMethod,
       occurredAt: formatCycleLabel(tx.occurredAt),
       description: tx.description,
-      // Undefined (the single-cycle callers, e.g. Home) means "editable" —
-      // same default toCycleTransactionSummary itself uses.
-      isDeletable: tx.isEditable !== false,
     });
   }
 

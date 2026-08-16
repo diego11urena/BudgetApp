@@ -6,7 +6,9 @@ import {
   addTransactionAction,
   deleteTransactionAction,
   restoreTransactionAction,
+  resolveCycleForDateAction,
   updateTransactionAction,
+  type CyclePreview,
 } from "../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
@@ -19,6 +21,8 @@ type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
 
 export interface EditingTransaction {
   id: string;
+  /** Which cycle this row actually belongs to today — the "expected" cycle a date edit is compared against to decide whether to show the cross-cycle move confirmation. */
+  cycleId: string;
   type: TxType;
   name: string;
   /** Null only for an uncategorized row — every type has a category concept now. */
@@ -30,8 +34,6 @@ export interface EditingTransaction {
   occurredAt: string;
   /** What it was for, beyond name/merchant — e.g. Yappy's own "Mensaje" note. Null if never set. */
   description: string | null;
-  /** False only for a row from an already-closed cycle — every field stays editable there, but deleting the row outright stays blocked (frozen totals), so the Delete button is hidden instead of erroring after the fact. Defaults true when omitted. */
-  isDeletable?: boolean;
 }
 
 const TYPE_OPTIONS: { value: TxType; label: string }[] = [
@@ -58,6 +60,7 @@ export function QuickAddSheet({
   incomeCategoryNames,
   cycleStartDate,
   editingTransaction = null,
+  targetCycleId,
   returnFocusTo = null,
   onClose,
 }: {
@@ -68,16 +71,24 @@ export function QuickAddSheet({
   savingsCategoryNames: string[];
   /** Pre-ordered, same rule as expenseCategoryNames. */
   incomeCategoryNames: string[];
-  /** "YYYY-MM-DD" — the current cycle's periodStart, the Date field's minimum (can't log something before the quincena it's being logged into started). */
+  /** "YYYY-MM-DD" — the current cycle's periodStart, the Date field's minimum (can't log something before the quincena it's being logged into started). Ignored when isEditing or targetCycleId is set — both allow any past date. */
   cycleStartDate: string;
   /** Present -> the sheet edits (and can delete) this transaction instead of creating a new one. */
   editingTransaction?: EditingTransaction | null;
+  /** Present when creating from a specific (possibly past) quincena's own page rather than "wherever today's cycle is" — passed to addTransactionAction as a hint, and used to detect a cross-cycle move the same way editingTransaction.cycleId is for edits. */
+  targetCycleId?: string;
   /** The button that opened this sheet — focus returns here on close. Needed because the amount field's own autoFocus would otherwise race the trigger-capture. */
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
   const { showToast } = useToast();
   const isEditing = editingTransaction !== null;
+  // The cycle this transaction is currently expected to belong to — compared
+  // against where a candidate date actually resolves to, to decide whether
+  // the cross-cycle move confirmation is needed. Undefined (Home/Transactions'
+  // plain "+", no targetCycleId) means "wherever the date resolves to is
+  // fine," skipping the check entirely.
+  const moveCheckCycleId = isEditing ? editingTransaction.cycleId : targetCycleId;
 
   // Calling the server actions directly (rather than via useActionState)
   // and doing the toast + close in the same async function is deliberate:
@@ -91,6 +102,10 @@ export function QuickAddSheet({
   /** Which field validate() blamed, so it (not just the red text) gets the invalid-state ring. Null for a server-side error, which validate() never produced and isn't reliably attributable to one field. */
   const [errorField, setErrorField] = useState<"amount" | "category" | "date" | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  /** Set when a submit's date resolves to a different cycle than moveCheckCycleId — blocks the real submit until Continue/Cancel. */
+  const [pendingMove, setPendingMove] = useState<CyclePreview | null>(null);
+  const [movePending, setMovePending] = useState(false);
+  const pendingSubmitFormData = useRef<FormData | null>(null);
 
   const [visible, setVisible] = useState(false);
   const [type, setType] = useState<TxType>(editingTransaction?.type ?? initialType);
@@ -144,7 +159,12 @@ export function QuickAddSheet({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
     editingTransaction?.paymentMethod ?? "",
   );
-  const [occurredAt, setOccurredAt] = useState(editingTransaction?.occurredAt ?? formatCycleLabel());
+  // Creating into a specific past cycle defaults the date to that cycle's
+  // own start — "today" would often fall well outside it, misfiring the
+  // cross-cycle move confirmation the moment the sheet opens.
+  const [occurredAt, setOccurredAt] = useState(
+    editingTransaction?.occurredAt ?? (targetCycleId ? cycleStartDate : formatCycleLabel()),
+  );
   const [description, setDescription] = useState(editingTransaction?.description ?? "");
   const todayDate = formatCycleLabel();
 
@@ -182,26 +202,20 @@ export function QuickAddSheet({
     if (occurredAt > todayDate) {
       return { field: "date", message: "Date can't be in the future" };
     }
-    // The cycle-start floor is a create-time-only affordance — editing
-    // allows any past date (see updateTransactionAction).
-    if (!isEditing && occurredAt < cycleStartDate) {
+    // The cycle-start floor only applies to a plain create (Home/Transactions'
+    // "+", no explicit target) — editing, and creating directly into a
+    // specific past quincena, both allow any past date (see
+    // updateTransactionAction / addTransactionAction's cycleId-hint path).
+    if (!isEditing && !targetCycleId && occurredAt < cycleStartDate) {
       return { field: "date", message: "Date must be within this quincena" };
     }
     return null;
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError.message);
-      setErrorField(validationError.field);
-      return;
-    }
+  async function submitForm(formData: FormData) {
     setPending(true);
     setError(null);
     setErrorField(null);
-    const formData = new FormData(e.currentTarget);
     const action = isEditing ? updateTransactionAction : addTransactionAction;
     const result = await action(undefined, formData);
 
@@ -228,6 +242,52 @@ export function QuickAddSheet({
     setPending(false);
     router.refresh();
     handleClose();
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError.message);
+      setErrorField(validationError.field);
+      return;
+    }
+    const formData = new FormData(e.currentTarget);
+
+    // Don't move a transaction to a different quincena silently — check
+    // where this date actually resolves to before submitting, and if it
+    // disagrees with where the row is expected to end up, hold the submit
+    // and ask first (see handleConfirmMove/handleCancelMove).
+    if (moveCheckCycleId) {
+      const resolved = await resolveCycleForDateAction(occurredAt);
+      if (resolved && resolved.cycleId !== moveCheckCycleId) {
+        pendingSubmitFormData.current = formData;
+        setPendingMove(resolved);
+        return;
+      }
+    }
+
+    await submitForm(formData);
+  }
+
+  async function handleConfirmMove() {
+    const formData = pendingSubmitFormData.current;
+    setPendingMove(null);
+    pendingSubmitFormData.current = null;
+    if (!formData) return;
+    setMovePending(true);
+    await submitForm(formData);
+    setMovePending(false);
+  }
+
+  function handleCancelMove() {
+    setPendingMove(null);
+    pendingSubmitFormData.current = null;
+    // Edits have an original value worth reverting to; a brand-new row has
+    // no "original" — leave the date as typed so it can just be adjusted.
+    if (isEditing) {
+      setOccurredAt(editingTransaction.occurredAt);
+    }
   }
 
   async function handleDelete() {
@@ -341,6 +401,9 @@ export function QuickAddSheet({
           {isEditing && (
             <input type="hidden" name="transactionId" value={editingTransaction.id} />
           )}
+          {!isEditing && targetCycleId && (
+            <input type="hidden" name="cycleId" value={targetCycleId} />
+          )}
 
           <div className="field sheet-amount-field">
             <label htmlFor="sheet-amount">Amount (USD)</label>
@@ -366,13 +429,15 @@ export function QuickAddSheet({
               name="occurredAt"
               type="date"
               value={occurredAt}
-              // The cycle-start floor is a create-time affordance only —
-              // an existing transaction can be edited to any past date (it
-              // moves to whichever cycle that date actually belongs to;
-              // see updateTransactionAction). Form has noValidate, and
-              // validate() re-checks this explicitly either way, so this
-              // is just the picker widget's own hint, never a submit-blocker.
-              min={isEditing ? undefined : cycleStartDate}
+              // The cycle-start floor only applies to a plain create with no
+              // explicit target cycle — editing, and creating directly into
+              // a specific past quincena, both allow any past date (it
+              // resolves to whichever cycle that date actually belongs to;
+              // see updateTransactionAction / addTransactionAction). Form
+              // has noValidate, and validate() re-checks this explicitly
+              // either way, so this is just the picker widget's own hint,
+              // never a submit-blocker.
+              min={isEditing || targetCycleId ? undefined : cycleStartDate}
               max={todayDate}
               onChange={(e) => setOccurredAt(e.target.value)}
               className={errorField === "date" ? "is-invalid" : ""}
@@ -464,12 +529,38 @@ export function QuickAddSheet({
 
           {error && <p className="error-text">{error}</p>}
 
-          <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? (isEditing ? "Saving..." : "Logging...") : isEditing ? "Save changes" : "Log it"}
-          </button>
+          {pendingMove ? (
+            <div style={{ textAlign: "center" }}>
+              <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
+                Changing this date will move this transaction to a different quincena (
+                {pendingMove.rangeText}). Its totals and the totals for that quincena will be
+                recalculated. Continue?
+              </p>
+              <button
+                type="button"
+                className="button sheet-submit"
+                disabled={movePending}
+                onClick={handleConfirmMove}
+              >
+                {movePending ? "Moving..." : "Continue"}
+              </button>
+              <button
+                type="button"
+                className="button button--secondary sheet-submit"
+                disabled={movePending}
+                onClick={handleCancelMove}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button type="submit" className="button sheet-submit" disabled={pending}>
+              {pending ? (isEditing ? "Saving..." : "Logging...") : isEditing ? "Save changes" : "Log it"}
+            </button>
+          )}
         </form>
 
-        {isEditing && editingTransaction.isDeletable !== false && (
+        {isEditing && !pendingMove && (
           <button
             type="button"
             className="sheet-delete"
@@ -478,11 +569,6 @@ export function QuickAddSheet({
           >
             {deletePending ? "Deleting..." : "Delete transaction"}
           </button>
-        )}
-        {isEditing && editingTransaction.isDeletable === false && (
-          <p className="field-hint" style={{ textAlign: "center", marginTop: "0.75rem" }}>
-            This quincena is closed, so this transaction can be edited but not deleted.
-          </p>
         )}
       </div>
     </div>
