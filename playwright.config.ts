@@ -13,8 +13,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // GitHub's standard runner (4 vCPU) has the production Next.js server,
+  // the Postgres service container, AND every worker's own Chromium all
+  // competing for the same handful of cores — Playwright's default worker
+  // count (scales with detected CPUs) overcommits it once the suite has
+  // enough specs, and the symptom isn't a handful of slow tests, it's
+  // requests starved long enough to blow the whole 60s test timeout.
+  // Capped, not removed: this suite's own local runs (real machine, real
+  // headroom) stay at Playwright's default.
+  workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? "github" : "list",
-  timeout: 60_000,
+  // A bit more slack in CI specifically, on top of the worker cap above —
+  // belt and suspenders against the same contention, not a substitute for
+  // fixing it.
+  timeout: process.env.CI ? 90_000 : 60_000,
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
     viewport: { width: 390, height: 844 }, // this app's primary target: an iPhone-width PWA
