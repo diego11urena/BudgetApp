@@ -25,6 +25,8 @@ export function sumFixedTargetSpend(
 
 export interface CycleTransactionSummary {
   id: string;
+  /** Which BudgetCycle this row actually belongs to — distinct from whichever cycle's page happens to be rendering it (see QuickAddSheet's cross-cycle move confirmation). */
+  cycleId: string;
   type: "EXPENSE" | "INCOME" | "SAVINGS";
   name: string;
   amount: number;
@@ -72,6 +74,7 @@ interface IncomeEntryLike {
 
 interface TransactionLike {
   id: string;
+  cycleId: string;
   type: "EXPENSE" | "INCOME" | "SAVINGS";
   name: string;
   amount: DecimalLike;
@@ -95,6 +98,7 @@ export function toCycleTransactionSummary(
 ): CycleTransactionSummary {
   return {
     id: tx.id,
+    cycleId: tx.cycleId,
     type: tx.type,
     name: tx.name,
     amount: tx.amount.toNumber(),

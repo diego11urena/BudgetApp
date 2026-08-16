@@ -4,6 +4,8 @@ import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parsePayDate } from "@/lib/pay-date";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
+import { quincenaEnd } from "@/lib/quincena-pace";
+import { formatFriendlyDate } from "@/lib/format";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -150,12 +152,163 @@ export function getMostRecentClosedCycle(userId: string) {
  * needs to move to whichever cycle its new (or already-mismatched) date
  * really belongs to (see updateTransactionAction). Null only if the date
  * predates every cycle the user has ever had.
+ *
+ * Closing twice in the same day is explicitly supported (see
+ * closeCycleAndStartNext), which can leave two cycles with the *same*
+ * periodStart day — periodStart desc alone doesn't break that tie
+ * deterministically. createdAt asc as the tiebreaker resolves it to
+ * whichever of the two existed first (the one that was open for most of
+ * that day), rather than an arbitrary/unstable pick.
  */
 export function findCycleForDate(userId: string, date: Date) {
   return prisma.budgetCycle.findFirst({
     where: { userId, periodStart: { lte: date } },
-    orderBy: { periodStart: "desc" },
+    orderBy: [{ periodStart: "desc" }, { createdAt: "asc" }],
   });
+}
+
+/**
+ * The cycle immediately before and after a given one, by periodStart —
+ * needed for past-cycle pay-date editing, to know the valid range a new
+ * periodStart can move within without overlapping a neighbor. No such
+ * lookup existed before this; cycle order was only ever walked forward
+ * (nextQuincenaStart) or resolved by date (findCycleForDate).
+ */
+export async function getAdjacentCycles(
+  userId: string,
+  cycle: Pick<BudgetCycle, "id" | "periodStart">,
+): Promise<{ previous: BudgetCycle | null; next: BudgetCycle | null }> {
+  const [previous, next] = await Promise.all([
+    prisma.budgetCycle.findFirst({
+      where: { userId, periodStart: { lt: cycle.periodStart }, id: { not: cycle.id } },
+      orderBy: { periodStart: "desc" },
+    }),
+    prisma.budgetCycle.findFirst({
+      where: { userId, periodStart: { gt: cycle.periodStart }, id: { not: cycle.id } },
+      orderBy: { periodStart: "asc" },
+    }),
+  ]);
+  return { previous, next };
+}
+
+export interface PayDateChangeAssessment {
+  ok: true;
+  /** False when the candidate date is identical to the cycle's current periodStart — a net-pay-only edit, nothing to reassign. */
+  changed: boolean;
+  movingCount: number;
+  direction: "in" | "out" | null;
+  otherCycleId: string | null;
+  otherCycleLabel: string | null;
+  /** The exact occurredAt range the commit path's updateMany must reuse verbatim — computed once here so preview and commit can never disagree. */
+  moveRange: { gte: Date; lt: Date } | null;
+}
+
+export type PayDateChangeResult = PayDateChangeAssessment | { ok: false; error: string };
+
+/**
+ * What would happen if a cycle's periodStart moved to newPeriodStart —
+ * shared by the pay-date preview action and the actual commit, so the
+ * count a user is shown before confirming is guaranteed to match what
+ * really gets reassigned. Moving periodStart only ever affects the
+ * boundary with the PREVIOUS cycle (the boundary with the next cycle is
+ * that next cycle's own periodStart, untouched by this edit) — earlier
+ * pulls transactions in from the previous cycle, later pushes this
+ * cycle's earliest transactions back to it. Rejects outright (no
+ * cascading multi-cycle reassignment) if the candidate date would
+ * overlap either neighbor.
+ */
+export async function assessPayDateChange(
+  userId: string,
+  cycle: Pick<BudgetCycle, "id" | "periodStart">,
+  newPeriodStart: Date,
+): Promise<PayDateChangeResult> {
+  const { previous, next } = await getAdjacentCycles(userId, cycle);
+
+  if (previous && newPeriodStart.getTime() <= previous.periodStart.getTime()) {
+    return {
+      ok: false,
+      error: `Pay date must be after ${formatFriendlyDate(previous.periodStart)}${
+        next ? ` and before ${formatFriendlyDate(next.periodStart)}` : ""
+      }.`,
+    };
+  }
+  if (next && newPeriodStart.getTime() >= next.periodStart.getTime()) {
+    return {
+      ok: false,
+      error: `Pay date must be after ${
+        previous ? formatFriendlyDate(previous.periodStart) : "the start of your history"
+      } and before ${formatFriendlyDate(next.periodStart)}.`,
+    };
+  }
+
+  const oldStart = cycle.periodStart;
+  if (newPeriodStart.getTime() === oldStart.getTime()) {
+    return {
+      ok: true,
+      changed: false,
+      movingCount: 0,
+      direction: null,
+      otherCycleId: null,
+      otherCycleLabel: null,
+      moveRange: null,
+    };
+  }
+
+  if (!previous) {
+    // Nothing before this cycle to pull from or push into.
+    return {
+      ok: true,
+      changed: true,
+      movingCount: 0,
+      direction: null,
+      otherCycleId: null,
+      otherCycleLabel: null,
+      moveRange: null,
+    };
+  }
+
+  const direction: "in" | "out" = newPeriodStart.getTime() < oldStart.getTime() ? "in" : "out";
+  const moveRange =
+    direction === "in" ? { gte: newPeriodStart, lt: oldStart } : { gte: oldStart, lt: newPeriodStart };
+  const movingCount = await prisma.cycleTransaction.count({
+    where: { cycleId: direction === "in" ? previous.id : cycle.id, occurredAt: moveRange },
+  });
+
+  return {
+    ok: true,
+    changed: true,
+    movingCount,
+    direction,
+    otherCycleId: previous.id,
+    otherCycleLabel: previous.label,
+    moveRange,
+  };
+}
+
+/**
+ * "Aug 1–15, 2026" (same month) or "Jul 29 – Aug 15, 2026" (spanning a
+ * month boundary) — for confirmation-message copy naming a cycle's actual
+ * date range. Uses the real stored periodEnd for a closed cycle (set at
+ * close time to whatever the next cycle's periodStart was) rather than
+ * quincenaEnd's calendar-idealized value, which can diverge once pay
+ * dates have been edited; falls back to quincenaEnd for an open cycle,
+ * which has no periodEnd yet.
+ */
+export function formatCycleRangeText(cycle: Pick<BudgetCycle, "periodStart" | "periodEnd">): string {
+  const end = cycle.periodEnd ?? quincenaEnd(cycle.periodStart);
+  // A same-day close (closing twice in one day is explicitly supported —
+  // see closeCycleAndStartNext) makes periodStart and periodEnd the same
+  // calendar day; "Aug 15–15, 2026" would read as a typo, not a range.
+  if (cycle.periodStart.toDateString() === end.toDateString()) {
+    return formatFriendlyDate(cycle.periodStart);
+  }
+  const sameMonth =
+    cycle.periodStart.getMonth() === end.getMonth() &&
+    cycle.periodStart.getFullYear() === end.getFullYear();
+  const startText = cycle.periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return sameMonth
+    ? `${startText}–${end.getDate()}, ${end.getFullYear()}`
+    : `${startText} – ${formatFriendlyDate(end)}`;
 }
 
 /** The user's most recent cycles, newest first. Retains all history — never deletes. */

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { findCycleForDate, getOrCreateDraftCycle } from "@/lib/cycles";
+import { findCycleForDate, formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
@@ -54,16 +54,53 @@ export async function addTransactionAction(
 
   const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } =
     parsed.data;
-  const cycle = await getOrCreateDraftCycle(userId);
+
+  // A hinted cycleId (from a past-quincena's own "+" — see
+  // /history/[cycleId]) means "add into this specific cycle" rather than
+  // the current draft cycle. Ownership-checked: ownership on the current
+  // draft cycle is implicit (getOrCreateDraftCycle only ever touches the
+  // caller's own rows), but an arbitrary cycleId isn't.
+  const hintedCycleId = formData.get("cycleId");
+  const cycle =
+    typeof hintedCycleId === "string" && hintedCycleId
+      ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
+      : await getOrCreateDraftCycle(userId);
+  if (!cycle) {
+    return { error: "Quincena not found" };
+  }
 
   let occurredAtDate = nowInPanama();
   if (occurredAt) {
-    const parsedDate = parseTransactionDate(occurredAt, cycle.periodStart);
-    if (!parsedDate) {
-      return { error: "Date must be within this quincena and not in the future" };
+    if (typeof hintedCycleId === "string" && hintedCycleId) {
+      // Creating into a specific (possibly past) cycle: no cycle-start
+      // floor, same relaxed rule updateTransactionAction already uses for
+      // edits — the date, not the cycle you happened to be viewing, is
+      // the source of truth for where this transaction actually belongs.
+      const parsedDate = parseDateOnly(occurredAt);
+      if (!parsedDate) {
+        return { error: "Invalid date" };
+      }
+      if (parsedDate.getTime() > nowInPanama().getTime()) {
+        return { error: "Date can't be in the future" };
+      }
+      occurredAtDate = parsedDate;
+    } else {
+      const parsedDate = parseTransactionDate(occurredAt, cycle.periodStart);
+      if (!parsedDate) {
+        return { error: "Date must be within this quincena and not in the future" };
+      }
+      occurredAtDate = parsedDate;
     }
-    occurredAtDate = parsedDate;
   }
+
+  // When a specific cycle was hinted, the date just validated against may
+  // not actually fall inside it (e.g. the user changed the date while
+  // adding from a past quincena's page) — resolve the real owning cycle
+  // from the date itself, same as updateTransactionAction does on edit.
+  const targetCycleId =
+    typeof hintedCycleId === "string" && hintedCycleId
+      ? ((await findCycleForDate(userId, occurredAtDate))?.id ?? cycle.id)
+      : cycle.id;
 
   // Every type has a category concept now — Extra income included.
   const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
@@ -71,7 +108,7 @@ export async function addTransactionAction(
 
   const created = await prisma.cycleTransaction.create({
     data: {
-      cycleId: cycle.id,
+      cycleId: targetCycleId,
       type,
       name,
       amount,
@@ -309,15 +346,14 @@ export async function deleteTransactionAction(
   // delete another user's row by guessing an id.
   const existing = await prisma.cycleTransaction.findFirst({
     where: { id: transactionId, cycle: { userId } },
-    include: { cycle: true },
   });
   if (!existing) {
     return { error: "Transaction not found" };
   }
-  // Frozen history — see the matching check in updateTransactionAction.
-  if (existing.cycle.status === "CLOSED") {
-    return { error: "This quincena is closed and can't be edited" };
-  }
+  // Deleting from a closed cycle is allowed, same as editing (see
+  // updateTransactionAction) — a past quincena's transactions must stay
+  // fully correctable, not just editable. Recoverable via the toast's Undo
+  // (restoreTransactionAction), which already has no closed-cycle guard.
 
   await prisma.cycleTransaction.delete({ where: { id: transactionId } });
 
@@ -403,4 +439,33 @@ export async function restoreTransactionAction(
   });
 
   revalidateAppPages();
+}
+
+export interface CyclePreview {
+  cycleId: string;
+  label: string;
+  rangeText: string;
+}
+
+/**
+ * Read-only: which cycle a candidate date actually belongs to, for
+ * QuickAddSheet's cross-cycle move confirmation — wraps the exact same
+ * findCycleForDate call updateTransactionAction/addTransactionAction use to
+ * do the real reassignment, so the confirmation preview can never disagree
+ * with what actually happens on submit.
+ */
+export async function resolveCycleForDateAction(dateStr: string): Promise<CyclePreview | null> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+
+  const date = parseDateOnly(dateStr);
+  if (!date) return null;
+
+  const cycle = await findCycleForDate(userId, date);
+  if (!cycle) return null;
+
+  return { cycleId: cycle.id, label: cycle.label, rangeText: formatCycleRangeText(cycle) };
 }

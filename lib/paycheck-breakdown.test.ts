@@ -341,6 +341,7 @@ describe("computePaymentMethodTotals", () => {
   function tx(overrides: Partial<{ type: "EXPENSE" | "INCOME" | "SAVINGS"; paymentMethod: string | null; amount: number }>) {
     return {
       id: Math.random().toString(),
+      cycleId: "cycle-1",
       type: overrides.type ?? "EXPENSE",
       name: "x",
       amount: overrides.amount ?? 10,
@@ -406,6 +407,7 @@ describe("groupRecentTransactionsBySlice", () => {
   ) {
     return {
       id: overrides.id ?? Math.random().toString(),
+      cycleId: "cycle-1",
       type: overrides.type ?? "EXPENSE",
       name: "x",
       amount: 10,

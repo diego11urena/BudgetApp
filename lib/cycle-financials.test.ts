@@ -12,6 +12,7 @@ function tx(
 ) {
   return {
     id: `${type}-${Math.random()}`,
+    cycleId: "cycle-1",
     type,
     name: overrides.name ?? type,
     amount: decimal(amount),
@@ -148,6 +149,7 @@ describe("toCycleTransactionSummary", () => {
     const result = toCycleTransactionSummary(row);
     expect(result).toEqual({
       id: row.id,
+      cycleId: row.cycleId,
       type: "EXPENSE",
       name: "Weekly shop",
       amount: 42,
