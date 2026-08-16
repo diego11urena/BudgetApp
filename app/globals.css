@@ -1029,8 +1029,18 @@ button.line-item--link {
   color: var(--color-text-secondary);
 }
 
+.category-name-input {
+  width: 100%;
+  min-width: 0;
+}
+
 .category-name-input-combobox {
   position: relative;
+  width: 100%;
+}
+
+.category-name-input-combobox input {
+  width: 100%;
 }
 
 .category-name-input-dropdown {
