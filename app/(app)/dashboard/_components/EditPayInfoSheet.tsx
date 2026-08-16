@@ -8,17 +8,6 @@ import { useModalFocus } from "../../_components/useModalFocus";
 import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 
-const EDIT_PAY_DATE_LOOKBACK_DAYS = 30;
-
-// Based on Panama time, not the device's own local clock — the server
-// validates this same window against nowInPanama() regardless of where
-// the user's device thinks it is, so the client's bound has to agree.
-function daysAgo(days: number): Date {
-  const date = nowInPanama();
-  date.setDate(date.getDate() - days);
-  return date;
-}
-
 /**
  * Corrects a cycle's already-recorded pay amount/date in place — distinct
  * from ConfirmJustGotPaidSheet, which always closes the cycle and starts a
@@ -61,11 +50,14 @@ export function EditPayInfoSheet({
   const [movePending, setMovePending] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // The min bound has to cover the cycle's own current periodStart (which
-  // can be up to a full quincena old), not just the last few days. Only
-  // used for the current draft cycle — a closed cycle's valid range comes
-  // from its own neighbors instead (previousBoundDate/nextBoundDate).
-  const minDate = closed ? (previousBoundDate ?? undefined) : formatCycleLabel(daysAgo(EDIT_PAY_DATE_LOOKBACK_DAYS));
+  // The lower bound always comes from this cycle's own previous neighbor
+  // (null only for the account's very first cycle ever) — same boundary
+  // assessPayDateChange itself enforces, whether this cycle is open or
+  // closed. The upper bound differs: a closed cycle is capped by its own
+  // next neighbor's start, but the current draft cycle has no "next" cycle
+  // to bound it (nothing exists after it yet), so it's capped at today
+  // instead — a draft cycle's pay date can't be in the future.
+  const minDate = previousBoundDate ?? undefined;
   const maxDate = closed ? (nextBoundDate ?? undefined) : formatCycleLabel(nowInPanama());
 
   useEffect(() => {
@@ -121,23 +113,27 @@ export function EditPayInfoSheet({
       setErrorField("amount");
       return;
     }
-    if (!closed && (!payDate || payDate < (minDate ?? "") || payDate > (maxDate ?? ""))) {
-      setError(`Date must be between ${minDate} and ${maxDate}`);
-      setErrorField("date");
-      return;
-    }
     if (!payDate) {
       setError("Date is required");
       setErrorField("date");
       return;
     }
+    if (payDate < (minDate ?? "") || payDate > (maxDate ?? "")) {
+      const minLabel = minDate ?? "the start of your history";
+      const maxLabel = maxDate ?? "today";
+      setError(`Date must be between ${minLabel} and ${maxLabel}`);
+      setErrorField("date");
+      return;
+    }
 
-    // A closed cycle's pay-date change can reassign transactions — preview
-    // it and ask before committing, same "don't move it silently"
-    // principle QuickAddSheet's cross-cycle move confirmation uses. Net
-    // pay by itself needs no such safeguard, so this is skipped entirely
-    // when the date hasn't changed.
-    if (closed && cycleId && payDate !== initialPayDate) {
+    // A pay-date change can reassign transactions across the cycle
+    // boundary — preview it and ask before committing, same "don't move it
+    // silently" principle QuickAddSheet's cross-cycle move confirmation
+    // uses. Net pay by itself needs no such safeguard, so this is skipped
+    // entirely when the date hasn't changed. Applies to the open draft
+    // cycle exactly the same as a closed one — correcting a pay date
+    // should behave the same regardless of cycle status.
+    if (cycleId && payDate !== initialPayDate) {
       const preview = await previewPayDateChangeAction(cycleId, payDate);
       if (!preview.ok) {
         setError(preview.error);

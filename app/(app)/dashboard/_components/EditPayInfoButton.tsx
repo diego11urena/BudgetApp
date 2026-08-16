@@ -23,11 +23,11 @@ export function EditPayInfoButton({
   currentPayDate: string;
   /** Present -> edits this specific cycle instead of the current draft one. */
   cycleId?: string;
-  /** True for a closed cycle — swaps the 30-day-lookback/not-future date window for one bounded by this cycle's actual neighbors, and previews/confirms a pay-date change that would reassign transactions. */
+  /** True for a closed cycle — swaps the "today" date ceiling for one bounded by this cycle's own next neighbor, since only the draft cycle has no neighbor after it. */
   closed?: boolean;
-  /** "YYYY-MM-DD", exclusive — the earliest valid pay date (the previous cycle's own periodStart), or null if this is the oldest cycle. Only meaningful when closed. */
+  /** "YYYY-MM-DD", exclusive — the earliest valid pay date (the previous cycle's own periodStart), or null if this is the account's first-ever cycle. Applies whether this cycle is open or closed. */
   previousBoundDate?: string | null;
-  /** "YYYY-MM-DD", exclusive — the latest valid pay date (the next cycle's periodStart), or null if somehow none exists. Only meaningful when closed. */
+  /** "YYYY-MM-DD", exclusive — the latest valid pay date (the next cycle's periodStart). Only meaningful when closed — the draft cycle has no next neighbor, so its ceiling is "today" instead (computed inside EditPayInfoSheet). */
   nextBoundDate?: string | null;
 }) {
   const [open, setOpen] = useState(false);

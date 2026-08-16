@@ -7,19 +7,13 @@ import { getAdjacentCycles, formatCycleRangeText } from "@/lib/cycles";
 import { getCycleFinancials, sumFixedTargetSpend } from "@/lib/cycle-financials";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { getOrderedCategoryNames } from "@/lib/category-order";
-import { formatCycleLabel } from "@/lib/pay-date";
+import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../../_components/TransactionList";
 import { HeroCard } from "../../dashboard/_components/HeroCard";
 import { BudgetBreakdownCard } from "../../dashboard/_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesChart";
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
 
 export default async function CycleHistoryPage({
   params,

@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
+import { getAdjacentCycles, getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials, sumFixedTargetSpend } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
-import { formatCycleLabel } from "@/lib/pay-date";
+import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Header } from "./_components/Header";
@@ -28,6 +28,12 @@ export default async function DashboardPage() {
 
   const cycle = await getOrCreateDraftCycle(userId);
   const financials = await getCycleFinancials(cycle.id);
+  // Exclusive neighbor boundary -> inclusive HTML date-input min, same
+  // conversion /history/[cycleId]/page.tsx uses -- so "Edit"'s date picker
+  // and assessPayDateChange's own boundary check can never disagree about
+  // the earliest valid pay date for this cycle.
+  const { previous: previousCycle } = await getAdjacentCycles(userId, cycle);
+  const previousBoundDate = previousCycle ? formatCycleLabel(addDays(previousCycle.periodStart, 1)) : null;
   const expenseGoals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
   const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
   const fixedSpent = sumFixedTargetSpend(
@@ -104,6 +110,8 @@ export default async function DashboardPage() {
         name={session.user.name}
         currentPayAmount={financials.baseIncome}
         currentPayDate={formatCycleLabel(cycle.periodStart)}
+        cycleId={cycle.id}
+        previousBoundDate={previousBoundDate}
       />
 
       {uncategorizedTransactions.length > 0 && (

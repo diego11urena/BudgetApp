@@ -13,12 +13,18 @@ export function Header({
   name,
   currentPayAmount,
   currentPayDate,
+  cycleId,
+  previousBoundDate,
 }: {
   name?: string | null;
   /** This cycle's already-recorded pay amount — prefills the "Edit" sheet. */
   currentPayAmount: number;
   /** "YYYY-MM-DD" — this cycle's periodStart, prefills the "Edit" sheet. */
   currentPayDate: string;
+  /** The current draft cycle's id — lets "Edit" preview a pay-date change before committing, same as a closed cycle's own Edit trigger. */
+  cycleId: string;
+  /** "YYYY-MM-DD", exclusive — the earliest valid pay date (the previous cycle's own periodStart), or null if this is the account's first-ever cycle. */
+  previousBoundDate: string | null;
 }) {
   const greeting = getGreeting(hourInPanama());
   const firstName = name?.trim().split(/\s+/)[0];
@@ -32,7 +38,12 @@ export function Header({
         </p>
         <div className="home-month">
           This Quincena&apos;s Budget
-          <EditPayInfoButton currentAmount={currentPayAmount} currentPayDate={currentPayDate} />
+          <EditPayInfoButton
+            currentAmount={currentPayAmount}
+            currentPayDate={currentPayDate}
+            cycleId={cycleId}
+            previousBoundDate={previousBoundDate}
+          />
         </div>
       </div>
       <Link href="/profile" className="home-profile-icon" aria-label="Profile">

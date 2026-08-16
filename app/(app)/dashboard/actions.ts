@@ -108,12 +108,6 @@ export async function confirmNewCycleIncomeAction(
   revalidateAppPages();
 }
 
-/** How far back "Edit" (correcting an already-recorded pay date, possibly
- * days into an already-running quincena) allows — deliberately wider than
- * PAY_DATE_LOOKBACK_DAYS (7), since it must always be able to re-select the
- * cycle's own current periodStart, which can be up to a full quincena old. */
-const EDIT_PAY_DATE_LOOKBACK_DAYS = 30;
-
 export type EditPayInfoResult = { error?: string } | undefined;
 
 /**
@@ -122,19 +116,21 @@ export type EditPayInfoResult = { error?: string } | undefined;
  * already-recorded pay amount and/or pay date in place, as opposed to "I
  * just got paid" which always closes the cycle and starts a new one.
  *
- * On the current draft cycle (no cycleId, or cycleId resolving to it):
- * unchanged behavior — updates IncomeSource.netQuincenaAmount too, so the
- * correction becomes the new baseline, and the pay date is bounded to the
- * last 30 days / not in the future.
+ * A pay-date change is bounded by this cycle's actual neighbors (via
+ * assessPayDateChange) and reassigns whichever transactions now fall on
+ * the other side of the shifted boundary — the same for the current draft
+ * cycle as for a closed one, via the exact same assessPayDateChange the
+ * preview action already showed the user (see previewPayDateChangeAction),
+ * so what gets reassigned can never disagree with what the confirmation
+ * said would happen. The draft cycle has no "next" neighbor to bound it
+ * (nothing exists after it yet), so it additionally can't be moved into
+ * the future.
  *
- * On a CLOSED cycle: the IncomeSource baseline is left alone (only the
- * currently-open cycle's edits should change what prefills the *next*
- * cycle's income prompt), and a pay-date change is bounded by its
- * neighbors' own periodStart instead of "today" — reassigning whichever
- * transactions now fall on the other side of the shifted boundary, via
- * the exact same assessPayDateChange the preview action already showed
- * the user (see previewPayDateChangeAction) — so what gets reassigned can
- * never disagree with what the confirmation said would happen.
+ * On the current draft cycle (no cycleId, or cycleId resolving to it):
+ * also updates IncomeSource.netQuincenaAmount, so the correction becomes
+ * the new baseline for future cycles. On a CLOSED cycle, that baseline is
+ * left alone — only the currently-open cycle's edits should change what
+ * prefills the *next* cycle's income prompt.
  */
 export async function editCyclePayInfoAction(formData: FormData): Promise<EditPayInfoResult> {
   const session = await auth();
@@ -169,19 +165,13 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
   let assessment: PayDateChangeResult | null = null;
   const payDateChanging = payDate.getTime() !== cycle.periodStart.getTime();
 
-  if (cycle.status === "CLOSED") {
-    if (payDateChanging) {
-      assessment = await assessPayDateChange(userId, cycle, payDate);
-      if (!assessment.ok) {
-        return { error: assessment.error };
-      }
+  if (payDateChanging) {
+    if (cycle.status !== "CLOSED" && payDate.getTime() > nowInPanama().getTime()) {
+      return { error: "Date must not be in the future" };
     }
-  } else {
-    const todayStart = nowInPanama();
-    const earliest = new Date(todayStart);
-    earliest.setDate(earliest.getDate() - EDIT_PAY_DATE_LOOKBACK_DAYS);
-    if (payDate.getTime() > todayStart.getTime() || payDate.getTime() < earliest.getTime()) {
-      return { error: "Date must be within the last 30 days and not in the future" };
+    assessment = await assessPayDateChange(userId, cycle, payDate);
+    if (!assessment.ok) {
+      return { error: assessment.error };
     }
   }
 

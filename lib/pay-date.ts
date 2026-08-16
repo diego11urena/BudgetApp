@@ -83,6 +83,20 @@ export function formatCycleLabel(date: Date = nowInPanama()): string {
   return `${year}-${pad(month)}-${pad(day)}`;
 }
 
+/**
+ * Adds (or, with a negative count, subtracts) whole days to a
+ * Panama-anchored Date, preserving its anchor -- Panama has no DST, so
+ * every day is exactly 24 hours, making this safe regardless of which
+ * timezone the calling machine is in. Used for the exclusive->inclusive
+ * neighbor-boundary conversions in the pay-date-edit UI
+ * (previousBoundDate/nextBoundDate).
+ */
+export function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
 function startOfDay(date: Date): Date {
   const { year, month, day } = panamaDateParts(date);
   return panamaMidnight(year, month, day);
