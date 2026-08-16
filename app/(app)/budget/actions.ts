@@ -125,7 +125,7 @@ export async function deleteBudgetGoalAction(formData: FormData): Promise<Delete
 
   const goalId = formData.get("goalId");
   if (typeof goalId !== "string" || !goalId) {
-    return { error: "Missing target" };
+    return { error: "Missing fixed expense" };
   }
 
   // Ownership-scoped: a plain delete({ where: { id } }) would let a user
@@ -134,7 +134,7 @@ export async function deleteBudgetGoalAction(formData: FormData): Promise<Delete
     where: { id: goalId, cycle: { userId } },
   });
   if (!existing) {
-    return { error: "Target not found" };
+    return { error: "Fixed expense not found" };
   }
 
   await prisma.cycleBudgetGoal.delete({ where: { id: existing.id } });

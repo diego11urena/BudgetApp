@@ -39,7 +39,7 @@ export function BudgetGoalForm({
           />
         </div>
         <div className="field" style={{ flex: 1, minWidth: "7rem" }}>
-          <label htmlFor="budget-amount">Target (USD)</label>
+          <label htmlFor="budget-amount">Amount (USD)</label>
           <input
             id="budget-amount"
             name="targetAmount"

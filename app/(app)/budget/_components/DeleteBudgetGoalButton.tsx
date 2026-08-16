@@ -43,11 +43,11 @@ export function DeleteBudgetGoalButton({
     <button
       type="button"
       className="icon-button"
-      aria-label={`Remove ${categoryName}'s target for this quincena`}
+      aria-label={`Remove ${categoryName}'s fixed expense for this quincena`}
       onClick={handleDelete}
       disabled={pending}
     >
-      {pending ? "Removing..." : "Remove target"}
+      {pending ? "Removing..." : "Remove"}
     </button>
   );
 }

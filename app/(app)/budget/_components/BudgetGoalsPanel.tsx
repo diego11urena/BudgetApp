@@ -56,11 +56,11 @@ export function BudgetGoalsPanel({
         </div>
       </div>
       <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-        Recurring targets carry into every quincena by default — tap &quot;Edit&quot; to switch a
-        target to a specific day each month instead, or remove it.
+        Recurring fixed expenses carry into every quincena by default — tap &quot;Edit&quot; to switch
+        one to a specific day each month instead, or remove it.
       </p>
       {rows.length === 0 && (
-        <p className="field-hint">No fixed expense targets yet — tap &quot;+ Add target&quot; above.</p>
+        <p className="field-hint">No fixed expenses yet — tap &quot;+ Add fixed expense&quot; above.</p>
       )}
       <div className="budget-goal-list">
         {rows.map((row) => (

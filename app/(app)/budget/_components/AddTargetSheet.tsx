@@ -5,9 +5,10 @@ import { useModalFocus } from "../../_components/useModalFocus";
 import { BudgetGoalForm } from "./BudgetGoalForm";
 
 /**
- * "Add or update a target" used to live permanently at the bottom of the
- * page — now opened on demand from this button, using the same sheet
- * pattern as every other modal in the app (ConfirmJustGotPaidSheet, etc.).
+ * "Add or update a fixed expense" used to live permanently at the bottom
+ * of the page — now opened on demand from this button, using the same
+ * sheet pattern as every other modal in the app (ConfirmJustGotPaidSheet,
+ * etc.).
  */
 export function AddTargetSheet({ categoryNames }: { categoryNames: string[] }) {
   const [open, setOpen] = useState(false);
@@ -23,7 +24,7 @@ export function AddTargetSheet({ categoryNames }: { categoryNames: string[] }) {
           setOpen(true);
         }}
       >
-        + Add target
+        + Add fixed expense
       </button>
 
       {open && (
@@ -73,14 +74,14 @@ function AddTargetSheetContent({
         className={`sheet ${visible ? "is-open" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Add or update a fixed expense target"
+        aria-label="Add or update a fixed expense"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Add or update a target</h2>
+        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Add or update a fixed expense</h2>
         <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
           Sets this quincena&apos;s amount. New categories start Recurring — tap the edit icon on
-          a target to stop it from carrying into your next quincena.
+          a fixed expense to stop it from carrying into your next quincena.
         </p>
         <BudgetGoalForm categoryNames={categoryNames} onSuccess={handleClose} />
       </div>

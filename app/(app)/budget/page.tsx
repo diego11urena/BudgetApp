@@ -27,7 +27,7 @@ export default async function BudgetPage() {
     <div className="home-page">
       <h1 className="page-title">Fixed Expenses</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Fixed expense targets for this quincena. Savings targets live on the Goals tab.
+        Fixed expenses for this quincena. Savings goals live on the Goals tab.
       </p>
 
       <div className="dashboard-section">
