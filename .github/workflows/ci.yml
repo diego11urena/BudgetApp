@@ -69,7 +69,7 @@ jobs:
       # in the fast checks job (no DATABASE_URL there) — this is the only
       # place they actually run, against a real Postgres with every
       # migration (including the race-condition unique indexes) applied.
-      - run: npx vitest run lib/cycles.concurrency.test.ts lib/categories.concurrency.test.ts
+      - run: npx vitest run lib/cycles.concurrency.test.ts lib/categories.concurrency.test.ts lib/cycles.past-editing.test.ts
       - run: npx playwright install --with-deps chromium
       # playwright.config.ts's webServer builds + starts the app itself
       # (a real production build in CI, not the dev server) before tests run.
