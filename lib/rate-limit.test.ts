@@ -64,6 +64,20 @@ describe("checkRateLimit", () => {
     expect(result.retryAfterSeconds).toBe(0);
   });
 
+  // Regression anchor: a rate limiter is defense-in-depth, not the primary
+  // gate. If Redis is unreachable (missing credentials, a network blip, an
+  // Upstash outage), login/signup/etc. must still work -- failing the same
+  // way as a real user hitting the limit (allowed:false) would take the
+  // whole app down over an infrastructure hiccup, which is a far worse
+  // outcome than briefly having no brute-force throttling.
+  it("fails open (allowed:true) when the Upstash call throws", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    limitMock.mockRejectedValue(new Error("ECONNREFUSED"));
+    const result = await checkRateLimit("some-key", { max: 5, windowMs: 60_000 });
+    expect(result).toEqual({ allowed: true, retryAfterSeconds: 0 });
+    consoleError.mockRestore();
+  });
+
   // These three tests each use a (max, windowMs) pair no other test in this
   // file touches — the Ratelimit-instance cache inside rate-limit.ts is
   // module-level and outlives any one test, so reusing a pair another test
