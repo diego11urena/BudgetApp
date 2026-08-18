@@ -55,6 +55,18 @@ Only emails from Banco General (`transaccionesbg@bgeneral.com`) and Yappy
 (`notificaciones@yappy.com.pa`) are ever queried — see `lib/gmail-parsers.ts`
 to add support for other senders/email formats.
 
+## Rate limiting setup
+
+Login, signup, change-password, and the Gmail OAuth routes are rate-limited
+against a shared [Upstash](https://upstash.com) Redis database (free tier) —
+required so limits are actually enforced across every serverless instance
+Vercel runs, not just whichever one happens to handle a given request.
+
+1. Create a free Upstash account and a Redis database (any region).
+2. Copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` from the
+   database's "REST API" section into `.env` (local) and the Vercel project
+   settings (production).
+
 ## Deployment
 
 The app deploys to [Vercel](https://vercel.com) with a hosted Postgres (e.g.
@@ -69,6 +81,8 @@ The app deploys to [Vercel](https://vercel.com) with a hosted Postgres (e.g.
      local dev value (`openssl rand -base64 32`)
    - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GMAIL_TOKEN_ENCRYPTION_KEY`
      — only needed if using Gmail import, same values as above
+   - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — see "Rate
+     limiting setup" above
 4. Apply migrations to the fresh hosted database once, from your machine:
    ```bash
    DATABASE_URL="<neon-connection-string>" npx prisma migrate deploy

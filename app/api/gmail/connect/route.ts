@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   // Keyed by userId, not IP — this route is only reachable once already
   // logged in, so blunts a compromised/scripted session hammering Google's
   // OAuth consent endpoint rather than a specific attack shape.
-  const rateLimit = checkRateLimit(`gmail-connect:${session.user.id}`, GMAIL_CONNECT_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`gmail-connect:${session.user.id}`, GMAIL_CONNECT_RATE_LIMIT);
   if (!rateLimit.allowed) {
     return NextResponse.redirect(new URL("/profile?gmail=rate_limited", request.url));
   }

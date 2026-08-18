@@ -5,12 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { signIn } from "@/lib/auth";
 import { signupSchema } from "@/lib/validations/onboarding";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { seedDefaultIncomeCategories } from "@/lib/categories";
 
 export type SignupFormState = { error?: string } | undefined;
 
 const SIGNUP_RATE_LIMIT = { max: 5, windowMs: 60_000 };
+// Looser than the per-email limit, same reasoning as login's IP check --
+// guards against signup spam from one source across many different emails.
+const SIGNUP_IP_RATE_LIMIT = { max: 20, windowMs: 60_000 };
 
 export async function signupAction(
   _prevState: SignupFormState,
@@ -28,9 +31,13 @@ export async function signupAction(
 
   const { name, email, password } = parsed.data;
 
-  const rateLimit = checkRateLimit(`signup:${email.toLowerCase()}`, SIGNUP_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`signup:${email.toLowerCase()}`, SIGNUP_RATE_LIMIT);
   if (!rateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+  }
+  const ipRateLimit = await checkRateLimit(`signup-ip:${await getClientIp()}`, SIGNUP_IP_RATE_LIMIT);
+  if (!ipRateLimit.allowed) {
+    return { error: `Too many attempts. Try again in ${ipRateLimit.retryAfterSeconds}s.` };
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });

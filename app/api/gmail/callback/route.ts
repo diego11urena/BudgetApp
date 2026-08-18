@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   // this endpoint performs a real token exchange with Google and a DB
   // write per call, so it's worth throttling independently of /connect
   // even though a normal user only ever hits it once per connect attempt.
-  const rateLimit = checkRateLimit(`gmail-callback:${stateUserId}`, GMAIL_CALLBACK_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`gmail-callback:${stateUserId}`, GMAIL_CALLBACK_RATE_LIMIT);
   if (!rateLimit.allowed) {
     return NextResponse.redirect(new URL("/profile?gmail=rate_limited", request.url));
   }

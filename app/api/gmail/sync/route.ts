@@ -22,7 +22,7 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateLimit = checkRateLimit(`gmail-sync:${session.user.id}`, GMAIL_SYNC_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`gmail-sync:${session.user.id}`, GMAIL_SYNC_RATE_LIMIT);
   if (!rateLimit.allowed) {
     return NextResponse.json({ error: "Rate limited" }, { status: 429 });
   }

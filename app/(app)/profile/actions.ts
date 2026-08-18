@@ -28,7 +28,7 @@ export async function changePasswordAction(
   }
   const userId = session.user.id;
 
-  const rateLimit = checkRateLimit(`changepw:${userId}`, CHANGE_PASSWORD_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`changepw:${userId}`, CHANGE_PASSWORD_RATE_LIMIT);
   if (!rateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
   }
