@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter, Manrope } from "next/font/google";
+import { Geist_Mono, Manrope, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -7,8 +7,9 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+// Body/UI text — Balboa design system (design.md), replacing Inter.
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin"],
 });
 
@@ -21,19 +22,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BudgetApp",
+  title: "Balboa",
   description: "A budgeting app for Panama.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BudgetApp",
+    title: "Balboa",
   },
 };
 
 export const viewport: Viewport = {
   viewportFit: "cover",
-  themeColor: "#6c5ce7",
+  themeColor: "#17395c",
 };
 
 export default function RootLayout({
@@ -42,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${inter.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${manrope.variable} ${sourceSans.variable} ${geistMono.variable}`}>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

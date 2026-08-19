@@ -3,145 +3,171 @@
  * everything below references these variables, no hardcoded colors.
  */
 :root {
-  /* "Subtle Gradient" design system — Gradient Indigo brand, near-black
-     text, cool-gray neutrals. --color-*-green names are kept as-is (just
-     retinted) to avoid touching every var() call site across the file for
-     a values-only reskin; they now hold indigo, not green. */
+  /* Balboa — Navy & Silver. Bold, product-led identity: white base, navy
+     as the one signal color (every primary action, the hero card, the
+     active nav state), silver as secondary structure. --color-*-green
+     names are kept as-is (just retinted) to avoid touching every var()
+     call site across the file for a values-only reskin; they now hold
+     navy, not green/indigo. Full token list: design.md in the Balboa
+     Personal Finance Design System (claude.ai/design). */
   --color-bg: #ffffff;
-  --color-bg-secondary: #f5f5f8;
+  --color-bg-secondary: #eef0f3;
   --color-card: #ffffff;
   /* One step lighter than the main accent — used for chart fills. */
-  --color-primary-green: #7c6ce8;
+  --color-primary-green: #17395c;
   /* Lightest tier — decorative hover fills, and as text (.toast-action) on
      the toast's dark-in-light-mode surface (background: var(--color-text-primary)). */
-  --color-secondary-green: #a99cf2;
-  --color-accent-green: #6c5ce7;
-  --color-text-primary: #101114;
-  --color-text-secondary: #686b82;
-  --color-border: #dedee5;
-  --color-success: #149e61;
-  --color-warning: #d9a05b;
-  --color-error: #c1706a;
+  --color-secondary-green: #4f8cff;
+  --color-accent-green: #17395c;
+  --color-text-primary: #10161c;
+  --color-text-secondary: #6b7480;
+  --color-border: #dbe0e6;
+  --color-success: #1f8a5c;
+  --color-warning: #b3781a;
+  --color-error: #c0392b;
+  /* Status colors tuned for --color-accent-green fills specifically (the
+     hero card, and anywhere else a status needs to sit on the signal
+     color rather than the page background) — not overridden in dark mode,
+     since those surfaces are always navy regardless of page theme. The
+     regular --color-success/warning/error trio is tuned for light-surface
+     text and reads poorly against navy at that same lightness. */
+  --color-success-on-dark: #3fbf8a;
+  --color-warning-on-dark: #e0a83f;
+  --color-error-on-dark: #ff6b6f;
   /* A savings contribution is still a minus on the transaction row (money
      left the spendable balance) but isn't spending — this keeps it from
-     reading identically to an Expense row at a glance. Same blue as
-     --chart-cat-2 for one consistent "this is savings-related" hue. */
-  --color-savings: #2f6fed;
+     reading identically to an Expense row at a glance. Everything tied to
+     savings or goals (this, the Savings category tag/icon, the donut
+     chart's savings slice, both goal-progress rings) shares this one
+     color, so the concept reads as one thread through the whole app. */
+  --color-savings: #3568d4;
   --color-on-accent: #ffffff;
-  --color-success-bg: rgba(20, 158, 97, 0.16);
-  --color-warning-bg: rgba(217, 160, 91, 0.15);
-  --color-error-bg: rgba(193, 112, 106, 0.15);
-  --shadow-color: rgba(0, 0, 0, 0.03);
+  --color-success-bg: rgba(31, 138, 92, 0.16);
+  --color-warning-bg: rgba(179, 120, 26, 0.15);
+  --color-error-bg: rgba(192, 57, 43, 0.15);
+  /* Soft diffuse shadows are the primary depth cue (not hairline borders)
+     — tinted off text-primary's own hue rather than pure black. */
+  --shadow-color: rgba(16, 22, 28, 0.06);
   /* Filled surfaces with --color-on-accent text on top (buttons, active
      chips) — same as --color-accent-green in light mode; dark mode gives
      it its own darker shade so it can both hold light text AND still let
      --color-accent-green stay light enough for its text-on-dark uses. */
   --color-button-bg: var(--color-accent-green);
-  /* Reserved for hero surfaces and the primary button only — everywhere
-     else uses flat --color-accent-green/--color-button-bg for restraint. */
-  --gradient-brand: linear-gradient(135deg, #6c5ce7 0%, #4c3fc7 100%);
-  /* Translucent indigo tint for hero-card/cycle-closed-card's background
-     wash — the spec's Primary Gradient is fully opaque with white text,
-     but these cards mix that gradient with existing dark text/content, so
-     they get a subtle tinted version of the same hue instead (same role
-     --color-success-bg played before this reskin), keeping "sparingly...
-     not decorative" without needing to recolor every child element. */
-  --color-accent-bg: rgba(108, 92, 231, 0.12);
+  /* Flat navy, not an actual gradient — "Big confident... generous
+     rounding, soft shadows over hairlines" is a flat aesthetic; kept as a
+     CSS var (rather than switching call sites to --color-accent-green
+     directly) so a future gradient exploration only touches this line. */
+  --gradient-brand: #17395c;
+  /* Translucent navy tint for hero-card/cycle-closed-card's background
+     wash — the spec's hero surfaces are fully opaque with white text, but
+     cycle-closed-card mixes this wash with existing dark text/content, so
+     it gets a subtle tinted version of the same hue instead, keeping
+     "sparingly... not decorative" without needing to recolor every child
+     element. */
+  --color-accent-bg: rgba(23, 57, 92, 0.12);
 
   /* Aliases so existing rules referencing page-level bg/fg stay in sync. */
   --background: var(--color-bg);
   --foreground: var(--color-text-primary);
 
   /* Display/heading font — Manrope, bold weight, slightly tightened
-     tracking. Body text uses --font-inter directly (set once on `body`,
-     inherited everywhere) rather than a variable, since nothing overrides it. */
+     tracking, and every monetary figure (tabular figures). Body text uses
+     --font-source-sans directly (set once on `body`, inherited everywhere)
+     rather than a variable, since nothing overrides it. */
   --font-display: var(--font-manrope), IBM Plex Sans, Helvetica, Arial, sans-serif;
 
   /* Radius scale — every border-radius in this file references one of
      these instead of a hardcoded literal. .bottom-nav-fab's 50% circle is
-     the one intentional exception (not a step in this scale). */
-  --radius-xs: 3px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-button: 12px;
-  --radius-xl: 16px;
+     the one intentional exception (not a step in this scale).
+     --radius-button now equals --radius-pill: buttons/tags/nav are full
+     pills in this design system, not just rounded rectangles — see
+     .button, .sheet-delete. Its non-button consumers (.card, .kpi-tile)
+     were repointed to --radius-lg to keep their own card-appropriate
+     rounding. */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-button: var(--radius-pill);
+  --radius-xl: 24px;
   --radius-pill: 9999px;
 
   /* Paycheck Breakdown pie chart — a fixed categorical order for expense
      category slices (lib/paycheck-breakdown.ts hashes a category's id to
-     one of these 6, so a category's color never shifts just because
+     one of these 8, so a category's color never shifts just because
      another category's amount changed rank). Savings/Remaining/Other are
-     their own fixed buckets, not "series 7/8/9". Savings reuses the
-     existing success green — a real status match ("this went somewhere
-     good"), not an arbitrary categorical color. */
-  --chart-cat-1: #6c5ce7;
-  --chart-cat-2: #2f6fed;
-  --chart-cat-3: #d97706;
-  --chart-cat-4: #c2478d;
-  --chart-cat-5: #7c4a2d;
-  --chart-cat-6: #4a5578;
+     their own fixed buckets, not "series 9/10/11". Savings uses
+     --color-savings, not this categorical set — a real status match
+     ("this went somewhere good"), consistent with --color-savings's role
+     everywhere else (see the comment on that var above). */
+  --chart-cat-1: #17395c;
+  --chart-cat-2: #8b93a0;
+  --chart-cat-3: #b3781a;
+  --chart-cat-4: #7c3f66;
+  --chart-cat-5: #4a6b4f;
+  --chart-cat-6: #2f8f8a;
   /* 7-8 added so a category-grouped pie with more than 6 categories has
      more room before two chart slices are forced to share a color (see
      lib/paycheck-breakdown.ts's assignCategoryColorIndexes). */
-  --chart-cat-7: #0d9488;
-  --chart-cat-8: #65a30d;
-  --chart-savings: var(--color-success);
-  --chart-remaining: #b7b9c6;
-  --chart-other: #8a8d9c;
+  --chart-cat-7: #5b4a8f;
+  --chart-cat-8: #5f6975;
+  --chart-savings: var(--color-savings);
+  --chart-remaining: #d8dce0;
+  --chart-other: #7a828f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #1a1a20;
-    --color-bg-secondary: #212128;
-    --color-card: #232329;
-    --color-primary-green: #9d90f5;
+    --color-bg: #0b1016;
+    --color-bg-secondary: #131a22;
+    --color-card: #131a22;
+    --color-primary-green: #4f8cff;
     /* Darkened for contrast as text (.toast-action) on the toast's light
        surface in dark mode (background: var(--color-text-primary), which
-       flips light here) — same reasoning the green values this replaced
-       had (see git history). Still used unmodified as a decorative hover
-       fill elsewhere, where text contrast doesn't apply. */
-    --color-secondary-green: #453aa8;
-    --color-accent-green: #8f7ff0;
-    --color-text-primary: #f5f5f7;
-    /* Spec's Silver Blue — its own defined "secondary text, muted
-       elements" color, and light enough to read on this mode's dark bg. */
-    --color-text-secondary: #9497a9;
-    --color-border: #38383f;
-    --color-success: #22b976;
-    --color-warning: #e0b378;
-    --color-error: #d68b84;
-    /* Same hue as --chart-cat-2's dark-mode value, lightened for contrast. */
-    --color-savings: #5b9bff;
+       flips light here) — same reasoning the values this replaced had
+       (see git history). Still used unmodified as a decorative hover fill
+       elsewhere, where text contrast doesn't apply. */
+    --color-secondary-green: #17395c;
+    --color-accent-green: #4f8cff;
+    --color-text-primary: #f0f3f5;
+    /* Spec's Silver — its own defined "secondary text, muted elements"
+       color, and light enough to read on this mode's dark bg. */
+    --color-text-secondary: #9aa3ac;
+    --color-border: #232c35;
+    --color-success: #3fbf8a;
+    --color-warning: #e0a83f;
+    --color-error: #ff6b6f;
+    --color-savings: #7fa0ff;
     --color-on-accent: #ffffff;
-    --color-success-bg: rgba(34, 185, 118, 0.18);
-    --color-warning-bg: rgba(224, 179, 120, 0.15);
-    --color-error-bg: rgba(214, 139, 132, 0.15);
-    --shadow-color: rgba(0, 0, 0, 0.25);
-    /* --color-accent-green (#8f7ff0) is light enough to read well as text
+    --color-success-bg: rgba(63, 191, 138, 0.18);
+    --color-warning-bg: rgba(224, 168, 63, 0.15);
+    --color-error-bg: rgba(255, 107, 111, 0.15);
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    /* --color-accent-green (#4f8cff) is light enough to read well as text
        on this mode's dark surfaces (hero-action-link, active nav/tabs),
-       but that's too light for --color-on-accent (near-white) text to sit
-       on top of as a button fill. Darkened same hue instead of touching
-       --color-accent-green, which would break those other passing uses. */
-    --color-button-bg: #5b4fc4;
-    --gradient-brand: linear-gradient(135deg, #8f7ff0 0%, #5b4fc4 100%);
-    --color-accent-bg: rgba(143, 127, 240, 0.14);
+       but a solid fill of it under white text reads a little flat next to
+       this mode's deep card/bg tones. A mid-dark navy between this mode's
+       lightened accent and light mode's own navy gives buttons more
+       presence without touching --color-accent-green, which would break
+       those other passing uses. */
+    --color-button-bg: #2f5f8f;
+    --gradient-brand: #4f8cff;
+    --color-accent-bg: rgba(79, 140, 255, 0.14);
 
     /* Same hue family as light mode, lightened for contrast against this
        mode's dark card surface — same treatment as --color-accent-green
        above. */
-    --chart-cat-1: #8f7ff0;
-    --chart-cat-2: #5b9bff;
-    --chart-cat-3: #e2a33f;
-    --chart-cat-4: #dd6fae;
-    --chart-cat-5: #a97a52;
-    --chart-cat-6: #7a84ab;
-    --chart-cat-7: #14b8a6;
-    --chart-cat-8: #84cc16;
-    --chart-savings: var(--color-success);
-    --chart-remaining: #55586a;
-    --chart-other: #6c6f82;
+    --chart-cat-1: #4f8cff;
+    --chart-cat-2: #aab3bd;
+    --chart-cat-3: #e0a83f;
+    --chart-cat-4: #b8699b;
+    --chart-cat-5: #7a9c80;
+    --chart-cat-6: #4fb5af;
+    --chart-cat-7: #8f7ecb;
+    --chart-cat-8: #8992a0;
+    --chart-savings: var(--color-savings);
+    --chart-remaining: #3a4149;
+    --chart-other: #5f6975;
 
     --background: var(--color-bg);
     --foreground: var(--color-text-primary);
@@ -164,7 +190,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-inter), Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-family: var(--font-source-sans), Helvetica Neue, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -210,7 +236,7 @@ a {
   max-width: 28rem;
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-button);
+  border-radius: var(--radius-lg);
   padding: 2rem;
   box-shadow: 0 1px 3px var(--shadow-color);
 }
@@ -652,18 +678,25 @@ button.line-item--link {
   background: var(--color-bg-secondary);
 }
 
-/* Hero card */
+/* Hero card — solid navy fill with white text, not a tinted wash: the
+   design system's sample screens (Personal Finance Design System.dc.html)
+   render this as an opaque #17395c card, the one place the signal color
+   fills a whole surface rather than accenting text/a button. Doesn't flip
+   with light/dark page theme — it's the one deliberately-always-navy
+   surface, same reasoning --color-success-on-dark/etc. below exist. */
 .hero-card {
-  background: linear-gradient(160deg, var(--color-accent-bg), transparent);
-  border: 1px solid var(--color-border);
+  background: var(--color-accent-green);
+  border: none;
   border-radius: var(--radius-xl);
   padding: 1.85rem 1.5rem;
   text-align: center;
+  color: var(--color-on-accent);
 }
 
 .hero-label {
   font-size: 0.9rem;
-  color: var(--color-text-secondary);
+  color: var(--color-on-accent);
+  opacity: 0.7;
   font-weight: 600;
 }
 
@@ -678,28 +711,32 @@ button.line-item--link {
 }
 
 .hero-value--good {
-  color: var(--color-success);
+  color: var(--color-on-accent);
 }
 
 .hero-value--critical {
-  color: var(--color-error);
+  color: var(--color-error-on-dark);
 }
 
 .hero-subtitle {
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: var(--color-on-accent);
+  opacity: 0.8;
   margin-bottom: 1rem;
 }
 
 .hero-pace {
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--color-on-accent);
+  opacity: 0.8;
   margin: -0.4rem 0 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 0.6rem;
 }
 
 .hero-pace--warning {
-  color: var(--color-warning);
+  color: var(--color-warning-on-dark);
 }
 
 .hero-action-link {
@@ -710,7 +747,7 @@ button.line-item--link {
   min-height: 44px;
   background: none;
   border: none;
-  color: var(--color-accent-green);
+  color: var(--color-on-accent);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -1285,7 +1322,7 @@ button.line-item--link {
 /* KPI stat tile */
 .kpi-tile {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-button);
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   background: var(--color-card);
 }
@@ -1703,7 +1740,7 @@ button.line-item--link {
   max-width: calc(30rem - 2rem);
   width: calc(100% - 2rem);
   padding: 0.75rem 1rem;
-  border-radius: var(--radius-button);
+  border-radius: var(--radius-lg);
   background: var(--color-text-primary);
   color: var(--color-bg);
   box-shadow: 0 4px 16px var(--shadow-color);
@@ -1897,7 +1934,7 @@ button.line-item--link {
 }
 
 .goal-ring-fill {
-  stroke: var(--color-success);
+  stroke: var(--color-savings);
   stroke-linecap: round;
   transition: stroke-dashoffset 0.3s ease;
 }

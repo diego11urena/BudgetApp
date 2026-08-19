@@ -1,4 +1,4 @@
-# BudgetApp
+# Balboa
 
 A personal budgeting web app built with Next.js, TypeScript, and Postgres (via
 Prisma), designed around biweekly "quincena" pay periods (as is standard in
