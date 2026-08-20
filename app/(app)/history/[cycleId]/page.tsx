@@ -119,7 +119,7 @@ export default async function CycleHistoryPage({
             marginBottom: "0.5rem",
           }}
         >
-          <h2 style={{ marginBottom: 0 }}>Transactions</h2>
+          <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Transactions</h2>
           <AddToCycleButton
             cycleId={cycle.id}
             cycleStartDate={cycleStartDate}

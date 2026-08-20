@@ -11,6 +11,7 @@ import { GoalRing } from "./_components/GoalRing";
 import { AddGoalSheet } from "./_components/AddGoalSheet";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
 import { ContributeButton } from "./_components/ContributeButton";
+import { EditGoalButton } from "./_components/EditGoalButton";
 
 export default async function GoalsPage() {
   const session = await auth();
@@ -36,7 +37,7 @@ export default async function GoalsPage() {
             marginBottom: "0.5rem",
           }}
         >
-          <h2 style={{ marginBottom: 0 }}>Your savings goals</h2>
+          <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Your savings goals</h2>
           <AddGoalSheet categoryNames={savingsCategoryNames} />
         </div>
         {goals.length === 0 && (
@@ -75,6 +76,16 @@ export default async function GoalsPage() {
                 </div>
                 <div className="goal-row-actions">
                   <ContributeButton categoryName={goal.name} />
+                  <EditGoalButton
+                    goal={{
+                      categoryId: goal.categoryId,
+                      name: goal.name,
+                      lifetimeTargetAmount: goal.lifetimeTargetAmount,
+                      currentCycleRecurringAmount: goal.currentCycleRecurringAmount,
+                      savedSoFar: goal.savedSoFar,
+                    }}
+                    categoryNames={savingsCategoryNames}
+                  />
                   <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} />
                 </div>
               </div>

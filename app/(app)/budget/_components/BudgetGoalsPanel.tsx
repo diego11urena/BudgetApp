@@ -41,7 +41,7 @@ export function BudgetGoalsPanel({
           marginBottom: "0.5rem",
         }}
       >
-        <h2 style={{ marginBottom: 0 }}>This quincena&apos;s fixed expenses</h2>
+        <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>This quincena&apos;s fixed expenses</h2>
         <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
           {rows.length > 0 && (
             <button
