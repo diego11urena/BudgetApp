@@ -31,14 +31,27 @@ export function GmailConnectionCard({ connection }: { connection: GmailConnectio
       </p>
       {connection.lastSyncError && (
         <p className="error-text" style={{ marginTop: "0.25rem" }}>
-          Last sync failed — try reconnecting.
+          {connection.lastSyncError}
         </p>
       )}
-      <form action={disconnectGmailAction} style={{ marginTop: "0.5rem" }}>
-        <button type="submit" className="button button--secondary button--small">
-          Disconnect
-        </button>
-      </form>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+        {connection.lastSyncError && (
+          // Re-hitting /connect for an already-connected account re-runs the
+          // OAuth flow and updates this same connection (the callback route's
+          // upsert `update` branch) rather than creating a duplicate one --
+          // this is the actual "reconnect" the error text above refers to.
+          // Previously there was no way to do this without disconnecting
+          // first, even though the error message told users to reconnect.
+          <a href="/api/gmail/connect" className="button button--secondary button--small">
+            Reconnect Gmail
+          </a>
+        )}
+        <form action={disconnectGmailAction}>
+          <button type="submit" className="button button--secondary button--small">
+            Disconnect
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

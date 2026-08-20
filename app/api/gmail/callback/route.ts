@@ -54,10 +54,18 @@ export async function GET(request: NextRequest) {
       url: "https://gmail.googleapis.com/gmail/v1/users/me/profile",
     });
 
-    // lastSyncedAt is set to "now" here (not left null) on both create and
-    // reconnect: syncGmailTransactions treats it as the forward-only cutoff,
-    // so this is what makes a reconnect start fresh from this moment rather
-    // than falling back to a stale original createdAt from months ago.
+    // lastSyncedAt is set to "now" only on a brand-new connection (create) --
+    // syncGmailTransactions treats it as the forward-only sync cutoff, so
+    // this is what stops a first-ever connect from dumping months of old
+    // purchases into the current cycle. Reconnecting an EXISTING connection
+    // (update) deliberately leaves lastSyncedAt untouched: it already holds
+    // a real value from the last successful sync, and jumping it forward to
+    // "now" here used to permanently skip every email between that last
+    // success and the moment of reconnecting -- including exactly the emails
+    // a user is reconnecting to try to recover. Prisma's update only writes
+    // fields listed here, so omitting lastSyncedAt leaves the existing
+    // connection's own value in place and the next sync picks up right
+    // where the last successful one left off.
     const connectedNow = new Date();
     await prisma.gmailConnection.upsert({
       where: { userId: stateUserId },
@@ -70,7 +78,6 @@ export async function GET(request: NextRequest) {
       update: {
         encryptedRefreshToken: encryptToken(tokens.refresh_token),
         googleEmail: profileRes.data.emailAddress,
-        lastSyncedAt: connectedNow,
         lastSyncError: null,
       },
     });

@@ -15,18 +15,25 @@ const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 // without risking a burst large enough to trip Google's rate limiting.
 const MESSAGE_FETCH_CONCURRENCY = 5;
 
-/** Runs `fn` over `items` with at most `concurrency` in flight at once, preserving input order in the returned array. */
-async function mapWithConcurrency<T, R>(
+/** One item's outcome from mapWithConcurrency -- never a thrown rejection, so one item's failure can never propagate through the shared Promise.all and take down every other in-flight item. */
+export type ConcurrentResult<R> = { ok: true; value: R } | { ok: false; error: unknown };
+
+/** Runs `fn` over `items` with at most `concurrency` in flight at once, preserving input order in the returned array. Each item's own failure is caught and reported per-item (see ConcurrentResult) rather than rejecting the whole batch -- a single bad message must not stop every other message in the same sync from importing. */
+export async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
   fn: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
+): Promise<ConcurrentResult<R>[]> {
+  const results: ConcurrentResult<R>[] = new Array(items.length);
   let nextIndex = 0;
   async function worker() {
     while (nextIndex < items.length) {
       const i = nextIndex++;
-      results[i] = await fn(items[i]);
+      try {
+        results[i] = { ok: true, value: await fn(items[i]) };
+      } catch (error) {
+        results[i] = { ok: false, error };
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
@@ -147,6 +154,39 @@ export function syncWindowStartMs(connection: { lastSyncedAt: Date | null; creat
 }
 
 /**
+ * Recognizes the handful of well-known Google OAuth error shapes that mean
+ * "the stored token itself is no good" (expired/revoked grant, corrupted or
+ * mismatched encryption key) — the only case where telling the user to
+ * reconnect is actually the right remedy. Exported and pure so the message
+ * mapping is unit-testable without a live OAuth failure.
+ */
+export function isGmailAuthError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("invalid_grant") ||
+    message.includes("invalid_token") ||
+    message.includes("unauthorized") ||
+    message.includes("token has been expired or revoked") ||
+    message.includes("decrypt")
+  );
+}
+
+/**
+ * The message stored in GmailConnection.lastSyncError and shown in the UI.
+ * Deliberately does NOT suggest reconnecting except for a genuine auth
+ * failure — reconnecting is only ever the right fix for that one case, and
+ * previously this app told every user to reconnect regardless of cause,
+ * which (before the syncWindowStartMs fix above) actively lost data by
+ * jumping the sync window forward past whatever the real problem was.
+ */
+export function describeGmailSyncError(error: unknown): string {
+  return isGmailAuthError(error)
+    ? "Your Gmail connection has expired — reconnect to keep importing transactions."
+    : "Gmail sync hit a temporary problem. We'll automatically try again next time you open the app.";
+}
+
+/**
  * Checks Gmail for new transaction-notification emails (bank card purchases,
  * Yappy sent/received) since the last sync and imports them as
  * transactions. Called from the app layout on every navigation (see
@@ -171,6 +211,15 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
     const sinceMs = syncWindowStartMs(connection);
     const candidateIds = await listMessageIds(client, Math.floor(sinceMs / 1000));
 
+    // Tracks whether every candidate message was actually imported (or
+    // legitimately skipped as a duplicate/non-transaction email) this run.
+    // lastSyncedAt only advances when this stays true -- a partial failure
+    // must not silently drop whichever messages never got processed, so
+    // the next sync retries the *same* window instead (cheap: everything
+    // already imported this run is skipped again via sourceMessageId
+    // dedup, so only the genuinely-failed messages do real work twice).
+    let allProcessed = true;
+
     if (candidateIds.length > 0) {
       const existing = await prisma.cycleTransaction.findMany({
         where: { sourceMessageId: { in: candidateIds } },
@@ -192,30 +241,48 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
 
         // The Gmail fetch itself is the slow part and safe to parallelize
         // (each message.get is independent); the DB reads/writes below stay
-        // sequential to avoid overwhelming Prisma's connection pool.
-        const messages = await mapWithConcurrency(newIds, MESSAGE_FETCH_CONCURRENCY, (id) =>
+        // sequential to avoid overwhelming Prisma's connection pool. Each
+        // fetch's own failure is isolated (ConcurrentResult) rather than
+        // aborting every other in-flight fetch in the same batch.
+        const messageResults = await mapWithConcurrency(newIds, MESSAGE_FETCH_CONCURRENCY, (id) =>
           getMessage(client, id),
         );
 
-        for (const message of messages) {
-          const body = extractBodyText(message.payload);
-          const parsed = body ? parseTransactionEmail(body) : null;
-          if (!parsed) continue;
-
-          // Category and source are independent: category is "what it was
-          // for" (left null -- never a fake stand-in -- until a real match
-          // is learned or the user picks one), source is "how it arrived"
-          // (always known for an import, shown as a separate tag in the UI).
-          let expenseCategoryId: string | null = null;
-          if (parsed.type === "EXPENSE") {
-            const merchantKey = parsed.merchant.toLowerCase();
-            if (!learnedCategoryCache.has(merchantKey)) {
-              learnedCategoryCache.set(merchantKey, await findLearnedCategoryId(userId, parsed.merchant));
-            }
-            expenseCategoryId = learnedCategoryCache.get(merchantKey) ?? null;
+        for (const messageResult of messageResults) {
+          if (!messageResult.ok) {
+            allProcessed = false;
+            console.error("[gmail-sync] failed to fetch a message, will retry next sync:", messageResult.error);
+            continue;
           }
+          const message = messageResult.value;
 
+          // Isolates the rest of this one message's processing (category
+          // lookup + insert) so a failure here -- same reasoning as the
+          // fetch step above -- skips only this message, not the whole
+          // batch. Parsing itself never throws (parseTransactionEmail
+          // returns null on no match), so this is really guarding the DB
+          // calls, but wrapping the whole block keeps the isolation
+          // guarantee obviously true by inspection rather than relying on
+          // every future edit inside this block to preserve it.
           try {
+            const body = extractBodyText(message.payload);
+            const parsed = body ? parseTransactionEmail(body) : null;
+            if (!parsed) continue;
+
+            // Category and source are independent: category is "what it
+            // was for" (left null -- never a fake stand-in -- until a real
+            // match is learned or the user picks one), source is "how it
+            // arrived" (always known for an import, shown as a separate
+            // tag in the UI).
+            let expenseCategoryId: string | null = null;
+            if (parsed.type === "EXPENSE") {
+              const merchantKey = parsed.merchant.toLowerCase();
+              if (!learnedCategoryCache.has(merchantKey)) {
+                learnedCategoryCache.set(merchantKey, await findLearnedCategoryId(userId, parsed.merchant));
+              }
+              expenseCategoryId = learnedCategoryCache.get(merchantKey) ?? null;
+            }
+
             await prisma.cycleTransaction.create({
               data: {
                 cycleId: cycle.id,
@@ -231,23 +298,37 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
               },
             });
           } catch (error) {
-            if (!isUniqueConstraintViolation(error)) throw error;
-            // Already imported (e.g. a race between two near-simultaneous
-            // syncs) — the unique constraint on sourceMessageId is the
-            // final backstop behind the knownIds pre-filter above.
+            if (isUniqueConstraintViolation(error)) {
+              // Already imported (e.g. a race between two near-simultaneous
+              // syncs) — the unique constraint on sourceMessageId is the
+              // final backstop behind the knownIds pre-filter above. Not a
+              // real failure, doesn't block lastSyncedAt from advancing.
+              continue;
+            }
+            allProcessed = false;
+            console.error("[gmail-sync] failed to import a message, will retry next sync:", error);
           }
         }
       }
     }
 
-    await prisma.gmailConnection.update({
-      where: { userId },
-      data: { lastSyncedAt: new Date(), lastSyncError: null },
-    });
+    // A partial per-item failure is deliberately NOT surfaced as
+    // lastSyncError -- most or all of the batch likely still imported
+    // successfully, so showing "Last sync failed" here would be both
+    // alarming and wrong. It resolves itself silently on the next sync
+    // (see allProcessed above), same as this codebase's existing
+    // philosophy of failing open rather than escalating a partial,
+    // self-healing hiccup into a user-facing error.
+    if (allProcessed) {
+      await prisma.gmailConnection.update({
+        where: { userId },
+        data: { lastSyncedAt: new Date(), lastSyncError: null },
+      });
+    }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown sync error";
+    console.error("[gmail-sync] sync failed:", error);
     await prisma.gmailConnection
-      .update({ where: { userId }, data: { lastSyncError: message } })
+      .update({ where: { userId }, data: { lastSyncError: describeGmailSyncError(error) } })
       .catch(() => {
         // If even recording the failure fails, there's nothing more to do —
         // this function must return normally either way.
