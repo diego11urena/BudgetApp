@@ -37,10 +37,18 @@ export function BudgetGoalsPanel({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
           gap: "0.5rem",
           marginBottom: "0.5rem",
         }}
       >
+        {/* flex-wrap on the row (not a min-width on this heading) is the fix
+            — without it, the "Edit"/"+ Add fixed expense" group's
+            flex-shrink: 0 claims its full width first and squeezes this
+            heading down to a near-zero column, wrapping it word-by-word
+            into several cramped lines that look like overlapping text.
+            Wrapping lets the button group drop to its own line instead, so
+            the heading keeps the full row width to wrap normally. */}
         <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>This quincena&apos;s fixed expenses</h2>
         <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
           {rows.length > 0 && (

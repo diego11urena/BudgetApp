@@ -735,10 +735,6 @@ button.line-item--link {
   padding-top: 0.6rem;
 }
 
-.hero-pace--warning {
-  color: var(--color-warning-on-dark);
-}
-
 .hero-action-link {
   display: inline-flex;
   align-items: center;

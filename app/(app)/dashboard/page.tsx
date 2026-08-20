@@ -114,6 +114,15 @@ export default async function DashboardPage() {
         previousBoundDate={previousBoundDate}
       />
 
+      {/* Insights leads the page, ahead of every other card/banner — it's
+          the one thing here framed as "here's what stands out," so it
+          reads best before the raw numbers rather than after them.
+          InsightsCard itself renders null when there's nothing to say, so
+          this costs nothing for a user with no insights yet. */}
+      <div className="dashboard-section dashboard-section--plain">
+        <InsightsCard insights={insights} />
+      </div>
+
       {uncategorizedTransactions.length > 0 && (
         <div className="dashboard-section dashboard-section--plain">
           <UncategorizedImportsBanner
@@ -174,10 +183,6 @@ export default async function DashboardPage() {
             <ChevronRight size={18} aria-hidden="true" />
           </Link>
         )}
-      </div>
-
-      <div className="dashboard-section dashboard-section--plain">
-        <InsightsCard insights={insights} />
       </div>
     </div>
   );

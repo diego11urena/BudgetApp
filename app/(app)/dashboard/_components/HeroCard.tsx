@@ -73,8 +73,15 @@ export function HeroCard({
         {!closed && (
           <>
             <p className="hero-subtitle">Remaining this Quincena</p>
+            {/* Always the hero card's plain on-accent white, deterministically —
+                this used to switch to --color-warning-on-dark (gold) when the
+                user's spend pace was running hot, which read as inconsistent
+                since it depended on each user's own numbers. The gold "over
+                pace" signal was a deliberate design choice, but the user
+                asked for this line to just always be white, so isOverPace is
+                no longer read into the class list here. */}
             {pace && (
-              <p className={`hero-pace ${pace.isOverPace ? "hero-pace--warning" : ""}`}>
+              <p className="hero-pace">
                 {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left ·{" "}
                 {pace.isLastDay ? "Last day of this quincena" : `~${formatCurrency(pace.perDay)}/day`}
               </p>
