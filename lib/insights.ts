@@ -10,25 +10,31 @@ export function generateInsights(
   current: CycleFinancials,
   previousClosedFinancials: CycleFinancials[],
 ): string[] {
-  if (previousClosedFinancials.length === 0) {
-    return [];
-  }
-
   const insights: string[] = [];
 
-  const mostRecent = previousClosedFinancials[0];
-  const topCategory = current.topCategories[0];
-  if (topCategory) {
-    const previousForCategory = mostRecent.categoryTotals.find(
-      (c) => c.categoryId === topCategory.categoryId,
-    );
-    if (previousForCategory) {
-      const delta = topCategory.amount - previousForCategory.amount;
-      if (Math.abs(delta) >= 1) {
-        const direction = delta > 0 ? "up" : "down";
-        insights.push(
-          `${topCategory.categoryName} spending is ${direction} ${formatCurrency(Math.abs(delta))} vs last cycle.`,
-        );
+  // The category-delta and streak rules are inherently comparative --
+  // "up/down vs last cycle" and "N cycles in a row" are meaningless with
+  // no prior cycle to compare against, so they stay gated on history.
+  // The on-track/over-budget rule below needs only the CURRENT cycle's
+  // own numbers and must not be blocked by that same guard -- a
+  // first-time user with exactly one cycle should still see it (this was
+  // previously gated by a blanket early return that hid every rule,
+  // including this one, whenever previousClosedFinancials was empty).
+  if (previousClosedFinancials.length > 0) {
+    const mostRecent = previousClosedFinancials[0];
+    const topCategory = current.topCategories[0];
+    if (topCategory) {
+      const previousForCategory = mostRecent.categoryTotals.find(
+        (c) => c.categoryId === topCategory.categoryId,
+      );
+      if (previousForCategory) {
+        const delta = topCategory.amount - previousForCategory.amount;
+        if (Math.abs(delta) >= 1) {
+          const direction = delta > 0 ? "up" : "down";
+          insights.push(
+            `${topCategory.categoryName} spending is ${direction} ${formatCurrency(Math.abs(delta))} vs last cycle.`,
+          );
+        }
       }
     }
   }
@@ -41,13 +47,15 @@ export function generateInsights(
     );
   }
 
-  let streak = 0;
-  for (const cycle of previousClosedFinancials) {
-    if (cycle.amountLeft < 0) break;
-    streak++;
-  }
-  if (streak >= 2) {
-    insights.push(`You've stayed under budget for ${streak} cycles in a row.`);
+  if (previousClosedFinancials.length > 0) {
+    let streak = 0;
+    for (const cycle of previousClosedFinancials) {
+      if (cycle.amountLeft < 0) break;
+      streak++;
+    }
+    if (streak >= 2) {
+      insights.push(`You've stayed under budget for ${streak} cycles in a row.`);
+    }
   }
 
   if (insights.length === 0) {

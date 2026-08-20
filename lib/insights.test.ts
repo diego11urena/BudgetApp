@@ -17,9 +17,30 @@ function makeFinancials(overrides: Partial<CycleFinancials> = {}): CycleFinancia
 }
 
 describe("generateInsights", () => {
-  it("returns no insights for a brand-new user with no closed cycles yet", () => {
-    const insights = generateInsights(makeFinancials(), []);
-    expect(insights).toEqual([]);
+  // Regression anchor: generateInsights used to blanket-return [] whenever
+  // there was no closed cycle history, hiding the Insights card entirely
+  // for a first-time user -- even the on-track/over-budget rule, which
+  // needs only the current cycle's own numbers and has nothing to do with
+  // history. Only the genuinely comparative rules (category-delta,
+  // streak) should require previousClosedFinancials.
+  it("still shows the on-track insight for a brand-new user with no closed cycles yet", () => {
+    const insights = generateInsights(makeFinancials({ amountLeft: 2000 }), []);
+    expect(insights).toEqual(["You're on track to have $2,000.00 left this cycle."]);
+  });
+
+  it("still shows the over-budget insight for a brand-new user with no closed cycles yet", () => {
+    const insights = generateInsights(makeFinancials({ amountLeft: -50 }), []);
+    expect(insights).toEqual(["You're $50.00 over budget this cycle so far."]);
+  });
+
+  it("never reports a comparative category-delta or streak insight with no closed cycles", () => {
+    const current = makeFinancials({
+      amountLeft: 100,
+      topCategories: [{ categoryId: "c1", categoryName: "Groceries", amount: 200 }],
+    });
+    const insights = generateInsights(current, []);
+    expect(insights.some((text) => text.includes("vs last cycle"))).toBe(false);
+    expect(insights.some((text) => text.includes("cycles in a row"))).toBe(false);
   });
 
   it("reports a category increase vs the most recent closed cycle", () => {
