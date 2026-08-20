@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { upsertGoalAction, type GoalFormState } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 
@@ -16,6 +16,11 @@ export function GoalForm({
 }) {
   const [state, formAction, pending] = useActionState(upsertGoalAction, initialState);
   const wasPending = useRef(false);
+  // Progressive disclosure, same reasoning as QuickAddSheet's custom-
+  // category mode: most new goals start at $0 saved, so defaulting to
+  // hidden keeps the common case uncluttered instead of asking everyone
+  // to consider (and dismiss) a field that's usually irrelevant.
+  const [hasAlreadySaved, setHasAlreadySaved] = useState(false);
 
   useEffect(() => {
     if (wasPending.current && !pending && !state?.error) {
@@ -59,6 +64,28 @@ export function GoalForm({
           />
         </div>
       </div>
+
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: hasAlreadySaved ? "0.5rem" : "1rem" }}>
+        <input
+          type="checkbox"
+          checked={hasAlreadySaved}
+          onChange={(e) => setHasAlreadySaved(e.target.checked)}
+        />
+        Do you already have money saved toward this goal?
+      </label>
+      {hasAlreadySaved && (
+        <div className="field">
+          <label htmlFor="goal-already-saved">Already saved (USD)</label>
+          <input
+            id="goal-already-saved"
+            name="alreadySavedAmount"
+            type="text"
+            inputMode="decimal"
+            placeholder="450.00"
+          />
+        </div>
+      )}
+
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending}>
           {pending ? "Saving..." : "Save goal"}

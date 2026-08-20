@@ -142,6 +142,19 @@ model ExpenseCategory {
   // (that's the recurring per-cycle contribution). Non-null == "is a goal".
   lifetimeTargetAmount Decimal? @db.Decimal(12, 2)
 
+  // A goal's "amount saved so far" (see lib/goals.ts's summarizeGoalProgress)
+  // has always been a live sum of this category's own SAVINGS
+  // CycleTransactions -- there's no stored total, and this field is a
+  // second, independent term ADDED to that sum, never a replacement for
+  // it. Money already saved before the goal existed in this app ("already
+  // saved $450" at creation) or a correction to the tracked total that
+  // shouldn't read as new activity (editing an existing goal's saved
+  // amount and choosing not to log it as a transaction) both land here
+  // instead of a phantom transaction. Defaults to 0 so every goal that
+  // existed before this field was added is unaffected -- its saved total
+  // stays exactly the transaction sum it always was.
+  manualAdjustment Decimal @default(0) @db.Decimal(12, 2)
+
   // Only meaningful when recurring == true. BIWEEKLY carries the target into
   // every new cycle (once per quincena, by definition). MONTHLY carries it
   // into exactly one quincena per month, chosen by dueDay: on/before the

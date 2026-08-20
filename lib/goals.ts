@@ -18,6 +18,7 @@ interface GoalCategoryLike {
   lifetimeTargetAmount: DecimalLike | null;
   transactions: { amount: DecimalLike }[];
   budgetGoals: { targetAmount: DecimalLike }[];
+  manualAdjustment: DecimalLike;
 }
 
 /**
@@ -25,9 +26,19 @@ interface GoalCategoryLike {
  * transactions and current-cycle budgetGoals included) — separated from the
  * fetch so the math (what actually caused the earlier quincena/monthly
  * overstatement bug class) is directly unit-testable without a database.
+ *
+ * savedSoFar is the sum of every real SAVINGS transaction tied to this
+ * category PLUS manualAdjustment -- a second, independent term for money
+ * that was already saved before the goal existed in this app, or a
+ * correction to the tracked total that was deliberately NOT logged as a
+ * transaction (see updateGoalContributionAction in goals/actions.ts).
+ * This is the only place either term is combined; every downstream
+ * consumer (computeGoalProjection, the dashboard, etc.) reads the already-
+ * combined savedSoFar and needs no changes when this formula does.
  */
 export function summarizeGoalProgress(category: GoalCategoryLike): GoalWithProgress {
-  const savedSoFar = category.transactions.reduce((sum, tx) => sum + tx.amount.toNumber(), 0);
+  const transactionsTotal = category.transactions.reduce((sum, tx) => sum + tx.amount.toNumber(), 0);
+  const savedSoFar = transactionsTotal + category.manualAdjustment.toNumber();
   const currentGoal = category.budgetGoals[0];
 
   return {
@@ -37,6 +48,22 @@ export function summarizeGoalProgress(category: GoalCategoryLike): GoalWithProgr
     savedSoFar,
     currentCycleRecurringAmount: currentGoal ? currentGoal.targetAmount.toNumber() : null,
   };
+}
+
+export type ContributionDeltaResult = { ok: true; newSavedSoFar: number } | { ok: false; error: string };
+
+/**
+ * Pure validation for adjustGoalContributionAction — separated out so the
+ * "can't go negative" rule is directly unit-testable without a database,
+ * same reasoning as summarizeGoalProgress above. delta is signed: positive
+ * for an increase, negative for a decrease.
+ */
+export function validateContributionDelta(currentSavedSoFar: number, delta: number): ContributionDeltaResult {
+  const newSavedSoFar = Math.round((currentSavedSoFar + delta) * 100) / 100;
+  if (newSavedSoFar < 0) {
+    return { ok: false, error: "That would make the saved total negative" };
+  }
+  return { ok: true, newSavedSoFar };
 }
 
 /**
