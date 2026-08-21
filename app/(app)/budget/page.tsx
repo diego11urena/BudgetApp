@@ -29,8 +29,7 @@ export default async function BudgetPage() {
 
   return (
     <div className="home-page">
-      {/* No page <h1> here on purpose -- the bottom-nav tab already reads
-          "Fixed Expenses"; a repeated page title added no information. */}
+      <h1 className="page-title">Fixed Expenses</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
         Fixed expenses for this quincena. Savings goals live on the Goals tab.
       </p>

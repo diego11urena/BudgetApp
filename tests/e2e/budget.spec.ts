@@ -7,15 +7,17 @@ async function clickSheetButton(page: import("@playwright/test").Page, text: str
 }
 
 test.describe("Fixed Expenses screen", () => {
-  test("shows no page <h1> and a cycle date range instead of a repeated title", async ({ page }) => {
+  test("has a page <h1> matching every other tab, and the card header shows the cycle's date range instead of repeating it", async ({
+    page,
+  }) => {
     await signUpAndOnboard(page);
     await page.goto("/budget");
     await page.waitForSelector(".dashboard-section");
 
-    await expect(page.locator("h1")).toHaveCount(0);
-    // The card header renders the cycle's own date range, not literal
-    // "Fixed Expenses" text -- that word only appears once now, in the
-    // bottom-nav tab.
+    // Matches Goals/History/Transactions/Profile's own <h1 className="page-title">.
+    await expect(page.locator("h1.page-title")).toHaveText("Fixed Expenses");
+    // The card header itself renders the cycle's own date range, not a
+    // second/third repeat of "Fixed Expenses".
     await expect(page.locator(".dashboard-section h2")).not.toHaveText(/Fixed [Ee]xpenses/);
   });
 
