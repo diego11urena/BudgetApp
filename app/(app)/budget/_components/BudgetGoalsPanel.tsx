@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Info } from "lucide-react";
 import { AddTargetSheet } from "./AddTargetSheet";
 import { BudgetGoalRow } from "./BudgetGoalRow";
+import { FixedExpenseHintTooltip } from "./FixedExpenseHintTooltip";
+import { markFixedExpenseHintSeenAction } from "../actions";
 
 export interface BudgetGoalRowData {
   id: string;
@@ -26,13 +29,31 @@ export function BudgetGoalsPanel({
   rows,
   categoryNames,
   dateRangeText,
+  hasSeenHint,
+  cycleId,
 }: {
   rows: BudgetGoalRowData[];
   categoryNames: string[];
   /** e.g. "Aug 11–25" -- replaces a card header that used to just repeat "Fixed expenses" a third time. */
   dateRangeText: string;
+  /** Whether this user has ever had the explainer tooltip auto-shown before — false auto-opens it once, right here, on mount. */
+  hasSeenHint: boolean;
+  /** The active cycle's id -- passed through to each row so tapping it can scope the Transactions link to this cycle. */
+  cycleId: string;
 }) {
   const [editMode, setEditMode] = useState(false);
+  const [hintOpen, setHintOpen] = useState(() => !hasSeenHint);
+  const [hintTriggerElement, setHintTriggerElement] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    // Marked seen the moment it auto-opens, not on dismiss -- so
+    // navigating away mid-tooltip still counts as "shown once," matching
+    // "auto-show once ever" rather than "auto-show until dismissed."
+    if (!hasSeenHint) {
+      markFixedExpenseHintSeenAction();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -53,7 +74,20 @@ export function BudgetGoalsPanel({
             into several cramped lines that look like overlapping text.
             Wrapping lets the button group drop to its own line instead, so
             the heading keeps the full row width to wrap normally. */}
-        <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>{dateRangeText}</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", flex: "1 1 auto", minWidth: 0 }}>
+          <h2 style={{ marginBottom: 0, minWidth: 0 }}>{dateRangeText}</h2>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="What are fixed expenses?"
+            onClick={(e) => {
+              setHintTriggerElement(e.currentTarget);
+              setHintOpen(true);
+            }}
+          >
+            <Info size={16} aria-hidden="true" />
+          </button>
+        </div>
         <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
           {rows.length > 0 && (
             <button
@@ -67,10 +101,9 @@ export function BudgetGoalsPanel({
           <AddTargetSheet categoryNames={categoryNames} />
         </div>
       </div>
-      <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-        Recurring fixed expenses carry into every quincena by default — tap &quot;Edit&quot; to switch
-        one to a specific day each month instead, or remove it.
-      </p>
+      {hintOpen && (
+        <FixedExpenseHintTooltip onClose={() => setHintOpen(false)} returnFocusTo={hintTriggerElement} />
+      )}
       {rows.length === 0 && (
         <p className="field-hint">No fixed expenses yet — tap &quot;New fixed expense&quot; above.</p>
       )}
@@ -88,6 +121,7 @@ export function BudgetGoalsPanel({
             frequency={row.frequency}
             dueDay={row.dueDay}
             expanded={editMode}
+            cycleId={cycleId}
           />
         ))}
       </div>

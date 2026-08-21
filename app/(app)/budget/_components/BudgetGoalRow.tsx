@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ProgressBar } from "../../_components/ProgressBar";
 import { formatCurrency } from "@/lib/format";
 import { getBudgetUsage } from "@/lib/budget-status";
@@ -25,6 +26,7 @@ export function BudgetGoalRow({
   frequency,
   dueDay,
   expanded,
+  cycleId,
 }: {
   goalId: string;
   categoryId: string;
@@ -36,11 +38,13 @@ export function BudgetGoalRow({
   frequency: Frequency;
   dueDay: number | null;
   expanded: boolean;
+  /** The active cycle's id -- a fixed-expense target is really just a spending cap on a category, so tapping the row's summary opens that category's transactions, scoped to this cycle. */
+  cycleId: string;
 }) {
   const usage = getBudgetUsage(actual, targetAmount);
 
-  return (
-    <div className="budget-goal-row">
+  const summary = (
+    <>
       <div className="progress-bar-label">
         <span>
           <CategoryIcon name={categoryName} icon={categoryIcon} size={16} aria-hidden="true" /> {categoryName}
@@ -54,6 +58,24 @@ export function BudgetGoalRow({
           <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
         )}
       </p>
+    </>
+  );
+
+  return (
+    <div className="budget-goal-row">
+      {/* Not tappable-to-transactions while in edit mode -- that's a
+          different interaction context (Recurring/Frequency/Remove
+          controls below), so a stray tap here shouldn't navigate away. */}
+      {expanded ? (
+        <div>{summary}</div>
+      ) : (
+        <Link
+          href={`/transactions?category=${categoryId}&cycleId=${cycleId}`}
+          className="budget-goal-row-summary-link"
+        >
+          {summary}
+        </Link>
+      )}
 
       {expanded && (
         <div className="budget-goal-row-controls">

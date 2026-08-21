@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -22,6 +24,8 @@ export default async function TransactionsPage({
     sort?: string;
     paymentMethod?: string;
     category?: string;
+    /** Set only when arriving from a Fixed Expenses row tap -- scopes the list to that one cycle and shows a way back. Not exposed in TransactionFilters' own UI (nothing there sets or clears it). */
+    cycleId?: string;
   }>;
 }) {
   const session = await auth();
@@ -31,10 +35,16 @@ export default async function TransactionsPage({
   const userId = session.user.id;
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const { q, type, sort, paymentMethod, category } = await searchParams;
+  const { q, type, sort, paymentMethod, category, cycleId } = await searchParams;
 
   const where: Prisma.CycleTransactionWhereInput = {
+    // cycleId alone would be enough to scope correctly (a transaction's
+    // cycle either belongs to this user or it doesn't), but keeping
+    // cycle: { userId } unconditionally here too means a tampered/foreign
+    // cycleId in the URL just matches zero rows rather than needing its
+    // own separate ownership check.
     cycle: { userId },
+    ...(cycleId ? { cycleId } : {}),
     ...(TX_TYPES.includes(type as (typeof TX_TYPES)[number]) ? { type: type as (typeof TX_TYPES)[number] } : {}),
     ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
       ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
@@ -94,6 +104,11 @@ export default async function TransactionsPage({
 
   return (
     <div className="home-page">
+      {cycleId && (
+        <Link href="/budget" className="back-link">
+          <ChevronLeft size={16} aria-hidden="true" /> Back to Fixed Expenses
+        </Link>
+      )}
       <h1 className="page-title">Transactions</h1>
 
       <div className="dashboard-section">
@@ -105,7 +120,7 @@ export default async function TransactionsPage({
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
-            q || type || paymentMethod || category
+            q || type || paymentMethod || category || cycleId
               ? "No transactions match your search."
               : "No transactions logged yet."
           }

@@ -16,6 +16,12 @@ model User {
   hashedPassword        String
   name                  String?
   onboardingCompletedAt DateTime?
+  // Set the first time the Fixed Expenses tab's explainer tooltip is
+  // auto-shown, so it never auto-shows again -- tap-to-reopen (the ⓘ
+  // icon) still works after this is set, this only gates the one-time
+  // auto-open. Same shape as onboardingCompletedAt: a nullable timestamp
+  // set once via a server action.
+  seenFixedExpenseHintAt DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

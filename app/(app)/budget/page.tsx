@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle, formatCycleRangeText } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -13,7 +14,10 @@ export default async function BudgetPage() {
   }
   const userId = session.user.id;
 
-  const cycle = await getOrCreateDraftCycle(userId);
+  const [cycle, user] = await Promise.all([
+    getOrCreateDraftCycle(userId),
+    prisma.user.findUnique({ where: { id: userId }, select: { seenFixedExpenseHintAt: true } }),
+  ]);
   const financials = await getCycleFinancials(cycle.id);
   const goals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
   const expenseCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "EXPENSE");
@@ -36,6 +40,8 @@ export default async function BudgetPage() {
           rows={rows}
           categoryNames={expenseCategoryNames}
           dateRangeText={formatCycleRangeText(cycle, { includeYear: false })}
+          hasSeenHint={Boolean(user?.seenFixedExpenseHintAt)}
+          cycleId={cycle.id}
         />
       </div>
     </div>
