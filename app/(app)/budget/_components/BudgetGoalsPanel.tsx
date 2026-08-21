@@ -44,7 +44,7 @@ export function BudgetGoalsPanel({
         }}
       >
         {/* flex-wrap on the row (not a min-width on this heading) is the fix
-            — without it, the "Edit"/"+ Add fixed expense" group's
+            — without it, the "Edit"/"New fixed expense" group's
             flex-shrink: 0 claims its full width first and squeezes this
             heading down to a near-zero column, wrapping it word-by-word
             into several cramped lines that look like overlapping text.
@@ -69,7 +69,7 @@ export function BudgetGoalsPanel({
         one to a specific day each month instead, or remove it.
       </p>
       {rows.length === 0 && (
-        <p className="field-hint">No fixed expenses yet — tap &quot;+ Add fixed expense&quot; above.</p>
+        <p className="field-hint">No fixed expenses yet — tap &quot;New fixed expense&quot; above.</p>
       )}
       <div className="budget-goal-list">
         {rows.map((row) => (

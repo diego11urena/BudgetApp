@@ -24,7 +24,7 @@ export function AddTargetSheet({ categoryNames }: { categoryNames: string[] }) {
           setOpen(true);
         }}
       >
-        + Add fixed expense
+        New fixed expense
       </button>
 
       {open && (
