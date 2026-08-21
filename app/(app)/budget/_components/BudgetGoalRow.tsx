@@ -18,6 +18,7 @@ export function BudgetGoalRow({
   goalId,
   categoryId,
   categoryName,
+  categoryIcon,
   actual,
   targetAmount,
   recurring,
@@ -28,6 +29,7 @@ export function BudgetGoalRow({
   goalId: string;
   categoryId: string;
   categoryName: string;
+  categoryIcon: string | null;
   actual: number;
   targetAmount: number;
   recurring: boolean;
@@ -41,7 +43,7 @@ export function BudgetGoalRow({
     <div className="budget-goal-row">
       <div className="progress-bar-label">
         <span>
-          <CategoryIcon name={categoryName} size={16} aria-hidden="true" /> {categoryName}
+          <CategoryIcon name={categoryName} icon={categoryIcon} size={16} aria-hidden="true" /> {categoryName}
         </span>
         <span>{usage.percentage}%</span>
       </div>

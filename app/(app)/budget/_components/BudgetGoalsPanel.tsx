@@ -8,6 +8,7 @@ export interface BudgetGoalRowData {
   id: string;
   categoryId: string;
   categoryName: string;
+  categoryIcon: string | null;
   actual: number;
   targetAmount: number;
   recurring: boolean;
@@ -77,6 +78,7 @@ export function BudgetGoalsPanel({
             goalId={row.id}
             categoryId={row.categoryId}
             categoryName={row.categoryName}
+            categoryIcon={row.categoryIcon}
             actual={row.actual}
             targetAmount={row.targetAmount}
             recurring={row.recurring}

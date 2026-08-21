@@ -9,6 +9,7 @@ describe("summarizeGoalProgress", () => {
   it("sums saved-so-far across every SAVINGS transaction for the category", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Emergency Fund",
       lifetimeTargetAmount: decimal(1000),
       transactions: [decimal(200), decimal(50), decimal(100)].map((amount) => ({ amount })),
@@ -21,6 +22,7 @@ describe("summarizeGoalProgress", () => {
   it("reports zero saved with no transactions and no manual adjustment", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Emergency Fund",
       lifetimeTargetAmount: decimal(1000),
       transactions: [],
@@ -33,6 +35,7 @@ describe("summarizeGoalProgress", () => {
   it("takes the current cycle's per-cycle contribution when one is set", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Emergency Fund",
       lifetimeTargetAmount: decimal(1000),
       transactions: [],
@@ -45,6 +48,7 @@ describe("summarizeGoalProgress", () => {
   it("has no per-cycle contribution when the current cycle has no budgetGoal row", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Emergency Fund",
       lifetimeTargetAmount: decimal(1000),
       transactions: [],
@@ -57,6 +61,7 @@ describe("summarizeGoalProgress", () => {
   it("defaults lifetimeTargetAmount to 0 when null (shouldn't happen given the caller's filter, but stays safe)", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Emergency Fund",
       lifetimeTargetAmount: null,
       transactions: [],
@@ -69,6 +74,7 @@ describe("summarizeGoalProgress", () => {
   it("passes through categoryId and name unchanged", () => {
     const result = summarizeGoalProgress({
       id: "cat-42",
+      icon: null,
       name: "Pro Futuro",
       lifetimeTargetAmount: decimal(500),
       transactions: [],
@@ -88,6 +94,7 @@ describe("summarizeGoalProgress", () => {
   it("adds manualAdjustment on top of the transaction sum", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Vacation",
       lifetimeTargetAmount: decimal(2000),
       transactions: [decimal(100)].map((amount) => ({ amount })),
@@ -100,6 +107,7 @@ describe("summarizeGoalProgress", () => {
   it("reflects manualAdjustment alone when there are no transactions yet (a brand-new goal with an opening balance)", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Vacation",
       lifetimeTargetAmount: decimal(2000),
       transactions: [],
@@ -116,6 +124,7 @@ describe("summarizeGoalProgress", () => {
   it("leaves an existing goal's total unchanged when manualAdjustment is the column default of 0", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Emergency Fund",
       lifetimeTargetAmount: decimal(1000),
       transactions: [decimal(300), decimal(75)].map((amount) => ({ amount })),
@@ -128,6 +137,7 @@ describe("summarizeGoalProgress", () => {
   it("handles a negative manualAdjustment (a correction bringing the total down)", () => {
     const result = summarizeGoalProgress({
       id: "cat-1",
+      icon: null,
       name: "Vacation",
       lifetimeTargetAmount: decimal(2000),
       transactions: [decimal(700)].map((amount) => ({ amount })),

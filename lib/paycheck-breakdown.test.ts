@@ -164,6 +164,42 @@ describe("computeBreakdown", () => {
     expect(colorA).toBe(colorB);
   });
 
+  // A user-picked category color (Manage Categories' color swatch) must win
+  // over the id-hash everywhere the category is drawn, including this pie —
+  // "custom categories work everywhere categories are displayed."
+  it("uses a category's explicit stored color instead of the id-hash when set", () => {
+    const result = computeBreakdown({
+      baseIncome: 100,
+      extraIncome: 0,
+      totalExpenses: 50,
+      totalSavings: 0,
+      groupTotals: [{ id: "groceries", name: "Groceries", amount: 50, color: "chart-cat-7" }],
+    });
+    const slice = result.legendSlices.find((s) => s.key === "groceries");
+    expect(slice?.colorVar).toBe("--chart-cat-7");
+  });
+
+  it("falls back to the id-hash when color is null/unset", () => {
+    const withNull = computeBreakdown({
+      baseIncome: 100,
+      extraIncome: 0,
+      totalExpenses: 50,
+      totalSavings: 0,
+      groupTotals: [{ id: "groceries", name: "Groceries", amount: 50, color: null }],
+    });
+    const withUnset = computeBreakdown({
+      baseIncome: 100,
+      extraIncome: 0,
+      totalExpenses: 50,
+      totalSavings: 0,
+      groupTotals: [{ id: "groceries", name: "Groceries", amount: 50 }],
+    });
+    const colorWithNull = withNull.legendSlices.find((s) => s.key === "groceries")?.colorVar;
+    const colorWithUnset = withUnset.legendSlices.find((s) => s.key === "groceries")?.colorVar;
+    expect(colorWithNull).toBe(colorWithUnset);
+    expect(colorWithNull).toMatch(/^--chart-cat-\d$/);
+  });
+
   it("gives every category a distinct chart color when there are no more categories than palette slots", () => {
     const groupTotals = ["Rent", "Groceries", "Dining", "Transportation", "Spotify", "Coffee"].map(
       (name, i) => ({ id: `cat-${i}`, name, amount: 10 + i }),

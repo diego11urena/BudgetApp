@@ -4,6 +4,7 @@ export interface BudgetGoalWithCategory {
   id: string;
   categoryId: string;
   categoryName: string;
+  categoryIcon: string | null;
   targetAmount: number;
   recurring: boolean;
   frequency: "BIWEEKLY" | "MONTHLY";
@@ -25,6 +26,7 @@ export async function getCycleBudgetGoals(
     id: goal.id,
     categoryId: goal.expenseCategoryId,
     categoryName: goal.expenseCategory.name,
+    categoryIcon: goal.expenseCategory.icon,
     targetAmount: goal.targetAmount.toNumber(),
     recurring: goal.expenseCategory.recurring,
     frequency: goal.expenseCategory.frequency,

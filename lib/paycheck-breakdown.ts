@@ -9,6 +9,8 @@ export interface GroupTotal {
   id: string;
   name: string;
   amount: number;
+  /** A category's stored ExpenseCategory.color (a --chart-cat-N variable name), when the group-by axis is "category" and the user picked one explicitly — preferred over the id-hash in colorVarFor. Irrelevant for the paymentMethod axis. */
+  color?: string | null;
 }
 
 export interface BreakdownSlice {
@@ -101,7 +103,12 @@ function assignCategoryColorIndexes(visibleIds: string[], allIds: string[]): Map
   return assignment;
 }
 
-function colorVarFor(id: string, groupBy: BreakdownGroupBy, colorIndexes: Map<string, number>): string {
+function colorVarFor(
+  id: string,
+  groupBy: BreakdownGroupBy,
+  colorIndexes: Map<string, number>,
+  explicitColor?: string | null,
+): string {
   // Neither bucket is a real category/payment-method identity — route both
   // to the neutral "other" color rather than letting them consume (or
   // collide with) a real slot in either palette.
@@ -109,6 +116,10 @@ function colorVarFor(id: string, groupBy: BreakdownGroupBy, colorIndexes: Map<st
   if (groupBy === "paymentMethod") {
     return PAYMENT_METHOD_COLOR_VAR[id] ?? "--chart-other";
   }
+  // A category the user explicitly picked a color for (Manage Categories'
+  // color swatch) keeps that color here too, instead of the id-hash —
+  // "custom categories work everywhere categories are displayed."
+  if (explicitColor) return `--${explicitColor}`;
   return `--chart-cat-${(colorIndexes.get(id) ?? 0) + 1}`;
 }
 
@@ -224,7 +235,7 @@ export function computeBreakdown(
     amount: g.amount,
     percentage: (g.amount / pieTotal) * 100,
     kind: "expense",
-    colorVar: colorVarFor(g.id, groupBy, colorIndexes),
+    colorVar: colorVarFor(g.id, groupBy, colorIndexes, g.color),
   }));
 
   const remaining =

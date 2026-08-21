@@ -51,7 +51,7 @@ export function CycleClosedCard({
         {summary.topCategory && (
           <div className="cycle-closed-top-category">
             <span>
-              <CategoryIcon name={summary.topCategory.name} size={16} aria-hidden="true" /> Top
+              <CategoryIcon name={summary.topCategory.name} icon={summary.topCategory.icon} size={16} aria-hidden="true" /> Top
               category: {summary.topCategory.name}
             </span>
             <span>{formatCurrency(summary.topCategory.amount)}</span>

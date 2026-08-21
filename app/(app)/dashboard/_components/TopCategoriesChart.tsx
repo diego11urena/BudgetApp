@@ -41,6 +41,7 @@ export function TopCategoriesChart({
             <span className="bar-chart-label">
               <CategoryIcon
                 name={category.categoryName}
+                icon={category.categoryIcon}
                 className="bar-chart-icon"
                 size={16}
                 aria-hidden="true"

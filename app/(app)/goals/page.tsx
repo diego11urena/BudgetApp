@@ -57,7 +57,7 @@ export default async function GoalsPage() {
                   <GoalRing percentage={projection.percentage} complete={projection.isComplete} />
                   <div className="goal-row-details">
                     <p className="goal-row-name">
-                      <CategoryIcon name={goal.name} size={16} aria-hidden="true" /> {goal.name}
+                      <CategoryIcon name={goal.name} icon={goal.icon} size={16} aria-hidden="true" /> {goal.name}
                     </p>
                     <p className="field-hint">
                       {formatCurrency(goal.savedSoFar)} / {formatCurrency(goal.lifetimeTargetAmount)}

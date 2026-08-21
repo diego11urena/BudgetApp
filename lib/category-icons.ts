@@ -14,6 +14,7 @@ import {
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
+import { getIconByName } from "./category-icon-library";
 
 /**
  * Display-only keyword -> icon mapping for category names. ExpenseCategory
@@ -54,7 +55,19 @@ export function iconForCategoryName(name: string): LucideIcon {
  * fixed, module-level import. createElement here (once, in the one place
  * that needs it) sidesteps that check entirely instead of re-triggering it
  * at every call site.
+ *
+ * `icon` is the category's stored ExpenseCategory.icon (a lucide-react
+ * export name, e.g. "Dog") — preferred when it resolves via the icon
+ * library. Falls back to the name-keyword heuristic when `icon` is null/
+ * unset (every category created before the icon picker existed, or
+ * created elsewhere in the app without going through it) or doesn't
+ * resolve to a known icon, so nothing needs a migration to keep looking
+ * reasonable.
  */
-export function CategoryIcon({ name, ...props }: { name: string } & LucideProps) {
-  return createElement(iconForCategoryName(name), props);
+export function CategoryIcon({
+  name,
+  icon,
+  ...props
+}: { name: string; icon?: string | null } & LucideProps) {
+  return createElement(getIconByName(icon) ?? iconForCategoryName(name), props);
 }

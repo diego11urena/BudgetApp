@@ -23,7 +23,7 @@ export interface CycleClosedSummary {
   saved: number;
   /** Income minus expenses minus savings — what's left from that quincena. */
   rolledOver: number;
-  topCategory: { name: string; amount: number } | null;
+  topCategory: { name: string; icon: string | null; amount: number } | null;
   budget: { hasBudget: boolean; overBy: number };
   /** The amount auto-carried into the new cycle — prefills the "how much did you get paid?" prompt. */
   carriedIncomeAmount: number;
@@ -60,7 +60,7 @@ export async function justGotPaidAction(payDateStr?: string): Promise<CycleClose
     spent: closedCycleFinancials.totalExpenses,
     saved: closedCycleFinancials.totalSavings,
     rolledOver: closedCycleFinancials.amountLeft,
-    topCategory: top ? { name: top.categoryName, amount: top.amount } : null,
+    topCategory: top ? { name: top.categoryName, icon: top.categoryIcon, amount: top.amount } : null,
     budget: {
       hasBudget: goals.length > 0,
       overBy: Math.max(closedCycleFinancials.totalExpenses - totalBudget, 0),

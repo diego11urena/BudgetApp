@@ -36,7 +36,7 @@ describe("generateInsights", () => {
   it("never reports a comparative category-delta or streak insight with no closed cycles", () => {
     const current = makeFinancials({
       amountLeft: 100,
-      topCategories: [{ categoryId: "c1", categoryName: "Groceries", amount: 200 }],
+      topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
     });
     const insights = generateInsights(current, []);
     expect(insights.some((text) => text.includes("vs last cycle"))).toBe(false);
@@ -46,11 +46,11 @@ describe("generateInsights", () => {
   it("reports a category increase vs the most recent closed cycle", () => {
     const current = makeFinancials({
       amountLeft: 1000,
-      topCategories: [{ categoryId: "c1", categoryName: "Groceries", amount: 200 }],
+      topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
     });
     const previous = makeFinancials({
       amountLeft: 1200,
-      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", amount: 158 }],
+      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 158 }],
     });
 
     const insights = generateInsights(current, [previous]);
@@ -60,10 +60,10 @@ describe("generateInsights", () => {
   it("reports a category decrease vs the most recent closed cycle", () => {
     const current = makeFinancials({
       amountLeft: 1000,
-      topCategories: [{ categoryId: "c1", categoryName: "Groceries", amount: 100 }],
+      topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 100 }],
     });
     const previous = makeFinancials({
-      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", amount: 158 }],
+      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 158 }],
     });
 
     const insights = generateInsights(current, [previous]);
@@ -73,10 +73,10 @@ describe("generateInsights", () => {
   it("still matches the category across a rename (id stable, name changed)", () => {
     const current = makeFinancials({
       amountLeft: 1000,
-      topCategories: [{ categoryId: "c1", categoryName: "Food", amount: 200 }],
+      topCategories: [{ categoryId: "c1", categoryName: "Food", categoryIcon: null, categoryColor: null, amount: 200 }],
     });
     const previous = makeFinancials({
-      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", amount: 150 }],
+      categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 150 }],
     });
 
     const insights = generateInsights(current, [previous]);
@@ -86,10 +86,10 @@ describe("generateInsights", () => {
   it("does not false-match two different categories that happen to share a name", () => {
     const current = makeFinancials({
       amountLeft: 1000,
-      topCategories: [{ categoryId: "c1", categoryName: "Travel", amount: 200 }],
+      topCategories: [{ categoryId: "c1", categoryName: "Travel", categoryIcon: null, categoryColor: null, amount: 200 }],
     });
     const previous = makeFinancials({
-      categoryTotals: [{ categoryId: "c2", categoryName: "Travel", amount: 158 }],
+      categoryTotals: [{ categoryId: "c2", categoryName: "Travel", categoryIcon: null, categoryColor: null, amount: 158 }],
     });
 
     const insights = generateInsights(current, [previous]);
@@ -125,12 +125,12 @@ describe("generateInsights", () => {
   it("caps output at 3 insights", () => {
     const current = makeFinancials({
       amountLeft: 200,
-      topCategories: [{ categoryId: "c1", categoryName: "Groceries", amount: 200 }],
+      topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
     });
     const previous = [
       makeFinancials({
         amountLeft: 50,
-        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", amount: 100 }],
+        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 100 }],
       }),
       makeFinancials({ amountLeft: 50 }),
       makeFinancials({ amountLeft: 50 }),

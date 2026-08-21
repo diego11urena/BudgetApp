@@ -16,6 +16,7 @@ function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
     id: c.categoryId,
     name: c.categoryName,
     amount: c.amount,
+    color: c.categoryColor,
   }));
 
   return {

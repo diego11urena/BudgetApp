@@ -4,12 +4,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCategoryUsageStats } from "@/lib/category-usage";
-import { findPossibleDuplicates } from "@/lib/category-duplicates";
-import { CategoryManagerScreen } from "./_components/CategoryManagerScreen";
-import type { CategoryWithUsage } from "./_components/types";
-import type { DuplicatePairWithUsage } from "./_components/CategoryCleanupSection";
+import { IncomeCategoryManagerScreen } from "./_components/IncomeCategoryManagerScreen";
+import type { CategoryWithUsage } from "../_components/types";
 
-export default async function ManageCategoriesPage() {
+export default async function ManageIncomeCategoriesPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -18,11 +16,11 @@ export default async function ManageCategoriesPage() {
 
   const [rawCategories, usageStats] = await Promise.all([
     prisma.expenseCategory.findMany({
-      where: { userId, type: "EXPENSE" },
+      where: { userId, type: "INCOME" },
       orderBy: { name: "asc" },
       select: { id: true, name: true, icon: true, color: true },
     }),
-    getCategoryUsageStats(userId, "EXPENSE"),
+    getCategoryUsageStats(userId, "INCOME"),
   ]);
 
   const categories: CategoryWithUsage[] = rawCategories.map((c) => {
@@ -39,22 +37,17 @@ export default async function ManageCategoriesPage() {
     };
   });
 
-  const byId = new Map(categories.map((c) => [c.id, c]));
-  const duplicates: DuplicatePairWithUsage[] = findPossibleDuplicates(categories)
-    .map((pair) => ({ a: byId.get(pair.a.id), b: byId.get(pair.b.id) }))
-    .filter((pair): pair is DuplicatePairWithUsage => Boolean(pair.a && pair.b));
-
   return (
     <div className="home-page">
-      <Link href="/profile" className="back-link">
+      <Link href="/profile/categories" className="back-link">
         <ChevronLeft size={16} aria-hidden="true" /> Back
       </Link>
-      <h1 className="page-title">Manage Categories</h1>
+      <h1 className="page-title">Income Categories</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Organize how your spending is grouped.
+        Rename a typo&apos;d category, or merge two into one.
       </p>
 
-      <CategoryManagerScreen categories={categories} duplicates={duplicates} />
+      <IncomeCategoryManagerScreen categories={categories} />
     </div>
   );
 }

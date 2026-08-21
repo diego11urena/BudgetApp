@@ -8,7 +8,10 @@ function decimal(value: number) {
 function tx(
   type: "EXPENSE" | "INCOME" | "SAVINGS",
   amount: number,
-  overrides: { name?: string; category?: { id: string; name: string } | null } = {},
+  overrides: {
+    name?: string;
+    category?: { id: string; name: string; icon?: string | null; color?: string | null } | null;
+  } = {},
 ) {
   return {
     id: `${type}-${Math.random()}`,
@@ -17,7 +20,9 @@ function tx(
     name: overrides.name ?? type,
     amount: decimal(amount),
     occurredAt: new Date(2026, 7, 2),
-    expenseCategory: overrides.category ?? null,
+    expenseCategory: overrides.category
+      ? { ...overrides.category, icon: overrides.category.icon ?? null, color: overrides.category.color ?? null }
+      : null,
   };
 }
 
@@ -193,9 +198,9 @@ describe("sumFixedTargetSpend", () => {
   it("only sums categories that are in the fixed-target id list", () => {
     const total = sumFixedTargetSpend(
       [
-        { categoryId: "rent", categoryName: "Rent", amount: 500 },
-        { categoryId: "groceries", categoryName: "Groceries", amount: 200 },
-        { categoryId: "spotify", categoryName: "Spotify", amount: 10 },
+        { categoryId: "rent", categoryName: "Rent", categoryIcon: null, categoryColor: null, amount: 500 },
+        { categoryId: "groceries", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 },
+        { categoryId: "spotify", categoryName: "Spotify", categoryIcon: null, categoryColor: null, amount: 10 },
       ],
       ["rent", "spotify"],
     );
@@ -204,7 +209,7 @@ describe("sumFixedTargetSpend", () => {
 
   it("returns 0 when no category totals match a fixed target", () => {
     const total = sumFixedTargetSpend(
-      [{ categoryId: "groceries", categoryName: "Groceries", amount: 200 }],
+      [{ categoryId: "groceries", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
       ["rent"],
     );
     expect(total).toBe(0);

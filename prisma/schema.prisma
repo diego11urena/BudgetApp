@@ -128,6 +128,11 @@ model ExpenseCategory {
   name      String
   type      CategoryType @default(EXPENSE)
   icon      String?
+  // The lucide-react export name (e.g. "chart-cat-3", a --chart-cat-N CSS
+  // variable name from app/globals.css's categorical palette, or null for
+  // "no custom color" -- see lib/paycheck-breakdown.ts's colorVarFor, which
+  // prefers this when set and falls back to its existing id-hash otherwise).
+  color     String?
   isDefault Boolean      @default(false)
   createdAt DateTime     @default(now())
 

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 export interface GoalWithProgress {
   categoryId: string;
   name: string;
+  icon: string | null;
   lifetimeTargetAmount: number;
   savedSoFar: number;
   currentCycleRecurringAmount: number | null;
@@ -15,6 +16,7 @@ interface DecimalLike {
 interface GoalCategoryLike {
   id: string;
   name: string;
+  icon: string | null;
   lifetimeTargetAmount: DecimalLike | null;
   transactions: { amount: DecimalLike }[];
   budgetGoals: { targetAmount: DecimalLike }[];
@@ -44,6 +46,7 @@ export function summarizeGoalProgress(category: GoalCategoryLike): GoalWithProgr
   return {
     categoryId: category.id,
     name: category.name,
+    icon: category.icon,
     lifetimeTargetAmount: category.lifetimeTargetAmount?.toNumber() ?? 0,
     savedSoFar,
     currentCycleRecurringAmount: currentGoal ? currentGoal.targetAmount.toNumber() : null,
