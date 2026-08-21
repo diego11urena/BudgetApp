@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getOrCreateDraftCycle, formatCycleRangeText } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
@@ -25,13 +25,18 @@ export default async function BudgetPage() {
 
   return (
     <div className="home-page">
-      <h1 className="page-title">Fixed Expenses</h1>
+      {/* No page <h1> here on purpose -- the bottom-nav tab already reads
+          "Fixed Expenses"; a repeated page title added no information. */}
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
         Fixed expenses for this quincena. Savings goals live on the Goals tab.
       </p>
 
       <div className="dashboard-section">
-        <BudgetGoalsPanel rows={rows} categoryNames={expenseCategoryNames} />
+        <BudgetGoalsPanel
+          rows={rows}
+          categoryNames={expenseCategoryNames}
+          dateRangeText={formatCycleRangeText(cycle, { includeYear: false })}
+        />
       </div>
     </div>
   );

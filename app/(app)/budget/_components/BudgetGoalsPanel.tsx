@@ -25,9 +25,12 @@ export interface BudgetGoalRowData {
 export function BudgetGoalsPanel({
   rows,
   categoryNames,
+  dateRangeText,
 }: {
   rows: BudgetGoalRowData[];
   categoryNames: string[];
+  /** e.g. "Aug 11–25" -- replaces a card header that used to just repeat "Fixed expenses" a third time. */
+  dateRangeText: string;
 }) {
   const [editMode, setEditMode] = useState(false);
 
@@ -50,7 +53,7 @@ export function BudgetGoalsPanel({
             into several cramped lines that look like overlapping text.
             Wrapping lets the button group drop to its own line instead, so
             the heading keeps the full row width to wrap normally. */}
-        <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>This quincena&apos;s fixed expenses</h2>
+        <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>{dateRangeText}</h2>
         <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
           {rows.length > 0 && (
             <button

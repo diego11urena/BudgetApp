@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestGoalPerCategory, quincenaForDay, shouldCarryForwardToCycle } from "./cycles";
+import { formatCycleRangeText, latestGoalPerCategory, quincenaForDay, shouldCarryForwardToCycle } from "./cycles";
 
 describe("quincenaForDay", () => {
   it("treats day 1 as the first quincena", () => {
@@ -94,5 +94,32 @@ describe("latestGoalPerCategory", () => {
 
   it("returns an empty map for an empty list", () => {
     expect(latestGoalPerCategory([]).size).toBe(0);
+  });
+});
+
+describe("formatCycleRangeText", () => {
+  it("includes the year by default", () => {
+    const cycle = { periodStart: new Date(2026, 7, 1), periodEnd: new Date(2026, 7, 15) };
+    expect(formatCycleRangeText(cycle)).toBe("Aug 1–15, 2026");
+  });
+
+  it("omits the year when includeYear is false, same-month range", () => {
+    const cycle = { periodStart: new Date(2026, 7, 11), periodEnd: new Date(2026, 7, 25) };
+    expect(formatCycleRangeText(cycle, { includeYear: false })).toBe("Aug 11–25");
+  });
+
+  it("omits the year when includeYear is false, a range spanning a month boundary", () => {
+    const cycle = { periodStart: new Date(2026, 6, 29), periodEnd: new Date(2026, 7, 15) };
+    expect(formatCycleRangeText(cycle, { includeYear: false })).toBe("Jul 29 – Aug 15");
+  });
+
+  it("omits the year when includeYear is false, a same-day (zero-length) cycle", () => {
+    const cycle = { periodStart: new Date(2026, 7, 15), periodEnd: new Date(2026, 7, 15) };
+    expect(formatCycleRangeText(cycle, { includeYear: false })).toBe("Aug 15");
+  });
+
+  it("falls back to the calendar-idealized end when periodEnd is null (still-open cycle)", () => {
+    const cycle = { periodStart: new Date(2026, 7, 1), periodEnd: null };
+    expect(formatCycleRangeText(cycle, { includeYear: false })).toBe("Aug 1–15");
   });
 });

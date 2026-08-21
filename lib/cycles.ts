@@ -306,22 +306,38 @@ export async function assessPayDateChange(
  * quincenaEnd's calendar-idealized value, which can diverge once pay
  * dates have been edited; falls back to quincenaEnd for an open cycle,
  * which has no periodEnd yet.
+ *
+ * `includeYear: false` (e.g. a page header naming the current, obviously-
+ * this-year cycle — "Aug 11–25" rather than "Aug 11–25, 2026") drops the
+ * year from every branch; defaults to true so existing callers (older
+ * confirmation-copy contexts, where the year is genuinely useful context)
+ * are unaffected.
  */
-export function formatCycleRangeText(cycle: Pick<BudgetCycle, "periodStart" | "periodEnd">): string {
+export function formatCycleRangeText(
+  cycle: Pick<BudgetCycle, "periodStart" | "periodEnd">,
+  options: { includeYear?: boolean } = {},
+): string {
+  const { includeYear = true } = options;
   const end = cycle.periodEnd ?? quincenaEnd(cycle.periodStart);
+  const dateOpts: Intl.DateTimeFormatOptions = includeYear
+    ? { month: "short", day: "numeric", year: "numeric" }
+    : { month: "short", day: "numeric" };
   // A same-day close (closing twice in one day is explicitly supported —
   // see closeCycleAndStartNext) makes periodStart and periodEnd the same
   // calendar day; "Aug 15–15, 2026" would read as a typo, not a range.
   if (cycle.periodStart.toDateString() === end.toDateString()) {
-    return formatFriendlyDate(cycle.periodStart);
+    return includeYear ? formatFriendlyDate(cycle.periodStart) : cycle.periodStart.toLocaleDateString("en-US", dateOpts);
   }
   const sameMonth =
     cycle.periodStart.getMonth() === end.getMonth() &&
     cycle.periodStart.getFullYear() === end.getFullYear();
   const startText = cycle.periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return sameMonth
-    ? `${startText}–${end.getDate()}, ${end.getFullYear()}`
-    : `${startText} – ${formatFriendlyDate(end)}`;
+  if (sameMonth) {
+    return includeYear ? `${startText}–${end.getDate()}, ${end.getFullYear()}` : `${startText}–${end.getDate()}`;
+  }
+  return includeYear
+    ? `${startText} – ${formatFriendlyDate(end)}`
+    : `${startText} – ${end.toLocaleDateString("en-US", dateOpts)}`;
 }
 
 /** The user's most recent cycles, newest first. Retains all history — never deletes. */
