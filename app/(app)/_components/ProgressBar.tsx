@@ -1,11 +1,10 @@
-export type ProgressColorState = "good" | "warning" | "critical";
+import { getBudgetUsage, type BudgetStatus } from "@/lib/budget-status";
 
+export type ProgressColorState = BudgetStatus;
+
+/** Delegates to the same good/warning/critical thresholds every other percent-of-target bar in the app uses (see lib/budget-status.ts) -- this used to define its own, disagreeing cutoffs. */
 export function getProgressColorState(current: number, target: number): ProgressColorState {
-  if (target <= 0) return current > 0 ? "critical" : "good";
-  const percentage = (current / target) * 100;
-  if (percentage >= 100) return "critical";
-  if (percentage >= 70) return "warning";
-  return "good";
+  return getBudgetUsage(current, target).state;
 }
 
 export function ProgressBar({
