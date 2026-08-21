@@ -16,12 +16,16 @@ const CATEGORY_COLORS = Array.from({ length: 8 }, (_, i) => `chart-cat-${i + 1}`
  * convention for dual-mode sheets. Name is required; icon has no required
  * selection — leaving it unset keeps CategoryIcon's existing name-heuristic
  * fallback, exactly how every category looked before this feature existed.
+ * Shared identically between Expense and Income (type prop) — Savings goals
+ * use their own dedicated flow on the Goals page instead.
  */
 export function CategoryFormSheet({
+  type,
   existingCategory,
   onDone,
   returnFocusTo = null,
 }: {
+  type: "EXPENSE" | "INCOME";
   existingCategory?: CategoryWithUsage;
   onDone: () => void;
   returnFocusTo?: HTMLElement | null;
@@ -66,6 +70,7 @@ export function CategoryFormSheet({
     let result: { error?: string } | undefined;
     if (existingCategory) {
       fd.set("categoryId", existingCategory.id);
+      fd.set("type", type);
       result = await updateCategoryAction(fd);
     } else {
       result = await createCategoryAction(fd);

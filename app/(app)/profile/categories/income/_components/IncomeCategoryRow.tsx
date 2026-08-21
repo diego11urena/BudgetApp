@@ -19,8 +19,11 @@ export function IncomeCategoryRow({
 
   return (
     <div className="category-row">
-      <span className="category-row-swatch">
-        <CategoryIcon name={category.name} size={18} aria-hidden="true" />
+      <span
+        className="category-row-swatch"
+        style={category.color ? { background: `var(--${category.color})` } : undefined}
+      >
+        <CategoryIcon name={category.name} icon={category.icon} size={18} aria-hidden="true" />
       </span>
       <div className="category-row-details">
         <p className="category-row-name">{category.name}</p>

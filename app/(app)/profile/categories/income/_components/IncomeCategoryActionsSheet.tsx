@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useModalFocus } from "../../../../_components/useModalFocus";
-import { RenameCategorySheet } from "./RenameCategorySheet";
+import { CategoryFormSheet } from "../../_components/CategoryFormSheet";
 import { MergeCategorySheet } from "../../_components/MergeCategorySheet";
+import { DeleteCategoryConfirm } from "../../_components/DeleteCategoryConfirm";
 import type { CategoryWithUsage } from "../../_components/types";
 
-/** Income's trimmed "•••" menu — Rename and Merge only, per the confirmed scope decision (Savings stays on the Goals page; Income doesn't need the icon/color/delete richness Expense gets). */
+/** Income's "•••" menu — Edit, Merge, and Delete, identical in shape and behavior to Expense's CategoryActionsSheet (Savings stays on the Goals page; only the underlying `type` differs). */
 export function IncomeCategoryActionsSheet({
   category,
   otherCategories,
@@ -19,7 +20,7 @@ export function IncomeCategoryActionsSheet({
   returnFocusTo: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
-  const [mode, setMode] = useState<"menu" | "rename" | "merge">("menu");
+  const [mode, setMode] = useState<"menu" | "edit" | "merge" | "delete">("menu");
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,8 +35,10 @@ export function IncomeCategoryActionsSheet({
 
   useModalFocus(sheetRef, handleClose, returnFocusTo);
 
-  if (mode === "rename") {
-    return <RenameCategorySheet category={category} onDone={onDone} returnFocusTo={returnFocusTo} />;
+  if (mode === "edit") {
+    return (
+      <CategoryFormSheet type="INCOME" existingCategory={category} onDone={onDone} returnFocusTo={returnFocusTo} />
+    );
   }
   if (mode === "merge") {
     return (
@@ -45,6 +48,11 @@ export function IncomeCategoryActionsSheet({
         onDone={onDone}
         returnFocusTo={returnFocusTo}
       />
+    );
+  }
+  if (mode === "delete") {
+    return (
+      <DeleteCategoryConfirm type="INCOME" category={category} onDone={onDone} returnFocusTo={returnFocusTo} />
     );
   }
 
@@ -62,11 +70,18 @@ export function IncomeCategoryActionsSheet({
         <div className="sheet-handle" />
         <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>{category.name}</h2>
 
-        <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("rename")}>
-          Rename
+        <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("edit")}>
+          Edit
         </button>
         <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("merge")}>
           Merge into…
+        </button>
+        <button
+          type="button"
+          className="button button--danger sheet-submit"
+          onClick={() => setMode("delete")}
+        >
+          Delete
         </button>
         <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
           Cancel

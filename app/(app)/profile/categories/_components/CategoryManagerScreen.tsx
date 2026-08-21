@@ -41,8 +41,18 @@ export function CategoryManagerScreen({
 
       <div className="dashboard-section">
         <h2>Your categories</h2>
+
+        <div className="category-actions-row">
+          <button type="button" className="button button--secondary" onClick={() => setAdding(true)}>
+            + Add category
+          </button>
+          <Link href="/profile/categories/income" className="button button--secondary">
+            Manage income categories →
+          </Link>
+        </div>
+
         {categories.length === 0 ? (
-          <p className="field-hint">No categories yet — tap &quot;+ Add category&quot; below.</p>
+          <p className="field-hint">No categories yet — tap &quot;+ Add category&quot; above.</p>
         ) : active.length === 0 ? (
           <p className="field-hint">
             {q ? `No categories match "${query}".` : "No active categories — check Unused below."}
@@ -58,15 +68,6 @@ export function CategoryManagerScreen({
             ))}
           </div>
         )}
-
-        <button
-          type="button"
-          className="button button--secondary"
-          style={{ marginTop: "0.75rem" }}
-          onClick={() => setAdding(true)}
-        >
-          + Add category
-        </button>
 
         {allUnused.length > 0 && (
           <div className="category-unused-section">
@@ -104,11 +105,7 @@ export function CategoryManagerScreen({
 
       <CategoryCleanupSection duplicates={duplicates} allCategories={categories} />
 
-      <p className="category-income-link">
-        <Link href="/profile/categories/income">Manage income categories →</Link>
-      </p>
-
-      {adding && <CategoryFormSheet onDone={() => setAdding(false)} />}
+      {adding && <CategoryFormSheet type="EXPENSE" onDone={() => setAdding(false)} />}
     </>
   );
 }

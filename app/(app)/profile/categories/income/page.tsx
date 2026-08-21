@@ -44,7 +44,7 @@ export default async function ManageIncomeCategoriesPage() {
       </Link>
       <h1 className="page-title">Income Categories</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Rename a typo&apos;d category, or merge two into one.
+        Edit a category&apos;s name or icon, merge two into one, or delete one you don&apos;t need.
       </p>
 
       <IncomeCategoryManagerScreen categories={categories} />

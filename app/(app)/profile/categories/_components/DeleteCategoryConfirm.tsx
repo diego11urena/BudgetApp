@@ -14,10 +14,12 @@ import type { CategoryWithUsage } from "./types";
  * EraseCyclesButton's confirm-sheet pattern for irreversible actions.
  */
 export function DeleteCategoryConfirm({
+  type,
   category,
   onDone,
   returnFocusTo = null,
 }: {
+  type: "EXPENSE" | "INCOME";
   category: CategoryWithUsage;
   onDone: () => void;
   returnFocusTo?: HTMLElement | null;
@@ -45,6 +47,7 @@ export function DeleteCategoryConfirm({
     setError(null);
     const fd = new FormData();
     fd.set("categoryId", category.id);
+    fd.set("type", type);
     const result = await deleteCategoryAction(fd);
     setPending(false);
     if (result?.error) {

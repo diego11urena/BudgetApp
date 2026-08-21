@@ -22,45 +22,9 @@ function parseColor(value: FormDataEntryValue | null): { ok: true; color: string
   return { ok: true, color: value };
 }
 
-export async function renameCategoryAction(
-  formData: FormData,
-): Promise<{ error?: string } | undefined> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-  const userId = session.user.id;
-
-  const categoryId = formData.get("categoryId");
-  if (typeof categoryId !== "string" || !categoryId) {
-    return { error: "Missing category" };
-  }
-
-  const parsed = categoryNameSchema.safeParse(formData.get("name"));
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid name" };
-  }
-  const name = parsed.data;
-
-  // Ownership-scoped: findFirst by id+userId, not a plain findUnique(id),
-  // so a user can't rename another user's category by guessing an id.
-  const category = await prisma.expenseCategory.findFirst({ where: { id: categoryId, userId } });
-  if (!category) {
-    return { error: "Category not found" };
-  }
-  if (name === category.name) {
-    return undefined;
-  }
-
-  const conflict = await prisma.expenseCategory.findFirst({
-    where: { userId, name, type: category.type, NOT: { id: category.id } },
-  });
-  if (conflict) {
-    return { error: `"${name}" already exists — merge into it instead of renaming.` };
-  }
-
-  await prisma.expenseCategory.update({ where: { id: category.id }, data: { name } });
-  revalidateAppPages();
+/** Edit/Delete are shared between Expense and Income (Savings deliberately excluded — it has its own dedicated flow on the Goals page, see goals/actions.ts) — every caller must say which type it's scoped to rather than this silently defaulting to one. */
+function parseEditableType(value: FormDataEntryValue | null): "EXPENSE" | "INCOME" | null {
+  return value === "EXPENSE" || value === "INCOME" ? value : null;
 }
 
 /**
@@ -207,10 +171,11 @@ export async function createCategoryAction(
 }
 
 /**
- * Edits an existing EXPENSE category's name, icon, and color together (the
- * Manage Categories "Edit" sheet). Separate from renameCategoryAction (kept
- * as-is for the lightweight Income page) so Income's simpler, already-
- * working path never has to change shape to accommodate icon/color.
+ * Edits an existing Expense or Income category's name, icon, and color
+ * together (the "Edit" sheet both types share — identical interaction on
+ * both, just scoped by the `type` field the caller sends). Savings is
+ * deliberately not reachable through this action; goals/actions.ts owns
+ * that instead.
  */
 export async function updateCategoryAction(
   formData: FormData,
@@ -224,6 +189,10 @@ export async function updateCategoryAction(
   const categoryId = formData.get("categoryId");
   if (typeof categoryId !== "string" || !categoryId) {
     return { error: "Missing category" };
+  }
+  const type = parseEditableType(formData.get("type"));
+  if (!type) {
+    return { error: "Invalid category type" };
   }
 
   const parsedName = categoryNameSchema.safeParse(formData.get("name"));
@@ -241,9 +210,9 @@ export async function updateCategoryAction(
     return { error: "Invalid color" };
   }
 
-  // Ownership- and type-scoped: only this user's own EXPENSE category.
+  // Ownership- and type-scoped: only this user's own category of the type the caller claims.
   const category = await prisma.expenseCategory.findFirst({
-    where: { id: categoryId, userId, type: "EXPENSE" },
+    where: { id: categoryId, userId, type },
   });
   if (!category) {
     return { error: "Category not found" };
@@ -251,7 +220,7 @@ export async function updateCategoryAction(
 
   if (name.toLowerCase() !== category.name.toLowerCase()) {
     const conflict = await prisma.expenseCategory.findFirst({
-      where: { userId, type: "EXPENSE", name: { equals: name, mode: "insensitive" }, NOT: { id: category.id } },
+      where: { userId, type, name: { equals: name, mode: "insensitive" }, NOT: { id: category.id } },
     });
     if (conflict) {
       return { error: `"${conflict.name}" already exists — merge into it instead of renaming.` };
@@ -266,13 +235,15 @@ export async function updateCategoryAction(
 }
 
 /**
- * Deletes an EXPENSE category outright — allowed regardless of usage (a
- * confirmed product decision, not an oversight): its transactions fall back
- * to "Uncategorized" via the schema's own onDelete: SetNull, and any budget-
- * goal history for it is gone via onDelete: Cascade. The caller (
- * DeleteCategoryConfirm) is responsible for warning about both consequences
- * before calling this — this action itself does no blocking/confirmation,
- * same "irreversible, caller confirms first" contract as mergeCategoryAction.
+ * Deletes an Expense or Income category outright — allowed regardless of
+ * usage (a confirmed product decision, not an oversight): its transactions
+ * fall back to "Uncategorized" via the schema's own onDelete: SetNull, and
+ * any budget-goal history for it is gone via onDelete: Cascade (Income
+ * categories never have budget-goal rows, so that clause is a no-op for
+ * them). The caller (DeleteCategoryConfirm) is responsible for warning
+ * about both consequences before calling this — this action itself does no
+ * blocking/confirmation, same "irreversible, caller confirms first"
+ * contract as mergeCategoryAction.
  */
 export async function deleteCategoryAction(
   formData: FormData,
@@ -287,9 +258,13 @@ export async function deleteCategoryAction(
   if (typeof categoryId !== "string" || !categoryId) {
     return { error: "Missing category" };
   }
+  const type = parseEditableType(formData.get("type"));
+  if (!type) {
+    return { error: "Invalid category type" };
+  }
 
   const category = await prisma.expenseCategory.findFirst({
-    where: { id: categoryId, userId, type: "EXPENSE" },
+    where: { id: categoryId, userId, type },
   });
   if (!category) {
     return { error: "Category not found" };

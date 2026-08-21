@@ -270,4 +270,75 @@ test.describe("managing categories", () => {
     // instead, and the row itself stays a single line (fixed row height).
     expect(nameBox!.x + nameBox!.width).toBeLessThanOrEqual(kebabBox!.x + 1);
   });
+
+  test("the action buttons sit above the category list, not below it", async ({ page }) => {
+    await signUpAndOnboard(page);
+
+    await page.goto("/profile/categories");
+    await page.click('button:has-text("+ Add category")');
+    await page.waitForSelector("#category-form-name");
+    await page.fill("#category-form-name", "Whatever");
+    await clickSheetButton(page, "Save");
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    const actionsRow = page.locator(".category-actions-row");
+    await expect(actionsRow).toBeVisible();
+    const actionsBox = await actionsRow.boundingBox();
+    // "Whatever" has no transactions/budget goal, so it's in the collapsed
+    // Unused section -- expand it to get a real row to compare against.
+    await page.click(".category-unused-toggle");
+    const rowBox = await page.locator(".category-row", { hasText: "Whatever" }).boundingBox();
+    expect(actionsBox).not.toBeNull();
+    expect(rowBox).not.toBeNull();
+    expect(actionsBox!.y).toBeLessThan(rowBox!.y);
+  });
+
+  test("editing an income category supports name and icon, identically to expense", async ({ page }) => {
+    await signUpAndOnboard(page);
+
+    await page.goto("/profile/categories/income");
+    const row = page.locator(".category-row", { hasText: "Salary" });
+    await row.locator(".category-row-kebab").click();
+    // Income's menu offers the same three actions as Expense's, not a
+    // reduced "Rename" option.
+    await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+    await page.click('button:has-text("Edit")');
+    await page.waitForSelector("#category-form-name");
+
+    await page.fill("#category-form-name", "Paycheck");
+    await page.click('button[aria-label="Choose an icon"]');
+    await page.waitForSelector('input[aria-label="Search icons"]');
+    await page.fill('input[aria-label="Search icons"]', "dog");
+    await page.waitForSelector('.icon-picker-item[aria-label="Dog"]');
+    await page.click('.icon-picker-item[aria-label="Dog"]');
+    await clickSheetButton(page, "Save");
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    const renamed = page.locator(".category-row", { hasText: "Paycheck" });
+    await expect(renamed).toBeVisible();
+    await expect(renamed.locator(".category-row-swatch svg")).toBeVisible();
+    await expect(page.locator(".category-row-name", { hasText: /^Salary$/ })).toHaveCount(0);
+
+    // Persists after reload -- a real stored field, not client-only state.
+    await page.reload();
+    await expect(page.locator(".category-row", { hasText: "Paycheck" }).locator(".category-row-swatch svg")).toBeVisible();
+  });
+
+  test("deleting an income category works the same way as expense, with a consistent confirmation", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page);
+
+    await page.goto("/profile/categories/income");
+    const row = page.locator(".category-row", { hasText: "Side work" });
+    await row.locator(".category-row-kebab").click();
+    await expect(page.getByRole("button", { name: "Delete", exact: true })).toBeVisible();
+    await page.click('button:has-text("Delete")');
+    await page.waitForSelector('button:has-text("Delete category")');
+    await expect(page.getByText(/no transactions or budget history/)).toBeVisible();
+    await clickSheetButton(page, "Delete category");
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    await expect(page.locator(".category-row-name", { hasText: /^Side work$/ })).toHaveCount(0);
+  });
 });

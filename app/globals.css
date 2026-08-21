@@ -1607,15 +1607,11 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.category-income-link {
-  text-align: center;
-  margin-top: 1rem;
-  font-size: 0.875rem;
-}
-
-.category-income-link a {
-  color: var(--color-accent-green);
-  font-weight: 600;
+.category-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 /* CategoryFormSheet — icon preview + color swatches */

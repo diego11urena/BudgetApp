@@ -41,7 +41,9 @@ export function CategoryActionsSheet({
   useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   if (mode === "edit") {
-    return <CategoryFormSheet existingCategory={category} onDone={onDone} returnFocusTo={returnFocusTo} />;
+    return (
+      <CategoryFormSheet type="EXPENSE" existingCategory={category} onDone={onDone} returnFocusTo={returnFocusTo} />
+    );
   }
   if (mode === "merge") {
     return (
@@ -54,7 +56,9 @@ export function CategoryActionsSheet({
     );
   }
   if (mode === "delete") {
-    return <DeleteCategoryConfirm category={category} onDone={onDone} returnFocusTo={returnFocusTo} />;
+    return (
+      <DeleteCategoryConfirm type="EXPENSE" category={category} onDone={onDone} returnFocusTo={returnFocusTo} />
+    );
   }
 
   return (
