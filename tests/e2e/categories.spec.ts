@@ -281,7 +281,7 @@ test.describe("managing categories", () => {
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-    const actionsRow = page.locator(".category-actions-row");
+    const actionsRow = page.locator(".category-section-header");
     await expect(actionsRow).toBeVisible();
     const actionsBox = await actionsRow.boundingBox();
     // "Whatever" has no transactions/budget goal, so it's in the collapsed

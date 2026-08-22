@@ -14,6 +14,14 @@ test.describe("Fixed Expenses screen", () => {
     await page.goto("/budget");
     await page.waitForSelector(".dashboard-section");
 
+    // Fresh signup auto-shows the explainer tooltip, whose own dialog title
+    // legitimately says "Fixed expenses" -- dismiss it first so this checks
+    // the underlying page, not a modal covering it.
+    if (await page.locator(".sheet-backdrop").isVisible()) {
+      await clickSheetButton(page, "Got it");
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    }
+
     // Matches Goals/History/Transactions/Profile's own <h1 className="page-title">.
     await expect(page.locator("h1.page-title")).toHaveText("Fixed Expenses");
     // The card header itself renders the cycle's own date range, not a
