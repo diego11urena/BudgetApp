@@ -57,6 +57,83 @@ export function latestGoalPerCategory<T extends { expenseCategoryId: string }>(
   return result;
 }
 
+/**
+ * Recomputes one category's CycleBudgetGoal for one cycle from its
+ * CycleRecurringExpense children — the "maintained aggregate" every
+ * existing category-level reader (dashboard's fixed-budget card, History,
+ * sumFixedTargetSpend, Manage Categories' hasBudgetGoal check) keeps
+ * reading unchanged. Called after any create/update/delete/carry-forward
+ * touching a category's recurring expenses in a given cycle. Deletes the
+ * CycleBudgetGoal row entirely when the sum is zero (no recurring expenses
+ * left) rather than leaving a $0 row behind — hasBudgetGoal checks row
+ * existence, not amount, so a stale zero row would wrongly keep marking an
+ * emptied-out category as "used."
+ */
+export async function recomputeCategoryBudgetGoal(db: Db, cycleId: string, categoryId: string): Promise<void> {
+  const aggregate = await db.cycleRecurringExpense.aggregate({
+    where: { cycleId, recurringExpense: { categoryId } },
+    _sum: { targetAmount: true },
+  });
+  const total = aggregate._sum.targetAmount;
+
+  if (!total || total.isZero()) {
+    await db.cycleBudgetGoal.deleteMany({ where: { cycleId, expenseCategoryId: categoryId } });
+    return;
+  }
+
+  await db.cycleBudgetGoal.upsert({
+    where: { cycleId_expenseCategoryId: { cycleId, expenseCategoryId: categoryId } },
+    create: { cycleId, expenseCategoryId: categoryId, targetAmount: total },
+    update: { targetAmount: total },
+  });
+}
+
+/**
+ * Snapshots every one of a user's recurring (recurring: true) RecurringExpense
+ * rows that should carry into a newly-created cycle (per
+ * shouldCarryForwardToCycle, evaluated per-expense against its own
+ * frequency/dueDay) into that cycle's CycleRecurringExpense rows, then
+ * recomputes each affected category's CycleBudgetGoal aggregate. Reused by
+ * both closeCycleAndStartNext (normal "just got paid" flow) and
+ * eraseAllCyclesAction — unlike the old CycleBudgetGoal-copying loop this
+ * replaces, there's no "previous cycle's goals" to read: a RecurringExpense
+ * already IS the current definition, not a historical snapshot, so both
+ * call sites can query it directly by userId.
+ */
+export async function carryForwardRecurringExpenses(
+  db: Db,
+  userId: string,
+  newCycleId: string,
+  newCyclePeriodStart: Date,
+): Promise<void> {
+  const recurringExpenses = await db.recurringExpense.findMany({ where: { userId, recurring: true } });
+  const affectedCategoryIds = new Set<string>();
+
+  for (const recurringExpense of recurringExpenses) {
+    if (!shouldCarryForwardToCycle(recurringExpense, newCyclePeriodStart)) continue;
+
+    // upsert, not create: makes this idempotent against a retry, so a
+    // recurring expense can never end up with two snapshots for the same
+    // new cycle.
+    await db.cycleRecurringExpense.upsert({
+      where: {
+        cycleId_recurringExpenseId: { cycleId: newCycleId, recurringExpenseId: recurringExpense.id },
+      },
+      create: {
+        cycleId: newCycleId,
+        recurringExpenseId: recurringExpense.id,
+        targetAmount: recurringExpense.amount,
+      },
+      update: {},
+    });
+    affectedCategoryIds.add(recurringExpense.categoryId);
+  }
+
+  for (const categoryId of affectedCategoryIds) {
+    await recomputeCategoryBudgetGoal(db, newCycleId, categoryId);
+  }
+}
+
 /** The user's active income source, if any — reused everywhere a cycle's income entry gets written. */
 export function getActiveIncomeSource(db: Db, userId: string) {
   return db.incomeSource.findFirst({
@@ -424,13 +501,16 @@ export async function closeCycleAndStartNext(
     // one cycle's targetAmount (which is never rewritten by this). Which
     // *cycles* a category carries into is a separate decision (see
     // shouldCarryForwardToCycle): BIWEEKLY carries into all of them, MONTHLY
-    // only into the one quincena matching its dueDay.
-    const previousGoals = await tx.cycleBudgetGoal.findMany({
-      where: { cycleId: closed.id, expenseCategory: { recurring: true } },
+    // only into the one quincena matching its dueDay. SAVINGS categories
+    // still work exactly this way today (the Goals tab has no concept of
+    // individual recurring expenses). EXPENSE categories moved to the
+    // RecurringExpense model -- see carryForwardRecurringExpenses.
+    const previousSavingsGoals = await tx.cycleBudgetGoal.findMany({
+      where: { cycleId: closed.id, expenseCategory: { recurring: true, type: "SAVINGS" } },
       include: { expenseCategory: true },
     });
 
-    for (const goal of previousGoals) {
+    for (const goal of previousSavingsGoals) {
       if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart)) continue;
 
       // upsert, not create: makes this idempotent against a retry of this
@@ -448,6 +528,8 @@ export async function closeCycleAndStartNext(
         update: {},
       });
     }
+
+    await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart);
 
     return { closed, created };
   });

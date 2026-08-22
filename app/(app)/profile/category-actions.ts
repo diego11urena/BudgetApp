@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { recomputeCategoryBudgetGoal } from "@/lib/cycles";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
@@ -28,10 +29,13 @@ function parseEditableType(value: FormDataEntryValue | null): "EXPENSE" | "INCOM
 }
 
 /**
- * Merges one category into another of the same type: every transaction and
- * budget-goal history row moves to the target, any per-cycle target amount
- * conflicts are summed rather than dropped, and the source category is
- * deleted. Irreversible — the caller is expected to confirm first.
+ * Merges one category into another of the same type: every transaction
+ * moves to the target, every recurring expense / budget-goal history row
+ * moves to the target (EXPENSE categories move their RecurringExpense
+ * children; INCOME/SAVINGS move CycleBudgetGoal rows directly), any
+ * per-cycle target amount conflicts are summed rather than dropped, and the
+ * source category is deleted. Irreversible — the caller is expected to
+ * confirm first.
  */
 export async function mergeCategoryAction(
   formData: FormData,
@@ -71,27 +75,64 @@ export async function mergeCategoryAction(
       data: { expenseCategoryId: target.id },
     });
 
-    // A cycle can only have one CycleBudgetGoal per category (unique
-    // constraint) — if both source and target already had a target amount
-    // set in the same cycle, sum them instead of dropping one silently.
-    const sourceGoals = await tx.cycleBudgetGoal.findMany({
-      where: { expenseCategoryId: source.id },
-    });
-    for (const goal of sourceGoals) {
-      const existingTargetGoal = await tx.cycleBudgetGoal.findUnique({
-        where: { cycleId_expenseCategoryId: { cycleId: goal.cycleId, expenseCategoryId: target.id } },
+    if (source.type === "EXPENSE") {
+      // EXPENSE categories' CycleBudgetGoal rows are a maintained aggregate
+      // over RecurringExpense children now (see lib/cycles.ts), not
+      // directly-owned data -- so merging moves the actual children
+      // (RecurringExpense, whose own CycleRecurringExpense snapshots follow
+      // via the FK) to the target category, then recomputes every cycle the
+      // moved-in expenses ever had a snapshot in. A cycle where both source
+      // and target already had recurring expenses ends up with both
+      // contributions summed once recomputed, same "sum instead of drop"
+      // outcome INCOME/SAVINGS goal-merging achieves directly below.
+      const movedRecurringExpenseIds = (
+        await tx.recurringExpense.findMany({ where: { categoryId: source.id }, select: { id: true } })
+      ).map((r) => r.id);
+
+      if (movedRecurringExpenseIds.length > 0) {
+        await tx.recurringExpense.updateMany({
+          where: { id: { in: movedRecurringExpenseIds } },
+          data: { categoryId: target.id },
+        });
+
+        const snapshots = await tx.cycleRecurringExpense.findMany({
+          where: { recurringExpenseId: { in: movedRecurringExpenseIds } },
+          select: { cycleId: true },
+        });
+        const affectedCycleIds = new Set(snapshots.map((s) => s.cycleId));
+        for (const cycleId of affectedCycleIds) {
+          await recomputeCategoryBudgetGoal(tx, cycleId, target.id);
+        }
+      }
+      // source.id's own CycleBudgetGoal rows are cascade-deleted below
+      // along with the category itself -- their RecurringExpense children
+      // just moved away, so they're stale regardless.
+    } else {
+      // A cycle can only have one CycleBudgetGoal per category (unique
+      // constraint) — if both source and target already had a target amount
+      // set in the same cycle, sum them instead of dropping one silently.
+      // INCOME categories (the only other type reachable here — SAVINGS has
+      // its own dedicated merge-free flow on the Goals page) never actually
+      // have CycleBudgetGoal rows, so this is a defensive no-op for them.
+      const sourceGoals = await tx.cycleBudgetGoal.findMany({
+        where: { expenseCategoryId: source.id },
       });
-      if (existingTargetGoal) {
-        await tx.cycleBudgetGoal.update({
-          where: { id: existingTargetGoal.id },
-          data: { targetAmount: existingTargetGoal.targetAmount.add(goal.targetAmount) },
+      for (const goal of sourceGoals) {
+        const existingTargetGoal = await tx.cycleBudgetGoal.findUnique({
+          where: { cycleId_expenseCategoryId: { cycleId: goal.cycleId, expenseCategoryId: target.id } },
         });
-        await tx.cycleBudgetGoal.delete({ where: { id: goal.id } });
-      } else {
-        await tx.cycleBudgetGoal.update({
-          where: { id: goal.id },
-          data: { expenseCategoryId: target.id },
-        });
+        if (existingTargetGoal) {
+          await tx.cycleBudgetGoal.update({
+            where: { id: existingTargetGoal.id },
+            data: { targetAmount: existingTargetGoal.targetAmount.add(goal.targetAmount) },
+          });
+          await tx.cycleBudgetGoal.delete({ where: { id: goal.id } });
+        } else {
+          await tx.cycleBudgetGoal.update({
+            where: { id: goal.id },
+            data: { expenseCategoryId: target.id },
+          });
+        }
       }
     }
 

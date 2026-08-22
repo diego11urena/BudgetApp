@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  carryForwardRecurringExpenses,
   formatCycleLabel,
   getActiveIncomeSource,
   latestGoalPerCategory,
@@ -34,10 +35,13 @@ export async function eraseAllCyclesAction(): Promise<void> {
   }
   const userId = session.user.id;
 
-  // Most recent target amount per recurring category, captured before the
-  // delete below removes the cycles these targets live on.
+  // Most recent target amount per recurring SAVINGS category, captured
+  // before the delete below removes the cycles these targets live on.
+  // EXPENSE categories don't need this capture step -- a RecurringExpense
+  // already IS the current definition (not a historical snapshot), so
+  // carryForwardRecurringExpenses below reads it directly post-delete.
   const recentGoals = await prisma.cycleBudgetGoal.findMany({
-    where: { cycle: { userId }, expenseCategory: { recurring: true } },
+    where: { cycle: { userId }, expenseCategory: { recurring: true, type: "SAVINGS" } },
     include: { expenseCategory: true },
     orderBy: { createdAt: "desc" },
   });
@@ -64,6 +68,8 @@ export async function eraseAllCyclesAction(): Promise<void> {
         data: { cycleId: cycle.id, expenseCategoryId: goal.expenseCategoryId, targetAmount: goal.targetAmount },
       });
     }
+
+    await carryForwardRecurringExpenses(tx, userId, cycle.id, now);
   });
 
   revalidateAppPages();
