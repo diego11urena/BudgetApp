@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Info } from "lucide-react";
 import { AddTargetSheet } from "./AddTargetSheet";
 import { BudgetGoalRow } from "./BudgetGoalRow";
-import { FixedExpenseHintTooltip } from "./FixedExpenseHintTooltip";
+import { InfoTooltip } from "../../_components/InfoTooltip";
 import { markFixedExpenseHintSeenAction } from "../actions";
 
 export interface BudgetGoalRowData {
@@ -102,7 +102,14 @@ export function BudgetGoalsPanel({
         </div>
       </div>
       {hintOpen && (
-        <FixedExpenseHintTooltip onClose={() => setHintOpen(false)} returnFocusTo={hintTriggerElement} />
+        <InfoTooltip
+          title="Fixed expenses"
+          onClose={() => setHintOpen(false)}
+          returnFocusTo={hintTriggerElement}
+        >
+          Recurring fixed expenses carry into every quincena by default — tap &quot;Edit&quot; to switch
+          one to a specific day each month instead, or remove it.
+        </InfoTooltip>
       )}
       {rows.length === 0 && (
         <p className="field-hint">No fixed expenses yet — tap &quot;New fixed expense&quot; above.</p>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { CategoryRow } from "./CategoryRow";
 import { CategoryFormSheet } from "./CategoryFormSheet";
 import { CategoryCleanupSection, type DuplicatePairWithUsage } from "./CategoryCleanupSection";
@@ -40,19 +40,24 @@ export function CategoryManagerScreen({
       />
 
       <div className="dashboard-section">
-        <h2>Your categories</h2>
-
-        <div className="category-actions-row">
-          <button type="button" className="button button--secondary" onClick={() => setAdding(true)}>
-            + Add category
+        <div className="category-section-header">
+          <h2 style={{ marginBottom: 0 }}>Your categories</h2>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Add category"
+            onClick={() => setAdding(true)}
+          >
+            <Plus size={16} aria-hidden="true" />
           </button>
-          <Link href="/profile/categories/income" className="button button--secondary">
-            Manage income categories →
-          </Link>
         </div>
 
+        <Link href="/profile/categories/income" className="category-income-link">
+          Manage income categories →
+        </Link>
+
         {categories.length === 0 ? (
-          <p className="field-hint">No categories yet — tap &quot;+ Add category&quot; above.</p>
+          <p className="field-hint">No categories yet — tap the + above.</p>
         ) : active.length === 0 ? (
           <p className="field-hint">
             {q ? `No categories match "${query}".` : "No active categories — check Unused below."}

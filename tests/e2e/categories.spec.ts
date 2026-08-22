@@ -79,7 +79,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await page.goto("/profile/categories");
-    await page.click('button:has-text("+ Add category")');
+    await page.click('button[aria-label="Add category"]');
     await page.waitForSelector("#category-form-name");
     await page.fill("#category-form-name", "Pet Supplies");
 
@@ -137,7 +137,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await page.goto("/profile/categories");
-    await page.click('button:has-text("+ Add category")');
+    await page.click('button[aria-label="Add category"]');
     await page.waitForSelector("#category-form-name");
     await page.fill("#category-form-name", "Never Used");
     await clickSheetButton(page, "Save");
@@ -195,7 +195,7 @@ test.describe("managing categories", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await page.goto("/profile/categories");
-    await page.click('button:has-text("+ Add category")');
+    await page.click('button[aria-label="Add category"]');
     await page.waitForSelector("#category-form-name");
     await page.fill("#category-form-name", "Gifts");
     await clickSheetButton(page, "Save");
@@ -235,7 +235,7 @@ test.describe("managing categories", () => {
 
     for (const name of ["Groceries", "Gas", "Gym"]) {
       await page.goto("/profile/categories");
-      await page.click('button:has-text("+ Add category")');
+      await page.click('button[aria-label="Add category"]');
       await page.waitForSelector("#category-form-name");
       await page.fill("#category-form-name", name);
       await clickSheetButton(page, "Save");
@@ -253,7 +253,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await page.goto("/profile/categories");
-    await page.click('button:has-text("+ Add category")');
+    await page.click('button[aria-label="Add category"]');
     await page.waitForSelector("#category-form-name");
     await page.fill("#category-form-name", "A Fairly Long Category Name For Testing");
     await clickSheetButton(page, "Save");
@@ -275,7 +275,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await page.goto("/profile/categories");
-    await page.click('button:has-text("+ Add category")');
+    await page.click('button[aria-label="Add category"]');
     await page.waitForSelector("#category-form-name");
     await page.fill("#category-form-name", "Whatever");
     await clickSheetButton(page, "Save");

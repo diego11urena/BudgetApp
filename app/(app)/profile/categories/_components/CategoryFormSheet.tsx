@@ -8,8 +8,6 @@ import { createCategoryAction, updateCategoryAction } from "../../category-actio
 import { IconPickerSheet } from "./IconPickerSheet";
 import type { CategoryWithUsage } from "./types";
 
-const CATEGORY_COLORS = Array.from({ length: 8 }, (_, i) => `chart-cat-${i + 1}`);
-
 /**
  * Create + edit share one form (optional existingCategory prop pre-fills
  * fields), matching this app's established EditGoalSheet/EditPayInfoSheet
@@ -18,6 +16,13 @@ const CATEGORY_COLORS = Array.from({ length: 8 }, (_, i) => `chart-cat-${i + 1}`
  * fallback, exactly how every category looked before this feature existed.
  * Shared identically between Expense and Income (type prop) — Savings goals
  * use their own dedicated flow on the Goals page instead.
+ *
+ * No color picker here on purpose — every category uses the same neutral
+ * icon-background treatment now. `ExpenseCategory.color` still exists in
+ * the schema (existing rows that already have one keep rendering it, see
+ * CategoryRow/IncomeCategoryRow) and updateCategoryAction/createCategoryAction
+ * still accept it, but this form simply never sends it, so it can't be set
+ * or changed here anymore.
  */
 export function CategoryFormSheet({
   type,
@@ -34,7 +39,6 @@ export function CategoryFormSheet({
   const [visible, setVisible] = useState(false);
   const [name, setName] = useState(existingCategory?.name ?? "");
   const [icon, setIcon] = useState<string | null>(existingCategory?.icon ?? null);
-  const [color, setColor] = useState<string | null>(existingCategory?.color ?? null);
   const [pickingIcon, setPickingIcon] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +69,6 @@ export function CategoryFormSheet({
     const fd = new FormData();
     fd.set("name", trimmed);
     if (icon) fd.set("icon", icon);
-    if (color) fd.set("color", color);
 
     let result: { error?: string } | undefined;
     if (existingCategory) {
@@ -111,7 +114,6 @@ export function CategoryFormSheet({
               <button
                 type="button"
                 className="category-form-icon-preview"
-                style={color ? { background: `var(--${color})` } : undefined}
                 onClick={() => setPickingIcon(true)}
                 aria-label="Choose an icon"
               >
@@ -127,30 +129,6 @@ export function CategoryFormSheet({
                   className={error ? "is-invalid" : ""}
                   autoFocus
                 />
-              </div>
-            </div>
-
-            <div className="field">
-              <label>Color (optional)</label>
-              <div className="category-color-swatch-row">
-                <button
-                  type="button"
-                  className={`category-color-swatch category-color-swatch--none ${color === null ? "is-selected" : ""}`}
-                  onClick={() => setColor(null)}
-                  aria-label="No custom color"
-                  aria-pressed={color === null}
-                />
-                {CATEGORY_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`category-color-swatch ${color === c ? "is-selected" : ""}`}
-                    style={{ background: `var(--${c})` }}
-                    onClick={() => setColor(c)}
-                    aria-label={`Color ${c}`}
-                    aria-pressed={color === c}
-                  />
-                ))}
               </div>
             </div>
 
