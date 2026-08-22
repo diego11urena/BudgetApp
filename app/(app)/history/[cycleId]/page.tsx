@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getAdjacentCycles, formatCycleRangeText } from "@/lib/cycles";
 import { getCycleFinancials, sumFixedTargetSpend } from "@/lib/cycle-financials";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
+import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../../_components/TransactionList";
@@ -14,6 +15,7 @@ import { BudgetBreakdownCard } from "../../dashboard/_components/BudgetBreakdown
 import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesChart";
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
+import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
 
 export default async function CycleHistoryPage({
   params,
@@ -51,6 +53,15 @@ export default async function CycleHistoryPage({
     financials.categoryTotals,
     expenseGoals.map((goal) => goal.categoryId),
   );
+
+  // Historical category -> recurring-expense breakdown for this specific
+  // cycle's own CycleRecurringExpense snapshots -- accurate even if a
+  // recurring expense's price or category has changed since. No match
+  // suggestions computed for a closed cycle -- nothing there is
+  // actionable (see CategoryProgressRow's readOnly prop below).
+  const recurringExpenseCategories = await getRecurringExpensesForCycle(userId, cycle.id, financials.categoryTotals, {
+    computeSuggestions: !closed,
+  });
 
   const cycleStartDate = formatCycleLabel(cycle.periodStart);
   // Exclusive neighbor boundaries -> inclusive HTML date-input min/max for
@@ -101,6 +112,25 @@ export default async function CycleHistoryPage({
           budget={totalBudget}
         />
       </div>
+
+      {recurringExpenseCategories.length > 0 && (
+        <div className="dashboard-section">
+          <h2 style={{ marginBottom: "0.5rem" }}>Recurring expenses</h2>
+          <div className="category-progress-list">
+            {recurringExpenseCategories.map((category) => (
+              <CategoryProgressRow
+                key={category.categoryId}
+                categoryName={category.categoryName}
+                categoryIcon={category.categoryIcon}
+                actual={category.actual}
+                targetAmount={category.targetAmount}
+                expenses={category.expenses}
+                readOnly={closed}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="dashboard-section">
         <TopCategoriesChart

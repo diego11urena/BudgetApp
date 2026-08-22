@@ -1760,55 +1760,6 @@ button.line-item--link {
   padding: 0 0.25rem;
 }
 
-/* Per-category recurring toggle on Budget targets */
-.recurring-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-height: 44px;
-  padding: 0.4rem 0.7rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.recurring-toggle.is-on {
-  border-color: var(--color-success);
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.recurring-frequency-control {
-  margin-top: 0.5rem;
-}
-
-.recurring-frequency-fields {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.recurring-frequency-fields select,
-.recurring-frequency-fields input {
-  padding: 0.4rem 0.6rem;
-  min-height: 36px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-card);
-  color: var(--foreground);
-  font-family: inherit;
-}
-
-.recurring-frequency-fields input {
-  width: 5rem;
-}
-
 /* App shell + bottom nav (5-tab authenticated app) */
 .app-shell {
   flex: 1;
@@ -2030,53 +1981,158 @@ button.line-item--link {
   background: var(--color-error);
 }
 
-/* Budget & Goals goal rows */
-.budget-goal-list,
+/* Recurring Expenses & Goals rows */
+.category-progress-list,
 .goal-list {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
 }
 
-.budget-goal-row,
+.category-progress-row,
 .goal-row {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--color-border);
 }
 
-/* A fixed-expense target is really just a spending cap on a category --
-   tapping the row's summary (icon/name/percentage/progress bar/amount)
-   opens that category's own transactions. Same active-state feedback as
-   .line-item--link, but display: block since this wraps stacked rows
-   (label, bar, amount text) rather than one flex row. */
-.budget-goal-row-summary-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: opacity 0.1s ease;
-}
-
-.budget-goal-row-summary-link:active {
-  opacity: 0.6;
-}
-
-.budget-goal-row:last-child,
+.category-progress-row:last-child,
 .goal-row:last-child {
   border-bottom: none;
   padding-bottom: 0;
 }
 
-.budget-goal-row-controls {
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
+/* A category is an expandable container, not a link -- tapping it
+   toggles its recurring expenses open inline instead of navigating to
+   Transactions. display: flex (not block) so the chevron sits beside the
+   stacked label/bar/amount content instead of above it. */
+.category-progress-row-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.category-progress-row-chevron {
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+  color: var(--color-text-secondary);
+}
+
+.category-progress-row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.recurring-expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  /* Indented past the chevron above, so each child visually nests under
+     its category. */
+  padding-left: calc(16px + var(--space-2));
+}
+
+.recurring-expense-row {
+  padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
 }
 
-.budget-goal-row-controls-top {
+.recurring-expense-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.recurring-expense-row-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+/* History's read-only reuse -- same layout, just not a button. */
+.recurring-expense-row-main--static {
+  cursor: default;
+}
+
+.recurring-expense-row-name {
+  font-weight: 600;
+}
+
+.recurring-expense-row-amount {
+  color: var(--color-text-secondary);
+}
+
+.recurring-expense-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  padding-bottom: var(--space-2);
+}
+
+.recurring-expense-status-label {
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+}
+
+.recurring-expense-status-amount {
+  color: var(--color-text-secondary);
+}
+
+/* Green = paid, neutral = not started, an intermediate tone for
+   partially paid, red only for an actual problem (exceeded) -- see
+   lib/recurring-expense-status.ts. */
+.recurring-expense-status--not-started .recurring-expense-status-label {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}
+
+.recurring-expense-status--partial .recurring-expense-status-label {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.recurring-expense-status--paid .recurring-expense-status-label {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.recurring-expense-status--exceeded .recurring-expense-status-label {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.recurring-expense-suggestion {
+  padding: var(--space-2);
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+}
+
+.recurring-expense-suggestion-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .goal-row-main {

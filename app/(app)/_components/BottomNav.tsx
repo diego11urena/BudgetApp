@@ -22,7 +22,7 @@ const TABS_BEFORE_FAB: Tab[] = [
   { href: "/transactions", label: "Transactions", icon: CreditCard },
 ];
 const TABS_AFTER_FAB: Tab[] = [
-  { href: "/budget", label: "Fixed Expenses", icon: LayoutGrid },
+  { href: "/budget", label: "Recurring Expenses", icon: LayoutGrid },
   { href: "/goals", label: "Goals", icon: Target },
 ];
 
