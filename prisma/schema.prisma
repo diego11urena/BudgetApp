@@ -11,24 +11,25 @@ datasource db {
 }
 
 model User {
-  id                    String    @id @default(cuid())
-  email                 String    @unique
-  hashedPassword        String
-  name                  String?
-  onboardingCompletedAt DateTime?
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  hashedPassword         String
+  name                   String?
+  onboardingCompletedAt  DateTime?
   // Set the first time the Fixed Expenses tab's explainer tooltip is
   // auto-shown, so it never auto-shows again -- tap-to-reopen (the ⓘ
   // icon) still works after this is set, this only gates the one-time
   // auto-open. Same shape as onboardingCompletedAt: a nullable timestamp
   // set once via a server action.
   seenFixedExpenseHintAt DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   incomeSources     IncomeSource[]
   expenseCategories ExpenseCategory[]
   budgetCycles      BudgetCycle[]
   gmailConnection   GmailConnection?
+  recurringExpenses RecurringExpense[]
 }
 
 model IncomeSource {
@@ -44,11 +45,11 @@ model IncomeSource {
   updatedAt         DateTime @updatedAt
 
   cycleEntries CycleIncomeEntry[]
-
-  @@index([userId])
   // Also enforced by a partial unique index NOT representable here: at
   // most one row per userId with isActive = true. See
   // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
+
+  @@index([userId])
 }
 
 // Kept separate from User (rather than columns on it) so the encrypted
@@ -88,14 +89,15 @@ model BudgetCycle {
   expensesConfirmedAt DateTime?
   savingsConfirmedAt  DateTime?
 
-  incomeEntries CycleIncomeEntry[]
-  budgetGoals   CycleBudgetGoal[]
-  transactions  CycleTransaction[]
-
-  @@index([userId, periodStart])
+  incomeEntries         CycleIncomeEntry[]
+  budgetGoals           CycleBudgetGoal[]
+  transactions          CycleTransaction[]
+  recurringExpenseGoals CycleRecurringExpense[]
   // Also enforced by a partial unique index NOT representable here: at
   // most one row per userId with status IN (DRAFT, ACTIVE). See
   // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
+
+  @@index([userId, periodStart])
 }
 
 model CycleIncomeEntry {
@@ -175,8 +177,14 @@ model ExpenseCategory {
   frequency RecurringFrequency @default(BIWEEKLY)
   dueDay    Int?
 
-  budgetGoals  CycleBudgetGoal[]
-  transactions CycleTransaction[]
+  budgetGoals       CycleBudgetGoal[]
+  transactions      CycleTransaction[]
+  recurringExpenses RecurringExpense[]
+  // Also enforced case-insensitively by an expression unique index NOT
+  // representable here: UNIQUE(userId, LOWER(name), type). getOrCreateCategory
+  // treats "Rent" and "rent" as the same category; this constraint above
+  // alone can't catch that collision. See
+  // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
 
   // Was (userId, name) alone — a Budget (EXPENSE) category and a Goal
   // (SAVINGS) category with the same name used to collide silently (the
@@ -184,11 +192,6 @@ model ExpenseCategory {
   // type is now part of the identity, so "Travel" the expense and "Travel"
   // the goal are distinct rows.
   @@unique([userId, name, type])
-  // Also enforced case-insensitively by an expression unique index NOT
-  // representable here: UNIQUE(userId, LOWER(name), type). getOrCreateCategory
-  // treats "Rent" and "rent" as the same category; this constraint above
-  // alone can't catch that collision. See
-  // prisma/migrations/20260815035814_race_condition_partial_unique_indexes.
 }
 
 enum TransactionType {
@@ -220,25 +223,33 @@ enum PaymentMethod {
 }
 
 model CycleTransaction {
-  id                String           @id @default(cuid())
-  cycleId           String
-  cycle             BudgetCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  type              TransactionType
-  name              String
-  amount            Decimal          @db.Decimal(12, 2)
-  expenseCategoryId String?
-  expenseCategory   ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
-  importSource      ImportSource     @default(MANUAL)
-  paymentMethod     PaymentMethod?
+  id                 String            @id @default(cuid())
+  cycleId            String
+  cycle              BudgetCycle       @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  type               TransactionType
+  name               String
+  amount             Decimal           @db.Decimal(12, 2)
+  expenseCategoryId  String?
+  expenseCategory    ExpenseCategory?  @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
+  // Set once a payment is either recorded directly against a specific
+  // recurring expense (via "Record payment") or a suggested match is
+  // confirmed (see lib/recurring-expense-matching.ts) -- null means "not
+  // linked to any recurring expense," which is the default for every
+  // ordinary manual/Gmail transaction and stays that way unless the user
+  // acts on a match suggestion.
+  recurringExpenseId String?
+  recurringExpense   RecurringExpense? @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
+  importSource       ImportSource      @default(MANUAL)
+  paymentMethod      PaymentMethod?
   // What the money was for, beyond the name/merchant -- mainly for a Yappy
   // P2P transfer, where "name" is just the counterparty's name and carries
   // no purpose on its own. Populated from Yappy's own "Mensaje" field when
   // the sender filled one in (see lib/gmail-parsers.ts); null when they
   // didn't, which is what prompts the user to fill it in by hand (see the
   // "needs a description" banner alongside the existing category one).
-  description       String?
-  occurredAt        DateTime         @default(now())
-  createdAt         DateTime         @default(now())
+  description        String?
+  occurredAt         DateTime          @default(now())
+  createdAt          DateTime          @default(now())
 
   // Set only for transactions auto-imported from Gmail (the message's own
   // id) — the hard dedupe backstop against re-importing the same email
@@ -249,8 +260,17 @@ model CycleTransaction {
 
   @@index([cycleId])
   @@index([expenseCategoryId])
+  @@index([recurringExpenseId])
 }
 
+// A category-level aggregate -- always the sum of that category's
+// CycleRecurringExpense.targetAmount rows for the same cycle, maintained
+// by the recurring-expense server actions on every add/edit/delete/carry-
+// forward (see app/(app)/budget/recurring-actions.ts). Kept as its own
+// table (rather than replaced by RecurringExpense) so every existing
+// category-level reader -- the dashboard budget card, History,
+// sumFixedTargetSpend, Manage Categories' hasBudgetGoal check -- keeps
+// working unchanged.
 model CycleBudgetGoal {
   id                String          @id @default(cuid())
   cycleId           String
@@ -264,3 +284,48 @@ model CycleBudgetGoal {
   @@index([cycleId])
 }
 
+// An individual recurring bill/subscription definition living inside an
+// EXPENSE category (e.g. category "Subscriptions" contains RecurringExpense
+// rows "Spotify," "Netflix," "iCloud"). Never used for SAVINGS categories --
+// the Goals tab keeps using ExpenseCategory.recurring/frequency/dueDay
+// directly, untouched by this model.
+model RecurringExpense {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  amount     Decimal         @db.Decimal(12, 2)
+
+  // Whether closeCycleAndStartNext auto-carries this recurring expense
+  // into the next cycle -- same semantics as ExpenseCategory.recurring
+  // today, just scoped per recurring expense instead of per category.
+  recurring Boolean            @default(true)
+  frequency RecurringFrequency @default(BIWEEKLY)
+  dueDay    Int?
+  createdAt DateTime           @default(now())
+
+  cycleSnapshots CycleRecurringExpense[]
+  transactions   CycleTransaction[]
+
+  @@index([categoryId])
+  @@index([userId])
+}
+
+// A per-cycle snapshot of a RecurringExpense's target amount -- mirrors
+// how CycleBudgetGoal already snapshots a category's target per cycle, so
+// a later price change to a RecurringExpense doesn't retroactively rewrite
+// past, already-closed cycles.
+model CycleRecurringExpense {
+  id                 String           @id @default(cuid())
+  cycleId            String
+  cycle              BudgetCycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  recurringExpenseId String
+  recurringExpense   RecurringExpense @relation(fields: [recurringExpenseId], references: [id], onDelete: Cascade)
+  targetAmount       Decimal          @db.Decimal(12, 2)
+  createdAt          DateTime         @default(now())
+
+  @@unique([cycleId, recurringExpenseId])
+  @@index([cycleId])
+}
