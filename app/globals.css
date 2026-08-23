@@ -2117,6 +2117,14 @@ button.line-item--link {
   color: var(--color-success);
 }
 
+/* Same warning tone as the category-level bar's orange 101-120% tier --
+   an item can never read as calmly "Paid" while its category is
+   simultaneously showing a warning about it. */
+.recurring-expense-status--paid-over .recurring-expense-status-label {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
 .recurring-expense-status--exceeded .recurring-expense-status-label {
   background: var(--color-error-bg);
   color: var(--color-error);

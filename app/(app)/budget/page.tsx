@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle, formatCycleRangeText } from "@/lib/cycles";
-import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
 import { RecurringExpensesPanel } from "./_components/RecurringExpensesPanel";
@@ -18,8 +17,7 @@ export default async function BudgetPage() {
     getOrCreateDraftCycle(userId),
     prisma.user.findUnique({ where: { id: userId }, select: { seenFixedExpenseHintAt: true } }),
   ]);
-  const financials = await getCycleFinancials(cycle.id);
-  const categories = await getRecurringExpensesForCycle(userId, cycle.id, financials.categoryTotals);
+  const categories = await getRecurringExpensesForCycle(userId, cycle.id);
   const expenseCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "EXPENSE");
 
   return (

@@ -9,17 +9,17 @@ export interface CategoryTotal {
 }
 
 /**
- * Sums only the categories that are actually fixed-expense targets this
- * cycle — "Fixed budget used" must reflect rent/subscriptions/etc. against
- * their own targets, not every expense category (groceries, an
- * uncategorized import) lumped in with them just because they're all
+ * Sums only the categories that actually have a recurring-expense budget
+ * target this cycle — "Fixed budget used" must reflect rent/subscriptions/
+ * etc. against their own targets, not every expense category (groceries,
+ * an uncategorized import) lumped in with them just because they're all
  * EXPENSE type.
  */
-export function sumFixedTargetSpend(
+export function sumRecurringExpenseCategorySpend(
   categoryTotals: CategoryTotal[],
-  fixedTargetCategoryIds: string[],
+  recurringExpenseCategoryIds: string[],
 ): number {
-  const targetIds = new Set(fixedTargetCategoryIds);
+  const targetIds = new Set(recurringExpenseCategoryIds);
   return categoryTotals
     .filter((c) => targetIds.has(c.categoryId))
     .reduce((sum, c) => sum + c.amount, 0);

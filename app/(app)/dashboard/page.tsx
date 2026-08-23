@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAdjacentCycles, getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
-import { getCycleFinancials, summarizeCycleFinancials, sumFixedTargetSpend } from "@/lib/cycle-financials";
+import { getCycleFinancials, summarizeCycleFinancials, sumRecurringExpenseCategorySpend } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   const previousBoundDate = previousCycle ? formatCycleLabel(addDays(previousCycle.periodStart, 1)) : null;
   const expenseGoals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
   const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
-  const fixedSpent = sumFixedTargetSpend(
+  const fixedSpent = sumRecurringExpenseCategorySpend(
     financials.categoryTotals,
     expenseGoals.map((goal) => goal.categoryId),
   );

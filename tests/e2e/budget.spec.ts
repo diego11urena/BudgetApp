@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
+import { signUpAndOnboard } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -142,14 +142,14 @@ test.describe("Recurring Expenses screen", () => {
     await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Gym", amount: "20.00", category: "Fitness" });
 
-    await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "20.00");
-    await fillCategory(page, "Fitness");
-    await page.click('button:has-text("Log it")');
+    // Record payment, not a raw QuickAdd transaction -- since the P1.1 fix,
+    // the category-level bar only counts spend actually linked to a
+    // recurring expense, not every transaction posted to the category.
+    await page.click(".category-progress-row-summary");
+    await page.click('button:has-text("Record payment")');
+    await page.waitForSelector("#record-payment-amount");
+    await page.click('.sheet button[type="submit"]');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-
-    await page.goto("/budget");
-    await page.waitForSelector(".category-progress-row");
     await expect(page.locator(".progress-bar-label", { hasText: "100%" })).toBeVisible();
     const color = await page
       .locator(".progress-bar-fill")
@@ -267,5 +267,42 @@ test.describe("merging categories moves their recurring expenses", () => {
     await expect(page.locator(".category-progress-row-content")).toContainText("$25.98");
     await page.click(".category-progress-row-summary");
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
+  });
+
+  test("merging categories that both have a same-named recurring expense consolidates it instead of duplicating", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+    await page.goto("/budget");
+    await dismissHintIfShown(page);
+    // Both categories have a "Netflix" line -- a realistic collision.
+    await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Streaming" });
+    await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
+    await createRecurringExpense(page, { name: "Hulu", amount: "7.99", category: "Streaming" });
+
+    await page.goto("/profile/categories");
+    const streamingRow = page.locator(".category-row", { hasText: "Streaming" });
+    await streamingRow.locator(".category-row-kebab").click();
+    await page.click('button:has-text("Merge into…")');
+    await page.waitForSelector("#merge-target");
+    await page.selectOption("#merge-target", { label: "Subscriptions" });
+    await page.click('button:has-text("Continue")');
+    await page.locator(".sheet").getByRole("button", { name: "Merge categories", exact: true }).click();
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    await page.goto("/budget");
+    await page.waitForSelector(".category-progress-row");
+    await page.click(".category-progress-row-summary");
+    // Netflix consolidated into one row (not duplicated), Hulu moved over
+    // alongside it -- three recurring expenses total would mean the merge
+    // failed to dedupe.
+    await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
+    await expect(page.locator(".recurring-expense-row-name", { hasText: /^Netflix$/ })).toHaveCount(1);
+    await expect(page.locator(".recurring-expense-row-name", { hasText: /^Hulu$/ })).toHaveCount(1);
+    // Both sides had a current-cycle snapshot for "Netflix", so they sum
+    // (same "sum instead of drop" rule the rest of this merge uses) rather
+    // than one silently overwriting the other: $15.99 + $15.99 + $7.99.
+    await expect(page.locator(".recurring-expense-row-amount")).toHaveText(["$31.98", "$7.99"]);
+    await expect(page.locator(".category-progress-row-content")).toContainText("$39.97");
   });
 });

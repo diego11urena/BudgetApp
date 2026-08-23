@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Info } from "lucide-react";
 import { InfoTooltip } from "../../_components/InfoTooltip";
-import { markFixedExpenseHintSeenAction } from "../actions";
+import { markRecurringExpenseHintSeenAction } from "../actions";
 import { CategoryProgressRow } from "./CategoryProgressRow";
 import { RecurringExpenseEditSheet } from "./RecurringExpenseEditSheet";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
@@ -37,7 +37,7 @@ export function RecurringExpensesPanel({
     // navigating away mid-tooltip still counts as "shown once," matching
     // "auto-show once ever" rather than "auto-show until dismissed."
     if (!hasSeenHint) {
-      markFixedExpenseHintSeenAction();
+      markRecurringExpenseHintSeenAction();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

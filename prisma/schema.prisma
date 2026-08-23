@@ -303,6 +303,12 @@ model RecurringExpense {
   // today, just scoped per recurring expense instead of per category.
   recurring Boolean            @default(true)
   frequency RecurringFrequency @default(BIWEEKLY)
+  // Only meaningful when frequency is MONTHLY (see shouldCarryForwardToCycle
+  // in lib/cycles.ts, which is the only current reader). Intentionally NOT
+  // used for anything display-side yet -- no due-soon indicator, no
+  // sorting by due date, no reminder. Captured because the carry-forward
+  // logic needs it now; building on top of it is a deliberate later step,
+  // not a gap to "fix."
   dueDay    Int?
   createdAt DateTime           @default(now())
 

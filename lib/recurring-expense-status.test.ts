@@ -14,8 +14,8 @@ describe("getRecurringExpensePaymentStatus", () => {
     expect(getRecurringExpensePaymentStatus(9.99, 9.99)).toBe("paid");
   });
 
-  it("is still paid (not exceeded) for a mild overage within the warning band", () => {
-    expect(getRecurringExpensePaymentStatus(11, 9.99)).toBe("paid");
+  it("is paid-over (not a plain calm 'paid') for a mild overage within the same warning band the category bar uses", () => {
+    expect(getRecurringExpensePaymentStatus(11, 9.99)).toBe("paid-over");
   });
 
   it("is exceeded only once spend passes the shared 120% critical threshold", () => {

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAdjacentCycles, formatCycleRangeText } from "@/lib/cycles";
-import { getCycleFinancials, sumFixedTargetSpend } from "@/lib/cycle-financials";
+import { getCycleFinancials, sumRecurringExpenseCategorySpend } from "@/lib/cycle-financials";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -49,7 +49,7 @@ export default async function CycleHistoryPage({
     ]);
 
   const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
-  const fixedSpent = sumFixedTargetSpend(
+  const fixedSpent = sumRecurringExpenseCategorySpend(
     financials.categoryTotals,
     expenseGoals.map((goal) => goal.categoryId),
   );
@@ -59,7 +59,7 @@ export default async function CycleHistoryPage({
   // recurring expense's price or category has changed since. No match
   // suggestions computed for a closed cycle -- nothing there is
   // actionable (see CategoryProgressRow's readOnly prop below).
-  const recurringExpenseCategories = await getRecurringExpensesForCycle(userId, cycle.id, financials.categoryTotals, {
+  const recurringExpenseCategories = await getRecurringExpensesForCycle(userId, cycle.id, {
     computeSuggestions: !closed,
   });
 

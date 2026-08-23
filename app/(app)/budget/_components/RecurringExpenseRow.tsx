@@ -23,6 +23,7 @@ const STATUS_LABEL: Record<RecurringExpensePaymentStatus, string> = {
   "not-started": "Not paid yet",
   partial: "Partially paid",
   paid: "Paid",
+  "paid-over": "Paid — over target",
   exceeded: "Exceeded",
 };
 

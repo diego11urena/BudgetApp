@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recomputeCategoryBudgetGoal } from "@/lib/cycles";
@@ -29,13 +30,97 @@ function parseEditableType(value: FormDataEntryValue | null): "EXPENSE" | "INCOM
 }
 
 /**
+ * Moves every RecurringExpense from sourceCategoryId to targetCategoryId as
+ * part of a category merge -- but a same-named pair (realistic: merging two
+ * categories that both happen to include a "Netflix" line) is consolidated
+ * into the target's existing one instead of producing a same-category
+ * duplicate. Consolidating moves the source's CycleRecurringExpense
+ * snapshots over (summing with the target's own snapshot in any cycle both
+ * sides already had one, same "sum instead of drop" rule the rest of this
+ * merge uses) and reassigns any CycleTransaction already linked to the
+ * source recurring expense, before deleting the now-empty source row --
+ * safe because its history has already been relocated, unlike a plain
+ * user-initiated delete. Returns every cycle touched, for the caller to
+ * recompute aggregates on.
+ */
+async function mergeCategoryRecurringExpenses(
+  tx: Prisma.TransactionClient,
+  sourceCategoryId: string,
+  targetCategoryId: string,
+): Promise<Set<string>> {
+  const [sourceExpenses, targetExpenses] = await Promise.all([
+    tx.recurringExpense.findMany({ where: { categoryId: sourceCategoryId } }),
+    tx.recurringExpense.findMany({ where: { categoryId: targetCategoryId } }),
+  ]);
+  const targetByName = new Map(targetExpenses.map((e) => [e.name.trim().toLowerCase(), e]));
+  const affectedCycleIds = new Set<string>();
+
+  for (const sourceExpense of sourceExpenses) {
+    const collision = targetByName.get(sourceExpense.name.trim().toLowerCase());
+
+    if (!collision) {
+      await tx.recurringExpense.update({
+        where: { id: sourceExpense.id },
+        data: { categoryId: targetCategoryId },
+      });
+      const snapshots = await tx.cycleRecurringExpense.findMany({
+        where: { recurringExpenseId: sourceExpense.id },
+        select: { cycleId: true },
+      });
+      snapshots.forEach((s) => affectedCycleIds.add(s.cycleId));
+      continue;
+    }
+
+    const sourceSnapshots = await tx.cycleRecurringExpense.findMany({
+      where: { recurringExpenseId: sourceExpense.id },
+    });
+    for (const snapshot of sourceSnapshots) {
+      const existing = await tx.cycleRecurringExpense.findUnique({
+        where: { cycleId_recurringExpenseId: { cycleId: snapshot.cycleId, recurringExpenseId: collision.id } },
+      });
+      if (existing) {
+        await tx.cycleRecurringExpense.update({
+          where: { id: existing.id },
+          data: { targetAmount: existing.targetAmount.add(snapshot.targetAmount) },
+        });
+        await tx.cycleRecurringExpense.delete({ where: { id: snapshot.id } });
+      } else {
+        await tx.cycleRecurringExpense.update({
+          where: { id: snapshot.id },
+          data: { recurringExpenseId: collision.id },
+        });
+      }
+      affectedCycleIds.add(snapshot.cycleId);
+    }
+
+    // Payment history already linked to the source recurring expense
+    // follows it into the surviving one, not left dangling.
+    await tx.cycleTransaction.updateMany({
+      where: { recurringExpenseId: sourceExpense.id },
+      data: { recurringExpenseId: collision.id },
+    });
+
+    // recurring: true if either side ever was -- same rule the category-
+    // level merge below already applies to ExpenseCategory.recurring.
+    if (sourceExpense.recurring && !collision.recurring) {
+      await tx.recurringExpense.update({ where: { id: collision.id }, data: { recurring: true } });
+    }
+
+    await tx.recurringExpense.delete({ where: { id: sourceExpense.id } });
+  }
+
+  return affectedCycleIds;
+}
+
+/**
  * Merges one category into another of the same type: every transaction
  * moves to the target, every recurring expense / budget-goal history row
  * moves to the target (EXPENSE categories move their RecurringExpense
- * children; INCOME/SAVINGS move CycleBudgetGoal rows directly), any
- * per-cycle target amount conflicts are summed rather than dropped, and the
- * source category is deleted. Irreversible — the caller is expected to
- * confirm first.
+ * children -- consolidating any same-named pair instead of duplicating it,
+ * see mergeCategoryRecurringExpenses; INCOME/SAVINGS move CycleBudgetGoal
+ * rows directly), any per-cycle target amount conflicts are summed rather
+ * than dropped, and the source category is deleted. Irreversible — the
+ * caller is expected to confirm first.
  */
 export async function mergeCategoryAction(
   formData: FormData,
@@ -79,30 +164,11 @@ export async function mergeCategoryAction(
       // EXPENSE categories' CycleBudgetGoal rows are a maintained aggregate
       // over RecurringExpense children now (see lib/cycles.ts), not
       // directly-owned data -- so merging moves the actual children
-      // (RecurringExpense, whose own CycleRecurringExpense snapshots follow
-      // via the FK) to the target category, then recomputes every cycle the
-      // moved-in expenses ever had a snapshot in. A cycle where both source
-      // and target already had recurring expenses ends up with both
-      // contributions summed once recomputed, same "sum instead of drop"
-      // outcome INCOME/SAVINGS goal-merging achieves directly below.
-      const movedRecurringExpenseIds = (
-        await tx.recurringExpense.findMany({ where: { categoryId: source.id }, select: { id: true } })
-      ).map((r) => r.id);
-
-      if (movedRecurringExpenseIds.length > 0) {
-        await tx.recurringExpense.updateMany({
-          where: { id: { in: movedRecurringExpenseIds } },
-          data: { categoryId: target.id },
-        });
-
-        const snapshots = await tx.cycleRecurringExpense.findMany({
-          where: { recurringExpenseId: { in: movedRecurringExpenseIds } },
-          select: { cycleId: true },
-        });
-        const affectedCycleIds = new Set(snapshots.map((s) => s.cycleId));
-        for (const cycleId of affectedCycleIds) {
-          await recomputeCategoryBudgetGoal(tx, cycleId, target.id);
-        }
+      // (consolidating any same-named pair instead of duplicating it) to
+      // the target category, then recomputes every cycle touched.
+      const affectedCycleIds = await mergeCategoryRecurringExpenses(tx, source.id, target.id);
+      for (const cycleId of affectedCycleIds) {
+        await recomputeCategoryBudgetGoal(tx, cycleId, target.id);
       }
       // source.id's own CycleBudgetGoal rows are cascade-deleted below
       // along with the category itself -- their RecurringExpense children
@@ -285,6 +351,16 @@ export async function updateCategoryAction(
  * about both consequences before calling this — this action itself does no
  * blocking/confirmation, same "irreversible, caller confirms first"
  * contract as mergeCategoryAction.
+ *
+ * One guard on top of that: an EXPENSE category whose recurring expenses
+ * have real closed-cycle history is NOT freely deletable the way an
+ * ordinary category is — that history is exactly what
+ * deleteRecurringExpenseAction's soft-delete exists to protect, and this
+ * category-level cascade would otherwise destroy it in one step (the
+ * RecurringExpense/CycleRecurringExpense FK chain is onDelete: Cascade,
+ * same as CycleBudgetGoal). A category with no such history (nothing but
+ * this-cycle-only recurring expenses, or none at all) still deletes freely
+ * — there's nothing there worth blocking over.
  */
 export async function deleteCategoryAction(
   formData: FormData,
@@ -309,6 +385,18 @@ export async function deleteCategoryAction(
   });
   if (!category) {
     return { error: "Category not found" };
+  }
+
+  if (type === "EXPENSE") {
+    const closedCycleHistoryCount = await prisma.cycleRecurringExpense.count({
+      where: { recurringExpense: { categoryId: category.id }, cycle: { status: "CLOSED" } },
+    });
+    if (closedCycleHistoryCount > 0) {
+      return {
+        error:
+          "This category has recurring-expense history from past quincenas. Delete or merge its recurring expenses first to keep that history.",
+      };
+    }
   }
 
   await prisma.expenseCategory.delete({ where: { id: category.id } });

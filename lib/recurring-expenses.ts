@@ -19,7 +19,17 @@ export interface CategoryWithRecurringExpenses {
   categoryIcon: string | null;
   /** The maintained CycleBudgetGoal aggregate -- always equal to the sum of expenses[].targetAmount, computed here directly rather than re-queried. */
   targetAmount: number;
-  /** Total category spend this cycle from ALL transactions, matched or not -- the same figure the dashboard's budget card already shows (financials.categoryTotals), passed in rather than re-derived. */
+  /**
+   * Sum of expenses[].actual -- only spend actually linked to one of this
+   * category's recurring expenses, NOT every transaction posted to the
+   * category (that's a different number -- see financials.categoryTotals /
+   * sumRecurringExpenseCategorySpend, which the dashboard's legacy "fixed budget" card
+   * still uses). Scoping it this way means adding or removing a recurring-
+   * expense template can only ever move the target side of this bar, never
+   * the actual side, and an unlinked transaction in the category can't
+   * inflate or deflate a total that's supposed to represent only tracked
+   * recurring expenses.
+   */
   actual: number;
   expenses: RecurringExpenseWithStatus[];
 }
@@ -37,7 +47,6 @@ export interface CategoryWithRecurringExpenses {
 export async function getRecurringExpensesForCycle(
   userId: string,
   cycleId: string,
-  categoryTotals: { categoryId: string; amount: number }[],
   options: { computeSuggestions?: boolean } = {},
 ): Promise<CategoryWithRecurringExpenses[]> {
   const { computeSuggestions = true } = options;
@@ -85,8 +94,6 @@ export async function getRecurringExpensesForCycle(
     candidatesByCategory.set(transaction.expenseCategoryId, list);
   }
 
-  const categoryTotalsById = new Map(categoryTotals.map((c) => [c.categoryId, c.amount]));
-
   const categoriesMap = new Map<string, CategoryWithRecurringExpenses>();
   for (const snapshot of snapshots) {
     const recurringExpense = snapshot.recurringExpense;
@@ -112,13 +119,14 @@ export async function getRecurringExpensesForCycle(
         categoryName: category.name,
         categoryIcon: category.icon,
         targetAmount: 0,
-        actual: categoryTotalsById.get(category.id) ?? 0,
+        actual: 0,
         expenses: [],
       });
     }
 
     const entry = categoriesMap.get(category.id)!;
     entry.targetAmount += targetAmount;
+    entry.actual += actual;
     entry.expenses.push({
       id: recurringExpense.id,
       name: recurringExpense.name,

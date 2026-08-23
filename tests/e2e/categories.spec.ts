@@ -183,6 +183,51 @@ test.describe("managing categories", () => {
     await expect(page.locator(".transaction-row", { hasText: "Uncategorized" })).toBeVisible();
   });
 
+  test("deleting a category with closed-cycle recurring-expense history is blocked, not silently destroyed", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+
+    await page.goto("/budget");
+    await page.waitForSelector(".dashboard-section");
+    try {
+      await page.locator(".sheet-backdrop").waitFor({ state: "visible", timeout: 3000 });
+      await page.click('button:has-text("Got it")');
+      await page.waitForSelector(".sheet-backdrop", { state: "detached" });
+    } catch {
+      // Never showed.
+    }
+    await page.click('button:has-text("+ New recurring expense")');
+    await page.waitForSelector("#recurring-expense-name");
+    await page.fill("#recurring-expense-name", "Spotify");
+    await page.fill("#recurring-expense-amount", "9.99");
+    await page.fill("#recurring-expense-category", "Subscriptions");
+    await page.click('.sheet button[type="submit"]');
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    // Close a cycle so "Subscriptions" has real closed-cycle history.
+    await page.goto("/dashboard");
+    await page.waitForSelector(".dashboard-section");
+    await page.click('button:has-text("I just got paid")');
+    await page.waitForSelector("#pay-date");
+    await page.click('button:has-text("Yes, I got paid")');
+    await expect(page.getByText("Quincena closed")).toBeVisible();
+    await page.click('button:has-text("Continue")');
+
+    await page.goto("/profile/categories");
+    const row = page.locator(".category-row", { hasText: "Subscriptions" });
+    await row.locator(".category-row-kebab").click();
+    await page.click('button:has-text("Delete")');
+    await page.waitForSelector('button:has-text("Delete category")');
+    await clickSheetButton(page, "Delete category");
+
+    await expect(page.getByText(/recurring-expense history from past quincenas/)).toBeVisible();
+    // Blocked -- the category is still there.
+    await expect(page.locator(".sheet-backdrop")).toBeVisible();
+    await page.click('button:has-text("Cancel")');
+    await expect(page.locator(".category-row-name", { hasText: "Subscriptions" })).toBeVisible();
+  });
+
   test("possible duplicates are surfaced for review, and Review opens a prefilled merge that requires confirmation", async ({
     page,
   }) => {
