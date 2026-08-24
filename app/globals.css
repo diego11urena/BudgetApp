@@ -118,7 +118,11 @@
      ("this went somewhere good"), consistent with --color-savings's role
      everywhere else (see the comment on that var above). */
   --chart-cat-1: #17395c;
-  --chart-cat-2: #8b93a0;
+  /* Was a gray (#8b93a0) -- indistinguishable at a glance from --chart-cat-8
+     and --chart-other, both also gray. Gray is reserved for exactly one
+     slot (--chart-other) now; every category slot below it is a clearly
+     distinct, non-gray hue. */
+  --chart-cat-2: #c9612a;
   --chart-cat-3: #b3781a;
   --chart-cat-4: #7c3f66;
   --chart-cat-5: #4a6b4f;
@@ -127,7 +131,8 @@
      more room before two chart slices are forced to share a color (see
      lib/paycheck-breakdown.ts's assignCategoryColorIndexes). */
   --chart-cat-7: #5b4a8f;
-  --chart-cat-8: #5f6975;
+  /* Was a second gray (#5f6975) -- same fix as --chart-cat-2 above. */
+  --chart-cat-8: #b23a3a;
   --chart-savings: var(--color-savings);
   --chart-remaining: #d8dce0;
   --chart-other: #7a828f;
@@ -175,13 +180,15 @@
        mode's dark card surface — same treatment as --color-accent-green
        above. */
     --chart-cat-1: #4f8cff;
-    --chart-cat-2: #aab3bd;
+    /* Was a gray (#aab3bd) -- same fix as light mode's --chart-cat-2. */
+    --chart-cat-2: #e0895a;
     --chart-cat-3: #e0a83f;
     --chart-cat-4: #b8699b;
     --chart-cat-5: #7a9c80;
     --chart-cat-6: #4fb5af;
     --chart-cat-7: #8f7ecb;
-    --chart-cat-8: #8992a0;
+    /* Was a second gray (#8992a0) -- same fix as light mode's --chart-cat-8. Kept distinct from --color-error (#ff6b6f) so a red category slice never reads as an error state. */
+    --chart-cat-8: #c96a6a;
     --chart-savings: var(--color-savings);
     --chart-remaining: #3a4149;
     --chart-other: #5f6975;
@@ -1186,6 +1193,31 @@ button.line-item--link {
   flex-direction: column;
   gap: 0.5rem;
   font-size: 0.9rem;
+}
+
+/* An insight with a natural destination (unpaid recurring expenses ->
+   Recurring Expenses, a category anomaly -> Transactions, a savings goal
+   -> Goals) renders as this instead of plain text -- same tap-target and
+   active-state convention as .line-item--link, just inline rather than a
+   full row. */
+.insights-list-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: inherit;
+  text-decoration: none;
+  min-height: 44px;
+  transition: opacity 0.1s ease;
+}
+
+.insights-list-link:active {
+  opacity: 0.6;
+}
+
+.insights-list-link svg {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 
 .bar-chart-icon {

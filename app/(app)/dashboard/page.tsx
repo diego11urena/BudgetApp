@@ -6,6 +6,8 @@ import { getCycleFinancials, summarizeCycleFinancials, sumRecurringExpenseCatego
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
+import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
+import { getGoalsWithProgress } from "@/lib/goals";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -58,7 +60,20 @@ export default async function DashboardPage() {
     summarizeCycleFinancials(c.incomeEntries, c.transactions),
   );
 
-  const insights = generateInsights(financials, previousClosedFinancials);
+  // computeSuggestions: false -- Insights only needs paid/unpaid status and
+  // dollar amounts, not this cycle's best-effort match suggestions (that's
+  // the Recurring Expenses tab's own concern, not something an Insight
+  // line surfaces or acts on).
+  const [recurringExpenseCategories, goals] = await Promise.all([
+    getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
+    getGoalsWithProgress(userId, cycle.id),
+  ]);
+
+  const insights = generateInsights(financials, previousClosedFinancials, {
+    cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
+    recurringExpenseCategories,
+    goals,
+  });
 
   // Any transaction with no real category yet — most commonly a Gmail
   // import with no merchant-learning match (see findLearnedCategoryId in
@@ -114,15 +129,16 @@ export default async function DashboardPage() {
         previousBoundDate={previousBoundDate}
       />
 
-      {/* Insights leads the page, ahead of every other card/banner — it's
-          the one thing here framed as "here's what stands out," so it
-          reads best before the raw numbers rather than after them.
-          InsightsCard itself renders null when there's nothing to say, so
-          this costs nothing for a user with no insights yet. */}
-      <div className="dashboard-section dashboard-section--plain">
-        <InsightsCard insights={insights} />
-      </div>
-
+      {/* Action-required banners (missing category, missing description)
+          always render first — they're calls to action, something the
+          user actually needs to do, and in some cases something that
+          affects whether Insights' own numbers are even accurate yet.
+          Insights is passive, read-only information, so it must never
+          visually separate two groups of action items — it comes
+          immediately after the last one instead, still ahead of every
+          other card/banner: it's the one thing here framed as "here's
+          what stands out," so among everything that ISN'T a call to
+          action, it still reads best before the raw numbers. */}
       {uncategorizedTransactions.length > 0 && (
         <div className="dashboard-section dashboard-section--plain">
           <UncategorizedImportsBanner
@@ -139,6 +155,12 @@ export default async function DashboardPage() {
           <NeedsDescriptionBanner transactions={undescribedYappyTransactions} />
         </div>
       )}
+
+      {/* InsightsCard itself renders null when there's nothing to say, so
+          this costs nothing for a user with no insights yet. */}
+      <div className="dashboard-section dashboard-section--plain">
+        <InsightsCard insights={insights} />
+      </div>
 
       {lastClosedFinancials && (
         <div className="dashboard-section dashboard-section--plain">

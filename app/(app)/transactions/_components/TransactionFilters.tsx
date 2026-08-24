@@ -68,7 +68,7 @@ export function TransactionFilters({
       <input
         type="text"
         className="transaction-filters-search"
-        placeholder="Search by name or category…"
+        placeholder="Search by name…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         aria-label="Search transactions"
