@@ -44,7 +44,7 @@ test.describe("logging a transaction", () => {
     await expect(page.locator(".transaction-row", { hasText: "Coffee" })).toHaveCount(0);
   });
 
-  test("a merchant name distinct from category is the primary display text, editable after the fact, and optional to set", async ({
+  test("a merchant name distinct from category is the primary display text, editable after the fact, required but pre-filled from category by default", async ({
     page,
   }) => {
     await signUpAndOnboard(page);
@@ -95,6 +95,19 @@ test.describe("logging a transaction", () => {
       await expect(untouchedRow.locator(".transaction-name")).toHaveText("Transportation");
       // Name === category -- no redundant secondary line.
       await expect(untouchedRow.locator(".transaction-sub")).toHaveCount(0);
+    });
+
+    await test.step("clearing the name field entirely blocks submit, same as Amount/Category/Date", async () => {
+      await openQuickAdd(page, "Expense");
+      await page.fill("#sheet-amount", "8.00");
+      const nameField = page.locator("#sheet-name");
+      await expect(nameField).toHaveValue("Transportation");
+      await nameField.fill("");
+      await page.click('button:has-text("Log it")');
+      await expect(page.locator(".error-text")).toHaveText("Enter a merchant or business name");
+      await expect(nameField).toHaveClass(/is-invalid/);
+      // Never submitted -- sheet stays open.
+      await expect(page.locator(".sheet-backdrop")).toBeVisible();
     });
   });
 });

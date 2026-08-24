@@ -102,7 +102,7 @@ export function QuickAddSheet({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Which field validate() blamed, so it (not just the red text) gets the invalid-state ring. Null for a server-side error, which validate() never produced and isn't reliably attributable to one field. */
-  const [errorField, setErrorField] = useState<"amount" | "category" | "date" | null>(null);
+  const [errorField, setErrorField] = useState<"amount" | "name" | "category" | "date" | null>(null);
   const [deletePending, setDeletePending] = useState(false);
   /** Set when a submit's date resolves to a different cycle than moveCheckCycleId — blocks the real submit until Continue/Cancel. */
   const [pendingMove, setPendingMove] = useState<CyclePreview | null>(null);
@@ -213,12 +213,15 @@ export function QuickAddSheet({
   // doing nothing (or nothing visible) the way native constraint
   // validation could. The server re-validates independently regardless;
   // this is purely for instant feedback without a round trip.
-  function validate(): { field: "amount" | "category" | "date"; message: string } | null {
+  function validate(): { field: "amount" | "name" | "category" | "date"; message: string } | null {
     if (!amount.trim() || Number.isNaN(Number(amount))) {
       return { field: "amount", message: INVALID_AMOUNT_FORMAT_MESSAGE };
     }
     if (Number(amount) <= 0) {
       return { field: "amount", message: AMOUNT_NOT_POSITIVE_MESSAGE };
+    }
+    if (!displayName.trim()) {
+      return { field: "name", message: "Enter a merchant or business name" };
     }
     if (!categoryValue.trim()) {
       return { field: "category", message: "Choose or enter a category" };
@@ -379,10 +382,13 @@ export function QuickAddSheet({
     }
   }
 
-  // Left blank (or left matching the category), the submitted name simply
-  // falls back to the category -- not required to differ, matching the old
-  // zero-extra-step behavior for anyone who doesn't care about this field.
-  const nameValue = displayName.trim() || categoryValue;
+  // Required, same as Amount/Category/Date -- validate() blocks a blank
+  // submit before this is ever read, so no fallback-to-category rescue is
+  // needed here anymore. Left untouched (still tracking categoryValue live
+  // until the user types), it's still non-empty and submits fine -- that
+  // pre-fill is just a convenience starting value, not the field being
+  // optional.
+  const nameValue = displayName.trim();
 
   return (
     <div
@@ -446,7 +452,7 @@ export function QuickAddSheet({
           </div>
 
           <div className="field">
-            <label htmlFor="sheet-name">Merchant / name (optional)</label>
+            <label htmlFor="sheet-name">Merchant / name</label>
             <input
               id="sheet-name"
               type="text"
@@ -456,7 +462,9 @@ export function QuickAddSheet({
                 setName(e.target.value);
                 setNameTouched(true);
               }}
+              required
               maxLength={100}
+              className={errorField === "name" ? "is-invalid" : ""}
             />
           </div>
 
@@ -533,20 +541,6 @@ export function QuickAddSheet({
             )}
           </div>
 
-          {type === "EXPENSE" && (
-            <div className="field">
-              <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input
-                  type="checkbox"
-                  checked={recurring}
-                  onChange={(e) => setRecurring(e.target.checked)}
-                />
-                This is a recurring expense
-              </label>
-            </div>
-          )}
-
           {type !== "SAVINGS" && (
             <div className="field">
               <label>Payment method</label>
@@ -563,6 +557,20 @@ export function QuickAddSheet({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {type === "EXPENSE" && (
+            <div className="field">
+              <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => setRecurring(e.target.checked)}
+                />
+                This is a recurring expense
+              </label>
             </div>
           )}
 
