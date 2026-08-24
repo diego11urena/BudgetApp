@@ -43,4 +43,58 @@ test.describe("logging a transaction", () => {
     await undoButton.click();
     await expect(page.locator(".transaction-row", { hasText: "Coffee" })).toHaveCount(0);
   });
+
+  test("a merchant name distinct from category is the primary display text, editable after the fact, and optional to set", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page);
+
+    await test.step("Name pre-fills live from the category field and is overridable", async () => {
+      await openQuickAdd(page, "Expense");
+      const nameField = page.locator("#sheet-name");
+      await expect(nameField).toHaveValue("");
+      await fillCategory(page, "Transportation");
+      // fillCategory's "Other…" free-text path -- the untouched Name field
+      // tracks it live.
+      await expect(nameField).toHaveValue("Transportation");
+
+      await page.fill("#sheet-amount", "45.50");
+      await nameField.fill("Panapass");
+      await page.click('button:has-text("Log it")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    });
+
+    await test.step("name is primary text, category is secondary", async () => {
+      const row = page.locator(".transaction-row", { hasText: "Panapass" });
+      await expect(row.locator(".transaction-name")).toHaveText("Panapass");
+      await expect(row.locator(".transaction-sub")).toContainText("Transportation");
+    });
+
+    await test.step("editing pre-fills the real name and lets it be corrected, without a category change silently rewriting it", async () => {
+      await page.locator(".transaction-row", { hasText: "Panapass" }).click();
+      await page.waitForSelector("#sheet-name");
+      await expect(page.locator("#sheet-name")).toHaveValue("Panapass");
+      await page.fill("#sheet-name", "Panapass - Corredor Norte");
+      await page.click('button:has-text("Save changes")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+      await expect(
+        page.locator(".transaction-row", { hasText: "Panapass - Corredor Norte" }),
+      ).toBeVisible();
+    });
+
+    await test.step("leaving the name field untouched still submits fine, falling back to the category", async () => {
+      await openQuickAdd(page, "Expense");
+      // "Transportation" now exists as a category -- exercises the chip
+      // (not free-text) pre-fill path.
+      await expect(page.locator("#sheet-name")).toHaveValue("Transportation");
+      await page.fill("#sheet-amount", "12.00");
+      await page.click('button:has-text("Log it")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+      const untouchedRow = page.locator(".transaction-row", { hasText: "Transportation" }).last();
+      await expect(untouchedRow.locator(".transaction-name")).toHaveText("Transportation");
+      // Name === category -- no redundant secondary line.
+      await expect(untouchedRow.locator(".transaction-sub")).toHaveCount(0);
+    });
+  });
 });

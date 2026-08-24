@@ -146,6 +146,19 @@ export function QuickAddSheet({
     if (editingCategoryName !== null) return editingCategoryName;
     return categoryNames[0] ?? "";
   });
+  const usingCustomInput = customMode || categoryNames.length === 0;
+  const categoryValue = usingCustomInput ? customName : selectedCategory;
+  // Merchant/payee name, separate from category -- pre-filled with the
+  // category as a starting suggestion (so a user who doesn't care can
+  // leave it as-is and lose zero speed) but freely editable, on both
+  // create and edit. Derived, not synced-via-effect: displayName only
+  // reads from typed-into `name` state once the user has actually typed
+  // (nameTouched) or when editing (an existing transaction's name must
+  // never silently follow a later category change) -- otherwise it just
+  // tracks categoryValue live, with no extra render/effect needed.
+  const [name, setName] = useState(editingTransaction?.name ?? "");
+  const [nameTouched, setNameTouched] = useState(false);
+  const displayName = isEditing || nameTouched ? name : categoryValue;
   const [amount, setAmount] = useState(editingTransaction ? editingTransaction.amount.toFixed(2) : "");
   // "More…" expands the chip row to the full ordered list — starts expanded
   // if editing a category that wouldn't otherwise be visible in the top 6.
@@ -359,14 +372,10 @@ export function QuickAddSheet({
     }
   }
 
-  const usingCustomInput = customMode || categoryNames.length === 0;
-  const categoryValue = usingCustomInput ? customName : selectedCategory;
-  // Picking a different category while editing must not silently rewrite
-  // the display name — most visible for a Gmail-imported transaction,
-  // whose name is the merchant string, distinct from its category.
-  // Creating has no prior name to preserve, so name and category stay the
-  // same value there, same as every type now.
-  const nameValue = isEditing ? editingTransaction.name : categoryValue;
+  // Left blank (or left matching the category), the submitted name simply
+  // falls back to the category -- not required to differ, matching the old
+  // zero-extra-step behavior for anyone who doesn't care about this field.
+  const nameValue = displayName.trim() || categoryValue;
 
   return (
     <div
@@ -426,6 +435,21 @@ export function QuickAddSheet({
               required
               className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="sheet-name">Merchant / name (optional)</label>
+            <input
+              id="sheet-name"
+              type="text"
+              placeholder="e.g. Panapass, Cafe Unido…"
+              value={displayName}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameTouched(true);
+              }}
+              maxLength={100}
             />
           </div>
 
