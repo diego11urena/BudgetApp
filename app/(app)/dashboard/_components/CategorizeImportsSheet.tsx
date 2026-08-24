@@ -121,6 +121,8 @@ function CategorizeImportRow({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
+  const [category, setCategory] = useState("");
+  const [recurring, setRecurring] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -153,7 +155,10 @@ function CategorizeImportRow({
           name="category"
           defaultValue=""
           required
-          onChange={(e) => setCreatingNew(e.target.value === NEW_CATEGORY_VALUE)}
+          onChange={(e) => {
+            setCreatingNew(e.target.value === NEW_CATEGORY_VALUE);
+            setCategory(e.target.value);
+          }}
         >
           <option value="" disabled>
             Choose a category
@@ -175,6 +180,18 @@ function CategorizeImportRow({
           />
         )}
       </div>
+      {transaction.type === "EXPENSE" && category !== "" && (
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <input
+            type="checkbox"
+            name="recurring"
+            value="true"
+            checked={recurring}
+            onChange={(e) => setRecurring(e.target.checked)}
+          />
+          This is a recurring expense
+        </label>
+      )}
       {error && <p className="error-text">{error}</p>}
       <button type="submit" className="button button--small" disabled={pending}>
         {pending ? "Saving..." : "Save"}

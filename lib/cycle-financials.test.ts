@@ -159,11 +159,13 @@ describe("toCycleTransactionSummary", () => {
       name: "Weekly shop",
       amount: 42,
       categoryName: "Groceries",
+      expenseCategoryId: "cat-1",
       occurredAt: row.occurredAt,
       isImported: false,
       importSource: "MANUAL",
       paymentMethod: null,
       description: null,
+      recurringExpenseId: null,
     });
   });
 

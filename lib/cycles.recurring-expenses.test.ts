@@ -1,7 +1,13 @@
 import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "./prisma";
-import { carryForwardRecurringExpenses, closeCycleAndStartNext, recomputeCategoryBudgetGoal } from "./cycles";
+import {
+  carryForwardRecurringExpenses,
+  closeCycleAndStartNext,
+  linkOrCreateRecurringExpenseForTransaction,
+  recomputeCategoryBudgetGoal,
+  unlinkTransactionFromRecurringExpense,
+} from "./cycles";
 
 // Real-Postgres tests for the Recurring Expenses two-level model's
 // carry-forward/aggregate machinery -- same pattern as
@@ -190,6 +196,177 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
         where: { cycleId_recurringExpenseId: { cycleId: newCycle.id, recurringExpenseId: spotify.id } },
       });
       expect(newSnapshot?.targetAmount.toNumber()).toBe(9.99);
+    });
+  });
+
+  describe("linkOrCreateRecurringExpenseForTransaction (the 'This is a recurring expense' toggle)", () => {
+    async function makeTransaction(cycleId: string, categoryId: string, name: string, amount: number) {
+      return prisma.cycleTransaction.create({
+        data: { cycleId, type: "EXPENSE", name, amount, expenseCategoryId: categoryId },
+      });
+    }
+
+    it("creates a new recurring expense and links the transaction when there's no existing match", async () => {
+      const category = await makeExpenseCategory("Transportation");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+      const tx = await makeTransaction(cycle.id, category.id, "Panapass", 20);
+
+      await linkOrCreateRecurringExpenseForTransaction(prisma, {
+        userId,
+        transactionId: tx.id,
+        categoryId: category.id,
+        cycleId: cycle.id,
+        name: "Panapass",
+        amount: 20,
+      });
+
+      const updated = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx.id } });
+      expect(updated.recurringExpenseId).not.toBeNull();
+
+      const recurringExpense = await prisma.recurringExpense.findUniqueOrThrow({
+        where: { id: updated.recurringExpenseId! },
+      });
+      expect(recurringExpense.name).toBe("Panapass");
+      expect(recurringExpense.amount.toNumber()).toBe(20);
+      expect(recurringExpense.frequency).toBe("BIWEEKLY");
+
+      const snapshot = await prisma.cycleRecurringExpense.findUnique({
+        where: { cycleId_recurringExpenseId: { cycleId: cycle.id, recurringExpenseId: recurringExpense.id } },
+      });
+      expect(snapshot?.targetAmount.toNumber()).toBe(20);
+
+      const goal = await prisma.cycleBudgetGoal.findUnique({
+        where: { cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: category.id } },
+      });
+      expect(goal?.targetAmount.toNumber()).toBe(20);
+    });
+
+    it("links three same-named, same-cycle transactions to the SAME recurring expense instead of creating three", async () => {
+      const category = await makeExpenseCategory("Transportation");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+      const tx1 = await makeTransaction(cycle.id, category.id, "Panapass", 20);
+      const tx2 = await makeTransaction(cycle.id, category.id, "Panapass", 15);
+      const tx3 = await makeTransaction(cycle.id, category.id, " panapass ", 10);
+
+      for (const tx of [tx1, tx2, tx3]) {
+        await linkOrCreateRecurringExpenseForTransaction(prisma, {
+          userId,
+          transactionId: tx.id,
+          categoryId: category.id,
+          cycleId: cycle.id,
+          name: tx.name,
+          amount: tx.amount.toNumber(),
+        });
+      }
+
+      const updated1 = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx1.id } });
+      const updated2 = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx2.id } });
+      const updated3 = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx3.id } });
+      expect(updated2.recurringExpenseId).toBe(updated1.recurringExpenseId);
+      expect(updated3.recurringExpenseId).toBe(updated1.recurringExpenseId);
+
+      const allRecurringExpenses = await prisma.recurringExpense.findMany({ where: { categoryId: category.id } });
+      expect(allRecurringExpenses).toHaveLength(1);
+
+      // The FIRST transaction's amount is what became the recurring
+      // expense's own amount/target -- later matches reuse the recurring
+      // expense's own current amount as target, not their own amount.
+      const snapshot = await prisma.cycleRecurringExpense.findUnique({
+        where: { cycleId_recurringExpenseId: { cycleId: cycle.id, recurringExpenseId: updated1.recurringExpenseId! } },
+      });
+      expect(snapshot?.targetAmount.toNumber()).toBe(20);
+    });
+
+    it("matches an existing recurring expense by exact case-insensitive trimmed name, scoped to the same category", async () => {
+      const category = await makeExpenseCategory("Subscriptions");
+      const otherCategory = await makeExpenseCategory("Entertainment");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+
+      const existingSpotify = await prisma.recurringExpense.create({
+        data: { userId, categoryId: category.id, name: "Spotify", amount: 6.99 },
+      });
+      // Same name, different category -- must NOT match (category-scoped).
+      await prisma.recurringExpense.create({
+        data: { userId, categoryId: otherCategory.id, name: "Spotify", amount: 99 },
+      });
+
+      const tx = await makeTransaction(cycle.id, category.id, "SPOTIFY", 6.99);
+
+      await linkOrCreateRecurringExpenseForTransaction(prisma, {
+        userId,
+        transactionId: tx.id,
+        categoryId: category.id,
+        cycleId: cycle.id,
+        name: "SPOTIFY",
+        amount: 6.99,
+      });
+
+      const updated = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx.id } });
+      expect(updated.recurringExpenseId).toBe(existingSpotify.id);
+
+      const allRecurringExpenses = await prisma.recurringExpense.findMany({ where: { categoryId: category.id } });
+      expect(allRecurringExpenses).toHaveLength(1);
+    });
+
+    it("creates this cycle's snapshot using the existing recurring expense's own amount, not the transaction's amount", async () => {
+      const category = await makeExpenseCategory("Subscriptions");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+      const existing = await prisma.recurringExpense.create({
+        data: { userId, categoryId: category.id, name: "Netflix", amount: 15.99 },
+      });
+      // A one-off price variation on this specific transaction shouldn't
+      // become the new target.
+      const tx = await makeTransaction(cycle.id, category.id, "Netflix", 17.5);
+
+      await linkOrCreateRecurringExpenseForTransaction(prisma, {
+        userId,
+        transactionId: tx.id,
+        categoryId: category.id,
+        cycleId: cycle.id,
+        name: "Netflix",
+        amount: 17.5,
+      });
+
+      const snapshot = await prisma.cycleRecurringExpense.findUnique({
+        where: { cycleId_recurringExpenseId: { cycleId: cycle.id, recurringExpenseId: existing.id } },
+      });
+      expect(snapshot?.targetAmount.toNumber()).toBe(15.99);
+    });
+  });
+
+  describe("unlinkTransactionFromRecurringExpense (the toggle's off-transition)", () => {
+    it("clears the transaction's link without deleting the underlying recurring expense", async () => {
+      const category = await makeExpenseCategory("Subscriptions");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+      const recurringExpense = await prisma.recurringExpense.create({
+        data: { userId, categoryId: category.id, name: "Spotify", amount: 6.99 },
+      });
+      await prisma.cycleRecurringExpense.create({
+        data: { cycleId: cycle.id, recurringExpenseId: recurringExpense.id, targetAmount: 6.99 },
+      });
+      await recomputeCategoryBudgetGoal(prisma, cycle.id, category.id);
+      const tx = await prisma.cycleTransaction.create({
+        data: {
+          cycleId: cycle.id,
+          type: "EXPENSE",
+          name: "Spotify",
+          amount: 6.99,
+          expenseCategoryId: category.id,
+          recurringExpenseId: recurringExpense.id,
+        },
+      });
+
+      await unlinkTransactionFromRecurringExpense(prisma, {
+        transactionId: tx.id,
+        cycleId: cycle.id,
+        categoryId: category.id,
+      });
+
+      const updated = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx.id } });
+      expect(updated.recurringExpenseId).toBeNull();
+
+      const stillExists = await prisma.recurringExpense.findUnique({ where: { id: recurringExpense.id } });
+      expect(stillExists).not.toBeNull();
     });
   });
 });

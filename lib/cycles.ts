@@ -134,6 +134,129 @@ export async function carryForwardRecurringExpenses(
   }
 }
 
+/**
+ * Creates a RecurringExpense, its current-cycle CycleRecurringExpense
+ * snapshot, and recomputes the category's aggregate -- the shared core of
+ * "define a new recurring expense," used both by the explicit
+ * "+ New recurring expense" flow (app/(app)/budget/recurring-actions.ts)
+ * and by the transaction-level "This is a recurring expense" toggle's
+ * no-existing-match branch (see linkOrCreateRecurringExpenseForTransaction
+ * below).
+ */
+export async function createRecurringExpenseWithSnapshot(
+  db: Db,
+  params: {
+    userId: string;
+    categoryId: string;
+    cycleId: string;
+    name: string;
+    amount: Prisma.Decimal | number | string;
+    frequency?: "BIWEEKLY" | "MONTHLY";
+    dueDay?: number | null;
+  },
+) {
+  const recurringExpense = await db.recurringExpense.create({
+    data: {
+      userId: params.userId,
+      categoryId: params.categoryId,
+      name: params.name,
+      amount: params.amount,
+      frequency: params.frequency ?? "BIWEEKLY",
+      dueDay: params.frequency === "MONTHLY" ? (params.dueDay ?? null) : null,
+    },
+  });
+
+  await db.cycleRecurringExpense.create({
+    data: { cycleId: params.cycleId, recurringExpenseId: recurringExpense.id, targetAmount: params.amount },
+  });
+
+  await recomputeCategoryBudgetGoal(db, params.cycleId, params.categoryId);
+
+  return recurringExpense;
+}
+
+/**
+ * The "This is a recurring expense" toggle's on-transition: an exact,
+ * case-insensitive, trimmed name match within the transaction's own
+ * category links to that existing RecurringExpense (creating this cycle's
+ * snapshot first if one doesn't exist yet, using the recurring expense's
+ * OWN amount as the target -- not this transaction's amount, which might
+ * be a one-off variation); no match creates a brand-new one instead,
+ * using this transaction's own name/category/amount and defaulting to
+ * BIWEEKLY (matching createRecurringExpenseWithSnapshot's own default --
+ * refining frequency/due-day is a later, explicit edit, not this
+ * same-moment action's job). Deliberately an exact match, not the fuzzy
+ * substring+10%-tolerance suggestion matcher used elsewhere -- this is a
+ * same-moment user action, not a background suggestion, so a wrong
+ * automatic link would be a real bug, not just an imperfect nudge.
+ */
+export async function linkOrCreateRecurringExpenseForTransaction(
+  db: Db,
+  params: {
+    userId: string;
+    transactionId: string;
+    categoryId: string;
+    cycleId: string;
+    name: string;
+    amount: Prisma.Decimal | number | string;
+  },
+): Promise<void> {
+  const trimmedName = params.name.trim();
+  const existing = await db.recurringExpense.findFirst({
+    where: { categoryId: params.categoryId, name: { equals: trimmedName, mode: "insensitive" } },
+  });
+
+  let recurringExpenseId: string;
+  if (existing) {
+    recurringExpenseId = existing.id;
+    const hasSnapshot = await db.cycleRecurringExpense.findUnique({
+      where: { cycleId_recurringExpenseId: { cycleId: params.cycleId, recurringExpenseId } },
+    });
+    if (!hasSnapshot) {
+      await db.cycleRecurringExpense.create({
+        data: { cycleId: params.cycleId, recurringExpenseId, targetAmount: existing.amount },
+      });
+      await recomputeCategoryBudgetGoal(db, params.cycleId, params.categoryId);
+    }
+  } else {
+    const created = await createRecurringExpenseWithSnapshot(db, {
+      userId: params.userId,
+      categoryId: params.categoryId,
+      cycleId: params.cycleId,
+      name: trimmedName,
+      amount: params.amount,
+    });
+    recurringExpenseId = created.id;
+  }
+
+  await db.cycleTransaction.update({
+    where: { id: params.transactionId },
+    data: { recurringExpenseId },
+  });
+}
+
+/**
+ * The toggle's off-transition: unlinks one transaction without touching
+ * the RecurringExpense definition itself -- other transactions, or past
+ * cycles, may still reference it, so unlinking one payment must never
+ * cascade into removing (or soft-deleting) the bill. Use the Recurring
+ * Expenses tab's own Delete for that. Recomputing the aggregate here is a
+ * defensive no-op in practice (targets live on CycleRecurringExpense, not
+ * on which transactions happen to be linked) but costs nothing and keeps
+ * this consistent with every other operation that touches a category's
+ * recurring-expense state.
+ */
+export async function unlinkTransactionFromRecurringExpense(
+  db: Db,
+  params: { transactionId: string; cycleId: string; categoryId: string },
+): Promise<void> {
+  await db.cycleTransaction.update({
+    where: { id: params.transactionId },
+    data: { recurringExpenseId: null },
+  });
+  await recomputeCategoryBudgetGoal(db, params.cycleId, params.categoryId);
+}
+
 /** The user's active income source, if any — reused everywhere a cycle's income entry gets written. */
 export function getActiveIncomeSource(db: Db, userId: string) {
   return db.incomeSource.findFirst({

@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDraftCycle, recomputeCategoryBudgetGoal } from "@/lib/cycles";
+import {
+  createRecurringExpenseWithSnapshot,
+  getOrCreateDraftCycle,
+  recomputeCategoryBudgetGoal,
+} from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
@@ -46,22 +50,15 @@ export async function createRecurringExpenseAction(
   const category = await getOrCreateCategory(prisma, userId, categoryName, "EXPENSE");
 
   await prisma.$transaction(async (tx) => {
-    const recurringExpense = await tx.recurringExpense.create({
-      data: {
-        userId,
-        categoryId: category.id,
-        name,
-        amount,
-        frequency,
-        dueDay: frequency === "MONTHLY" ? dueDay : null,
-      },
+    await createRecurringExpenseWithSnapshot(tx, {
+      userId,
+      categoryId: category.id,
+      cycleId: cycle.id,
+      name,
+      amount,
+      frequency,
+      dueDay,
     });
-
-    await tx.cycleRecurringExpense.create({
-      data: { cycleId: cycle.id, recurringExpenseId: recurringExpense.id, targetAmount: amount },
-    });
-
-    await recomputeCategoryBudgetGoal(tx, cycle.id, category.id);
   });
 
   revalidateAppPages();

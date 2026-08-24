@@ -34,6 +34,8 @@ export interface EditingTransaction {
   occurredAt: string;
   /** What it was for, beyond name/merchant — e.g. Yappy's own "Mensaje" note. Null if never set. */
   description: string | null;
+  /** Set once this transaction is linked to a recurring expense — drives whether the "This is a recurring expense" toggle starts on. */
+  recurringExpenseId: string | null;
 }
 
 const TYPE_OPTIONS: { value: TxType; label: string }[] = [
@@ -179,6 +181,11 @@ export function QuickAddSheet({
     editingTransaction?.occurredAt ?? (targetCycleId ? cycleStartDate : formatCycleLabel(nowInPanama())),
   );
   const [description, setDescription] = useState(editingTransaction?.description ?? "");
+  // EXPENSE-only, matching the toggle's own visibility below — starts on
+  // when editing a transaction that's already linked to a recurring expense.
+  const [recurring, setRecurring] = useState(
+    editingTransaction ? editingTransaction.recurringExpenseId !== null : false,
+  );
   // Panama time, not the device's own local clock — a transaction date is
   // validated server-side against nowInPanama() regardless of where the
   // user's device thinks it is (traveling, a misconfigured clock, or just
@@ -525,6 +532,20 @@ export function QuickAddSheet({
               />
             )}
           </div>
+
+          {type === "EXPENSE" && (
+            <div className="field">
+              <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => setRecurring(e.target.checked)}
+                />
+                This is a recurring expense
+              </label>
+            </div>
+          )}
 
           {type !== "SAVINGS" && (
             <div className="field">

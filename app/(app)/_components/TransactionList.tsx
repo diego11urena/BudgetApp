@@ -153,6 +153,7 @@ export function TransactionList({
       paymentMethod: tx.paymentMethod,
       occurredAt: formatCycleLabel(tx.occurredAt),
       description: tx.description,
+      recurringExpenseId: tx.recurringExpenseId,
     });
   }
 

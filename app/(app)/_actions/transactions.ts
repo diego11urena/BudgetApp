@@ -3,7 +3,13 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { findCycleForDate, formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
+import {
+  findCycleForDate,
+  formatCycleRangeText,
+  getOrCreateDraftCycle,
+  linkOrCreateRecurringExpenseForTransaction,
+  unlinkTransactionFromRecurringExpense,
+} from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
@@ -106,22 +112,41 @@ export async function addTransactionAction(
   const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
   const expenseCategoryId = category.id;
 
-  const created = await prisma.cycleTransaction.create({
-    data: {
-      cycleId: targetCycleId,
-      type,
-      name,
-      amount,
-      expenseCategoryId,
-      // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
-      // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
-      // rails that work either direction, money coming in (INCOME) too. A
-      // savings contribution has never had this concept and still doesn't.
-      paymentMethod: type !== "SAVINGS" ? (paymentMethod ?? null) : null,
-      description: description ?? null,
-      occurredAt: occurredAtDate,
-    },
-    select: { id: true },
+  // EXPENSE-only, matching the toggle's own visibility (see QuickAddSheet) —
+  // there's no recurring-expense concept for INCOME/SAVINGS.
+  const wantsRecurring = type === "EXPENSE" && formData.get("recurring") === "true";
+
+  const created = await prisma.$transaction(async (tx) => {
+    const createdTx = await tx.cycleTransaction.create({
+      data: {
+        cycleId: targetCycleId,
+        type,
+        name,
+        amount,
+        expenseCategoryId,
+        // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
+        // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
+        // rails that work either direction, money coming in (INCOME) too. A
+        // savings contribution has never had this concept and still doesn't.
+        paymentMethod: type !== "SAVINGS" ? (paymentMethod ?? null) : null,
+        description: description ?? null,
+        occurredAt: occurredAtDate,
+      },
+      select: { id: true },
+    });
+
+    if (wantsRecurring) {
+      await linkOrCreateRecurringExpenseForTransaction(tx, {
+        userId,
+        transactionId: createdTx.id,
+        categoryId: expenseCategoryId,
+        cycleId: targetCycleId,
+        name,
+        amount,
+      });
+    }
+
+    return createdTx;
   });
 
   revalidateAppPages();
@@ -204,29 +229,55 @@ export async function updateTransactionAction(
   const category = await getOrCreateCategory(prisma, userId, categoryName ?? name, type);
   const expenseCategoryId = category.id;
 
-  // Updates the existing row in place — balances are always derived live
-  // from CycleTransaction, so there's no separate total to reconcile and
-  // no risk of double-counting.
-  await prisma.cycleTransaction.update({
-    where: { id: transactionId },
-    data: {
-      cycleId: targetCycleId,
-      type,
-      name,
-      amount,
-      expenseCategoryId,
-      // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
-      // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
-      // rails that work either direction, money coming in (INCOME) too. A
-      // savings contribution has never had this concept and still doesn't.
-      paymentMethod: type !== "SAVINGS" ? (paymentMethod ?? null) : null,
-      // Blank on the form means "leave alone" (same convention as
-      // occurredAt above), not "clear" — there's no dedicated affordance to
-      // erase an already-set description, matching every other optional
-      // field on this sheet.
-      description: description ?? existing.description,
-      occurredAt: occurredAtDate,
-    },
+  // Only acts on an actual on/off TRANSITION, not "stays on" — re-running
+  // the exact-match lookup on every save of an already-linked transaction
+  // could surprise-relink it to a different recurring expense if the name
+  // changed mid-edit. EXPENSE-only, matching the toggle's own visibility.
+  const wasRecurring = existing.recurringExpenseId !== null;
+  const wantsRecurring = type === "EXPENSE" && formData.get("recurring") === "true";
+
+  await prisma.$transaction(async (tx) => {
+    // Updates the existing row in place — balances are always derived live
+    // from CycleTransaction, so there's no separate total to reconcile and
+    // no risk of double-counting.
+    await tx.cycleTransaction.update({
+      where: { id: transactionId },
+      data: {
+        cycleId: targetCycleId,
+        type,
+        name,
+        amount,
+        expenseCategoryId,
+        // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
+        // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
+        // rails that work either direction, money coming in (INCOME) too. A
+        // savings contribution has never had this concept and still doesn't.
+        paymentMethod: type !== "SAVINGS" ? (paymentMethod ?? null) : null,
+        // Blank on the form means "leave alone" (same convention as
+        // occurredAt above), not "clear" — there's no dedicated affordance to
+        // erase an already-set description, matching every other optional
+        // field on this sheet.
+        description: description ?? existing.description,
+        occurredAt: occurredAtDate,
+      },
+    });
+
+    if (!wasRecurring && wantsRecurring) {
+      await linkOrCreateRecurringExpenseForTransaction(tx, {
+        userId,
+        transactionId,
+        categoryId: expenseCategoryId,
+        cycleId: targetCycleId,
+        name,
+        amount,
+      });
+    } else if (wasRecurring && !wantsRecurring) {
+      await unlinkTransactionFromRecurringExpense(tx, {
+        transactionId,
+        cycleId: targetCycleId,
+        categoryId: expenseCategoryId,
+      });
+    }
   });
 
   revalidateAppPages();
@@ -272,9 +323,35 @@ export async function categorizeTransactionAction(
 
   const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), existing.type);
 
-  await prisma.cycleTransaction.update({
-    where: { id: transactionId },
-    data: { expenseCategoryId: category.id },
+  // Same on/off-transition-only rule as updateTransactionAction — see its
+  // comment. A transaction reaching this "categorize it" flow is very
+  // unlikely to already be linked, but the check stays symmetric regardless.
+  const wasRecurring = existing.recurringExpenseId !== null;
+  const wantsRecurring =
+    existing.type === "EXPENSE" && formData.get("recurring") === "true";
+
+  await prisma.$transaction(async (tx) => {
+    await tx.cycleTransaction.update({
+      where: { id: transactionId },
+      data: { expenseCategoryId: category.id },
+    });
+
+    if (!wasRecurring && wantsRecurring) {
+      await linkOrCreateRecurringExpenseForTransaction(tx, {
+        userId,
+        transactionId,
+        categoryId: category.id,
+        cycleId: existing.cycleId,
+        name: existing.name,
+        amount: existing.amount,
+      });
+    } else if (wasRecurring && !wantsRecurring) {
+      await unlinkTransactionFromRecurringExpense(tx, {
+        transactionId,
+        cycleId: existing.cycleId,
+        categoryId: category.id,
+      });
+    }
   });
 
   revalidateAppPages();

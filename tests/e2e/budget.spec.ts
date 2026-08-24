@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -237,6 +237,82 @@ test.describe("Recurring Expenses screen", () => {
     await page.click(".recurring-expense-row-main");
     await page.waitForTimeout(500);
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
+  });
+});
+
+test.describe("the 'This is a recurring expense' toggle on a transaction", () => {
+  test("toggling on a manual expense creates (or links to) a recurring expense, same-named repeats dedupe, and toggling off unlinks without deleting it", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+
+    await test.step("logging an expense with the toggle on creates a new recurring expense showing this transaction's amount as paid", async () => {
+      await openQuickAdd(page, "Expense");
+      await page.fill("#sheet-amount", "20.00");
+      await fillCategory(page, "Transportation");
+      await page.getByLabel("This is a recurring expense").check();
+      await page.click('button:has-text("Log it")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+      await page.goto("/budget");
+      await dismissHintIfShown(page);
+      await expect(page.locator(".category-progress-row-content")).toContainText("Transportation");
+      await page.click(".category-progress-row-summary");
+      await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
+      // Name defaulted to the category ("Transportation") -- untouched, per Feature 1's fallback.
+      await expect(page.locator(".recurring-expense-row-name")).toHaveText("Transportation");
+      await expect(page.locator(".recurring-expense-status--paid")).toBeVisible();
+      await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$20.00 / $20.00");
+    });
+
+    await test.step("a second same-named expense logged with the toggle on links to the SAME recurring expense (summed actual), not a second row", async () => {
+      await openQuickAdd(page, "Expense");
+      await page.fill("#sheet-amount", "15.00");
+      await fillCategory(page, "Transportation");
+      // Name defaults to the category ("Transportation") on both -- an
+      // exact, same-name repeat, exactly the dedup case the toggle guards.
+      await page.getByLabel("This is a recurring expense").check();
+      await page.click('button:has-text("Log it")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+      await page.goto("/budget");
+      await page.click(".category-progress-row-summary");
+      await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
+      await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$35.00 / $20.00");
+    });
+
+    await test.step("toggling it off on edit unlinks the payment but leaves the recurring expense itself intact", async () => {
+      await page.goto("/transactions");
+      // Both transactions share the same name/category ("Transportation") --
+      // disambiguate by amount so this always unlinks the $15 one, leaving
+      // the $20 one linked (actual == target == $20, a clean "paid" to
+      // assert against below).
+      await page.locator(".transaction-row", { hasText: "-$15.00" }).click();
+      await page.waitForSelector("#sheet-amount");
+      await expect(page.getByLabel("This is a recurring expense")).toBeChecked();
+      await page.getByLabel("This is a recurring expense").uncheck();
+      await page.click('button:has-text("Save changes")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+      await page.goto("/budget");
+      await page.waitForSelector(".category-progress-row");
+      // Still exists -- just missing that one payment now ($20 left of $35).
+      await page.click(".category-progress-row-summary");
+      await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
+      await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$20.00 / $20.00");
+    });
+  });
+
+  test("the toggle never appears for Income or Savings", async ({ page }) => {
+    await signUpAndOnboard(page);
+
+    await openQuickAdd(page, "Income");
+    await expect(page.getByLabel("This is a recurring expense")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    await openQuickAdd(page, "Savings");
+    await expect(page.getByLabel("This is a recurring expense")).toHaveCount(0);
   });
 });
 

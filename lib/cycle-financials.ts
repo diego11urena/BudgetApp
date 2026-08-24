@@ -42,6 +42,10 @@ export interface CycleTransactionSummary {
   paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
   /** What the money was for, beyond name/merchant — mainly Yappy's own optional "Mensaje" note. Null for everything else. */
   description: string | null;
+  /** The EXPENSE category this transaction belongs to, if any -- needed (distinct from categoryName) to scope the "make this recurring" toggle's exact-name lookup to the right category. Null for INCOME/SAVINGS or an uncategorized import. */
+  expenseCategoryId: string | null;
+  /** Set once this transaction is linked to a specific recurring expense (via "Record payment," a confirmed match, or the "This is a recurring expense" toggle) -- drives whether that toggle shows as already on when editing. */
+  recurringExpenseId: string | null;
   /** Only set by callers building an all-time (cross-cycle) view. */
   cycleLabel?: string;
   /**
@@ -86,6 +90,7 @@ interface TransactionLike {
   importSource?: "MANUAL" | "GMAIL";
   paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
   description?: string | null;
+  recurringExpenseId?: string | null;
 }
 
 /**
@@ -105,11 +110,13 @@ export function toCycleTransactionSummary(
     name: tx.name,
     amount: tx.amount.toNumber(),
     categoryName: tx.expenseCategory?.name ?? null,
+    expenseCategoryId: tx.expenseCategory?.id ?? null,
     occurredAt: tx.occurredAt,
     isImported: (tx.sourceMessageId ?? null) !== null,
     importSource: tx.importSource ?? "MANUAL",
     paymentMethod: tx.paymentMethod ?? null,
     description: tx.description ?? null,
+    recurringExpenseId: tx.recurringExpenseId ?? null,
     ...extra,
   };
 }
