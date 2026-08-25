@@ -28,7 +28,7 @@ const FOCUSABLE_SELECTOR =
  * always; false focuses the container itself instead, so no text field
  * silently grabs the keyboard/cursor on open. Needed for a sheet whose
  * first focusable child is a text-ish input under 16px — auto-focusing it
- * is what triggers iOS Safari's viewport zoom (see CategorizeImportsSheet).
+ * is what triggers iOS Safari's viewport zoom (see NeedsAttentionSheet).
  */
 export function useModalFocus(
   containerRef: React.RefObject<HTMLElement | null>,

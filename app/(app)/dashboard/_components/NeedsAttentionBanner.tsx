@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import {
-  DescribeYappyImportsSheet,
-  type UndescribedYappyTransaction,
-} from "./DescribeYappyImportsSheet";
+import { NeedsAttentionSheet, type NeedsAttentionTransaction } from "./NeedsAttentionSheet";
 
-export function NeedsDescriptionBanner({
+export function NeedsAttentionBanner({
   transactions,
+  expenseCategoryNames,
+  incomeCategoryNames,
+  savingsCategoryNames,
 }: {
-  transactions: UndescribedYappyTransaction[];
+  transactions: NeedsAttentionTransaction[];
+  expenseCategoryNames: string[];
+  incomeCategoryNames: string[];
+  savingsCategoryNames: string[];
 }) {
   const [open, setOpen] = useState(false);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -26,15 +29,18 @@ export function NeedsDescriptionBanner({
         }}
       >
         <span>
-          {transactions.length} Yappy transfer{transactions.length === 1 ? "" : "s"} need
-          {transactions.length === 1 ? "s" : ""} a description
+          {transactions.length} transaction{transactions.length === 1 ? "" : "s"} need
+          {transactions.length === 1 ? "s" : ""} more info
         </span>
         <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       {open && (
-        <DescribeYappyImportsSheet
+        <NeedsAttentionSheet
           initialTransactions={transactions}
+          expenseCategoryNames={expenseCategoryNames}
+          incomeCategoryNames={incomeCategoryNames}
+          savingsCategoryNames={savingsCategoryNames}
           returnFocusTo={triggerElement}
           onClose={() => setOpen(false)}
         />

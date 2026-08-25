@@ -17,8 +17,7 @@ import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { InsightsCard } from "./_components/InsightsCard";
 import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
-import { UncategorizedImportsBanner } from "./_components/UncategorizedImportsBanner";
-import { NeedsDescriptionBanner } from "./_components/NeedsDescriptionBanner";
+import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { TransactionList } from "../_components/TransactionList";
 
 export default async function DashboardPage() {
@@ -75,47 +74,55 @@ export default async function DashboardPage() {
     goals,
   });
 
-  // Any transaction with no real category yet — most commonly a Gmail
-  // import with no merchant-learning match (see findLearnedCategoryId in
-  // lib/gmail-sync.ts), but this catches a null category regardless of how
-  // it got that way. Every type has a category concept now (Extra income
-  // included, see lib/categories.ts), so this is the same backfill tool
-  // for all three — surfaced here so nothing sits uncategorized and skews
-  // "Top categories"/"Fixed budget used" (EXPENSE) forever. Scoped to the
-  // current cycle only, consistent with the rest of this page.
-  const uncategorizedTransactions = (
+  // A transaction can be missing a category, a description, or both --
+  // most commonly a Yappy/Gmail import with no learned-merchant category
+  // AND no message attached. One query, one combined list, so a
+  // transaction missing both never has to be finished across two separate
+  // banners/sheets (see NeedsAttentionSheet). "Needs a category": every
+  // type now has a category concept (Extra income included, see
+  // lib/categories.ts), so this isn't EXPENSE-specific. "Needs a
+  // description": Yappy is P2P, so the counterparty's name alone (the only
+  // thing every notification email guarantees) doesn't say what the money
+  // was for -- Yappy's own optional "Mensaje" note fills that gap when the
+  // sender used it (see lib/gmail-parsers.ts), and this catches the rest,
+  // in both directions: a sent transfer is EXPENSE/paymentMethod YAPPY, a
+  // received one is INCOME/importSource GMAIL (the only way an INCOME
+  // import can exist at all -- see gmail-parsers.ts's
+  // yappyReceivedParser). Scoped to the current cycle only, consistent
+  // with the rest of this page.
+  const needsAttentionTransactions = (
     await prisma.cycleTransaction.findMany({
       where: {
         cycleId: cycle.id,
-        expenseCategoryId: null,
+        OR: [
+          { expenseCategoryId: null },
+          {
+            description: null,
+            OR: [{ paymentMethod: "YAPPY" }, { type: "INCOME", importSource: "GMAIL" }],
+          },
+        ],
       },
-      select: { id: true, name: true, amount: true, type: true },
-      orderBy: { occurredAt: "desc" },
-    })
-  ).map((t) => ({ id: t.id, name: t.name, amount: t.amount.toNumber(), type: t.type }));
-
-  // Yappy is P2P, so the counterparty's name alone (the only thing every
-  // notification email guarantees) doesn't say what the money was for.
-  // Yappy's own optional "Mensaje" note fills that gap when the sender used
-  // it (see lib/gmail-parsers.ts) -- this catches the rest, in both
-  // directions: a sent transfer is EXPENSE/paymentMethod YAPPY, a received
-  // one is INCOME/importSource GMAIL (the only way an INCOME import can
-  // exist at all -- see gmail-parsers.ts's yappyReceivedParser). Scoped to
-  // the current cycle only, same as uncategorizedTransactions above.
-  const undescribedYappyTransactions = (
-    await prisma.cycleTransaction.findMany({
-      where: {
-        cycleId: cycle.id,
-        description: null,
-        OR: [{ paymentMethod: "YAPPY" }, { type: "INCOME", importSource: "GMAIL" }],
+      select: {
+        id: true,
+        name: true,
+        amount: true,
+        type: true,
+        expenseCategoryId: true,
+        description: true,
+        paymentMethod: true,
+        importSource: true,
       },
-      select: { id: true, name: true, amount: true, type: true },
       orderBy: { occurredAt: "desc" },
     })
   ).map((t) => ({
     id: t.id,
     name: t.name,
     amount: t.amount.toNumber(),
+    type: t.type,
+    needsCategory: t.expenseCategoryId === null,
+    needsDescription:
+      t.description === null &&
+      (t.paymentMethod === "YAPPY" || (t.type === "INCOME" && t.importSource === "GMAIL")),
     direction: t.type === "INCOME" ? ("received" as const) : ("sent" as const),
   }));
 
@@ -139,20 +146,14 @@ export default async function DashboardPage() {
           other card/banner: it's the one thing here framed as "here's
           what stands out," so among everything that ISN'T a call to
           action, it still reads best before the raw numbers. */}
-      {uncategorizedTransactions.length > 0 && (
+      {needsAttentionTransactions.length > 0 && (
         <div className="dashboard-section dashboard-section--plain">
-          <UncategorizedImportsBanner
-            transactions={uncategorizedTransactions}
+          <NeedsAttentionBanner
+            transactions={needsAttentionTransactions}
             expenseCategoryNames={expenseCategoryNames}
             incomeCategoryNames={incomeCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
           />
-        </div>
-      )}
-
-      {undescribedYappyTransactions.length > 0 && (
-        <div className="dashboard-section dashboard-section--plain">
-          <NeedsDescriptionBanner transactions={undescribedYappyTransactions} />
         </div>
       )}
 
