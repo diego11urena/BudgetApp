@@ -156,7 +156,7 @@ test.describe("Recurring Expenses screen", () => {
       .first()
       .evaluate((el) => getComputedStyle(el).backgroundColor);
     // --color-success, not --color-warning/--color-error.
-    expect(color).toBe("rgb(31, 138, 92)");
+    expect(color).toBe("rgb(26, 117, 78)");
   });
 
   test("editing a recurring expense's amount updates the category aggregate", async ({ page }) => {
