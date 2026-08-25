@@ -43,9 +43,6 @@ export default async function ManageIncomeCategoriesPage() {
         <ChevronLeft size={16} aria-hidden="true" /> Back
       </Link>
       <h1 className="page-title">Income Categories</h1>
-      <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Edit a category&apos;s name or icon, merge two into one, or delete one you don&apos;t need.
-      </p>
 
       <IncomeCategoryManagerScreen categories={categories} />
     </div>

@@ -111,13 +111,19 @@ export function ConfirmJustGotPaidSheet({
             max={maxDate}
             disabled={confirmed}
             className={error ? "is-invalid" : ""}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "pay-date-error" : undefined}
             onChange={(e) => {
               setPayDate(e.target.value);
               setError(null);
             }}
           />
         </div>
-        {error && <p className="error-text">{error}</p>}
+        {error && (
+          <p id="pay-date-error" className="error-text" role="alert">
+            {error}
+          </p>
+        )}
         <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
           Yes, I got paid <ArrowRight size={16} aria-hidden="true" />
         </button>

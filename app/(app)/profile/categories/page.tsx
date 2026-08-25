@@ -50,9 +50,6 @@ export default async function ManageCategoriesPage() {
         <ChevronLeft size={16} aria-hidden="true" /> Back
       </Link>
       <h1 className="page-title">Manage Categories</h1>
-      <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Organize how your spending is grouped.
-      </p>
 
       <CategoryManagerScreen categories={categories} duplicates={duplicates} />
     </div>

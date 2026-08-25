@@ -91,7 +91,11 @@ export function GoalForm({
           {pending ? "Saving..." : "Save goal"}
         </button>
       </div>
-      {state?.error && <p className="error-text">{state.error}</p>}
+      {state?.error && (
+        <p className="error-text" role="alert">
+          {state.error}
+        </p>
+      )}
     </form>
   );
 }

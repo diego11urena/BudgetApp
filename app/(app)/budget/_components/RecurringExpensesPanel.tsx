@@ -88,7 +88,7 @@ export function RecurringExpensesPanel({
         >
           Each category can hold several recurring expenses — tap a category to see what&apos;s
           inside it and each one&apos;s own payment status this quincena, or tap a recurring
-          expense directly to edit it.
+          expense directly to edit it. Savings goals live on the Goals tab.
         </InfoTooltip>
       )}
 

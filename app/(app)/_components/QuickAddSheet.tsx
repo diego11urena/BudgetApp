@@ -448,6 +448,8 @@ export function QuickAddSheet({
               required
               className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
+              aria-invalid={errorField === "amount" || undefined}
+              aria-describedby={errorField === "amount" ? "sheet-error" : undefined}
             />
           </div>
 
@@ -465,6 +467,8 @@ export function QuickAddSheet({
               required
               maxLength={100}
               className={errorField === "name" ? "is-invalid" : ""}
+              aria-invalid={errorField === "name" || undefined}
+              aria-describedby={errorField === "name" ? "sheet-error" : undefined}
             />
           </div>
 
@@ -487,6 +491,8 @@ export function QuickAddSheet({
               max={todayDate}
               onChange={(e) => setOccurredAt(e.target.value)}
               className={errorField === "date" ? "is-invalid" : ""}
+              aria-invalid={errorField === "date" || undefined}
+              aria-describedby={errorField === "date" ? "sheet-error" : undefined}
             />
           </div>
 
@@ -537,6 +543,8 @@ export function QuickAddSheet({
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 className={errorField === "category" ? "is-invalid" : ""}
+                aria-invalid={errorField === "category" || undefined}
+                aria-describedby={errorField === "category" ? "sheet-error" : undefined}
               />
             )}
           </div>
@@ -587,7 +595,11 @@ export function QuickAddSheet({
             />
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p id="sheet-error" className="error-text" role="alert">
+              {error}
+            </p>
+          )}
 
           {pendingMove ? (
             <div style={{ textAlign: "center" }}>

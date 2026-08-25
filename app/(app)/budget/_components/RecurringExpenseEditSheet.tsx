@@ -149,6 +149,8 @@ export function RecurringExpenseEditSheet({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={errorField === "name" ? "is-invalid" : ""}
+              aria-invalid={errorField === "name" || undefined}
+              aria-describedby={errorField === "name" ? "recurring-expense-error" : undefined}
               autoFocus
             />
           </div>
@@ -165,6 +167,8 @@ export function RecurringExpenseEditSheet({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className={errorField === "amount" ? "is-invalid" : ""}
+                aria-invalid={errorField === "amount" || undefined}
+                aria-describedby={errorField === "amount" ? "recurring-expense-error" : undefined}
               />
             </div>
             <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
@@ -177,6 +181,7 @@ export function RecurringExpenseEditSheet({
                 placeholder="Search or add a category…"
                 showChips={false}
                 invalid={errorField === "categoryName"}
+                describedBy="recurring-expense-error"
               />
             </div>
           </div>
@@ -207,6 +212,8 @@ export function RecurringExpenseEditSheet({
                   value={dueDay}
                   onChange={(e) => setDueDay(e.target.value)}
                   className={errorField === "dueDay" ? "is-invalid" : ""}
+                  aria-invalid={errorField === "dueDay" || undefined}
+                  aria-describedby={errorField === "dueDay" ? "recurring-expense-error" : undefined}
                 />
               </div>
             )}
@@ -219,7 +226,11 @@ export function RecurringExpenseEditSheet({
             </label>
           )}
 
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p id="recurring-expense-error" className="error-text" role="alert">
+              {error}
+            </p>
+          )}
 
           <button type="submit" className="button sheet-submit" disabled={pending}>
             {pending ? "Saving..." : "Save"}

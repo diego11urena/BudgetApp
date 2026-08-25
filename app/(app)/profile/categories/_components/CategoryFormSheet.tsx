@@ -127,12 +127,18 @@ export function CategoryFormSheet({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={error ? "is-invalid" : ""}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? "category-form-error" : undefined}
                   autoFocus
                 />
               </div>
             </div>
 
-            {error && <p className="error-text">{error}</p>}
+            {error && (
+              <p id="category-form-error" className="error-text" role="alert">
+                {error}
+              </p>
+            )}
 
             <button type="submit" className="button sheet-submit" disabled={pending}>
               {pending ? "Saving..." : "Save"}

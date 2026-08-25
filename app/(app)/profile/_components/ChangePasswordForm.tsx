@@ -46,11 +46,21 @@ export function ChangePasswordForm() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           className={mismatch ? "is-invalid" : ""}
+          aria-invalid={mismatch || undefined}
+          aria-describedby={mismatch ? "confirm-password-error" : undefined}
         />
-        {mismatch && <span className="error-text">Passwords don&apos;t match</span>}
+        {mismatch && (
+          <span id="confirm-password-error" className="error-text" role="alert">
+            Passwords don&apos;t match
+          </span>
+        )}
       </div>
 
-      {state?.error && <p className="error-text">{state.error}</p>}
+      {state?.error && (
+        <p className="error-text" role="alert">
+          {state.error}
+        </p>
+      )}
       {state?.success && (
         <p className="field-hint" style={{ marginTop: "0.5rem" }}>
           Password updated.

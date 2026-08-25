@@ -23,10 +23,6 @@ export default async function BudgetPage() {
   return (
     <div className="home-page">
       <h1 className="page-title">Recurring Expenses</h1>
-      <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Track recurring bills and subscriptions for this quincena. Savings goals live on the Goals
-        tab.
-      </p>
 
       <div className="dashboard-section">
         <RecurringExpensesPanel

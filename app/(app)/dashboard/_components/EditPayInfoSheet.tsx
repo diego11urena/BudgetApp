@@ -199,6 +199,8 @@ export function EditPayInfoSheet({
               onChange={(e) => setAmount(e.target.value)}
               className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
+              aria-invalid={errorField === "amount" || undefined}
+              aria-describedby={errorField === "amount" ? "edit-pay-error" : undefined}
             />
           </div>
 
@@ -212,10 +214,16 @@ export function EditPayInfoSheet({
               max={maxDate}
               onChange={(e) => setPayDate(e.target.value)}
               className={errorField === "date" ? "is-invalid" : ""}
+              aria-invalid={errorField === "date" || undefined}
+              aria-describedby={errorField === "date" ? "edit-pay-error" : undefined}
             />
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p id="edit-pay-error" className="error-text" role="alert">
+              {error}
+            </p>
+          )}
 
           {pendingMove && pendingMove.changed && (
             <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>

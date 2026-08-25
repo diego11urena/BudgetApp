@@ -1,9 +1,12 @@
 /**
- * Shown while any (app) route's server component is fetching data —
- * replaces Next.js's blank default with something in the app's own visual
- * language instead. Deliberately generic (not a bespoke skeleton per tab)
- * since real Postgres queries here are fast enough that this rarely shows
- * for more than a flash.
+ * The shared (app) layout's own fallback — shown while its own data
+ * fetch (categories for BottomNav, etc.) is in flight, and for any route
+ * segment under (app) that doesn't define its own bespoke loading.tsx
+ * (dashboard/budget/transactions/goals/history/profile all do — see
+ * those files — since each one's real layout is different enough to be
+ * worth matching). Generic on purpose here: this one has no single page
+ * shape to match. Real Postgres queries are fast enough that any of these
+ * skeletons rarely show for more than a flash.
  */
 export default function Loading() {
   return (

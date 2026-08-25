@@ -195,6 +195,7 @@ export function EditGoalSheet({
               defaultValue={goal.name}
               showChips={false}
               invalid={errorField === "name"}
+              describedBy="edit-goal-error"
             />
           </div>
 
@@ -208,6 +209,8 @@ export function EditGoalSheet({
                 value={lifetimeTargetAmount}
                 onChange={(e) => setLifetimeTargetAmount(e.target.value)}
                 className={errorField === "target" ? "is-invalid" : ""}
+                aria-invalid={errorField === "target" || undefined}
+                aria-describedby={errorField === "target" ? "edit-goal-error" : undefined}
               />
             </div>
             <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
@@ -232,10 +235,16 @@ export function EditGoalSheet({
               value={savedSoFar}
               onChange={(e) => setSavedSoFar(e.target.value)}
               className={errorField === "saved" ? "is-invalid" : ""}
+              aria-invalid={errorField === "saved" || undefined}
+              aria-describedby={errorField === "saved" ? "edit-goal-error" : undefined}
             />
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p id="edit-goal-error" className="error-text" role="alert">
+              {error}
+            </p>
+          )}
 
           {pendingChange !== null && (
             <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>

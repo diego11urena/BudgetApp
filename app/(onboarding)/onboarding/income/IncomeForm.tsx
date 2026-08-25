@@ -25,6 +25,8 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
           defaultValue={initial?.netQuincenaAmount}
           required
           className={state?.error ? "is-invalid" : ""}
+          aria-invalid={state?.error ? true : undefined}
+          aria-describedby={state?.error ? "income-amount-error" : undefined}
         />
         <span className="field-hint">
           What actually lands in your account each quincena — after any taxes or deductions
@@ -32,7 +34,11 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
         </span>
       </div>
 
-      {state?.error && <p className="error-text">{state.error}</p>}
+      {state?.error && (
+        <p id="income-amount-error" className="error-text" role="alert">
+          {state.error}
+        </p>
+      )}
 
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending}>

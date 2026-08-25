@@ -27,6 +27,7 @@ export function CategoryNameInput({
   required = true,
   showChips = true,
   invalid = false,
+  describedBy,
 }: {
   id: string;
   name: string;
@@ -38,6 +39,8 @@ export function CategoryNameInput({
   showChips?: boolean;
   /** Applies the shared .is-invalid treatment to the text input — same conditional-class pattern as QuickAddSheet's category input. */
   invalid?: boolean;
+  /** id of the caller's error message, when invalid — wired to aria-describedby so screen readers announce why, same convention as every other field in the app. */
+  describedBy?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState(defaultValue ?? "");
@@ -99,6 +102,8 @@ export function CategoryNameInput({
           aria-expanded={open}
           aria-controls={`${id}-listbox`}
           aria-autocomplete="list"
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? describedBy : undefined}
           className={invalid ? "is-invalid" : ""}
           onChange={(e) => {
             setValue(e.target.value);

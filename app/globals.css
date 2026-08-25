@@ -20,11 +20,21 @@
   --color-secondary-green: #4f8cff;
   --color-accent-green: #17395c;
   --color-text-primary: #10161c;
-  --color-text-secondary: #6b7480;
+  /* Darkened from #6b7480 -- the original only cleared 4.15:1 against
+     --color-bg-secondary (WCAG AA text requires 4.5:1); this clears 4.5+
+     against both --color-bg and --color-bg-secondary. */
+  --color-text-secondary: #656e79;
   --color-border: #dbe0e6;
-  --color-success: #1f8a5c;
-  --color-warning: #b3781a;
-  --color-error: #c0392b;
+  /* success/warning/error below are all darkened from their original
+     values for the same reason: measured (WCAG relative-luminance
+     formula) against both plain white AND each color's own tinted
+     -bg variant (e.g. --color-success-bg), the originals fell short of
+     the 4.5:1 AA text-contrast minimum -- as low as 3.16:1 for warning
+     text on warning-bg. Dark mode's equivalents (below) already clear
+     6:1+ unchanged. */
+  --color-success: #1a754e;
+  --color-warning: #8d5f15;
+  --color-error: #ba372a;
   /* Status colors tuned for --color-accent-green fills specifically (the
      hero card, and anywhere else a status needs to sit on the signal
      color rather than the page background) — not overridden in dark mode,
@@ -42,9 +52,9 @@
      color, so the concept reads as one thread through the whole app. */
   --color-savings: #3568d4;
   --color-on-accent: #ffffff;
-  --color-success-bg: rgba(31, 138, 92, 0.16);
-  --color-warning-bg: rgba(179, 120, 26, 0.15);
-  --color-error-bg: rgba(192, 57, 43, 0.15);
+  --color-success-bg: rgba(26, 117, 78, 0.16);
+  --color-warning-bg: rgba(141, 95, 21, 0.15);
+  --color-error-bg: rgba(186, 55, 42, 0.15);
   /* Soft diffuse shadows are the primary depth cue (not hairline borders)
      — tinted off text-primary's own hue rather than pure black. */
   --shadow-color: rgba(16, 22, 28, 0.06);
@@ -228,6 +238,33 @@ input,
 select,
 textarea {
   font-size: 16px;
+}
+
+/* One consistent, brand-colored keyboard-focus indicator for every native
+   interactive element (WCAG 2.4.7 Focus Visible) — a soft two-layer
+   shadow halo instead of the browser default outline, matching this
+   design system's own "soft shadow, not a hairline, is the primary depth
+   cue" language (see --shadow-color above). :focus-visible only (not
+   :focus) so it shows for keyboard/assistive-tech navigation without
+   adding a ring on every mouse/touch tap. Follows each element's own
+   border-radius automatically (box-shadow, not outline) so it looks right
+   on pills, rounded cards, and square inputs alike without per-component
+   overrides. Excludes [tabindex] deliberately: every tabIndex={-1} sheet
+   container in this app is a useModalFocus fallback target, focused
+   programmatically on open and never reached via Tab, so it should never
+   show a ring; the one real exception (PieChart's tabIndex={0} slices)
+   already has its own :focus-visible rule (SVG shapes don't support
+   box-shadow the same way HTML boxes do). */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-card),
+    0 0 0 4px var(--color-accent-green),
+    0 0 0 7px var(--color-accent-bg);
 }
 
 * {

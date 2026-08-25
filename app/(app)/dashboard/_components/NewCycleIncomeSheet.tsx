@@ -93,10 +93,16 @@ export function NewCycleIncomeSheet({
               required
               className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "new-cycle-income-error" : undefined}
             />
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p id="new-cycle-income-error" className="error-text" role="alert">
+              {error}
+            </p>
+          )}
 
           <button type="submit" className="button sheet-submit" disabled={pending}>
             {pending ? "Saving..." : "Confirm"}

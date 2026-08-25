@@ -104,6 +104,8 @@ export function RecordPaymentSheet({
               required
               className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
               onFocus={(e) => e.target.select()}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "record-payment-error" : undefined}
             />
           </div>
 
@@ -123,7 +125,11 @@ export function RecordPaymentSheet({
             </div>
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p id="record-payment-error" className="error-text" role="alert">
+              {error}
+            </p>
+          )}
 
           <button type="submit" className="button sheet-submit" disabled={pending}>
             {pending ? "Logging..." : "Record payment"}
