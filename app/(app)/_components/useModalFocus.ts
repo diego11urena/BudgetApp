@@ -5,12 +5,38 @@ import { useEffect, useRef } from "react";
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// Module-level (not per-hook-instance) since document.body is shared by
+// every modal in the app -- a counter, not a plain boolean, so this stays
+// correct if two overlays are ever open at once (nothing in the app does
+// that today, but it costs nothing to not assume it never will) and so
+// React Strict Mode's dev-only mount -> cleanup -> mount double-invoke
+// nets out to the same lock state a single real mount would have left.
+let openModalCount = 0;
+let previousBodyOverflow = "";
+
+function lockBodyScroll() {
+  if (openModalCount === 0) {
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
+  openModalCount++;
+}
+
+function unlockBodyScroll() {
+  openModalCount--;
+  if (openModalCount === 0) {
+    document.body.style.overflow = previousBodyOverflow;
+  }
+}
+
 /**
  * Standard modal accessibility behavior for the app's sheets/overlays
  * (QuickAddSheet, CycleClosedCard, ConfirmJustGotPaidSheet): traps Tab
  * focus within the container while it's mounted, closes on Escape, moves
- * focus into the container on mount, and returns focus to whatever was
- * focused before it opened (the button that triggered it) on unmount.
+ * focus into the container on mount, returns focus to whatever was
+ * focused before it opened (the button that triggered it) on unmount, and
+ * locks background scroll for as long as it's mounted -- otherwise a drag
+ * that starts on the backdrop scrolls the page behind the sheet.
  *
  * onClose is read from a ref rather than the effect's dependency array —
  * it's typically a fresh closure every render, and re-running this setup
@@ -67,6 +93,8 @@ export function useModalFocus(
     const container = containerRef.current;
     if (!container) return;
 
+    lockBodyScroll();
+
     const myGeneration = ++generationRef.current;
     if (!hasCapturedRef.current) {
       hasCapturedRef.current = true;
@@ -111,6 +139,7 @@ export function useModalFocus(
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      unlockBodyScroll();
       queueMicrotask(() => {
         // Deliberately reading the *latest* generationRef.current here, not
         // a snapshot — this is the "did a newer mount already take over"

@@ -65,11 +65,17 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
-      # DB-backed concurrency tests (lib/*.concurrency.test.ts) are skipped
-      # in the fast checks job (no DATABASE_URL there) — this is the only
-      # place they actually run, against a real Postgres with every
-      # migration (including the race-condition unique indexes) applied.
-      - run: npx vitest run lib/cycles.concurrency.test.ts lib/categories.concurrency.test.ts lib/cycles.past-editing.test.ts
+      # DB-gated tests (skipIf(!DATABASE_URL) -- concurrency tests plus
+      # cycles.recurring-expenses.test.ts) are skipped in the fast checks
+      # job (no DATABASE_URL there) — this is the only place they actually
+      # run, against a real Postgres with every migration (including the
+      # race-condition unique indexes) applied. The whole suite, not a
+      # named subset: naming files here previously left
+      # cycles.recurring-expenses.test.ts (carry-forward/aggregate math)
+      # silently skipped everywhere, in both jobs, indefinitely — the whole
+      # directory means a new DB-gated test file can never fall through
+      # that same gap again by omission.
+      - run: npx vitest run
       - run: npx playwright install --with-deps chromium
       # playwright.config.ts's webServer builds + starts the app itself
       # (a real production build in CI, not the dev server) before tests run.

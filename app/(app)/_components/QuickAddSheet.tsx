@@ -404,11 +404,17 @@ export function QuickAddSheet({
         aria-modal="true"
         aria-label={isEditing ? "Edit transaction" : "Log a transaction"}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={handleDragStart}
-        onTouchMove={handleDragMove}
-        onTouchEnd={handleDragEnd}
       >
-        <div className="sheet-handle" />
+        {/* Swipe-to-dismiss listens on the handle only, matching
+            .sheet-handle's own touch-action: none in globals.css -- attached
+            to the whole sheet, these would fight finger-scrolling through
+            the sheet's own (now scrollable, see 0.2) body. */}
+        <div
+          className="sheet-handle"
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+        />
 
         <div className="type-toggle">
           {TYPE_OPTIONS.map((opt) => (

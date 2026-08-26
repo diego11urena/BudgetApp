@@ -39,8 +39,17 @@ function normalizeWhitespace(body: string): string {
 // use them on larger purchases — stripped out below before validation,
 // since decimalString (and the Decimal column it feeds) doesn't accept them.
 // Group 1 = amount, group 2 = merchant.
+//
+// The two free-text spans (card name, cardholder name) are bounded negated
+// character classes, not `.+?` — two consecutive unbounded lazy quantifiers
+// here measured as a real ReDoS: O(k·n) against attacker-controlled email
+// bodies (a body repeating the literal " a nombre de " took 35.9s per
+// .test() at 1MB). A negated class can't backtrack ambiguously against a
+// fixed literal boundary the way `.+?` can, so this is linear regardless of
+// input, and the length cap in parseTransactionEmail below is the second,
+// independent layer against the same class of input.
 const PURCHASE_PATTERN =
-  /La tarjeta .+? a nombre de .+?, terminaci[oó]n \d+ pag[oó] \$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?) en (.+?)\.(?:\s|$)/;
+  /La tarjeta [^,]{1,80}? a nombre de [^,]{1,80}?, terminaci[oó]n \d+ pag[oó] \$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?) en ([^.]{1,120}?)\.(?:\s|$)/;
 
 /**
  * The purchase sentence itself never says which kind of card — best-effort:
@@ -176,7 +185,16 @@ export const parsers: EmailParser[] = [
   yappySentParser,
 ];
 
-export function parseTransactionEmail(body: string): ParsedTransaction | null {
+// Any legitimate bank/Yappy notification this app parses is a short,
+// fixed-template sentence -- 32KB is generous headroom over that. A second,
+// independent layer against attacker-controlled email bodies on top of
+// PURCHASE_PATTERN's own bounded quantifiers above: even a parser pattern
+// that turned out to be quadratic in body length would still be bounded by
+// this cap, so this stays load-bearing on its own.
+const MAX_PARSE_LENGTH = 32_000;
+
+export function parseTransactionEmail(rawBody: string): ParsedTransaction | null {
+  const body = rawBody.slice(0, MAX_PARSE_LENGTH);
   const parser = parsers.find((p) => p.match(body));
   return parser ? parser.extract(body) : null;
 }

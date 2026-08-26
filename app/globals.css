@@ -35,12 +35,15 @@
   --color-success: #1a754e;
   --color-warning: #8d5f15;
   --color-error: #ba372a;
-  /* Status colors tuned for --color-accent-green fills specifically (the
-     hero card, and anywhere else a status needs to sit on the signal
-     color rather than the page background) — not overridden in dark mode,
-     since those surfaces are always navy regardless of page theme. The
-     regular --color-success/warning/error trio is tuned for light-surface
-     text and reads poorly against navy at that same lightness. */
+  /* Status colors tuned for a navy fill specifically (the hero card, and
+     anywhere else a status needs to sit on the signal color rather than
+     the page background) -- the regular --color-success/warning/error
+     trio is tuned for light-surface text and reads poorly against navy at
+     that same lightness. --color-error-on-dark is overridden below under
+     dark mode: the navy fill itself (--color-button-bg) is a DIFFERENT,
+     lighter navy in dark mode, so the same red that clears 3:1 against
+     light mode's navy falls to 2.40:1 there. success/warning-on-dark have
+     no real call site today, so they're left as one value each. */
   --color-success-on-dark: #3fbf8a;
   --color-warning-on-dark: #e0a83f;
   --color-error-on-dark: #ff6b6f;
@@ -169,6 +172,12 @@
     --color-success: #3fbf8a;
     --color-warning: #e0a83f;
     --color-error: #ff6b6f;
+    /* --color-button-bg (the hero card's fill in this mode, #2f5f8f) is a
+       different, lighter navy than light mode's -- the base #ff6b6f only
+       clears 2.40:1 against it (needs 3:1 for this large/bold text).
+       Lightened until it clears 3:1; --color-error itself (used on the
+       page background, not a navy fill) is unaffected. */
+    --color-error-on-dark: #ffb3b5;
     --color-savings: #7fa0ff;
     --color-on-accent: #ffffff;
     --color-success-bg: rgba(63, 191, 138, 0.18);
@@ -358,9 +367,12 @@ a {
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-button);
   border: none;
-  /* Primary CTA — one of only two places the brand gradient appears (the
-     other is hero surfaces); everything else stays flat for restraint. */
-  background: var(--gradient-brand);
+  /* --color-button-bg, not --gradient-brand -- the latter is a flat navy
+     alias that does NOT flip in dark mode (see its own comment), so a
+     primary CTA drawn from it read at 3.22:1 for white text in dark mode
+     (needs 4.5:1). --color-button-bg IS theme-aware and already used
+     correctly elsewhere (.category-chip.is-active, .bottom-nav-fab). */
+  background: var(--color-button-bg);
   color: var(--color-on-accent);
   font-size: 1rem;
   font-weight: 600;
@@ -742,11 +754,14 @@ button.line-item--link {
 /* Hero card — solid navy fill with white text, not a tinted wash: the
    design system's sample screens (Personal Finance Design System.dc.html)
    render this as an opaque #17395c card, the one place the signal color
-   fills a whole surface rather than accenting text/a button. Doesn't flip
-   with light/dark page theme — it's the one deliberately-always-navy
-   surface, same reasoning --color-success-on-dark/etc. below exist. */
+   fills a whole surface rather than accenting text/a button. Uses
+   --color-button-bg, which IS theme-aware -- verified AA (≥4.5:1 for
+   white text) in both modes. (An earlier version of this comment claimed
+   this surface "doesn't flip with light/dark page theme" via
+   --color-accent-green; that was false — --color-accent-green flips to
+   #4f8cff in dark mode, which only clears 3.22:1 for white text.) */
 .hero-card {
-  background: var(--color-accent-green);
+  background: var(--color-button-bg);
   border: none;
   border-radius: var(--radius-xl);
   padding: 1.85rem 1.5rem;
@@ -994,13 +1009,24 @@ button.line-item--link {
 .sheet {
   width: 100%;
   max-width: 30rem;
+  /* A sheet taller than the viewport (Edit transaction measured at 813px
+     against a 673px viewport) needs to scroll internally -- max-height
+     (dvh, not vh, so the mobile keyboard's viewport shrink is accounted
+     for) + overflow-y makes that possible. touch-action: none used to sit
+     here too, meant only for the handle's swipe-to-dismiss (see
+     QuickAddSheet's onTouchStart/Move/End), but applied to the whole
+     sheet it blocked finger-scroll for every descendant, including ones
+     with their own overflow-y: auto (.categorize-imports-list,
+     .icon-picker-scroll) -- the longest sheet in the app was the least
+     scrollable one. */
+  max-height: 85dvh;
+  overflow-y: auto;
   background: var(--color-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
   box-shadow: 0 -4px 20px var(--shadow-color);
   transform: translateY(100%);
   transition: transform 0.22s ease;
-  touch-action: none;
 }
 
 .sheet.is-open {
@@ -1013,6 +1039,9 @@ button.line-item--link {
   border-radius: var(--radius-xs);
   background: var(--color-border);
   margin: 0 auto 1rem;
+  /* Swipe-to-dismiss (QuickAddSheet's onTouchStart/Move/End) lives here
+     only -- see .sheet's own comment for why it was removed from there. */
+  touch-action: none;
 }
 
 /* Every sheet's title is a bare <h2> with only inline layout styles

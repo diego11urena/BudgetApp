@@ -193,6 +193,20 @@ describe("parseTransactionEmail", () => {
     expect(parseTransactionEmail("Some unrelated marketing email.")).toBeNull();
   });
 
+  // Regression anchor for the ReDoS fix: PURCHASE_PATTERN's two free-text
+  // spans used to be unbounded `.+?`, which measured O(k·n) against a body
+  // repeating the literal " a nombre de " -- 35.9s for a 1MB body. Bounded
+  // negated character classes plus the MAX_PARSE_LENGTH cap in
+  // parseTransactionEmail should keep this linear regardless of input.
+  it("parses an adversarial 1MB body in well under a second", () => {
+    const adversarialBody = "La tarjeta " + " a nombre de ".repeat(5000);
+    const start = performance.now();
+    const result = parseTransactionEmail(adversarialBody);
+    const elapsedMs = performance.now() - start;
+    expect(elapsedMs).toBeLessThan(50);
+    expect(result).toBeNull();
+  });
+
   it("dispatches a Yappy 'received' email to an INCOME transaction", () => {
     expect(parseTransactionEmail(YAPPY_RECEIVED_BODY)).toEqual({
       type: "INCOME",
