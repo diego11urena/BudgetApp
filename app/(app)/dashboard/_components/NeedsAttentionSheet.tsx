@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { categorizeTransactionAction, describeTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 
@@ -53,7 +53,6 @@ export function NeedsAttentionSheet({
   }
   const [visible, setVisible] = useState(false);
   const [transactions, setTransactions] = useState(initialTransactions);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -73,54 +72,39 @@ export function NeedsAttentionSheet({
     });
   }
 
-  // autoFocus off: this sheet should appear passively, with no field
-  // grabbing the keyboard/cursor until the user deliberately taps one --
-  // same reasoning as the two sheets this one replaces (see
-  // useModalFocus's own doc comment).
-  useModalFocus(sheetRef, handleClose, returnFocusTo, false);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title="Finish these transactions"
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
+      // autoFocus off: this sheet should appear passively, with no field
+      // grabbing the keyboard/cursor until the user deliberately taps one
+      // -- same reasoning as the two sheets this one replaces (see
+      // useModalFocus's own doc comment).
+      autoFocus={false}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Finish these transactions"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Finish these transactions</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "1rem" }}>
-          Add whatever&apos;s missing — category, description, or both — so your totals and
-          history stay accurate.
-        </p>
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "1rem" }}>
+        Add whatever&apos;s missing — category, description, or both — so your totals and history
+        stay accurate.
+      </p>
 
-        <div className="categorize-imports-list">
-          {transactions.map((transaction) => (
-            <NeedsAttentionRow
-              key={transaction.id}
-              transaction={transaction}
-              categoryNames={categoryNamesForType(transaction.type)}
-              onDone={() => handleDone(transaction.id)}
-            />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className="button button--secondary sheet-submit"
-          onClick={handleClose}
-        >
-          Done for now
-        </button>
+      <div className="categorize-imports-list">
+        {transactions.map((transaction) => (
+          <NeedsAttentionRow
+            key={transaction.id}
+            transaction={transaction}
+            categoryNames={categoryNamesForType(transaction.type)}
+            onDone={() => handleDone(transaction.id)}
+          />
+        ))}
       </div>
-    </div>
+
+      <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
+        Done for now
+      </button>
+    </Sheet>
   );
 }
 

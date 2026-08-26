@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { IncomeSettingsForm, type IncomeSettingsInitial } from "./IncomeSettingsForm";
 
 /** "Income" used to be a permanently-visible form on the main Profile screen — now behind this row, opened as a sheet. The form itself is untouched. */
@@ -45,7 +45,6 @@ function EditIncomeSheetContent({
   onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -57,27 +56,9 @@ function EditIncomeSheetContent({
     setTimeout(onClose, 200);
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
-    >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Edit income"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>Edit income</h2>
-        <IncomeSettingsForm initial={initial} />
-      </div>
-    </div>
+    <Sheet visible={visible} title="Edit income" onClose={handleClose} returnFocusTo={returnFocusTo}>
+      <IncomeSettingsForm initial={initial} />
+    </Sheet>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 
 // Based on Panama time, not the device's own local clock — parsePayDate
@@ -43,7 +43,9 @@ export function ConfirmJustGotPaidSheet({
   // matters to days-remaining/pace math downstream.
   const [payDate, setPayDate] = useState(() => formatCycleLabel(nowInPanama()));
   const [error, setError] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const dateId = `${uid}-date`;
+  const errorId = `${uid}-error`;
 
   const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
   const maxDate = formatCycleLabel(nowInPanama());
@@ -77,65 +79,54 @@ export function ConfirmJustGotPaidSheet({
     setTimeout(() => onConfirm(payDate), 200);
   }
 
-  useModalFocus(sheetRef, handleCancel, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={confirmed ? undefined : handleCancel}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title="Close this quincena?"
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleCancel}
+      closeOnBackdropClick={!confirmed}
+      returnFocusTo={returnFocusTo}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Confirm closing this quincena"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Close this quincena?</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-          This closes your current quincena for good and starts a fresh one. Recurring budget
-          targets and goal contributions carry forward automatically — you&apos;ll confirm this
-          quincena&apos;s pay amount next.
-        </p>
-        <div className="field">
-          <label htmlFor="pay-date">When did you get paid?</label>
-          <input
-            id="pay-date"
-            type="date"
-            value={payDate}
-            min={minDate}
-            max={maxDate}
-            disabled={confirmed}
-            className={error ? "is-invalid" : ""}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "pay-date-error" : undefined}
-            onChange={(e) => {
-              setPayDate(e.target.value);
-              setError(null);
-            }}
-          />
-        </div>
-        {error && (
-          <p id="pay-date-error" className="error-text" role="alert">
-            {error}
-          </p>
-        )}
-        <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
-          Yes, I got paid <ArrowRight size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="button button--secondary sheet-submit"
-          onClick={handleCancel}
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+        This closes your current quincena for good and starts a fresh one. Recurring budget
+        targets and goal contributions carry forward automatically — you&apos;ll confirm this
+        quincena&apos;s pay amount next.
+      </p>
+      <div className="field">
+        <label htmlFor={dateId}>When did you get paid?</label>
+        <input
+          id={dateId}
+          type="date"
+          value={payDate}
+          min={minDate}
+          max={maxDate}
           disabled={confirmed}
-        >
-          Cancel
-        </button>
+          className={error ? "is-invalid" : ""}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          onChange={(e) => {
+            setPayDate(e.target.value);
+            setError(null);
+          }}
+        />
       </div>
-    </div>
+      {error && (
+        <p id={errorId} className="error-text" role="alert">
+          {error}
+        </p>
+      )}
+      <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
+        Yes, I got paid <ArrowRight size={16} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className="button button--secondary sheet-submit"
+        onClick={handleCancel}
+        disabled={confirmed}
+      >
+        Cancel
+      </button>
+    </Sheet>
   );
 }

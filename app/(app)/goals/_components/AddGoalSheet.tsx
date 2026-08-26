@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { useEffect, useState } from "react";
+import { Sheet } from "../../_components/Sheet";
 import { GoalForm } from "./GoalForm";
 
 /**
@@ -47,7 +47,6 @@ function AddGoalSheetContent({
   onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -59,31 +58,19 @@ function AddGoalSheetContent({
     setTimeout(onClose, 200);
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title="Add or update a goal"
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Add or update a savings goal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Add or update a goal</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
-          Log a savings transaction under the same name (e.g. &quot;Pro Futuro&quot;) any time and
-          it&apos;ll count toward this goal automatically.
-        </p>
-        <GoalForm categoryNames={categoryNames} onSuccess={handleClose} />
-      </div>
-    </div>
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
+        Log a savings transaction under the same name (e.g. &quot;Pro Futuro&quot;) any time and
+        it&apos;ll count toward this goal automatically.
+      </p>
+      <GoalForm categoryNames={categoryNames} onSuccess={handleClose} />
+    </Sheet>
   );
 }

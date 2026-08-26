@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateGoalWithContributionAction } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { formatCurrency } from "@/lib/format";
 import { INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 
@@ -52,7 +52,7 @@ export function EditGoalSheet({
   const [errorField, setErrorField] = useState<"name" | "target" | "saved" | null>(null);
   /** Set once the saved-so-far field's delta needs a decision before anything commits -- also carries the name value read at submit time, since CategoryNameInput is uncontrolled and can only be read from the DOM. */
   const [pendingChange, setPendingChange] = useState<{ name: string; delta: number } | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -135,139 +135,129 @@ export function EditGoalSheet({
   }
 
   const isIncrease = pendingChange !== null && pendingChange.delta > 0;
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
+  const nameId = `${uid}-name`;
+  const targetId = `${uid}-target`;
+  const recurringId = `${uid}-recurring`;
+  const savedId = `${uid}-saved`;
+  const errorId = `${uid}-error`;
 
   return (
-    <div className={`sheet-backdrop ${visible ? "is-visible" : ""}`} onClick={handleClose} role="presentation">
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Edit ${goal.name}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>Edit goal</h2>
+    <Sheet visible={visible} title="Edit goal" onClose={handleClose} returnFocusTo={returnFocusTo}>
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="field">
+          <label htmlFor={nameId}>Goal name</label>
+          <CategoryNameInput
+            id={nameId}
+            name="name"
+            categoryNames={categoryNames}
+            defaultValue={goal.name}
+            showChips={false}
+            invalid={errorField === "name"}
+            describedBy={errorId}
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="field">
-            <label htmlFor="edit-goal-name">Goal name</label>
-            <CategoryNameInput
-              id="edit-goal-name"
-              name="name"
-              categoryNames={categoryNames}
-              defaultValue={goal.name}
-              showChips={false}
-              invalid={errorField === "name"}
-              describedBy="edit-goal-error"
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor="edit-goal-target">Total goal (USD)</label>
-              <input
-                id="edit-goal-target"
-                type="text"
-                inputMode="decimal"
-                value={lifetimeTargetAmount}
-                onChange={(e) => setLifetimeTargetAmount(e.target.value)}
-                className={errorField === "target" ? "is-invalid" : ""}
-                aria-invalid={errorField === "target" || undefined}
-                aria-describedby={errorField === "target" ? "edit-goal-error" : undefined}
-              />
-            </div>
-            <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor="edit-goal-recurring">Per-cycle contribution</label>
-              <input
-                id="edit-goal-recurring"
-                type="text"
-                inputMode="decimal"
-                placeholder="Optional"
-                value={recurringAmount}
-                onChange={(e) => setRecurringAmount(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="field">
-            <label htmlFor="edit-goal-saved">Amount saved so far</label>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
+            <label htmlFor={targetId}>Total goal (USD)</label>
             <input
-              id="edit-goal-saved"
+              id={targetId}
               type="text"
               inputMode="decimal"
-              value={savedSoFar}
-              onChange={(e) => setSavedSoFar(e.target.value)}
-              className={errorField === "saved" ? "is-invalid" : ""}
-              aria-invalid={errorField === "saved" || undefined}
-              aria-describedby={errorField === "saved" ? "edit-goal-error" : undefined}
+              value={lifetimeTargetAmount}
+              onChange={(e) => setLifetimeTargetAmount(e.target.value)}
+              className={errorField === "target" ? "is-invalid" : ""}
+              aria-invalid={errorField === "target" || undefined}
+              aria-describedby={errorField === "target" ? errorId : undefined}
             />
           </div>
+          <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
+            <label htmlFor={recurringId}>Per-cycle contribution</label>
+            <input
+              id={recurringId}
+              type="text"
+              inputMode="decimal"
+              placeholder="Optional"
+              value={recurringAmount}
+              onChange={(e) => setRecurringAmount(e.target.value)}
+            />
+          </div>
+        </div>
 
-          {error && (
-            <p id="edit-goal-error" className="error-text" role="alert">
-              {error}
-            </p>
-          )}
+        <div className="field">
+          <label htmlFor={savedId}>Amount saved so far</label>
+          <input
+            id={savedId}
+            type="text"
+            inputMode="decimal"
+            value={savedSoFar}
+            onChange={(e) => setSavedSoFar(e.target.value)}
+            className={errorField === "saved" ? "is-invalid" : ""}
+            aria-invalid={errorField === "saved" || undefined}
+            aria-describedby={errorField === "saved" ? errorId : undefined}
+          />
+        </div>
 
-          {pendingChange !== null && (
-            <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-              {isIncrease
-                ? `You're increasing the amount saved toward this goal by ${formatCurrency(pendingChange.delta)}. Would you like to record this as a transaction?`
-                : `You're decreasing the amount saved toward this goal by ${formatCurrency(Math.abs(pendingChange.delta))}. This won't affect your transaction history.`}
-            </p>
-          )}
+        {error && (
+          <p id={errorId} className="error-text" role="alert">
+            {error}
+          </p>
+        )}
 
-          {pendingChange !== null ? (
-            <>
-              {isIncrease && (
-                <button
-                  type="button"
-                  className="button sheet-submit"
-                  disabled={pending}
-                  onClick={() => submitGoal(pendingChange.name, pendingChange.delta, true)}
-                >
-                  {pending ? "Saving..." : "Yes, record as transaction"}
-                </button>
-              )}
+        {pendingChange !== null && (
+          <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+            {isIncrease
+              ? `You're increasing the amount saved toward this goal by ${formatCurrency(pendingChange.delta)}. Would you like to record this as a transaction?`
+              : `You're decreasing the amount saved toward this goal by ${formatCurrency(Math.abs(pendingChange.delta))}. This won't affect your transaction history.`}
+          </p>
+        )}
+
+        {pendingChange !== null ? (
+          <>
+            {isIncrease && (
               <button
                 type="button"
-                className="button button--secondary sheet-submit"
+                className="button sheet-submit"
                 disabled={pending}
-                onClick={() => submitGoal(pendingChange.name, pendingChange.delta, false)}
+                onClick={() => submitGoal(pendingChange.name, pendingChange.delta, true)}
               >
-                {pending ? "Saving..." : isIncrease ? "No, just update the goal" : "Continue"}
+                {pending ? "Saving..." : "Yes, record as transaction"}
               </button>
-              <button
-                type="button"
-                className="button button--secondary sheet-submit"
-                disabled={pending}
-                onClick={() => setPendingChange(null)}
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button type="submit" className="button sheet-submit" disabled={pending}>
-              {pending ? "Saving..." : "Save"}
+            )}
+            <button
+              type="button"
+              className="button button--secondary sheet-submit"
+              disabled={pending}
+              onClick={() => submitGoal(pendingChange.name, pendingChange.delta, false)}
+            >
+              {pending ? "Saving..." : isIncrease ? "No, just update the goal" : "Continue"}
             </button>
-          )}
-        </form>
-
-        {pendingChange === null && (
-          <button
-            type="button"
-            className="button button--secondary sheet-submit"
-            onClick={handleClose}
-            disabled={pending}
-          >
-            Cancel
+            <button
+              type="button"
+              className="button button--secondary sheet-submit"
+              disabled={pending}
+              onClick={() => setPendingChange(null)}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button type="submit" className="button sheet-submit" disabled={pending}>
+            {pending ? "Saving..." : "Save"}
           </button>
         )}
-      </div>
-    </div>
+      </form>
+
+      {pendingChange === null && (
+        <button
+          type="button"
+          className="button button--secondary sheet-submit"
+          onClick={handleClose}
+          disabled={pending}
+        >
+          Cancel
+        </button>
+      )}
+    </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addTransactionAction,
@@ -14,7 +14,7 @@ import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { useToast } from "./ToastProvider";
-import { useModalFocus } from "./useModalFocus";
+import { Sheet } from "./Sheet";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
@@ -113,6 +113,12 @@ export function QuickAddSheet({
   const [type, setType] = useState<TxType>(editingTransaction?.type ?? initialType);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
+  const uid = useId();
+  const amountId = `${uid}-amount`;
+  const nameId = `${uid}-name`;
+  const dateId = `${uid}-date`;
+  const descriptionId = `${uid}-description`;
+  const errorId = `${uid}-error`;
 
   function categoryNamesForType(t: TxType): string[] {
     return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : incomeCategoryNames;
@@ -204,8 +210,6 @@ export function QuickAddSheet({
     setVisible(false);
     setTimeout(onClose, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   // Runs the same checks the date/amount inputs' native `required`/`min`/
   // `max` attributes used to enforce — but explicitly, in JS, so a blocked
@@ -418,116 +422,99 @@ export function QuickAddSheet({
   const nameValue = displayName.trim();
 
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      ariaLabel={isEditing ? "Edit transaction" : "Log a transaction"}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
+      panelRef={sheetRef}
+      // Swipe-to-dismiss listens on the handle only, matching
+      // .sheet-handle's own touch-action: none in globals.css -- attached
+      // to the whole sheet, these would fight finger-scrolling through the
+      // sheet's own (now scrollable, see 0.2) body.
+      handleProps={{ onTouchStart: handleDragStart, onTouchMove: handleDragMove, onTouchEnd: handleDragEnd }}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={isEditing ? "Edit transaction" : "Log a transaction"}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Swipe-to-dismiss listens on the handle only, matching
-            .sheet-handle's own touch-action: none in globals.css -- attached
-            to the whole sheet, these would fight finger-scrolling through
-            the sheet's own (now scrollable, see 0.2) body. */}
-        <div
-          className="sheet-handle"
-          onTouchStart={handleDragStart}
-          onTouchMove={handleDragMove}
-          onTouchEnd={handleDragEnd}
-        />
+      <div className="type-toggle">
+        {TYPE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={`type-toggle-btn ${type === opt.value ? "is-active" : ""}`}
+            onClick={() => handleTypeChange(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="type-toggle">
-          {TYPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`type-toggle-btn ${type === opt.value ? "is-active" : ""}`}
-              onClick={() => handleTypeChange(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
+      <form onSubmit={handleSubmit} noValidate>
+        <input type="hidden" name="type" value={type} />
+        <input type="hidden" name="name" value={nameValue} />
+        <input type="hidden" name="category" value={categoryValue} />
+        {isEditing && <input type="hidden" name="transactionId" value={editingTransaction.id} />}
+        {!isEditing && targetCycleId && <input type="hidden" name="cycleId" value={targetCycleId} />}
+
+        <div className="field sheet-amount-field">
+          <label htmlFor={amountId}>Amount (USD)</label>
+          <input
+            id={amountId}
+            name="amount"
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            autoFocus
+            required
+            className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
+            onFocus={(e) => e.target.select()}
+            aria-invalid={errorField === "amount" || undefined}
+            aria-describedby={errorField === "amount" ? errorId : undefined}
+          />
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <input type="hidden" name="type" value={type} />
-          <input type="hidden" name="name" value={nameValue} />
-          <input type="hidden" name="category" value={categoryValue} />
-          {isEditing && (
-            <input type="hidden" name="transactionId" value={editingTransaction.id} />
-          )}
-          {!isEditing && targetCycleId && (
-            <input type="hidden" name="cycleId" value={targetCycleId} />
-          )}
+        <div className="field">
+          <label htmlFor={nameId}>Merchant / name</label>
+          <input
+            id={nameId}
+            type="text"
+            placeholder="e.g. Panapass, Cafe Unido…"
+            value={displayName}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameTouched(true);
+            }}
+            required
+            maxLength={100}
+            className={errorField === "name" ? "is-invalid" : ""}
+            aria-invalid={errorField === "name" || undefined}
+            aria-describedby={errorField === "name" ? errorId : undefined}
+          />
+        </div>
 
-          <div className="field sheet-amount-field">
-            <label htmlFor="sheet-amount">Amount (USD)</label>
-            <input
-              id="sheet-amount"
-              name="amount"
-              type="text"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              autoFocus
-              required
-              className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
-              onFocus={(e) => e.target.select()}
-              aria-invalid={errorField === "amount" || undefined}
-              aria-describedby={errorField === "amount" ? "sheet-error" : undefined}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="sheet-name">Merchant / name</label>
-            <input
-              id="sheet-name"
-              type="text"
-              placeholder="e.g. Panapass, Cafe Unido…"
-              value={displayName}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameTouched(true);
-              }}
-              required
-              maxLength={100}
-              className={errorField === "name" ? "is-invalid" : ""}
-              aria-invalid={errorField === "name" || undefined}
-              aria-describedby={errorField === "name" ? "sheet-error" : undefined}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="sheet-date">Date</label>
-            <input
-              id="sheet-date"
-              name="occurredAt"
-              type="date"
-              value={occurredAt}
-              // The cycle-start floor only applies to a plain create with no
-              // explicit target cycle — editing, and creating directly into
-              // a specific past quincena, both allow any past date (it
-              // resolves to whichever cycle that date actually belongs to;
-              // see updateTransactionAction / addTransactionAction). Form
-              // has noValidate, and validate() re-checks this explicitly
-              // either way, so this is just the picker widget's own hint,
-              // never a submit-blocker.
-              min={isEditing || targetCycleId ? undefined : cycleStartDate}
-              max={todayDate}
-              onChange={(e) => setOccurredAt(e.target.value)}
-              className={errorField === "date" ? "is-invalid" : ""}
-              aria-invalid={errorField === "date" || undefined}
-              aria-describedby={errorField === "date" ? "sheet-error" : undefined}
-            />
-          </div>
+        <div className="field">
+          <label htmlFor={dateId}>Date</label>
+          <input
+            id={dateId}
+            name="occurredAt"
+            type="date"
+            value={occurredAt}
+            // The cycle-start floor only applies to a plain create with no
+            // explicit target cycle — editing, and creating directly into
+            // a specific past quincena, both allow any past date (it
+            // resolves to whichever cycle that date actually belongs to;
+            // see updateTransactionAction / addTransactionAction). Form
+            // has noValidate, and validate() re-checks this explicitly
+            // either way, so this is just the picker widget's own hint,
+            // never a submit-blocker.
+            min={isEditing || targetCycleId ? undefined : cycleStartDate}
+            max={todayDate}
+            onChange={(e) => setOccurredAt(e.target.value)}
+            className={errorField === "date" ? "is-invalid" : ""}
+            aria-invalid={errorField === "date" || undefined}
+            aria-describedby={errorField === "date" ? errorId : undefined}
+          />
+        </div>
 
           <div className="field">
             <label>Category</label>
@@ -577,7 +564,7 @@ export function QuickAddSheet({
                 onChange={(e) => setCustomName(e.target.value)}
                 className={errorField === "category" ? "is-invalid" : ""}
                 aria-invalid={errorField === "category" || undefined}
-                aria-describedby={errorField === "category" ? "sheet-error" : undefined}
+                aria-describedby={errorField === "category" ? errorId : undefined}
               />
             )}
           </div>
@@ -616,9 +603,9 @@ export function QuickAddSheet({
           )}
 
           <div className="field">
-            <label htmlFor="sheet-description">Note (optional)</label>
+            <label htmlFor={descriptionId}>Note (optional)</label>
             <input
-              id="sheet-description"
+              id={descriptionId}
               name="description"
               type="text"
               placeholder="What was this for?"
@@ -629,7 +616,7 @@ export function QuickAddSheet({
           </div>
 
           {error && (
-            <p id="sheet-error" className="error-text" role="alert">
+            <p id={errorId} className="error-text" role="alert">
               {error}
             </p>
           )}
@@ -665,17 +652,16 @@ export function QuickAddSheet({
           )}
         </form>
 
-        {isEditing && !pendingMove && (
-          <button
-            type="button"
-            className="sheet-delete"
-            disabled={deletePending}
-            onClick={handleDelete}
-          >
-            {deletePending ? "Deleting..." : "Delete transaction"}
-          </button>
-        )}
-      </div>
-    </div>
+      {isEditing && !pendingMove && (
+        <button
+          type="button"
+          className="sheet-delete"
+          disabled={deletePending}
+          onClick={handleDelete}
+        >
+          {deletePending ? "Deleting..." : "Delete transaction"}
+        </button>
+      )}
+    </Sheet>
   );
 }

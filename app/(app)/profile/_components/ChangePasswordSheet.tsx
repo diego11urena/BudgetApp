@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
 /** "Password" used to be a permanently-visible form on the main Profile screen — now behind this row, opened as a sheet. The form itself is untouched. */
@@ -42,7 +42,6 @@ function ChangePasswordSheetContent({
   onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -54,27 +53,9 @@ function ChangePasswordSheetContent({
     setTimeout(onClose, 200);
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
-    >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Change password"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>Change password</h2>
-        <ChangePasswordForm />
-      </div>
-    </div>
+    <Sheet visible={visible} title="Change password" onClose={handleClose} returnFocusTo={returnFocusTo}>
+      <ChangePasswordForm />
+    </Sheet>
   );
 }

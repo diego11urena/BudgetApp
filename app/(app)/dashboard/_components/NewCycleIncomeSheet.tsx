@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { confirmNewCycleIncomeAction } from "../actions";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 
 /**
  * Shown right after CycleClosedCard, on every "I just got paid" close —
@@ -26,7 +26,9 @@ export function NewCycleIncomeSheet({
   const [amount, setAmount] = useState(initialAmount.toFixed(2));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const amountId = `${uid}-amount`;
+  const errorId = `${uid}-error`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -57,67 +59,55 @@ export function NewCycleIncomeSheet({
     setTimeout(onDone, 200);
   }
 
-  useModalFocus(sheetRef, handleSkip, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleSkip}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title="How much did you get paid?"
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleSkip}
+      returnFocusTo={returnFocusTo}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="How much did you get paid?"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>How much did you get paid?</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-          This becomes your available income for the new quincena.
-        </p>
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+        This becomes your available income for the new quincena.
+      </p>
 
-        <form onSubmit={handleConfirm}>
-          <div className="field">
-            <label htmlFor="new-cycle-income">Net pay (USD)</label>
-            <input
-              id="new-cycle-income"
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              autoFocus
-              required
-              className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
-              onFocus={(e) => e.target.select()}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? "new-cycle-income-error" : undefined}
-            />
-          </div>
+      <form onSubmit={handleConfirm}>
+        <div className="field">
+          <label htmlFor={amountId}>Net pay (USD)</label>
+          <input
+            id={amountId}
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            autoFocus
+            required
+            className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
+            onFocus={(e) => e.target.select()}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+          />
+        </div>
 
-          {error && (
-            <p id="new-cycle-income-error" className="error-text" role="alert">
-              {error}
-            </p>
-          )}
+        {error && (
+          <p id={errorId} className="error-text" role="alert">
+            {error}
+          </p>
+        )}
 
-          <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? "Saving..." : "Confirm"}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          className="button button--secondary sheet-submit"
-          onClick={handleSkip}
-          disabled={pending}
-        >
-          Skip
+        <button type="submit" className="button sheet-submit" disabled={pending}>
+          {pending ? "Saving..." : "Confirm"}
         </button>
-      </div>
-    </div>
+      </form>
+
+      <button
+        type="button"
+        className="button button--secondary sheet-submit"
+        onClick={handleSkip}
+        disabled={pending}
+      >
+        Skip
+      </button>
+    </Sheet>
   );
 }

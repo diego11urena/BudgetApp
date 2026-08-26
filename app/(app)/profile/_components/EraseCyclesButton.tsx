@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { eraseAllCyclesAction } from "../cycle-actions";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 
 /**
  * Mass-deleting all cycle history is the same class of "significant,
@@ -60,7 +60,6 @@ function EraseCyclesConfirmSheet({
   returnFocusTo: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -72,47 +71,36 @@ function EraseCyclesConfirmSheet({
     setTimeout(onCancel, 200);
   }
 
-  useModalFocus(sheetRef, handleCancel, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={pending ? undefined : handleCancel}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title="Erase all cycles?"
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleCancel}
+      closeOnBackdropClick={!pending}
+      returnFocusTo={returnFocusTo}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Erase all cycles"
-        onClick={(e) => e.stopPropagation()}
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+        Permanently deletes every past and current quincena — all transactions, budget targets,
+        and income records in them. Your categories and income setup stay intact, and a fresh
+        cycle starts right away. This can&apos;t be undone.
+      </p>
+      <button
+        type="button"
+        className="button button--danger sheet-submit"
+        onClick={onConfirm}
+        disabled={pending}
       >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Erase all cycles?</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-          Permanently deletes every past and current quincena — all transactions, budget
-          targets, and income records in them. Your categories and income setup stay intact,
-          and a fresh cycle starts right away. This can&apos;t be undone.
-        </p>
-        <button
-          type="button"
-          className="button button--danger sheet-submit"
-          onClick={onConfirm}
-          disabled={pending}
-        >
-          {pending ? "Erasing..." : "Yes, erase everything"}
-        </button>
-        <button
-          type="button"
-          className="button button--secondary sheet-submit"
-          onClick={handleCancel}
-          disabled={pending}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+        {pending ? "Erasing..." : "Yes, erase everything"}
+      </button>
+      <button
+        type="button"
+        className="button button--secondary sheet-submit"
+        onClick={handleCancel}
+        disabled={pending}
+      >
+        Cancel
+      </button>
+    </Sheet>
   );
 }

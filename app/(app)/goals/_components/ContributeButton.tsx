@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addTransactionAction, deleteTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "../../_components/ToastProvider";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 
 export function ContributeButton({ categoryName }: { categoryName: string }) {
   const [open, setOpen] = useState(false);
@@ -62,7 +62,9 @@ function ContributeSheet({
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const amountId = `${uid}-amount`;
+  const errorId = `${uid}-error`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -73,8 +75,6 @@ function ContributeSheet({
     setVisible(false);
     setTimeout(onClose, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,53 +112,36 @@ function ContributeSheet({
   }
 
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
-    >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Contribute to ${categoryName}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>Contributing to {categoryName}</h2>
+    <Sheet visible={visible} title={`Contributing to ${categoryName}`} onClose={handleClose} returnFocusTo={returnFocusTo}>
+      <form onSubmit={handleSubmit}>
+        <div className="field sheet-amount-field">
+          <label htmlFor={amountId}>Amount (USD)</label>
+          <input
+            id={amountId}
+            type="text"
+            inputMode="decimal"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            autoFocus
+            required
+            className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
+            onFocus={(e) => e.target.select()}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+          />
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="field sheet-amount-field">
-            <label htmlFor="contribute-amount">Amount (USD)</label>
-            <input
-              id="contribute-amount"
-              type="text"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              autoFocus
-              required
-              className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
-              onFocus={(e) => e.target.select()}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? "contribute-error" : undefined}
-            />
-          </div>
+        {error && (
+          <p id={errorId} className="error-text" role="alert">
+            {error}
+          </p>
+        )}
 
-          {error && (
-            <p id="contribute-error" className="error-text" role="alert">
-              {error}
-            </p>
-          )}
-
-          <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? "Logging..." : "Contribute"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button type="submit" className="button sheet-submit" disabled={pending}>
+          {pending ? "Logging..." : "Contribute"}
+        </button>
+      </form>
+    </Sheet>
   );
 }

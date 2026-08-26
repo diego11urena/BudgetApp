@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, PiggyBank, Plus, type LucideIcon } from "lucide-react";
-import { useModalFocus } from "./useModalFocus";
+import { Sheet } from "./Sheet";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 
@@ -31,7 +31,6 @@ export function AddActionSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -48,38 +47,21 @@ export function AddActionSheet({
     setTimeout(() => onSelect(type), 200);
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
-    >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Add a transaction"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <div className="quick-actions">
-          {ACTIONS.map((action) => (
-            <button
-              key={action.type}
-              type="button"
-              className="quick-action"
-              onClick={() => handleSelect(action.type)}
-            >
-              <action.icon className="quick-action-icon" size={22} aria-hidden="true" />
-              <span>{action.label}</span>
-            </button>
-          ))}
-        </div>
+    <Sheet visible={visible} ariaLabel="Add a transaction" onClose={handleClose} returnFocusTo={returnFocusTo}>
+      <div className="quick-actions">
+        {ACTIONS.map((action) => (
+          <button
+            key={action.type}
+            type="button"
+            className="quick-action"
+            onClick={() => handleSelect(action.type)}
+          >
+            <action.icon className="quick-action-icon" size={22} aria-hidden="true" />
+            <span>{action.label}</span>
+          </button>
+        ))}
       </div>
-    </div>
+    </Sheet>
   );
 }

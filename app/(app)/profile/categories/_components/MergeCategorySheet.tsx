@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useModalFocus } from "../../../_components/useModalFocus";
+import { Sheet } from "../../../_components/Sheet";
 import { mergeCategoryAction } from "../../category-actions";
 import type { CategoryWithUsage } from "./types";
 
@@ -32,7 +32,8 @@ export function MergeCategorySheet({
   const [confirming, setConfirming] = useState(Boolean(initialTargetId));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const targetFieldId = `${uid}-target`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -43,8 +44,6 @@ export function MergeCategorySheet({
     setVisible(false);
     setTimeout(onDone, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   const target = otherCategories.find((c) => c.id === targetId);
 
@@ -66,78 +65,64 @@ export function MergeCategorySheet({
   }
 
   return (
-    <div className={`sheet-backdrop ${visible ? "is-visible" : ""}`} onClick={handleClose} role="presentation">
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Merge categories"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-
-        {!confirming ? (
-          <>
-            <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>Merge categories</h2>
-            <div className="field">
-              <label>Source category</label>
-              <input type="text" value={source.name} disabled />
-            </div>
-            <div className="field">
-              <label htmlFor="merge-target">Merge into</label>
-              <select
-                id="merge-target"
-                value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
-              >
-                <option value="">Choose a category…</option>
-                {otherCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="button"
-              className="button sheet-submit"
-              disabled={!targetId}
-              onClick={() => setConfirming(true)}
-            >
-              Continue
-            </button>
-            <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-              Cancel
-            </button>
-          </>
-        ) : (
-          <>
-            <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-              Merge {source.name} into {target?.name}?
-            </h2>
-            <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-              {source.transactionCount > 0
-                ? `${source.transactionCount} transaction${source.transactionCount === 1 ? "" : "s"} and all associated budget history will be moved to ${target?.name}.`
-                : `Any budget history for ${source.name} will be moved to ${target?.name}.`}{" "}
-              This action cannot be undone.
-            </p>
-            {error && <p className="error-text">{error}</p>}
-            <button type="button" className="button sheet-submit" onClick={handleMerge} disabled={pending}>
-              {pending ? "Merging..." : "Merge categories"}
-            </button>
-            <button
-              type="button"
-              className="button button--secondary sheet-submit"
-              onClick={() => setConfirming(false)}
-              disabled={pending}
-            >
-              Cancel
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+    <Sheet
+      visible={visible}
+      title={confirming ? `Merge ${source.name} into ${target?.name}?` : "Merge categories"}
+      titleStyle={confirming ? { textAlign: "center", marginBottom: "0.5rem" } : undefined}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
+    >
+      {!confirming ? (
+        <>
+          <div className="field">
+            <label>Source category</label>
+            <input type="text" value={source.name} disabled />
+          </div>
+          <div className="field">
+            <label htmlFor={targetFieldId}>Merge into</label>
+            <select id={targetFieldId} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+              <option value="">Choose a category…</option>
+              {otherCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="button sheet-submit"
+            disabled={!targetId}
+            onClick={() => setConfirming(true)}
+          >
+            Continue
+          </button>
+          <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+            {source.transactionCount > 0
+              ? `${source.transactionCount} transaction${source.transactionCount === 1 ? "" : "s"} and all associated budget history will be moved to ${target?.name}.`
+              : `Any budget history for ${source.name} will be moved to ${target?.name}.`}{" "}
+            This action cannot be undone.
+          </p>
+          {error && <p className="error-text">{error}</p>}
+          <button type="button" className="button sheet-submit" onClick={handleMerge} disabled={pending}>
+            {pending ? "Merging..." : "Merge categories"}
+          </button>
+          <button
+            type="button"
+            className="button button--secondary sheet-submit"
+            onClick={() => setConfirming(false)}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+        </>
+      )}
+    </Sheet>
   );
 }

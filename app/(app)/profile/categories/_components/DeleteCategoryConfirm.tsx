@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useModalFocus } from "../../../_components/useModalFocus";
+import { Sheet } from "../../../_components/Sheet";
 import { deleteCategoryAction } from "../../category-actions";
 import type { CategoryWithUsage } from "./types";
 
@@ -28,7 +28,6 @@ export function DeleteCategoryConfirm({
   const [visible, setVisible] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -39,8 +38,6 @@ export function DeleteCategoryConfirm({
     setVisible(false);
     setTimeout(onDone, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   async function handleDelete() {
     setPending(true);
@@ -61,52 +58,43 @@ export function DeleteCategoryConfirm({
   const hasUsage = category.transactionCount > 0 || category.hasBudgetGoal;
 
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={pending ? undefined : handleClose}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title={`Delete ${category.name}?`}
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleClose}
+      closeOnBackdropClick={!pending}
+      returnFocusTo={returnFocusTo}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Delete ${category.name}`}
-        onClick={(e) => e.stopPropagation()}
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+        {hasUsage ? (
+          <>
+            {category.transactionCount > 0 &&
+              `${category.transactionCount} transaction${category.transactionCount === 1 ? "" : "s"} will become Uncategorized. `}
+            {category.hasBudgetGoal && "Its budget history will be permanently deleted. "}
+            This can&apos;t be undone.
+          </>
+        ) : (
+          `It has no transactions or budget history — this can't be undone.`
+        )}
+      </p>
+      {error && <p className="error-text">{error}</p>}
+      <button
+        type="button"
+        className="button button--danger sheet-submit"
+        onClick={handleDelete}
+        disabled={pending}
       >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Delete {category.name}?</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-          {hasUsage ? (
-            <>
-              {category.transactionCount > 0 &&
-                `${category.transactionCount} transaction${category.transactionCount === 1 ? "" : "s"} will become Uncategorized. `}
-              {category.hasBudgetGoal && "Its budget history will be permanently deleted. "}
-              This can&apos;t be undone.
-            </>
-          ) : (
-            `It has no transactions or budget history — this can't be undone.`
-          )}
-        </p>
-        {error && <p className="error-text">{error}</p>}
-        <button
-          type="button"
-          className="button button--danger sheet-submit"
-          onClick={handleDelete}
-          disabled={pending}
-        >
-          {pending ? "Deleting..." : "Delete category"}
-        </button>
-        <button
-          type="button"
-          className="button button--secondary sheet-submit"
-          onClick={handleClose}
-          disabled={pending}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+        {pending ? "Deleting..." : "Delete category"}
+      </button>
+      <button
+        type="button"
+        className="button button--secondary sheet-submit"
+        onClick={handleClose}
+        disabled={pending}
+      >
+        Cancel
+      </button>
+    </Sheet>
   );
 }

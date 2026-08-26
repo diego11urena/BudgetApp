@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useModalFocus } from "../../../_components/useModalFocus";
+import { Sheet } from "../../../_components/Sheet";
 import { CategoryIcon } from "@/lib/category-icons";
 import { createCategoryAction, updateCategoryAction } from "../../category-actions";
 import { IconPickerSheet } from "./IconPickerSheet";
@@ -42,7 +42,9 @@ export function CategoryFormSheet({
   const [pickingIcon, setPickingIcon] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const nameId = `${uid}-name`;
+  const errorId = `${uid}-error`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -53,8 +55,6 @@ export function CategoryFormSheet({
     setVisible(false);
     setTimeout(onDone, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,70 +90,57 @@ export function CategoryFormSheet({
 
   return (
     <>
-      <div
-        className={`sheet-backdrop ${visible && !pickingIcon ? "is-visible" : ""}`}
-        onClick={pickingIcon ? undefined : handleClose}
-        role="presentation"
+      <Sheet
+        visible={visible && !pickingIcon}
+        title={existingCategory ? "Edit category" : "Add category"}
+        onClose={handleClose}
+        closeOnBackdropClick={!pickingIcon}
+        returnFocusTo={returnFocusTo}
       >
-        <div
-          ref={sheetRef}
-          tabIndex={-1}
-          className={`sheet ${visible && !pickingIcon ? "is-open" : ""}`}
-          role="dialog"
-          aria-modal="true"
-          aria-label={existingCategory ? `Edit ${existingCategory.name}` : "Add category"}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="sheet-handle" />
-          <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>
-            {existingCategory ? "Edit category" : "Add category"}
-          </h2>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="category-form-icon-row">
-              <button
-                type="button"
-                className="category-form-icon-preview"
-                onClick={() => setPickingIcon(true)}
-                aria-label="Choose an icon"
-              >
-                <CategoryIcon name={name || "Category"} icon={icon} size={28} aria-hidden="true" />
-              </button>
-              <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                <label htmlFor="category-form-name">Category name</label>
-                <input
-                  id="category-form-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={error ? "is-invalid" : ""}
-                  aria-invalid={error ? true : undefined}
-                  aria-describedby={error ? "category-form-error" : undefined}
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {error && (
-              <p id="category-form-error" className="error-text" role="alert">
-                {error}
-              </p>
-            )}
-
-            <button type="submit" className="button sheet-submit" disabled={pending}>
-              {pending ? "Saving..." : "Save"}
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="category-form-icon-row">
+            <button
+              type="button"
+              className="category-form-icon-preview"
+              onClick={() => setPickingIcon(true)}
+              aria-label="Choose an icon"
+            >
+              <CategoryIcon name={name || "Category"} icon={icon} size={28} aria-hidden="true" />
             </button>
-          </form>
-          <button
-            type="button"
-            className="button button--secondary sheet-submit"
-            onClick={handleClose}
-            disabled={pending}
-          >
-            Cancel
+            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+              <label htmlFor={nameId}>Category name</label>
+              <input
+                id={nameId}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={error ? "is-invalid" : ""}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p id={errorId} className="error-text" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" className="button sheet-submit" disabled={pending}>
+            {pending ? "Saving..." : "Save"}
           </button>
-        </div>
-      </div>
+        </form>
+        <button
+          type="button"
+          className="button button--secondary sheet-submit"
+          onClick={handleClose}
+          disabled={pending}
+        >
+          Cancel
+        </button>
+      </Sheet>
 
       {pickingIcon && (
         <IconPickerSheet

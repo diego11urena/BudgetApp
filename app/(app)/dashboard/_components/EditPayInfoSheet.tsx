@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction, previewPayDateChangeAction } from "../actions";
 import type { PayDateChangeResult } from "@/lib/cycles";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 
@@ -48,7 +48,10 @@ export function EditPayInfoSheet({
     Extract<PayDateChangeResult, { ok: true }> | null
   >(null);
   const [movePending, setMovePending] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const amountId = `${uid}-amount`;
+  const dateId = `${uid}-date`;
+  const errorId = `${uid}-error`;
 
   // The lower bound always comes from this cycle's own previous neighbor
   // (null only for the account's very first cycle ever) — same boundary
@@ -163,114 +166,102 @@ export function EditPayInfoSheet({
     setPayDate(initialPayDate);
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
-
   return (
-    <div
-      className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
-      onClick={handleClose}
-      role="presentation"
+    <Sheet
+      visible={visible}
+      title="Edit pay info"
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
     >
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Edit this quincena's pay info"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>Edit pay info</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-          {closed
-            ? "Corrects this quincena's amount and start date in place."
-            : "Corrects this quincena's amount and start date in place — it won't start a new quincena."}
-        </p>
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+        {closed
+          ? "Corrects this quincena's amount and start date in place."
+          : "Corrects this quincena's amount and start date in place — it won't start a new quincena."}
+      </p>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="field">
-            <label htmlFor="edit-pay-amount">Net pay (USD)</label>
-            <input
-              id="edit-pay-amount"
-              type="text"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
-              onFocus={(e) => e.target.select()}
-              aria-invalid={errorField === "amount" || undefined}
-              aria-describedby={errorField === "amount" ? "edit-pay-error" : undefined}
-            />
-          </div>
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="field">
+          <label htmlFor={amountId}>Net pay (USD)</label>
+          <input
+            id={amountId}
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
+            onFocus={(e) => e.target.select()}
+            aria-invalid={errorField === "amount" || undefined}
+            aria-describedby={errorField === "amount" ? errorId : undefined}
+          />
+        </div>
 
-          <div className="field">
-            <label htmlFor="edit-pay-date">Pay date</label>
-            <input
-              id="edit-pay-date"
-              type="date"
-              value={payDate}
-              min={minDate}
-              max={maxDate}
-              onChange={(e) => setPayDate(e.target.value)}
-              className={errorField === "date" ? "is-invalid" : ""}
-              aria-invalid={errorField === "date" || undefined}
-              aria-describedby={errorField === "date" ? "edit-pay-error" : undefined}
-            />
-          </div>
+        <div className="field">
+          <label htmlFor={dateId}>Pay date</label>
+          <input
+            id={dateId}
+            type="date"
+            value={payDate}
+            min={minDate}
+            max={maxDate}
+            onChange={(e) => setPayDate(e.target.value)}
+            className={errorField === "date" ? "is-invalid" : ""}
+            aria-invalid={errorField === "date" || undefined}
+            aria-describedby={errorField === "date" ? errorId : undefined}
+          />
+        </div>
 
-          {error && (
-            <p id="edit-pay-error" className="error-text" role="alert">
-              {error}
-            </p>
-          )}
+        {error && (
+          <p id={errorId} className="error-text" role="alert">
+            {error}
+          </p>
+        )}
 
-          {pendingMove && pendingMove.changed && (
-            <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-              This will move {pendingMove.movingCount} transaction
-              {pendingMove.movingCount === 1 ? "" : "s"} {pendingMove.direction === "in" ? "into" : "out of"}{" "}
-              this quincena, {pendingMove.direction === "in" ? "from" : "to"} {pendingMove.otherCycleLabel}.
-              Continue?
-            </p>
-          )}
+        {pendingMove && pendingMove.changed && (
+          <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+            This will move {pendingMove.movingCount} transaction
+            {pendingMove.movingCount === 1 ? "" : "s"} {pendingMove.direction === "in" ? "into" : "out of"}{" "}
+            this quincena, {pendingMove.direction === "in" ? "from" : "to"} {pendingMove.otherCycleLabel}.
+            Continue?
+          </p>
+        )}
 
-          {pendingMove ? (
-            <>
-              <button
-                type="button"
-                className="button sheet-submit"
-                disabled={movePending}
-                onClick={handleConfirmMove}
-              >
-                {movePending ? "Saving..." : "Continue"}
-              </button>
-              <button
-                type="button"
-                className="button button--secondary sheet-submit"
-                disabled={movePending}
-                onClick={handleCancelMove}
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button type="submit" className="button sheet-submit" disabled={pending}>
-              {pending ? "Saving..." : "Save"}
+        {pendingMove ? (
+          <>
+            <button
+              type="button"
+              className="button sheet-submit"
+              disabled={movePending}
+              onClick={handleConfirmMove}
+            >
+              {movePending ? "Saving..." : "Continue"}
             </button>
-          )}
-        </form>
-
-        {!pendingMove && (
-          <button
-            type="button"
-            className="button button--secondary sheet-submit"
-            onClick={handleClose}
-            disabled={pending}
-          >
-            Cancel
+            <button
+              type="button"
+              className="button button--secondary sheet-submit"
+              disabled={movePending}
+              onClick={handleCancelMove}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button type="submit" className="button sheet-submit" disabled={pending}>
+            {pending ? "Saving..." : "Save"}
           </button>
         )}
-      </div>
-    </div>
+      </form>
+
+      {!pendingMove && (
+        <button
+          type="button"
+          className="button button--secondary sheet-submit"
+          onClick={handleClose}
+          disabled={pending}
+        >
+          Cancel
+        </button>
+      )}
+    </Sheet>
   );
 }

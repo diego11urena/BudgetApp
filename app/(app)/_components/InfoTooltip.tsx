@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useModalFocus } from "./useModalFocus";
+import { useEffect, useState } from "react";
+import { Sheet } from "./Sheet";
 
 /**
  * A reusable one-off explanation surface — the ⓘ-triggered sheet pattern
@@ -24,7 +24,6 @@ export function InfoTooltip({
   returnFocusTo?: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -36,28 +35,20 @@ export function InfoTooltip({
     setTimeout(onClose, 200);
   }
 
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
-
   return (
-    <div className={`sheet-backdrop ${visible ? "is-visible" : ""}`} onClick={handleClose} role="presentation">
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.5rem" }}>{title}</h2>
-        <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
-          {children}
-        </p>
-        <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-          {dismissLabel}
-        </button>
-      </div>
-    </div>
+    <Sheet
+      visible={visible}
+      title={title}
+      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
+    >
+      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
+        {children}
+      </p>
+      <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
+        {dismissLabel}
+      </button>
+    </Sheet>
   );
 }

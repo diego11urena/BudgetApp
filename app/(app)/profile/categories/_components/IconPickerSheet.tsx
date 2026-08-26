@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useModalFocus } from "../../../_components/useModalFocus";
+import { useEffect, useState } from "react";
+import { Sheet } from "../../../_components/Sheet";
 import { getIconGroups, searchIcons, type IconEntry } from "@/lib/category-icon-library";
 
 const GROUPS = getIconGroups();
@@ -21,7 +21,6 @@ export function IconPickerSheet({
 }) {
   const [visible, setVisible] = useState(false);
   const [query, setQuery] = useState("");
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -32,8 +31,6 @@ export function IconPickerSheet({
     setVisible(false);
     setTimeout(onClose, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, null);
 
   const trimmed = query.trim();
   const searchResults = trimmed ? searchIcons(trimmed) : null;
@@ -58,51 +55,45 @@ export function IconPickerSheet({
   }
 
   return (
-    <div className={`sheet-backdrop ${visible ? "is-visible" : ""}`} onClick={handleClose} role="presentation">
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet icon-picker-sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Choose an icon"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "0.75rem" }}>Choose an icon</h2>
+    <Sheet
+      visible={visible}
+      title="Choose an icon"
+      titleStyle={{ textAlign: "center", marginBottom: "0.75rem" }}
+      onClose={handleClose}
+      returnFocusTo={null}
+      className="icon-picker-sheet"
+    >
+      <input
+        type="text"
+        className="transaction-filters-search"
+        placeholder="Search icons…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        aria-label="Search icons"
+        autoFocus
+        style={{ marginBottom: "0.75rem" }}
+      />
 
-        <input
-          type="text"
-          className="transaction-filters-search"
-          placeholder="Search icons…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search icons"
-          autoFocus
-          style={{ marginBottom: "0.75rem" }}
-        />
-
-        <div className="icon-picker-scroll">
-          {searchResults ? (
-            searchResults.length > 0 ? (
-              renderGrid(searchResults)
-            ) : (
-              <p className="field-hint">No icons match &quot;{trimmed}&quot;.</p>
-            )
+      <div className="icon-picker-scroll">
+        {searchResults ? (
+          searchResults.length > 0 ? (
+            renderGrid(searchResults)
           ) : (
-            GROUPS.map(({ group, icons }) => (
-              <div key={group} className="icon-picker-group">
-                <p className="icon-picker-group-title">{group}</p>
-                {renderGrid(icons)}
-              </div>
-            ))
-          )}
-        </div>
-
-        <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-          Cancel
-        </button>
+            <p className="field-hint">No icons match &quot;{trimmed}&quot;.</p>
+          )
+        ) : (
+          GROUPS.map(({ group, icons }) => (
+            <div key={group} className="icon-picker-group">
+              <p className="icon-picker-group-title">{group}</p>
+              {renderGrid(icons)}
+            </div>
+          ))
+        )}
       </div>
-    </div>
+
+      <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
+        Cancel
+      </button>
+    </Sheet>
   );
 }

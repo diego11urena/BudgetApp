@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useModalFocus } from "../../_components/useModalFocus";
+import { Sheet } from "../../_components/Sheet";
 import { useToast } from "../../_components/ToastProvider";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import {
@@ -53,7 +53,13 @@ export function RecurringExpenseEditSheet({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorField, setErrorField] = useState<"name" | "amount" | "categoryName" | "dueDay" | null>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const uid = useId();
+  const nameId = `${uid}-name`;
+  const amountId = `${uid}-amount`;
+  const categoryId = `${uid}-category`;
+  const frequencyId = `${uid}-frequency`;
+  const dueDayId = `${uid}-due-day`;
+  const errorId = `${uid}-error`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -64,8 +70,6 @@ export function RecurringExpenseEditSheet({
     setVisible(false);
     setTimeout(onDone, 200);
   }
-
-  useModalFocus(sheetRef, handleClose, returnFocusTo);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -123,134 +127,124 @@ export function RecurringExpenseEditSheet({
   }
 
   return (
-    <div className={`sheet-backdrop ${visible ? "is-visible" : ""}`} onClick={handleClose} role="presentation">
-      <div
-        ref={sheetRef}
-        tabIndex={-1}
-        className={`sheet ${visible ? "is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={existing ? `Edit ${existing.name}` : "New recurring expense"}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sheet-handle" />
-        <h2 style={{ textAlign: "center", marginBottom: "1rem" }}>
-          {existing ? "Edit recurring expense" : "New recurring expense"}
-        </h2>
+    <Sheet
+      visible={visible}
+      title={existing ? "Edit recurring expense" : "New recurring expense"}
+      onClose={handleClose}
+      returnFocusTo={returnFocusTo}
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="field">
+          <label htmlFor={nameId}>Name</label>
+          <input
+            id={nameId}
+            name="name"
+            type="text"
+            placeholder="Spotify, Netflix, Rent…"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={errorField === "name" ? "is-invalid" : ""}
+            aria-invalid={errorField === "name" || undefined}
+            aria-describedby={errorField === "name" ? errorId : undefined}
+            autoFocus
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="field">
-            <label htmlFor="recurring-expense-name">Name</label>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
+            <label htmlFor={amountId}>Amount (USD)</label>
             <input
-              id="recurring-expense-name"
-              name="name"
+              id={amountId}
+              name="amount"
               type="text"
-              placeholder="Spotify, Netflix, Rent…"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={errorField === "name" ? "is-invalid" : ""}
-              aria-invalid={errorField === "name" || undefined}
-              aria-describedby={errorField === "name" ? "recurring-expense-error" : undefined}
-              autoFocus
+              inputMode="decimal"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className={errorField === "amount" ? "is-invalid" : ""}
+              aria-invalid={errorField === "amount" || undefined}
+              aria-describedby={errorField === "amount" ? errorId : undefined}
             />
           </div>
+          <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
+            <label htmlFor={categoryId}>Category</label>
+            <CategoryNameInput
+              id={categoryId}
+              name="categoryName"
+              categoryNames={categoryNames}
+              defaultValue={existing?.categoryName}
+              placeholder="Search or add a category…"
+              showChips={false}
+              invalid={errorField === "categoryName"}
+              describedBy={errorId}
+            />
+          </div>
+        </div>
 
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
+            <label htmlFor={frequencyId}>Frequency</label>
+            <select
+              id={frequencyId}
+              name="frequency"
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as Frequency)}
+            >
+              <option value="BIWEEKLY">Every quincena</option>
+              <option value="MONTHLY">Once a month</option>
+            </select>
+          </div>
+          {frequency === "MONTHLY" && (
             <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor="recurring-expense-amount">Amount (USD)</label>
+              <label htmlFor={dueDayId}>Due day (1–31)</label>
               <input
-                id="recurring-expense-amount"
-                name="amount"
-                type="text"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className={errorField === "amount" ? "is-invalid" : ""}
-                aria-invalid={errorField === "amount" || undefined}
-                aria-describedby={errorField === "amount" ? "recurring-expense-error" : undefined}
+                id={dueDayId}
+                name="dueDay"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={31}
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+                className={errorField === "dueDay" ? "is-invalid" : ""}
+                aria-invalid={errorField === "dueDay" || undefined}
+                aria-describedby={errorField === "dueDay" ? errorId : undefined}
               />
             </div>
-            <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor="recurring-expense-category">Category</label>
-              <CategoryNameInput
-                id="recurring-expense-category"
-                name="categoryName"
-                categoryNames={categoryNames}
-                defaultValue={existing?.categoryName}
-                placeholder="Search or add a category…"
-                showChips={false}
-                invalid={errorField === "categoryName"}
-                describedBy="recurring-expense-error"
-              />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor="recurring-expense-frequency">Frequency</label>
-              <select
-                id="recurring-expense-frequency"
-                name="frequency"
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value as Frequency)}
-              >
-                <option value="BIWEEKLY">Every quincena</option>
-                <option value="MONTHLY">Once a month</option>
-              </select>
-            </div>
-            {frequency === "MONTHLY" && (
-              <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-                <label htmlFor="recurring-expense-due-day">Due day (1–31)</label>
-                <input
-                  id="recurring-expense-due-day"
-                  name="dueDay"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={31}
-                  value={dueDay}
-                  onChange={(e) => setDueDay(e.target.value)}
-                  className={errorField === "dueDay" ? "is-invalid" : ""}
-                  aria-invalid={errorField === "dueDay" || undefined}
-                  aria-describedby={errorField === "dueDay" ? "recurring-expense-error" : undefined}
-                />
-              </div>
-            )}
-          </div>
-
-          {existing && (
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-              <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
-              Carries into next quincena
-            </label>
           )}
-
-          {error && (
-            <p id="recurring-expense-error" className="error-text" role="alert">
-              {error}
-            </p>
-          )}
-
-          <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? "Saving..." : "Save"}
-          </button>
-        </form>
+        </div>
 
         {existing && (
-          <button
-            type="button"
-            className="button button--secondary sheet-submit"
-            onClick={handleDelete}
-            disabled={pending}
-          >
-            Delete
-          </button>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+            <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
+            Carries into next quincena
+          </label>
         )}
-        <button type="button" className="button button--secondary sheet-submit" onClick={handleClose} disabled={pending}>
-          Cancel
+
+        {error && (
+          <p id={errorId} className="error-text" role="alert">
+            {error}
+          </p>
+        )}
+
+        <button type="submit" className="button sheet-submit" disabled={pending}>
+          {pending ? "Saving..." : "Save"}
         </button>
-      </div>
-    </div>
+      </form>
+
+      {existing && (
+        <button
+          type="button"
+          className="button button--secondary sheet-submit"
+          onClick={handleDelete}
+          disabled={pending}
+        >
+          Delete
+        </button>
+      )}
+      <button type="button" className="button button--secondary sheet-submit" onClick={handleClose} disabled={pending}>
+        Cancel
+      </button>
+    </Sheet>
   );
 }
