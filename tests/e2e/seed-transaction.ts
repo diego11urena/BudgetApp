@@ -26,6 +26,7 @@ async function main() {
   await prisma.cycleTransaction.create({
     data: {
       cycleId: cycle.id,
+      userId: user.id,
       type: payload.type ?? "EXPENSE",
       name: payload.name,
       amount: payload.amount,

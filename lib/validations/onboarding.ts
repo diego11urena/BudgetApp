@@ -4,7 +4,13 @@ import { decimalString } from "./shared";
 export const signupSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  // bcryptjs silently truncates at 72 bytes -- an explicit max means a
+  // very long password fails loudly here instead of the part past byte
+  // 72 quietly never mattering to the hash.
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be at most 72 characters"),
 });
 
 export const loginSchema = z.object({
@@ -14,7 +20,10 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Enter your current password"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+  newPassword: z
+    .string()
+    .min(8, "New password must be at least 8 characters")
+    .max(72, "New password must be at most 72 characters"),
 });
 
 export const incomeStepSchema = z.object({

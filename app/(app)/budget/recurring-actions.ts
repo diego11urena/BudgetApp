@@ -316,6 +316,7 @@ export const recordRecurringExpensePaymentAction = withActionErrorHandling(async
   const created = await prisma.cycleTransaction.create({
     data: {
       cycleId: cycle.id,
+      userId,
       type: "EXPENSE",
       name: existing.name,
       amount: parsedAmount.data,

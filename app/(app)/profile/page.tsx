@@ -9,7 +9,7 @@ import { GmailConnectionCard } from "./_components/GmailConnectionCard";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { EditIncomeSheet } from "./_components/EditIncomeSheet";
-import { signOutAction } from "./actions";
+import { signOutAction, logOutEverywhereAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -111,10 +111,15 @@ export default async function ProfilePage({
         <EraseCyclesButton />
       </div>
 
-      <div className="dashboard-section">
+      <div className="dashboard-section" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <form action={signOutAction}>
           <button type="submit" className="button button--secondary">
             Sign out
+          </button>
+        </form>
+        <form action={logOutEverywhereAction}>
+          <button type="submit" className="button button--secondary">
+            Log out everywhere
           </button>
         </form>
       </div>

@@ -5,8 +5,12 @@ import { createHmac, timingSafeEqual } from "crypto";
 const STATE_TTL_MS = 10 * 60 * 1000;
 
 function sign(payload: string): string {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET is not set");
+  // Its own secret, not AUTH_SECRET (which signs session cookies) --
+  // key separation is cheap even with no practical cross-protocol attack
+  // today. Falls back to AUTH_SECRET so an existing deployment that
+  // hasn't set GMAIL_OAUTH_STATE_SECRET yet keeps working unchanged.
+  const secret = process.env.GMAIL_OAUTH_STATE_SECRET ?? process.env.AUTH_SECRET;
+  if (!secret) throw new Error("GMAIL_OAUTH_STATE_SECRET (or AUTH_SECRET) is not set");
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 

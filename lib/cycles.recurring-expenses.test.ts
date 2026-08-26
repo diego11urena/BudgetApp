@@ -202,7 +202,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
   describe("linkOrCreateRecurringExpenseForTransaction (the 'This is a recurring expense' toggle)", () => {
     async function makeTransaction(cycleId: string, categoryId: string, name: string, amount: number) {
       return prisma.cycleTransaction.create({
-        data: { cycleId, type: "EXPENSE", name, amount, expenseCategoryId: categoryId },
+        data: { cycleId, userId, type: "EXPENSE", name, amount, expenseCategoryId: categoryId },
       });
     }
 
@@ -348,6 +348,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       const tx = await prisma.cycleTransaction.create({
         data: {
           cycleId: cycle.id,
+          userId,
           type: "EXPENSE",
           name: "Spotify",
           amount: 6.99,

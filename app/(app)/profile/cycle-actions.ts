@@ -14,6 +14,9 @@ import {
 import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling } from "@/lib/action-error";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const ERASE_CYCLES_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
 /**
  * Deletes every cycle for the user — cascades every transaction, budget
@@ -29,12 +32,21 @@ import { withActionErrorHandling } from "@/lib/action-error";
  * one transaction so a failure partway through can't leave a fresh cycle
  * with no income entry.
  */
-export const eraseAllCyclesAction = withActionErrorHandling(async function eraseAllCyclesAction(): Promise<void> {
+export const eraseAllCyclesAction = withActionErrorHandling(async function eraseAllCyclesAction(): Promise<
+  { error?: string } | undefined
+> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
   const userId = session.user.id;
+
+  // Deletes + fully recreates every cycle per call -- the most expensive
+  // and destructive action in the app, worth throttling on its own.
+  const rateLimit = await checkRateLimit(`erase-cycles:${userId}`, ERASE_CYCLES_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+  }
 
   // Most recent target amount per recurring SAVINGS category, captured
   // before the delete below removes the cycles these targets live on.

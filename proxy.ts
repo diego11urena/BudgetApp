@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/transactions",
   "/budget",
   "/goals",
+  "/history",
   "/profile",
 ];
 
@@ -29,6 +30,7 @@ export const config = {
     "/transactions/:path*",
     "/budget/:path*",
     "/goals/:path*",
+    "/history/:path*",
     "/profile/:path*",
   ],
 };

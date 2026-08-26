@@ -32,11 +32,15 @@ export async function loginAction(
   // password. Also keyed by IP, separately, to blunt a distributed
   // attacker spreading guesses across many different accounts, which the
   // email-only check can't see (see LOGIN_IP_RATE_LIMIT above).
-  const rateLimit = await checkRateLimit(`login:${parsed.data.email.toLowerCase()}`, LOGIN_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`login:${parsed.data.email.toLowerCase()}`, LOGIN_RATE_LIMIT, {
+    failClosed: true,
+  });
   if (!rateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
   }
-  const ipRateLimit = await checkRateLimit(`login-ip:${await getClientIp()}`, LOGIN_IP_RATE_LIMIT);
+  const ipRateLimit = await checkRateLimit(`login-ip:${await getClientIp()}`, LOGIN_IP_RATE_LIMIT, {
+    failClosed: true,
+  });
   if (!ipRateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${ipRateLimit.retryAfterSeconds}s.` };
   }

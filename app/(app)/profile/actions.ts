@@ -29,7 +29,9 @@ export const changePasswordAction = withActionErrorHandling(async function chang
   }
   const userId = session.user.id;
 
-  const rateLimit = await checkRateLimit(`changepw:${userId}`, CHANGE_PASSWORD_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`changepw:${userId}`, CHANGE_PASSWORD_RATE_LIMIT, {
+    failClosed: true,
+  });
   if (!rateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
   }
@@ -57,9 +59,32 @@ export const changePasswordAction = withActionErrorHandling(async function chang
   }
 
   const hashedPassword = await hashPassword(newPassword);
-  await prisma.user.update({ where: { id: userId }, data: { hashedPassword } });
+  // Incrementing sessionVersion here (not just the password hash) is what
+  // actually revokes every other device's session -- see lib/auth.ts's
+  // session() callback, which compares this against what's baked into
+  // each existing JWT and treats a mismatch as logged out.
+  await prisma.user.update({
+    where: { id: userId },
+    data: { hashedPassword, sessionVersion: { increment: 1 } },
+  });
 
   return { success: true };
+});
+
+export const logOutEverywhereAction = withActionErrorHandling(async function logOutEverywhereAction() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { sessionVersion: { increment: 1 } },
+  });
+  // Also signs this device out (its own session's baked-in version now
+  // fails the same check every other device's does on its next request)
+  // -- clicking "log out everywhere" ending the very session you clicked
+  // it from is the expected behavior, not an oversight.
+  await signOut({ redirectTo: "/login" });
 });
 
 export type IncomeSettingsFormState = { error?: string; success?: boolean } | undefined;

@@ -57,6 +57,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     await prisma.cycleTransaction.create({
       data: {
         cycleId: cycle.id,
+        userId,
         type: "EXPENSE",
         name: "Spotify",
         amount: 9.99,
@@ -84,6 +85,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     await prisma.cycleTransaction.create({
       data: {
         cycleId: cycle.id,
+        userId,
         type: "EXPENSE",
         name: "Weekly shop",
         amount: 100,
@@ -93,7 +95,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     });
     // Same category, but never linked -- must not count toward actual.
     await prisma.cycleTransaction.create({
-      data: { cycleId: cycle.id, type: "EXPENSE", name: "Snacks", amount: 12, expenseCategoryId: category.id },
+      data: { cycleId: cycle.id, userId, type: "EXPENSE", name: "Snacks", amount: 12, expenseCategoryId: category.id },
     });
 
     const result = await getRecurringExpensesForCycle(userId, cycle.id);
@@ -120,7 +122,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     const cycle = await makeCycle(new Date(2026, 7, 3));
     await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Netflix", 15.99);
     const candidate = await prisma.cycleTransaction.create({
-      data: { cycleId: cycle.id, type: "EXPENSE", name: "Netflix", amount: 15.99, expenseCategoryId: category.id },
+      data: { cycleId: cycle.id, userId, type: "EXPENSE", name: "Netflix", amount: 15.99, expenseCategoryId: category.id },
     });
 
     const result = await getRecurringExpensesForCycle(userId, cycle.id);
@@ -133,7 +135,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     const cycle = await makeCycle(new Date(2026, 7, 3));
     await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Netflix", 15.99);
     await prisma.cycleTransaction.create({
-      data: { cycleId: cycle.id, type: "EXPENSE", name: "Netflix", amount: 15.99, expenseCategoryId: category.id },
+      data: { cycleId: cycle.id, userId, type: "EXPENSE", name: "Netflix", amount: 15.99, expenseCategoryId: category.id },
     });
 
     const result = await getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false });
@@ -149,6 +151,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     await prisma.cycleTransaction.create({
       data: {
         cycleId: cycle.id,
+        userId,
         type: "EXPENSE",
         name: "Spotify",
         amount: 9.99,

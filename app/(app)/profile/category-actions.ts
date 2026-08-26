@@ -9,6 +9,9 @@ import { revalidateAppPages } from "@/lib/revalidate";
 import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
 import { withActionErrorHandling } from "@/lib/action-error";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const MERGE_CATEGORY_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
 const VALID_CATEGORY_COLOR = /^chart-cat-[1-8]$/;
 
@@ -131,6 +134,14 @@ export const mergeCategoryAction = withActionErrorHandling(async function mergeC
     redirect("/login");
   }
   const userId = session.user.id;
+
+  // The merge itself does N+1 work inside one transaction (see
+  // mergeCategoryRecurringExpenses) -- worth throttling on its own,
+  // separately from every other category action in this file.
+  const rateLimit = await checkRateLimit(`merge-category:${userId}`, MERGE_CATEGORY_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+  }
 
   const sourceCategoryId = formData.get("sourceCategoryId");
   const targetCategoryId = formData.get("targetCategoryId");

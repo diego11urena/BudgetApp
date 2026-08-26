@@ -19,6 +19,9 @@ import { getBudgetUsage } from "@/lib/budget-status";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling } from "@/lib/action-error";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+const JUST_GOT_PAID_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
 export interface CycleClosedSummary {
   spent: number;
@@ -46,6 +49,14 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
+  }
+
+  // Closing a cycle in a loop would grow BudgetCycle without bound --
+  // this is the one throttle standing between a scripted/compromised
+  // session and that.
+  const rateLimit = await checkRateLimit(`just-got-paid:${session.user.id}`, JUST_GOT_PAID_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
   }
 
   const payDate = (payDateStr && parsePayDate(payDateStr)) || nowInPanama();

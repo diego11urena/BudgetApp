@@ -32,11 +32,15 @@ export async function signupAction(
 
   const { name, email, password } = parsed.data;
 
-  const rateLimit = await checkRateLimit(`signup:${email.toLowerCase()}`, SIGNUP_RATE_LIMIT);
+  const rateLimit = await checkRateLimit(`signup:${email.toLowerCase()}`, SIGNUP_RATE_LIMIT, {
+    failClosed: true,
+  });
   if (!rateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
   }
-  const ipRateLimit = await checkRateLimit(`signup-ip:${await getClientIp()}`, SIGNUP_IP_RATE_LIMIT);
+  const ipRateLimit = await checkRateLimit(`signup-ip:${await getClientIp()}`, SIGNUP_IP_RATE_LIMIT, {
+    failClosed: true,
+  });
   if (!ipRateLimit.allowed) {
     return { error: `Too many attempts. Try again in ${ipRateLimit.retryAfterSeconds}s.` };
   }

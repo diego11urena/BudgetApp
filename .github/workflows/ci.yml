@@ -24,6 +24,13 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm test
+      # critical, not the npm-audit default of moderate -- there's one
+      # pre-existing high-severity advisory in Prisma's own CLI tooling
+      # (deepmerge-ts via @prisma/config, build-time only, fixed only by a
+      # breaking Prisma downgrade) that isn't this workflow's to silently
+      # fix or hide; the level threshold keeps that one from blocking every
+      # future run while still catching a genuinely critical dependency.
+      - run: npm audit --audit-level=critical
       # CI's own runner is UTC, and Vercel's production servers are too --
       # a Panama-anchored (UTC-5) date bug can hide indefinitely if nothing
       # ever runs somewhere else. TZ=America/New_York specifically (not a

@@ -196,6 +196,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
           await tx.cycleTransaction.create({
             data: {
               cycleId: cycle.id,
+              userId,
               type: "SAVINGS",
               name,
               amount: delta.toFixed(2),

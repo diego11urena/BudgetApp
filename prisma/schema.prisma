@@ -22,6 +22,11 @@ model User {
   // auto-open. Same shape as onboardingCompletedAt: a nullable timestamp
   // set once via a server action.
   seenFixedExpenseHintAt DateTime?
+  // Bumped on password change (and by "Log out everywhere") -- the JWT
+  // session callback compares this against the value baked into the
+  // token at sign-in, so every other still-signed-in session stops
+  // passing the moment either happens, on its very next request.
+  sessionVersion         Int       @default(0)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -226,6 +231,12 @@ model CycleTransaction {
   id                 String            @id @default(cuid())
   cycleId            String
   cycle              BudgetCycle       @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  // Denormalized off cycle.userId -- exists purely so sourceMessageId's
+  // dedup constraint below can be scoped per-user instead of global (see
+  // that field's own comment). Not a Prisma relation; every write path
+  // already has the owning userId in hand from the cycle it's creating
+  // this row under.
+  userId             String
   type               TransactionType
   name               String
   amount             Decimal           @db.Decimal(12, 2)
@@ -255,9 +266,13 @@ model CycleTransaction {
   // id) — the hard dedupe backstop against re-importing the same email
   // twice. Null for every hand-entered transaction; Postgres treats
   // multiple NULLs as distinct under a unique index, so this never
-  // collides with manual entries.
-  sourceMessageId String? @unique
+  // collides with manual entries. Scoped per-user (not a bare global
+  // @unique) -- a message id colliding across two different users'
+  // mailboxes shouldn't silently drop one user's transaction as a
+  // "duplicate" of someone else's.
+  sourceMessageId String?
 
+  @@unique([userId, sourceMessageId])
   @@index([cycleId])
   @@index([expenseCategoryId])
   @@index([recurringExpenseId])

@@ -134,6 +134,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
     const createdTx = await tx.cycleTransaction.create({
       data: {
         cycleId: targetCycleId,
+        userId,
         type,
         name,
         amount,
@@ -575,6 +576,7 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   await prisma.cycleTransaction.create({
     data: {
       cycleId,
+      userId,
       type,
       name,
       amount: parsedAmount.data,

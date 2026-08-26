@@ -14,6 +14,11 @@ export function GmailConnectionCard({ connection }: { connection: GmailConnectio
           Connect your Gmail to automatically import purchase notifications from your bank — only
           emails from your bank&apos;s sender address are ever read.
         </p>
+        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
+          Google&apos;s permission screen will show read access to your whole inbox — that&apos;s
+          the scope Google requires for this kind of import, not something Balboa asks for beyond
+          it. Balboa&apos;s own code only ever looks at messages from your bank.
+        </p>
         <a href="/api/gmail/connect" className="button button--secondary">
           Connect Gmail
         </a>

@@ -50,6 +50,7 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     await prisma.cycleTransaction.create({
       data: {
         cycleId: closedCycle.id,
+        userId,
         type: "EXPENSE",
         name: "Late-added expense",
         amount: 42,
@@ -96,9 +97,9 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     // C once C's periodStart moves back to Jul 10; one that stays in P.
     await prisma.cycleTransaction.createMany({
       data: [
-        { cycleId: previous.id, type: "EXPENSE", name: "a", amount: 10, occurredAt: new Date(2026, 6, 10) },
-        { cycleId: previous.id, type: "EXPENSE", name: "b", amount: 20, occurredAt: new Date(2026, 6, 12) },
-        { cycleId: previous.id, type: "EXPENSE", name: "c", amount: 30, occurredAt: new Date(2026, 6, 5) },
+        { cycleId: previous.id, userId, type: "EXPENSE", name: "a", amount: 10, occurredAt: new Date(2026, 6, 10) },
+        { cycleId: previous.id, userId, type: "EXPENSE", name: "b", amount: 20, occurredAt: new Date(2026, 6, 12) },
+        { cycleId: previous.id, userId, type: "EXPENSE", name: "c", amount: 30, occurredAt: new Date(2026, 6, 5) },
       ],
     });
 
@@ -150,7 +151,7 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       },
     });
     await prisma.cycleTransaction.create({
-      data: { cycleId: previous.id, type: "EXPENSE", name: "a", amount: 10, occurredAt: new Date(2026, 6, 5) },
+      data: { cycleId: previous.id, userId, type: "EXPENSE", name: "a", amount: 10, occurredAt: new Date(2026, 6, 5) },
     });
 
     // On or before the previous cycle's own periodStart -- an outright conflict.

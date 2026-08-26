@@ -16,6 +16,11 @@ export const authConfig = {
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        // Carried through so lib/auth.ts's own session() callback (the
+        // only place with Postgres access) can compare it against the
+        // account's live value and invalidate this token the moment they
+        // diverge -- see that callback for why.
+        token.sessionVersion = user.sessionVersion ?? 0;
       }
       return token;
     },

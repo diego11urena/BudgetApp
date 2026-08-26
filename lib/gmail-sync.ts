@@ -222,7 +222,10 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
 
     if (candidateIds.length > 0) {
       const existing = await prisma.cycleTransaction.findMany({
-        where: { sourceMessageId: { in: candidateIds } },
+        // Scoped to this user -- sourceMessageId's uniqueness is per-user
+        // now (see schema.prisma), not a bare global constraint, so the
+        // dedup check itself must match that scope.
+        where: { userId, sourceMessageId: { in: candidateIds } },
         select: { sourceMessageId: true },
       });
       const knownIds = new Set(
@@ -299,6 +302,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
             await prisma.cycleTransaction.create({
               data: {
                 cycleId: targetCycle.id,
+                userId,
                 type: parsed.type,
                 name: parsed.merchant,
                 amount: parsed.amount,

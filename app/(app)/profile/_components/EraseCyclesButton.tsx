@@ -15,11 +15,18 @@ export function EraseCyclesButton() {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
   async function handleConfirm() {
     setPending(true);
-    await eraseAllCyclesAction();
+    setError(null);
+    const result = await eraseAllCyclesAction();
+    if (result?.error) {
+      setPending(false);
+      setError(result.error);
+      return;
+    }
     router.push("/dashboard");
   }
 
@@ -39,6 +46,7 @@ export function EraseCyclesButton() {
       {confirming && (
         <EraseCyclesConfirmSheet
           pending={pending}
+          error={error}
           onConfirm={handleConfirm}
           onCancel={() => setConfirming(false)}
           returnFocusTo={triggerElement}
@@ -50,11 +58,13 @@ export function EraseCyclesButton() {
 
 function EraseCyclesConfirmSheet({
   pending,
+  error,
   onConfirm,
   onCancel,
   returnFocusTo,
 }: {
   pending: boolean;
+  error: string | null;
   onConfirm: () => void;
   onCancel: () => void;
   returnFocusTo: HTMLElement | null;
@@ -85,6 +95,11 @@ function EraseCyclesConfirmSheet({
         and income records in them. Your categories and income setup stay intact, and a fresh
         cycle starts right away. This can&apos;t be undone.
       </p>
+      {error && (
+        <p className="error-text" role="alert" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+          {error}
+        </p>
+      )}
       <button
         type="button"
         className="button button--danger sheet-submit"
