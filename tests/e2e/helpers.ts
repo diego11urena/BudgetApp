@@ -45,7 +45,7 @@ export async function openQuickAdd(
 ): Promise<void> {
   await page.locator(".bottom-nav-fab").click();
   await page.click(`button:has-text("Add ${type}")`);
-  await page.waitForSelector("#sheet-amount");
+  await page.getByLabel("Amount (USD)").waitFor();
 }
 
 /**

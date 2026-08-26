@@ -14,13 +14,13 @@ test.describe("managing categories", () => {
 
     // Two categories that should have ended up as one (a typo'd duplicate).
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "15.00");
+    await page.getByLabel("Amount (USD)").fill("15.00");
     await fillCategory(page, "Dining");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "22.00");
+    await page.getByLabel("Amount (USD)").fill("22.00");
     await fillCategory(page, "Dinning"); // the typo being merged away
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -31,8 +31,9 @@ test.describe("managing categories", () => {
 
     await sourceRow.locator(".category-row-kebab").click();
     await page.click('button:has-text("Merge into…")');
-    await page.waitForSelector("#merge-target");
-    await page.selectOption("#merge-target", { label: "Dining" });
+    const mergeTarget = page.getByLabel("Merge into");
+    await mergeTarget.waitFor();
+    await mergeTarget.selectOption({ label: "Dining" });
     await page.click('button:has-text("Continue")');
     await expect(page.getByText("Merge Dinning into Dining?")).toBeVisible();
     await clickSheetButton(page, "Merge categories");
@@ -54,14 +55,14 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "50.00");
+    await page.getByLabel("Amount (USD)").fill("50.00");
     await fillCategory(page, "Rent");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     // Second entry, category typed lowercase.
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "5.00");
+    await page.getByLabel("Amount (USD)").fill("5.00");
     await page.click('.category-chip:has-text("Other")');
     await page.fill('input[placeholder="Category name"]', "rent");
     await page.click('button:has-text("Log it")');
@@ -80,8 +81,9 @@ test.describe("managing categories", () => {
 
     await page.goto("/profile/categories");
     await page.click('button[aria-label="Add category"]');
-    await page.waitForSelector("#category-form-name");
-    await page.fill("#category-form-name", "Pet Supplies");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
+    await categoryNameField.fill("Pet Supplies");
 
     await page.click('button[aria-label="Choose an icon"]');
     await page.waitForSelector('input[aria-label="Search icons"]');
@@ -109,7 +111,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "42.00");
+    await page.getByLabel("Amount (USD)").fill("42.00");
     await fillCategory(page, "Groceries");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -118,8 +120,9 @@ test.describe("managing categories", () => {
     const row = page.locator(".category-row", { hasText: "Groceries" });
     await row.locator(".category-row-kebab").click();
     await page.click('button:has-text("Edit")');
-    await page.waitForSelector("#category-form-name");
-    await page.fill("#category-form-name", "Food & Dining");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
+    await categoryNameField.fill("Food & Dining");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -138,8 +141,9 @@ test.describe("managing categories", () => {
 
     await page.goto("/profile/categories");
     await page.click('button[aria-label="Add category"]');
-    await page.waitForSelector("#category-form-name");
-    await page.fill("#category-form-name", "Never Used");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
+    await categoryNameField.fill("Never Used");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -161,7 +165,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "18.00");
+    await page.getByLabel("Amount (USD)").fill("18.00");
     await fillCategory(page, "Streaming");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -198,10 +202,11 @@ test.describe("managing categories", () => {
       // Never showed.
     }
     await page.click('button:has-text("+ New recurring expense")');
-    await page.waitForSelector("#recurring-expense-name");
-    await page.fill("#recurring-expense-name", "Spotify");
-    await page.fill("#recurring-expense-amount", "9.99");
-    await page.fill("#recurring-expense-category", "Subscriptions");
+    const recurringNameField = page.getByLabel("Name");
+    await recurringNameField.waitFor();
+    await recurringNameField.fill("Spotify");
+    await page.getByLabel("Amount (USD)").fill("9.99");
+    await page.getByLabel("Category").fill("Subscriptions");
     await page.click('.sheet button[type="submit"]');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -209,7 +214,7 @@ test.describe("managing categories", () => {
     await page.goto("/dashboard");
     await page.waitForSelector(".dashboard-section");
     await page.click('button:has-text("I just got paid")');
-    await page.waitForSelector("#pay-date");
+    await page.getByLabel("When did you get paid?").waitFor();
     await page.click('button:has-text("Yes, I got paid")');
     await expect(page.getByText("Quincena closed")).toBeVisible();
     await page.click('button:has-text("Continue")');
@@ -234,15 +239,16 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "20.00");
+    await page.getByLabel("Amount (USD)").fill("20.00");
     await fillCategory(page, "Gift");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await page.goto("/profile/categories");
     await page.click('button[aria-label="Add category"]');
-    await page.waitForSelector("#category-form-name");
-    await page.fill("#category-form-name", "Gifts");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
+    await categoryNameField.fill("Gifts");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -263,7 +269,7 @@ test.describe("managing categories", () => {
     // flows use (e.g. EditGoalSheet's saved-amount confirmation). The
     // picker's own Cancel is what actually closes the sheet.
     await clickSheetButton(page, "Cancel");
-    await expect(page.locator("#merge-target")).toBeVisible();
+    await expect(page.getByLabel("Merge into")).toBeVisible();
     await clickSheetButton(page, "Cancel");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -281,8 +287,9 @@ test.describe("managing categories", () => {
     for (const name of ["Groceries", "Gas", "Gym"]) {
       await page.goto("/profile/categories");
       await page.click('button[aria-label="Add category"]');
-      await page.waitForSelector("#category-form-name");
-      await page.fill("#category-form-name", name);
+      const categoryNameField = page.getByLabel("Category name");
+      await categoryNameField.waitFor();
+      await categoryNameField.fill(name);
       await clickSheetButton(page, "Save");
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     }
@@ -299,8 +306,9 @@ test.describe("managing categories", () => {
 
     await page.goto("/profile/categories");
     await page.click('button[aria-label="Add category"]');
-    await page.waitForSelector("#category-form-name");
-    await page.fill("#category-form-name", "A Fairly Long Category Name For Testing");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
+    await categoryNameField.fill("A Fairly Long Category Name For Testing");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -321,8 +329,9 @@ test.describe("managing categories", () => {
 
     await page.goto("/profile/categories");
     await page.click('button[aria-label="Add category"]');
-    await page.waitForSelector("#category-form-name");
-    await page.fill("#category-form-name", "Whatever");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
+    await categoryNameField.fill("Whatever");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -348,9 +357,10 @@ test.describe("managing categories", () => {
     // reduced "Rename" option.
     await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
     await page.click('button:has-text("Edit")');
-    await page.waitForSelector("#category-form-name");
+    const categoryNameField = page.getByLabel("Category name");
+    await categoryNameField.waitFor();
 
-    await page.fill("#category-form-name", "Paycheck");
+    await categoryNameField.fill("Paycheck");
     await page.click('button[aria-label="Choose an icon"]');
     await page.waitForSelector('input[aria-label="Search icons"]');
     await page.fill('input[aria-label="Search icons"]', "dog");

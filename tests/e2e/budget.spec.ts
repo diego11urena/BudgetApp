@@ -22,10 +22,11 @@ async function createRecurringExpense(
   opts: { name: string; amount: string; category: string },
 ) {
   await page.click('button:has-text("+ New recurring expense")');
-  await page.waitForSelector("#recurring-expense-name");
-  await page.fill("#recurring-expense-name", opts.name);
-  await page.fill("#recurring-expense-amount", opts.amount);
-  await page.fill("#recurring-expense-category", opts.category);
+  const nameField = page.getByLabel("Name");
+  await nameField.waitFor();
+  await nameField.fill(opts.name);
+  await page.getByLabel("Amount (USD)").fill(opts.amount);
+  await page.getByLabel("Category").fill(opts.category);
   await clickSheetButton(page, "Save");
   await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 }
@@ -124,7 +125,7 @@ test.describe("Recurring Expenses screen", () => {
     await expect(page.locator(".recurring-expense-status--not-started")).toBeVisible();
 
     await page.click('button:has-text("Record payment")');
-    await page.waitForSelector("#record-payment-amount");
+    await page.getByLabel("Amount (USD)").waitFor();
     await clickSheetButton(page, "Record payment");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -147,7 +148,7 @@ test.describe("Recurring Expenses screen", () => {
     // recurring expense, not every transaction posted to the category.
     await page.click(".category-progress-row-summary");
     await page.click('button:has-text("Record payment")');
-    await page.waitForSelector("#record-payment-amount");
+    await page.getByLabel("Amount (USD)").waitFor();
     await page.click('.sheet button[type="submit"]');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.locator(".progress-bar-label", { hasText: "100%" })).toBeVisible();
@@ -167,9 +168,10 @@ test.describe("Recurring Expenses screen", () => {
 
     await page.click(".category-progress-row-summary");
     await page.click(".recurring-expense-row-main");
-    await page.waitForSelector("#recurring-expense-name");
-    await expect(page.locator("#recurring-expense-name")).toHaveValue("Spotify");
-    await page.fill("#recurring-expense-amount", "12.99");
+    const editNameField = page.getByLabel("Name");
+    await editNameField.waitFor();
+    await expect(editNameField).toHaveValue("Spotify");
+    await page.getByLabel("Amount (USD)").fill("12.99");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -187,7 +189,7 @@ test.describe("Recurring Expenses screen", () => {
     await page.click(".category-progress-row-summary");
     const netflixRow = page.locator(".recurring-expense-row", { hasText: "Netflix" });
     await netflixRow.locator(".recurring-expense-row-main").click();
-    await page.waitForSelector("#recurring-expense-name");
+    await page.getByLabel("Name").waitFor();
     await page.click('button:has-text("Delete")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -211,7 +213,7 @@ test.describe("Recurring Expenses screen", () => {
     await page.goto("/dashboard");
     await page.waitForSelector(".dashboard-section");
     await page.click('button:has-text("I just got paid")');
-    await page.waitForSelector("#pay-date");
+    await page.getByLabel("When did you get paid?").waitFor();
     await page.click('button:has-text("Yes, I got paid")');
     await expect(page.getByText("Quincena closed")).toBeVisible();
     await page.click('button:has-text("Continue")');
@@ -248,7 +250,7 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
 
     await test.step("logging an expense with the toggle on creates a new recurring expense showing this transaction's amount as paid", async () => {
       await openQuickAdd(page, "Expense");
-      await page.fill("#sheet-amount", "20.00");
+      await page.getByLabel("Amount (USD)").fill("20.00");
       await fillCategory(page, "Transportation");
       await page.getByLabel("This is a recurring expense").check();
       await page.click('button:has-text("Log it")');
@@ -267,7 +269,7 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
 
     await test.step("a second same-named expense logged with the toggle on links to the SAME recurring expense (summed actual), not a second row", async () => {
       await openQuickAdd(page, "Expense");
-      await page.fill("#sheet-amount", "15.00");
+      await page.getByLabel("Amount (USD)").fill("15.00");
       await fillCategory(page, "Transportation");
       // Name defaults to the category ("Transportation") on both -- an
       // exact, same-name repeat, exactly the dedup case the toggle guards.
@@ -288,7 +290,7 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
       // the $20 one linked (actual == target == $20, a clean "paid" to
       // assert against below).
       await page.locator(".transaction-row", { hasText: "-$15.00" }).click();
-      await page.waitForSelector("#sheet-amount");
+      await page.getByLabel("Amount (USD)").waitFor();
       await expect(page.getByLabel("This is a recurring expense")).toBeChecked();
       await page.getByLabel("This is a recurring expense").uncheck();
       await page.click('button:has-text("Save changes")');
@@ -328,8 +330,9 @@ test.describe("merging categories moves their recurring expenses", () => {
     const streamingRow = page.locator(".category-row", { hasText: "Streaming" });
     await streamingRow.locator(".category-row-kebab").click();
     await page.click('button:has-text("Merge into…")');
-    await page.waitForSelector("#merge-target");
-    await page.selectOption("#merge-target", { label: "Subscriptions" });
+    const mergeTarget = page.getByLabel("Merge into");
+    await mergeTarget.waitFor();
+    await mergeTarget.selectOption({ label: "Subscriptions" });
     await page.click('button:has-text("Continue")');
     await expect(page.getByText("Merge Streaming into Subscriptions?")).toBeVisible();
     await page.locator(".sheet").getByRole("button", { name: "Merge categories", exact: true }).click();
@@ -360,8 +363,9 @@ test.describe("merging categories moves their recurring expenses", () => {
     const streamingRow = page.locator(".category-row", { hasText: "Streaming" });
     await streamingRow.locator(".category-row-kebab").click();
     await page.click('button:has-text("Merge into…")');
-    await page.waitForSelector("#merge-target");
-    await page.selectOption("#merge-target", { label: "Subscriptions" });
+    const mergeTarget = page.getByLabel("Merge into");
+    await mergeTarget.waitFor();
+    await mergeTarget.selectOption({ label: "Subscriptions" });
     await page.click('button:has-text("Continue")');
     await page.locator(".sheet").getByRole("button", { name: "Merge categories", exact: true }).click();
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });

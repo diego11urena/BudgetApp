@@ -20,8 +20,9 @@ test.describe("savings goals", () => {
     await expect(goalRow.getByText("$0.00 / $3,000.00")).toBeVisible();
 
     await goalRow.locator('button:has-text("Contribute")').click();
-    await page.waitForSelector("#contribute-amount");
-    await page.fill("#contribute-amount", "150.00");
+    const contributeAmount = page.getByLabel("Amount (USD)");
+    await contributeAmount.waitFor();
+    await contributeAmount.fill("150.00");
     // Scoped to the open sheet specifically -- the goal row's own
     // "Contribute" trigger button is text-identical to the sheet's submit
     // button and would otherwise make this locator ambiguous.
@@ -84,8 +85,9 @@ test.describe("savings goals", () => {
 
     const goalRow = page.locator(".goal-row", { hasText: "Emergency Fund" });
     await goalRow.locator('button:has-text("Edit")').click();
-    await page.waitForSelector("#edit-goal-saved");
-    await page.fill("#edit-goal-saved", "200");
+    const editGoalSaved = page.getByLabel("Amount saved so far");
+    await editGoalSaved.waitFor();
+    await editGoalSaved.fill("200");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText("You're increasing the amount saved toward this goal by $200.00")).toBeVisible();
@@ -120,8 +122,9 @@ test.describe("savings goals", () => {
 
     const goalRow = page.locator(".goal-row", { hasText: "Pro Futuro" });
     await goalRow.locator('button:has-text("Edit")').click();
-    await page.waitForSelector("#edit-goal-saved");
-    await page.fill("#edit-goal-saved", "300");
+    const editGoalSaved = page.getByLabel("Amount saved so far");
+    await editGoalSaved.waitFor();
+    await editGoalSaved.fill("300");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText("You're increasing the amount saved toward this goal by $300.00")).toBeVisible();
@@ -153,8 +156,9 @@ test.describe("savings goals", () => {
 
     const goalRow = page.locator(".goal-row", { hasText: "Rainy Day" });
     await goalRow.locator('button:has-text("Edit")').click();
-    await page.waitForSelector("#edit-goal-saved");
-    await page.fill("#edit-goal-saved", "300");
+    const editGoalSaved = page.getByLabel("Amount saved so far");
+    await editGoalSaved.waitFor();
+    await editGoalSaved.fill("300");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(
@@ -184,9 +188,10 @@ test.describe("savings goals", () => {
 
     const secondRow = page.locator(".goal-row", { hasText: "Second Goal" });
     await secondRow.locator('button:has-text("Edit")').click();
-    await page.waitForSelector("#edit-goal-name");
-    await page.fill("#edit-goal-name", "");
-    await page.fill("#edit-goal-name", "First Goal");
+    const editGoalName = page.getByLabel("Goal name");
+    await editGoalName.waitFor();
+    await editGoalName.fill("");
+    await editGoalName.fill("First Goal");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText('A goal named "First Goal" already exists')).toBeVisible();

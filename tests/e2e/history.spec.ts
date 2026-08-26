@@ -14,7 +14,7 @@ test.describe("past quincenas", () => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "50");
+    await page.getByLabel("Amount (USD)").fill("50");
     await fillCategory(page, "Groceries");
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
@@ -38,8 +38,9 @@ test.describe("past quincenas", () => {
     await page.click('button:has-text("Add to this quincena")');
     await page.waitForSelector(".quick-actions");
     await page.click('button:has-text("Add Expense")');
-    await page.waitForSelector("#sheet-amount");
-    await page.fill("#sheet-amount", "25");
+    const amountField = page.getByLabel("Amount (USD)");
+    await amountField.waitFor();
+    await amountField.fill("25");
     await fillCategory(page, "Groceries");
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
@@ -69,15 +70,16 @@ test.describe("past quincenas", () => {
     // own local clock sits in yet another timezone can disagree with both
     // right at a day boundary; multi-day margins make that skew harmless.
     await page.click("text=Edit");
-    await page.waitForSelector("#edit-pay-date");
-    await page.fill("#edit-pay-date", daysAgoISO(10));
+    const editPayDate = page.getByLabel("Pay date");
+    await editPayDate.waitFor();
+    await editPayDate.fill(daysAgoISO(10));
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
 
     await openQuickAdd(page, "Expense");
-    await page.fill("#sheet-amount", "40");
+    await page.getByLabel("Amount (USD)").fill("40");
     await fillCategory(page, "Coffee");
-    await page.fill("#sheet-date", daysAgoISO(8));
+    await page.getByLabel("Date").fill(daysAgoISO(8));
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
 
@@ -86,8 +88,9 @@ test.describe("past quincenas", () => {
     // and the new active cycle starts 4 days ago, a genuinely distinct,
     // comfortably-in-the-past boundary.
     await page.click('button:has-text("I just got paid")');
-    await page.waitForSelector("#pay-date");
-    await page.fill("#pay-date", daysAgoISO(4));
+    const confirmPayDate = page.getByLabel("When did you get paid?");
+    await confirmPayDate.waitFor();
+    await confirmPayDate.fill(daysAgoISO(4));
     await page.click('button:has-text("Yes, I got paid")');
     await expect(page.getByText("Quincena closed")).toBeVisible();
     await page.click('button:has-text("Continue")');
@@ -100,24 +103,26 @@ test.describe("past quincenas", () => {
     // Move the transaction to 1 day ago -- outside this (closed) cycle,
     // comfortably inside the new active one (which started 4 days ago).
     await page.click(".transaction-row");
-    await page.waitForSelector("#sheet-amount");
+    const dateField = page.getByLabel("Date");
+    await dateField.waitFor();
     const destinationDate = daysAgoISO(1);
-    await page.fill("#sheet-date", destinationDate);
+    await dateField.fill(destinationDate);
     await page.click('.sheet button[type="submit"]');
 
     await expect(page.locator(".sheet")).toContainText("move this transaction to a different quincena");
 
     // Cancel -- the date reverts and nothing moves.
     await page.click('.sheet button:has-text("Cancel")');
-    await expect(page.locator("#sheet-date")).toHaveValue(daysAgoISO(8));
+    await expect(page.getByLabel("Date")).toHaveValue(daysAgoISO(8));
     await page.keyboard.press("Escape");
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
     await expect(page.locator(".transaction-row")).toHaveCount(1);
 
     // Redo it and confirm this time.
     await page.click(".transaction-row");
-    await page.waitForSelector("#sheet-amount");
-    await page.fill("#sheet-date", destinationDate);
+    const dateFieldAgain = page.getByLabel("Date");
+    await dateFieldAgain.waitFor();
+    await dateFieldAgain.fill(destinationDate);
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector('.sheet button:has-text("Continue")');
     await page.click('.sheet button:has-text("Continue")');
