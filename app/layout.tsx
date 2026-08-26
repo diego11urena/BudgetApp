@@ -22,7 +22,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Balboa",
+  title: {
+    template: "%s · Balboa",
+    default: "Balboa",
+  },
   description: "A budgeting app for Panama.",
   manifest: "/manifest.json",
   appleWebApp: {

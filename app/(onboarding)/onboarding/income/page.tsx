@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { IncomeForm } from "./IncomeForm";
+
+export const metadata: Metadata = { title: "Income" };
 
 export default async function IncomeStepPage() {
   const session = await auth();

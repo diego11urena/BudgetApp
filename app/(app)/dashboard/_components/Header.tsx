@@ -32,6 +32,11 @@ export function Header({
   return (
     <div className="home-header">
       <div>
+        {/* /dashboard is the PWA's start_url and main screen but has no
+            visible page title (the greeting fills that role visually) --
+            a real, if visually-hidden, <h1> is still required so it isn't
+            the one route in the app with zero level-1 headings. */}
+        <h1 className="sr-only">Dashboard</h1>
         <p className="home-greeting">
           {greeting}
           {firstName ? `, ${firstName}` : ""}

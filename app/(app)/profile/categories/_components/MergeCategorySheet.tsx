@@ -33,6 +33,7 @@ export function MergeCategorySheet({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const uid = useId();
+  const sourceFieldId = `${uid}-source`;
   const targetFieldId = `${uid}-target`;
 
   useEffect(() => {
@@ -75,8 +76,8 @@ export function MergeCategorySheet({
       {!confirming ? (
         <>
           <div className="field">
-            <label>Source category</label>
-            <input type="text" value={source.name} disabled />
+            <label htmlFor={sourceFieldId}>Source category</label>
+            <input id={sourceFieldId} type="text" value={source.name} disabled />
           </div>
           <div className="field">
             <label htmlFor={targetFieldId}>Merge into</label>

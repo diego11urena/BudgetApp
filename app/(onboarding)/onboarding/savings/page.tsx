@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,8 @@ import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { LineItemsForm } from "../_components/LineItemsForm";
 import { saveSavingsAction } from "./actions";
+
+export const metadata: Metadata = { title: "Savings" };
 
 export default async function SavingsStepPage() {
   const session = await auth();

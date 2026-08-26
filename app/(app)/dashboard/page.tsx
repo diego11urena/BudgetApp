@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -18,6 +19,8 @@ import { InsightsCard } from "./_components/InsightsCard";
 import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { TransactionList } from "../_components/TransactionList";
+
+export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const session = await auth();

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +13,8 @@ import { TransactionFilters } from "./_components/TransactionFilters";
 
 const TX_TYPES = ["EXPENSE", "INCOME", "SAVINGS"] as const;
 const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"] as const;
+
+export const metadata: Metadata = { title: "Transactions" };
 
 export default async function TransactionsPage({
   searchParams,

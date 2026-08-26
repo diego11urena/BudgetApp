@@ -46,6 +46,7 @@ export function RecordPaymentSheet({
   const uid = useId();
   const amountId = `${uid}-amount`;
   const errorId = `${uid}-error`;
+  const paymentGroupLabelId = `${uid}-payment-group-label`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -107,8 +108,8 @@ export function RecordPaymentSheet({
         </div>
 
         <div className="field">
-          <label>Payment method</label>
-          <div className="category-chips">
+          <label id={paymentGroupLabelId}>Payment method</label>
+          <div role="group" aria-labelledby={paymentGroupLabelId} className="category-chips">
             {PAYMENT_METHOD_OPTIONS.map((opt) => (
               <button
                 key={opt.value}

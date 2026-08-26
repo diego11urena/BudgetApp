@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -10,6 +11,8 @@ import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { EditIncomeSheet } from "./_components/EditIncomeSheet";
 import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
+
+export const metadata: Metadata = { title: "Profile" };
 
 export default async function ProfilePage({
   searchParams,

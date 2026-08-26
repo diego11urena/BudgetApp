@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -15,6 +16,8 @@ import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesCha
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
 import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
+
+export const metadata: Metadata = { title: "Quincena Details" };
 
 export default async function CycleHistoryPage({
   params,

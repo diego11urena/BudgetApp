@@ -33,7 +33,11 @@ export default function SignupPage() {
           />
           <span className="field-hint">At least 8 characters.</span>
         </div>
-        {state?.error && <p className="error-text">{state.error}</p>}
+        {state?.error && (
+          <p className="error-text" role="alert">
+            {state.error}
+          </p>
+        )}
         <div className="form-actions">
           <button type="submit" className="button" disabled={pending}>
             {pending ? "Creating account..." : "Sign up"}

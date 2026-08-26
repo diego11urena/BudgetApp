@@ -39,7 +39,7 @@ export function PieChart({
   if (slices.length === 1) {
     const slice = slices[0];
     return (
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="img" aria-label="Paycheck breakdown chart">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="group" aria-label="Paycheck breakdown chart">
         <circle
           cx={CENTER}
           cy={CENTER}
@@ -72,7 +72,7 @@ export function PieChart({
   );
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="img" aria-label="Paycheck breakdown chart">
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="group" aria-label="Paycheck breakdown chart">
       {wedges.map(({ slice, startAngle, endAngle }) => {
         const isSelected = selectedKey === slice.key;
         const offset = isSelected ? popOutOffset(startAngle, endAngle) : { x: 0, y: 0 };

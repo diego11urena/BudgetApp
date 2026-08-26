@@ -26,7 +26,11 @@ export function ProgressBar({
   return (
     <div className="progress-bar">
       {label && <div className="progress-bar-label">{label}</div>}
-      <div className="progress-bar-track">
+      <div
+        className="progress-bar-track"
+        role="img"
+        aria-label={`${Math.round(displayPercentage)}%`}
+      >
         <div
           className={`progress-bar-fill progress-bar-fill--${resolvedColorState}`}
           style={{ width: `${displayPercentage}%` }}

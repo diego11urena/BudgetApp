@@ -59,7 +59,10 @@ export function CycleClosedCard({
         )}
 
         {summary.budget.hasBudget && (
-          <div className={`banner ${isOver ? "banner--critical" : "banner--good"}`}>
+          <div
+            className={`banner ${isOver ? "banner--critical" : "banner--good"}`}
+            role={isOver ? "alert" : "status"}
+          >
             {isOver ? `Over budget by ${formatCurrency(summary.budget.overBy)}` : "On budget"}
           </div>
         )}

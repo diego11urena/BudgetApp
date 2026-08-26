@@ -119,6 +119,8 @@ export function QuickAddSheet({
   const dateId = `${uid}-date`;
   const descriptionId = `${uid}-description`;
   const errorId = `${uid}-error`;
+  const categoryGroupLabelId = `${uid}-category-group-label`;
+  const paymentGroupLabelId = `${uid}-payment-group-label`;
 
   function categoryNamesForType(t: TxType): string[] {
     return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : incomeCategoryNames;
@@ -517,9 +519,11 @@ export function QuickAddSheet({
         </div>
 
           <div className="field">
-            <label>Category</label>
+            <label id={categoryGroupLabelId}>Category</label>
             {!customMode && categoryNames.length > 0 && (
               <div
+                role="group"
+                aria-labelledby={categoryGroupLabelId}
                 className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""} ${errorField === "category" ? "is-invalid" : ""}`}
               >
                 {(showAllCategories ? categoryNames : categoryNames.slice(0, TOP_CHIP_COUNT)).map(
@@ -571,9 +575,9 @@ export function QuickAddSheet({
 
           {type !== "SAVINGS" && (
             <div className="field">
-              <label>Payment method</label>
+              <label id={paymentGroupLabelId}>Payment method</label>
               <input type="hidden" name="paymentMethod" value={paymentMethod} />
-              <div className="category-chips">
+              <div role="group" aria-labelledby={paymentGroupLabelId} className="category-chips">
                 {PAYMENT_METHOD_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}

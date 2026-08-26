@@ -27,7 +27,11 @@ export default function LoginPage() {
             autoComplete="current-password"
           />
         </div>
-        {state?.error && <p className="error-text">{state.error}</p>}
+        {state?.error && (
+          <p className="error-text" role="alert">
+            {state.error}
+          </p>
+        )}
         <div className="form-actions">
           <button type="submit" className="button" disabled={pending}>
             {pending ? "Logging in..." : "Log in"}

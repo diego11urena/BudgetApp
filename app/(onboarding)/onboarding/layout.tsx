@@ -21,5 +21,5 @@ export default async function OnboardingLayout({
     redirect("/dashboard");
   }
 
-  return <div className="page-center">{children}</div>;
+  return <main className="page-center">{children}</main>;
 }

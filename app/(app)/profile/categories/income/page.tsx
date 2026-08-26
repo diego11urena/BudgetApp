@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -6,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { getCategoryUsageStats } from "@/lib/category-usage";
 import { IncomeCategoryManagerScreen } from "./_components/IncomeCategoryManagerScreen";
 import type { CategoryWithUsage } from "../_components/types";
+
+export const metadata: Metadata = { title: "Income Categories" };
 
 export default async function ManageIncomeCategoriesPage() {
   const session = await auth();

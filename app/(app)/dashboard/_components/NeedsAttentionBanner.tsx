@@ -23,6 +23,7 @@ export function NeedsAttentionBanner({
       <button
         type="button"
         className="banner banner--action"
+        aria-live="polite"
         onClick={(e) => {
           setTriggerElement(e.currentTarget);
           setOpen(true);

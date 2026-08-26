@@ -10,7 +10,8 @@
  */
 export default function Loading() {
   return (
-    <div className="home-page">
+    <div className="home-page" role="status">
+      <span className="sr-only">Loading…</span>
       <div className="skeleton-block skeleton-block--title" />
       <div className="dashboard-section dashboard-section--plain">
         <div className="skeleton-block" style={{ height: "6rem" }} />

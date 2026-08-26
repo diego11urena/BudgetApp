@@ -98,10 +98,6 @@ export function CategoryNameInput({
           placeholder={placeholder}
           required={required}
           autoComplete="off"
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={`${id}-listbox`}
-          aria-autocomplete="list"
           aria-invalid={invalid || undefined}
           aria-describedby={invalid ? describedBy : undefined}
           className={invalid ? "is-invalid" : ""}
@@ -112,13 +108,12 @@ export function CategoryNameInput({
           onFocus={() => setOpen(true)}
         />
         {open && (suggestions.length > 0 || showCreateOption) && (
-          <ul id={`${id}-listbox`} role="listbox" className="category-name-input-dropdown">
+          <ul className="category-name-input-dropdown">
             {suggestions.map((categoryName) => (
-              <li key={categoryName} role="presentation">
+              <li key={categoryName}>
                 <button
                   type="button"
-                  role="option"
-                  aria-selected={value === categoryName}
+                  className={value === categoryName ? "is-active" : ""}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => select(categoryName)}
                 >
@@ -127,11 +122,9 @@ export function CategoryNameInput({
               </li>
             ))}
             {showCreateOption && (
-              <li role="presentation">
+              <li>
                 <button
                   type="button"
-                  role="option"
-                  aria-selected={false}
                   className="category-name-input-create"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => select(value.trim())}

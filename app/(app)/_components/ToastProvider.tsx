@@ -20,6 +20,11 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 const AUTO_DISMISS_MS = 5000;
+// A toast with an actionable "Undo" gets longer, and can be paused
+// entirely by hovering/focusing it -- WCAG 2.2.1 Timing Adjustable,
+// since the auto-dismiss would otherwise take the one chance to act
+// away from someone who's still reading or reaching for it.
+const AUTO_DISMISS_WITH_ACTION_MS = 10000;
 
 /**
  * A single bottom toast, mounted once at the app shell so any page can
@@ -32,15 +37,29 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<ToastState | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idRef = useRef(0);
+  // Remaining time left when a hover/focus pause interrupts the timer, so
+  // resuming continues from where it left off instead of granting a full
+  // fresh window every time the pointer passes over the toast.
+  const remainingMsRef = useRef(0);
+  const startedAtRef = useRef(0);
 
-  const showToast = useCallback((message: string, action?: ToastAction) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    const id = ++idRef.current;
-    setToast({ id, message, action });
+  const armTimer = useCallback((id: number, ms: number) => {
+    startedAtRef.current = Date.now();
+    remainingMsRef.current = ms;
     timeoutRef.current = setTimeout(() => {
       setToast((current) => (current?.id === id ? null : current));
-    }, AUTO_DISMISS_MS);
+    }, ms);
   }, []);
+
+  const showToast = useCallback(
+    (message: string, action?: ToastAction) => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      const id = ++idRef.current;
+      setToast({ id, message, action });
+      armTimer(id, action ? AUTO_DISMISS_WITH_ACTION_MS : AUTO_DISMISS_MS);
+    },
+    [armTimer],
+  );
 
   function dismiss() {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -52,11 +71,29 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     dismiss();
   }
 
+  function pause() {
+    if (!toast || !timeoutRef.current) return;
+    clearTimeout(timeoutRef.current);
+    remainingMsRef.current -= Date.now() - startedAtRef.current;
+  }
+
+  function resume() {
+    if (!toast || remainingMsRef.current <= 0) return;
+    armTimer(toast.id, remainingMsRef.current);
+  }
+
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
       {toast && (
-        <div className="toast" role="status">
+        <div
+          className="toast"
+          role="status"
+          onMouseEnter={pause}
+          onMouseLeave={resume}
+          onFocus={pause}
+          onBlur={resume}
+        >
           <span className="toast-message">{toast.message}</span>
           {toast.action && (
             <>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -8,6 +9,8 @@ import { findPossibleDuplicates } from "@/lib/category-duplicates";
 import { CategoryManagerScreen } from "./_components/CategoryManagerScreen";
 import type { CategoryWithUsage } from "./_components/types";
 import type { DuplicatePairWithUsage } from "./_components/CategoryCleanupSection";
+
+export const metadata: Metadata = { title: "Manage Categories" };
 
 export default async function ManageCategoriesPage() {
   const session = await auth();

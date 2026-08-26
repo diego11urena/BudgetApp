@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -29,6 +30,8 @@ function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
     transactions: financials.transactions,
   };
 }
+
+export const metadata: Metadata = { title: "Paycheck Breakdown" };
 
 export default async function PaycheckBreakdownPage() {
   const session = await auth();

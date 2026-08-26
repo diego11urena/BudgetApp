@@ -81,8 +81,9 @@ export function LineItemsForm({
           style={{ display: "flex", gap: "0.5rem", alignItems: "flex-end" }}
         >
           <div style={{ flex: 2 }}>
-            <label>Name</label>
+            <label htmlFor={`${row.key}-name`}>Name</label>
             <input
+              id={`${row.key}-name`}
               type="text"
               value={row.name}
               required
@@ -90,8 +91,9 @@ export function LineItemsForm({
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label>{amountLabel}</label>
+            <label htmlFor={`${row.key}-amount`}>{amountLabel}</label>
             <input
+              id={`${row.key}-amount`}
               type="text"
               inputMode="decimal"
               placeholder="0.00"

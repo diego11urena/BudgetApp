@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PartyPopper, ArrowRight } from "lucide-react";
 import { auth } from "@/lib/auth";
@@ -12,6 +13,8 @@ import { AddGoalSheet } from "./_components/AddGoalSheet";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
 import { ContributeButton } from "./_components/ContributeButton";
 import { EditGoalButton } from "./_components/EditGoalButton";
+
+export const metadata: Metadata = { title: "Goals" };
 
 export default async function GoalsPage() {
   const session = await auth();

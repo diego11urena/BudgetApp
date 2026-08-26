@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,8 @@ import { getOrCreateDraftCycle, formatCycleRangeText } from "@/lib/cycles";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
 import { RecurringExpensesPanel } from "./_components/RecurringExpensesPanel";
+
+export const metadata: Metadata = { title: "Recurring Expenses" };
 
 export default async function BudgetPage() {
   const session = await auth();

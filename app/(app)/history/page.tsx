@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -12,6 +13,8 @@ import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 function titleCase(value: string): string {
   return value.charAt(0) + value.slice(1).toLowerCase();
 }
+
+export const metadata: Metadata = { title: "History" };
 
 export default async function HistoryPage() {
   const session = await auth();
