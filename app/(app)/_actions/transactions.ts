@@ -13,10 +13,18 @@ import {
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
-import { nowInPanama, parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
+import { nowInPanama, panamaDateParts, parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
 
-/** Success carries the row's id — used by a "Logged · Undo" toast to delete exactly that row. */
-export type TransactionMutationResult = { error: string } | { transactionId: string } | undefined;
+/**
+ * Success carries the row's id — used by a "Logged · Undo" toast to delete
+ * exactly that row. `message`, when set, is a non-error notice the caller
+ * should still surface (e.g. updateTransactionAction silently unlinking a
+ * recurring expense whose category no longer matches the edited row).
+ */
+export type TransactionMutationResult =
+  | { error: string }
+  | { transactionId: string; message?: string }
+  | undefined;
 
 export interface DeletedTransactionSnapshot {
   cycleId: string;
@@ -26,6 +34,10 @@ export interface DeletedTransactionSnapshot {
   occurredAt: string;
   paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
   description: string | null;
+  expenseCategoryId: string | null;
+  recurringExpenseId: string | null;
+  importSource: "MANUAL" | "GMAIL";
+  sourceMessageId: string | null;
 }
 
 /** Success carries a snapshot of the deleted row so a "Deleted · Undo" toast can restore it. */
@@ -190,7 +202,7 @@ export async function updateTransactionAction(
   // edit another user's row by guessing an id.
   const existing = await prisma.cycleTransaction.findFirst({
     where: { id: transactionId, cycle: { userId } },
-    include: { cycle: true },
+    include: { cycle: true, recurringExpense: true },
   });
   if (!existing) {
     return { error: "Transaction not found" };
@@ -214,7 +226,20 @@ export async function updateTransactionAction(
     if (parsedDate.getTime() > todayStart.getTime()) {
       return { error: "Date can't be in the future" };
     }
-    occurredAtDate = parsedDate;
+    // The date input has no time-of-day concept, so it always resubmits
+    // the row's current day even when the user never touched this field
+    // (e.g. only fixing the category or merchant name) -- parseDateOnly's
+    // midnight anchor must only actually apply when the day itself
+    // changed. Otherwise this would silently zero out a Gmail import's
+    // real arrival time (or any other transaction's time-of-day) on every
+    // unrelated edit.
+    const existingDay = panamaDateParts(existing.occurredAt);
+    const parsedDay = panamaDateParts(parsedDate);
+    const dayChanged =
+      existingDay.year !== parsedDay.year || existingDay.month !== parsedDay.month || existingDay.day !== parsedDay.day;
+    if (dayChanged) {
+      occurredAtDate = parsedDate;
+    }
   }
 
   // The transaction moves to whichever cycle actually covers its (possibly
@@ -235,6 +260,16 @@ export async function updateTransactionAction(
   // changed mid-edit. EXPENSE-only, matching the toggle's own visibility.
   const wasRecurring = existing.recurringExpenseId !== null;
   const wantsRecurring = type === "EXPENSE" && formData.get("recurring") === "true";
+  // The toggle stayed on across this edit, but if the category also changed,
+  // the linked RecurringExpense (defined under the OLD category) no longer
+  // belongs to this transaction's new one — carrying the link forward would
+  // let a transaction's recurringExpenseId and expenseCategoryId silently
+  // disagree about which category this payment counts against. Unlink
+  // rather than re-link to some same-named expense in the new category:
+  // that's exactly the "same-moment user action" linkOrCreateRecurringExpenseForTransaction's
+  // own doc comment says an automatic link should never guess at.
+  const linkedToWrongCategory =
+    wasRecurring && wantsRecurring && existing.recurringExpense!.categoryId !== expenseCategoryId;
 
   await prisma.$transaction(async (tx) => {
     // Updates the existing row in place — balances are always derived live
@@ -271,18 +306,23 @@ export async function updateTransactionAction(
         name,
         amount,
       });
-    } else if (wasRecurring && !wantsRecurring) {
+    } else if ((wasRecurring && !wantsRecurring) || linkedToWrongCategory) {
       await unlinkTransactionFromRecurringExpense(tx, {
         transactionId,
         cycleId: targetCycleId,
-        categoryId: expenseCategoryId,
+        categoryId: linkedToWrongCategory ? existing.recurringExpense!.categoryId : expenseCategoryId,
       });
     }
   });
 
   revalidateAppPages();
 
-  return { transactionId };
+  return {
+    transactionId,
+    message: linkedToWrongCategory
+      ? "Removed the link to the recurring expense because you changed categories."
+      : undefined,
+  };
 }
 
 /**
@@ -445,6 +485,10 @@ export async function deleteTransactionAction(
       occurredAt: existing.occurredAt.toISOString(),
       paymentMethod: existing.paymentMethod,
       description: existing.description,
+      expenseCategoryId: existing.expenseCategoryId,
+      recurringExpenseId: existing.recurringExpenseId,
+      importSource: existing.importSource,
+      sourceMessageId: existing.sourceMessageId,
     },
   };
 }
@@ -471,6 +515,10 @@ export async function restoreTransactionAction(
   const occurredAt = formData.get("occurredAt");
   const rawPaymentMethod = formData.get("paymentMethod");
   const description = formData.get("description");
+  const rawExpenseCategoryId = formData.get("expenseCategoryId");
+  const rawRecurringExpenseId = formData.get("recurringExpenseId");
+  const rawImportSource = formData.get("importSource");
+  const rawSourceMessageId = formData.get("sourceMessageId");
 
   if (
     typeof cycleId !== "string" ||
@@ -487,6 +535,10 @@ export async function restoreTransactionAction(
   }
   const paymentMethodParsed = paymentMethodSchema.safeParse(rawPaymentMethod);
   const paymentMethod = paymentMethodParsed.success ? paymentMethodParsed.data : null;
+  const expenseCategoryId = typeof rawExpenseCategoryId === "string" && rawExpenseCategoryId ? rawExpenseCategoryId : null;
+  const recurringExpenseId = typeof rawRecurringExpenseId === "string" && rawRecurringExpenseId ? rawRecurringExpenseId : null;
+  const importSource = rawImportSource === "GMAIL" ? "GMAIL" : "MANUAL";
+  const sourceMessageId = typeof rawSourceMessageId === "string" && rawSourceMessageId ? rawSourceMessageId : null;
 
   // Ownership-scoped: only restore into a cycle that belongs to this user.
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
@@ -494,14 +546,13 @@ export async function restoreTransactionAction(
     return { error: "Cycle not found" };
   }
 
-  // Every type has a category concept now — Extra income included. The
-  // snapshot never captured a separate category name (only Gmail imports
-  // ever have one distinct from their name, and imports aren't
-  // user-deletable via this flow the same way), so this always matches
-  // create/update's own categoryName-falls-back-to-name behavior.
-  const category = await getOrCreateCategory(prisma, userId, name, type);
-  const expenseCategoryId = category.id;
-
+  // Restores the exact category/recurring-expense link the deleted row had
+  // (deleteTransactionAction's snapshot carries the real ids now), not a
+  // name-based re-lookup — re-resolving by name could land on a different
+  // category than the one this transaction actually belonged to (e.g. two
+  // categories that happen to share a name after a rename), and would
+  // silently drop the recurring-expense link and Gmail-import identity
+  // entirely.
   await prisma.cycleTransaction.create({
     data: {
       cycleId,
@@ -509,6 +560,9 @@ export async function restoreTransactionAction(
       name,
       amount,
       expenseCategoryId,
+      recurringExpenseId,
+      importSource,
+      sourceMessageId,
       paymentMethod: type !== "SAVINGS" ? paymentMethod : null,
       description: typeof description === "string" && description ? description : null,
       occurredAt: new Date(occurredAt),

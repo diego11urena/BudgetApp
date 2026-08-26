@@ -1,6 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "./prisma";
-import { getOrCreateDraftCycle } from "./cycles";
+import { findCycleForDate, getOrCreateDraftCycle } from "./cycles";
 import { decryptToken } from "./gmail-crypto";
 import { parseTransactionEmail } from "./gmail-parsers";
 import { isUniqueConstraintViolation } from "./prisma-errors";
@@ -231,9 +231,10 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
       const newIds = filterNewMessageIds(candidateIds, knownIds);
 
       if (newIds.length > 0) {
-        // Resolved once per sync, not once per message -- always resolves
-        // to the same row within a single sync (the draft cycle doesn't
-        // change mid-loop).
+        // Ensures at least one cycle exists (first-ever sync) and is the
+        // fallback below for a message whose own date predates every cycle
+        // the user has ever had -- each message's actual cycle is resolved
+        // from its own occurredAt, not this one.
         const cycle = await getOrCreateDraftCycle(userId);
         // Per-sync cache so a merchant repeated across several messages in
         // one sync (e.g. two coffee runs) only costs one lookup query.
@@ -283,9 +284,21 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
               expenseCategoryId = learnedCategoryCache.get(merchantKey) ?? null;
             }
 
+            // The cycle this transaction belongs to is whichever one
+            // actually covers when it happened, not whichever cycle
+            // happens to be open at sync time -- the same rule
+            // updateTransactionAction applies when a date changes. Usually
+            // the same cycle (Gmail delivers these within seconds/minutes
+            // of the purchase), but not when a sync runs late (the app
+            // reopened days after a purchase) or backfills an older
+            // message: without this, that transaction would silently land
+            // in today's cycle instead of the one it was actually spent in.
+            const occurredAt = new Date(Number(message.internalDate));
+            const targetCycle = (await findCycleForDate(userId, occurredAt)) ?? cycle;
+
             await prisma.cycleTransaction.create({
               data: {
-                cycleId: cycle.id,
+                cycleId: targetCycle.id,
                 type: parsed.type,
                 name: parsed.merchant,
                 amount: parsed.amount,
@@ -293,7 +306,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
                 importSource: "GMAIL",
                 paymentMethod: parsed.paymentMethod,
                 description: parsed.description,
-                occurredAt: new Date(Number(message.internalDate)),
+                occurredAt,
                 sourceMessageId: message.id,
               },
             });

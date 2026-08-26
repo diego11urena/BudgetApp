@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { findMatchSuggestion, type MatchCandidateTransaction } from "@/lib/recurring-expense-matching";
+import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 
 export interface RecurringExpenseWithStatus {
   id: string;
@@ -22,16 +23,65 @@ export interface CategoryWithRecurringExpenses {
   /**
    * Sum of expenses[].actual -- only spend actually linked to one of this
    * category's recurring expenses, NOT every transaction posted to the
-   * category (that's a different number -- see financials.categoryTotals /
-   * sumRecurringExpenseCategorySpend, which the dashboard's legacy "fixed budget" card
-   * still uses). Scoping it this way means adding or removing a recurring-
-   * expense template can only ever move the target side of this bar, never
-   * the actual side, and an unlinked transaction in the category can't
+   * category (that's a different number -- see financials.categoryTotals).
+   * Scoping it this way means adding or removing a recurring-expense
+   * template can only ever move the target side of this bar, never the
+   * actual side, and an unlinked transaction in the category can't
    * inflate or deflate a total that's supposed to represent only tracked
-   * recurring expenses.
+   * recurring expenses. This is the app's one definition of "fixed budget
+   * used" -- the dashboard's own summary card and /budget's own category
+   * rows both derive from this same actual/targetAmount pair (via
+   * summarizeRecurringExpenses below), so they can no longer disagree.
    */
   actual: number;
   expenses: RecurringExpenseWithStatus[];
+}
+
+export interface RecurringExpensesSummary {
+  /** Sum of every recurring expense's own target this cycle, across every category. */
+  totalTarget: number;
+  /** Sum of every recurring expense's own linked actual this cycle, across every category -- same actual/targetAmount pair /budget's own rows use, never financials.categoryTotals' unscoped category spend. */
+  totalActual: number;
+  /** How many recurring expenses exist this cycle, across every category. */
+  totalCount: number;
+  /** How many have been paid to at least their own target (status paid, paid-over, or exceeded). */
+  paidCount: number;
+  /** Sum of (targetAmount - actual), floored at 0 per expense, for everything not yet fully paid -- what's left to pay this cycle. */
+  pendingAmount: number;
+}
+
+/**
+ * The one place "how much of this cycle's recurring-expense budget is
+ * used" gets computed from -- consumed both by the dashboard's own summary
+ * card (as a paid-count, "4 of 7 paid") and by justGotPaidAction's closed-
+ * cycle "over budget by" figure (via getBudgetUsage(totalActual,
+ * totalTarget)), so the two can never again quote two different numbers
+ * for the same question the way BudgetBreakdownCard's old spent/budget
+ * props (sourced from the unrelated sumRecurringExpenseCategorySpend) once
+ * did.
+ */
+export function summarizeRecurringExpenses(categories: CategoryWithRecurringExpenses[]): RecurringExpensesSummary {
+  let totalTarget = 0;
+  let totalActual = 0;
+  let totalCount = 0;
+  let paidCount = 0;
+  let pendingAmount = 0;
+
+  for (const category of categories) {
+    for (const expense of category.expenses) {
+      totalTarget += expense.targetAmount;
+      totalActual += expense.actual;
+      totalCount++;
+      const status = getRecurringExpensePaymentStatus(expense.actual, expense.targetAmount);
+      if (status === "paid" || status === "paid-over" || status === "exceeded") {
+        paidCount++;
+      } else {
+        pendingAmount += Math.max(expense.targetAmount - expense.actual, 0);
+      }
+    }
+  }
+
+  return { totalTarget, totalActual, totalCount, paidCount, pendingAmount };
 }
 
 /**

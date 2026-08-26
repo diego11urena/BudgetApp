@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeCycleFinancials, sumRecurringExpenseCategorySpend, toCycleTransactionSummary } from "./cycle-financials";
+import { summarizeCycleFinancials, toCycleTransactionSummary } from "./cycle-financials";
 
 function decimal(value: number) {
   return { toNumber: () => value };
@@ -193,31 +193,5 @@ describe("toCycleTransactionSummary", () => {
     const withoutExtra = toCycleTransactionSummary(row);
     expect(withoutExtra.cycleLabel).toBeUndefined();
     expect(withoutExtra.isEditable).toBeUndefined();
-  });
-});
-
-describe("sumRecurringExpenseCategorySpend", () => {
-  it("only sums categories that are in the fixed-target id list", () => {
-    const total = sumRecurringExpenseCategorySpend(
-      [
-        { categoryId: "rent", categoryName: "Rent", categoryIcon: null, categoryColor: null, amount: 500 },
-        { categoryId: "groceries", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 },
-        { categoryId: "spotify", categoryName: "Spotify", categoryIcon: null, categoryColor: null, amount: 10 },
-      ],
-      ["rent", "spotify"],
-    );
-    expect(total).toBe(510);
-  });
-
-  it("returns 0 when no category totals match a fixed target", () => {
-    const total = sumRecurringExpenseCategorySpend(
-      [{ categoryId: "groceries", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
-      ["rent"],
-    );
-    expect(total).toBe(0);
-  });
-
-  it("returns 0 for an empty category totals list", () => {
-    expect(sumRecurringExpenseCategorySpend([], ["rent"])).toBe(0);
   });
 });

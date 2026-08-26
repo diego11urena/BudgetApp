@@ -2,11 +2,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAdjacentCycles, getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
-import { getCycleFinancials, summarizeCycleFinancials, sumRecurringExpenseCategorySpend } from "@/lib/cycle-financials";
+import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
-import { getCycleBudgetGoals } from "@/lib/budget-goals";
 import { generateInsights } from "@/lib/insights";
-import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
+import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import Link from "next/link";
@@ -35,12 +34,6 @@ export default async function DashboardPage() {
   // the earliest valid pay date for this cycle.
   const { previous: previousCycle } = await getAdjacentCycles(userId, cycle);
   const previousBoundDate = previousCycle ? formatCycleLabel(addDays(previousCycle.periodStart, 1)) : null;
-  const expenseGoals = await getCycleBudgetGoals(cycle.id, "EXPENSE");
-  const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
-  const fixedSpent = sumRecurringExpenseCategorySpend(
-    financials.categoryTotals,
-    expenseGoals.map((goal) => goal.categoryId),
-  );
 
   const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
@@ -67,6 +60,7 @@ export default async function DashboardPage() {
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
   ]);
+  const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
 
   const insights = generateInsights(financials, previousClosedFinancials, {
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
@@ -183,8 +177,7 @@ export default async function DashboardPage() {
           baseIncome={financials.baseIncome}
           extraIncome={financials.extraIncome}
           saved={financials.totalSavings}
-          spent={fixedSpent}
-          budget={totalBudget}
+          recurringExpenses={recurringExpensesSummary}
         />
       </div>
 

@@ -14,7 +14,8 @@ import {
 } from "@/lib/cycles";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
-import { getCycleBudgetGoals } from "@/lib/budget-goals";
+import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
+import { getBudgetUsage } from "@/lib/budget-status";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
 
@@ -47,11 +48,11 @@ export async function justGotPaidAction(payDateStr?: string): Promise<CycleClose
     session.user.id,
     payDate,
   );
-  const [goals, carriedEntry] = await Promise.all([
-    getCycleBudgetGoals(closedCycle.id, "EXPENSE"),
+  const [recurringExpenseCategories, carriedEntry] = await Promise.all([
+    getRecurringExpensesForCycle(session.user.id, closedCycle.id, { computeSuggestions: false }),
     prisma.cycleIncomeEntry.findFirst({ where: { cycleId: newCycle.id } }),
   ]);
-  const totalBudget = goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
   const top = closedCycleFinancials.topCategories[0];
 
   revalidateAppPages();
@@ -62,8 +63,8 @@ export async function justGotPaidAction(payDateStr?: string): Promise<CycleClose
     rolledOver: closedCycleFinancials.amountLeft,
     topCategory: top ? { name: top.categoryName, icon: top.categoryIcon, amount: top.amount } : null,
     budget: {
-      hasBudget: goals.length > 0,
-      overBy: Math.max(closedCycleFinancials.totalExpenses - totalBudget, 0),
+      hasBudget: recurringExpensesSummary.totalCount > 0,
+      overBy: getBudgetUsage(recurringExpensesSummary.totalActual, recurringExpensesSummary.totalTarget).overBy,
     },
     carriedIncomeAmount: carriedEntry?.netAmount.toNumber() ?? 0,
   };

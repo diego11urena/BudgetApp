@@ -24,23 +24,31 @@ interface GoalCategoryLike {
 }
 
 /**
- * Pure aggregation over an already-fetched category (with its SAVINGS
- * transactions and current-cycle budgetGoals included) — separated from the
- * fetch so the math (what actually caused the earlier quincena/monthly
- * overstatement bug class) is directly unit-testable without a database.
- *
  * savedSoFar is the sum of every real SAVINGS transaction tied to this
  * category PLUS manualAdjustment -- a second, independent term for money
  * that was already saved before the goal existed in this app, or a
  * correction to the tracked total that was deliberately NOT logged as a
- * transaction (see updateGoalContributionAction in goals/actions.ts).
- * This is the only place either term is combined; every downstream
- * consumer (computeGoalProjection, the dashboard, etc.) reads the already-
- * combined savedSoFar and needs no changes when this formula does.
+ * transaction (see adjustGoalContributionAction in goals/actions.ts). The
+ * one place either term is combined -- summarizeGoalProgress below and
+ * every reader of a goal's current total (adjustGoalContributionAction's
+ * own before/after validation) shares this instead of each re-deriving it.
+ */
+export function computeSavedSoFar(
+  transactions: { amount: DecimalLike }[],
+  manualAdjustment: DecimalLike,
+): number {
+  const transactionsTotal = transactions.reduce((sum, tx) => sum + tx.amount.toNumber(), 0);
+  return transactionsTotal + manualAdjustment.toNumber();
+}
+
+/**
+ * Pure aggregation over an already-fetched category (with its SAVINGS
+ * transactions and current-cycle budgetGoals included) — separated from the
+ * fetch so the math (what actually caused the earlier quincena/monthly
+ * overstatement bug class) is directly unit-testable without a database.
  */
 export function summarizeGoalProgress(category: GoalCategoryLike): GoalWithProgress {
-  const transactionsTotal = category.transactions.reduce((sum, tx) => sum + tx.amount.toNumber(), 0);
-  const savedSoFar = transactionsTotal + category.manualAdjustment.toNumber();
+  const savedSoFar = computeSavedSoFar(category.transactions, category.manualAdjustment);
   const currentGoal = category.budgetGoals[0];
 
   return {

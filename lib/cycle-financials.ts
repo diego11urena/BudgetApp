@@ -8,23 +8,6 @@ export interface CategoryTotal {
   amount: number;
 }
 
-/**
- * Sums only the categories that actually have a recurring-expense budget
- * target this cycle — "Fixed budget used" must reflect rent/subscriptions/
- * etc. against their own targets, not every expense category (groceries,
- * an uncategorized import) lumped in with them just because they're all
- * EXPENSE type.
- */
-export function sumRecurringExpenseCategorySpend(
-  categoryTotals: CategoryTotal[],
-  recurringExpenseCategoryIds: string[],
-): number {
-  const targetIds = new Set(recurringExpenseCategoryIds);
-  return categoryTotals
-    .filter((c) => targetIds.has(c.categoryId))
-    .reduce((sum, c) => sum + c.amount, 0);
-}
-
 export interface CycleTransactionSummary {
   id: string;
   /** Which BudgetCycle this row actually belongs to — distinct from whichever cycle's page happens to be rendering it (see QuickAddSheet's cross-cycle move confirmation). */

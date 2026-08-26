@@ -4,9 +4,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAdjacentCycles, formatCycleRangeText } from "@/lib/cycles";
-import { getCycleFinancials, sumRecurringExpenseCategorySpend } from "@/lib/cycle-financials";
-import { getCycleBudgetGoals } from "@/lib/budget-goals";
-import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
+import { getCycleFinancials } from "@/lib/cycle-financials";
+import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../../_components/TransactionList";
@@ -38,21 +37,14 @@ export default async function CycleHistoryPage({
 
   const closed = cycle.status === "CLOSED";
 
-  const [financials, expenseGoals, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }] =
+  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }] =
     await Promise.all([
       getCycleFinancials(cycle.id),
-      getCycleBudgetGoals(cycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
       getOrderedCategoryNames(userId, cycle.id, "INCOME"),
       getAdjacentCycles(userId, cycle),
     ]);
-
-  const totalBudget = expenseGoals.reduce((sum, goal) => sum + goal.targetAmount, 0);
-  const fixedSpent = sumRecurringExpenseCategorySpend(
-    financials.categoryTotals,
-    expenseGoals.map((goal) => goal.categoryId),
-  );
 
   // Historical category -> recurring-expense breakdown for this specific
   // cycle's own CycleRecurringExpense snapshots -- accurate even if a
@@ -62,6 +54,7 @@ export default async function CycleHistoryPage({
   const recurringExpenseCategories = await getRecurringExpensesForCycle(userId, cycle.id, {
     computeSuggestions: !closed,
   });
+  const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
 
   const cycleStartDate = formatCycleLabel(cycle.periodStart);
   // Exclusive neighbor boundaries -> inclusive HTML date-input min/max for
@@ -108,8 +101,7 @@ export default async function CycleHistoryPage({
           baseIncome={financials.baseIncome}
           extraIncome={financials.extraIncome}
           saved={financials.totalSavings}
-          spent={fixedSpent}
-          budget={totalBudget}
+          recurringExpenses={recurringExpensesSummary}
         />
       </div>
 

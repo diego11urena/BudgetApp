@@ -269,6 +269,10 @@ export function QuickAddSheet({
       });
     }
 
+    if (isEditing && result && "transactionId" in result && result.message) {
+      showToast(result.message);
+    }
+
     setPending(false);
     router.refresh();
     handleClose();
@@ -340,6 +344,10 @@ export function QuickAddSheet({
           restoreFd.set("occurredAt", d.occurredAt);
           if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
           if (d.description) restoreFd.set("description", d.description);
+          if (d.expenseCategoryId) restoreFd.set("expenseCategoryId", d.expenseCategoryId);
+          if (d.recurringExpenseId) restoreFd.set("recurringExpenseId", d.recurringExpenseId);
+          restoreFd.set("importSource", d.importSource);
+          if (d.sourceMessageId) restoreFd.set("sourceMessageId", d.sourceMessageId);
           restoreTransactionAction(restoreFd).then(() => router.refresh());
         },
       });

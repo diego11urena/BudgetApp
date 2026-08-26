@@ -61,8 +61,8 @@ export function latestGoalPerCategory<T extends { expenseCategoryId: string }>(
  * Recomputes one category's CycleBudgetGoal for one cycle from its
  * CycleRecurringExpense children — the "maintained aggregate" every
  * existing category-level reader (dashboard's fixed-budget card, History,
- * sumRecurringExpenseCategorySpend, Manage Categories' hasBudgetGoal check) keeps
- * reading unchanged. Called after any create/update/delete/carry-forward
+ * Manage Categories' hasBudgetGoal check) keeps reading unchanged. Called
+ * after any create/update/delete/carry-forward
  * touching a category's recurring expenses in a given cycle. Deletes the
  * CycleBudgetGoal row entirely when the sum is zero (no recurring expenses
  * left) rather than leaving a $0 row behind — hasBudgetGoal checks row

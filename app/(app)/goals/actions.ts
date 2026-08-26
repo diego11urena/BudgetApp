@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
-import { validateContributionDelta } from "@/lib/goals";
+import { computeSavedSoFar, validateContributionDelta } from "@/lib/goals";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { adjustGoalContributionSchema, goalSchema, updateGoalSchema } from "@/lib/validations/goals";
 
@@ -182,8 +182,7 @@ export async function adjustGoalContributionAction(
     return { error: "Goal not found" };
   }
 
-  const transactionsTotal = existing.transactions.reduce((sum, tx) => sum + tx.amount.toNumber(), 0);
-  const currentSavedSoFar = transactionsTotal + existing.manualAdjustment.toNumber();
+  const currentSavedSoFar = computeSavedSoFar(existing.transactions, existing.manualAdjustment);
   const validation = validateContributionDelta(currentSavedSoFar, parsed.data.delta);
   if (!validation.ok) {
     return { error: validation.error };
@@ -196,7 +195,7 @@ export async function adjustGoalContributionAction(
 
   revalidateAppPages();
 
-  return { newSavedSoFar: transactionsTotal + updated.manualAdjustment.toNumber() };
+  return { newSavedSoFar: computeSavedSoFar(existing.transactions, updated.manualAdjustment) };
 }
 
 export interface RemovedGoalSnapshot {

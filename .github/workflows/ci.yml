@@ -33,12 +33,10 @@ jobs:
       # deferred display-formatting issue in formatCycleRangeText (see
       # Balboa_Fix_List_1's "T4") that a bigger negative offset would.
       # Scoped to the files actually fixed for this -- lib/transaction-
-      # grouping.ts has the same underlying class of bug (Panama-anchored
-      # dates read via local Date getters) but hasn't been fixed yet
-      # (Balboa_Fix_List_1's 1.6, remaining half); adding it to this guard
-      # before fixing it would just be asserting that today's specific
-      # fixtures don't happen to trip it, not that it's actually safe.
-      - run: TZ=America/New_York npx vitest run lib/pay-date.test.ts lib/cycles.test.ts lib/quincena-pace.test.ts
+      # grouping.ts's own Panama-anchored dates read via local Date getters
+      # bug (Balboa_Fix_List_1's 1.6) is now fixed too (see its own test's
+      # panama() helper), so it joins this guard.
+      - run: TZ=America/New_York npx vitest run lib/pay-date.test.ts lib/cycles.test.ts lib/quincena-pace.test.ts lib/transaction-grouping.test.ts
 
   e2e:
     name: E2E tests

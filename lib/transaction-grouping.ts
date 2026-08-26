@@ -1,25 +1,27 @@
 import { formatFriendlyDate } from "./format";
+import { addDays, panamaDateParts } from "./pay-date";
 
 export interface TransactionDateGroup<T> {
   label: string;
   items: T[];
 }
 
+// Panama-anchored (not the machine's local Date getters) — a transaction
+// logged just after Panama midnight must still land in "Today"'s bucket
+// even when this runs on a UTC or other-timezone server (see
+// lib/pay-date.ts's own top comment for why raw local getters on a
+// server-constructed Date are the wrong tool here; same class of bug
+// lib/quincena-pace.ts had before it was fixed).
 function isSameCalendarDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+  const aParts = panamaDateParts(a);
+  const bParts = panamaDateParts(b);
+  return aParts.year === bParts.year && aParts.month === bParts.month && aParts.day === bParts.day;
 }
 
 /** "Today" / "Yesterday" / "Aug 1, 2026" — lib/format.ts's formatFriendlyDate for anything older. */
 export function formatGroupDateLabel(date: Date, now: Date = new Date()): string {
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-
   if (isSameCalendarDay(date, now)) return "Today";
-  if (isSameCalendarDay(date, yesterday)) return "Yesterday";
+  if (isSameCalendarDay(date, addDays(now, -1))) return "Yesterday";
   return formatFriendlyDate(date);
 }
 
