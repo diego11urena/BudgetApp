@@ -12,15 +12,16 @@ import { getOrCreateCategory } from "@/lib/categories";
 import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { recurringExpenseSchema } from "@/lib/validations/budget";
-import { decimalString } from "@/lib/validations/shared";
+import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { paymentMethodSchema } from "@/lib/validations/transactions";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 export type RecurringExpenseFormState =
   | { error?: string; field?: "name" | "amount" | "categoryName" | "dueDay" }
   | undefined;
 
 /** Name/amount/category/frequency/due-day, all in one sheet -- replaces the old "create a target, then separately set its frequency" two-step flow. */
-export async function createRecurringExpenseAction(
+export const createRecurringExpenseAction = withActionErrorHandling(async function createRecurringExpenseAction(
   _prevState: RecurringExpenseFormState,
   formData: FormData,
 ): Promise<RecurringExpenseFormState> {
@@ -62,7 +63,7 @@ export async function createRecurringExpenseAction(
   });
 
   revalidateAppPages();
-}
+});
 
 /**
  * Amount/category edits behave differently by design: amount is a "price"
@@ -74,7 +75,7 @@ export async function createRecurringExpenseAction(
  * appeared in, same as renaming a category retroactively relabels its
  * past history too.
  */
-export async function updateRecurringExpenseAction(
+export const updateRecurringExpenseAction = withActionErrorHandling(async function updateRecurringExpenseAction(
   _prevState: RecurringExpenseFormState,
   formData: FormData,
 ): Promise<RecurringExpenseFormState> {
@@ -156,7 +157,7 @@ export async function updateRecurringExpenseAction(
   });
 
   revalidateAppPages();
-}
+});
 
 export interface DeletedRecurringExpenseSnapshot {
   recurringExpenseId: string;
@@ -170,7 +171,7 @@ export type DeleteRecurringExpenseResult =
   | { deleted: DeletedRecurringExpenseSnapshot }
   | undefined;
 
-export async function deleteRecurringExpenseAction(
+export const deleteRecurringExpenseAction = withActionErrorHandling(async function deleteRecurringExpenseAction(
   _prevState: DeleteRecurringExpenseResult,
   formData: FormData,
 ): Promise<DeleteRecurringExpenseResult> {
@@ -220,10 +221,10 @@ export async function deleteRecurringExpenseAction(
       targetAmount: (currentSnapshot?.targetAmount ?? existing.amount).toNumber(),
     },
   };
-}
+});
 
 /** Undo for a deleted recurring expense — flips `recurring` back on and restores this cycle's snapshot. */
-export async function restoreRecurringExpenseAction(
+export const restoreRecurringExpenseAction = withActionErrorHandling(async function restoreRecurringExpenseAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -245,6 +246,13 @@ export async function restoreRecurringExpenseAction(
   ) {
     return { error: "Invalid undo payload" };
   }
+  // A toast's client-held snapshot resubmitted verbatim -- same untrusted-
+  // input boundary create/update already validate through, so undo can't
+  // hand Decimal a value that overflows the column.
+  const parsedTargetAmount = decimalString.safeParse(targetAmount);
+  if (!parsedTargetAmount.success) {
+    return { error: parsedTargetAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+  }
 
   // Ownership-scoped, same reasoning as every other action here.
   const existing = await prisma.recurringExpense.findFirst({ where: { id: recurringExpenseId, userId } });
@@ -260,19 +268,19 @@ export async function restoreRecurringExpenseAction(
     await tx.recurringExpense.update({ where: { id: existing.id }, data: { recurring: true } });
     await tx.cycleRecurringExpense.upsert({
       where: { cycleId_recurringExpenseId: { cycleId: cycle.id, recurringExpenseId: existing.id } },
-      create: { cycleId: cycle.id, recurringExpenseId: existing.id, targetAmount },
-      update: { targetAmount },
+      create: { cycleId: cycle.id, recurringExpenseId: existing.id, targetAmount: parsedTargetAmount.data },
+      update: { targetAmount: parsedTargetAmount.data },
     });
     await recomputeCategoryBudgetGoal(tx, cycle.id, existing.categoryId);
   });
 
   revalidateAppPages();
-}
+});
 
 export type RecordPaymentResult = { error: string } | { transactionId: string } | undefined;
 
 /** Logs a real CycleTransaction for this cycle's payment of a recurring expense — amount pre-filled from the recurring expense's own amount but editable, so a bill that came in slightly different than usual is still recorded accurately. */
-export async function recordRecurringExpensePaymentAction(
+export const recordRecurringExpensePaymentAction = withActionErrorHandling(async function recordRecurringExpensePaymentAction(
   _prevState: RecordPaymentResult,
   formData: FormData,
 ): Promise<RecordPaymentResult> {
@@ -322,14 +330,14 @@ export async function recordRecurringExpensePaymentAction(
   revalidateAppPages();
 
   return { transactionId: created.id };
-}
+});
 
 /**
  * Confirms a best-effort match suggestion (see lib/recurring-expense-matching.ts)
  * -- the user always confirms or dismisses, never an automatic silent link.
  * Dismissing a suggestion is local UI state only, not persisted here.
  */
-export async function confirmRecurringExpenseMatchAction(
+export const confirmRecurringExpenseMatchAction = withActionErrorHandling(async function confirmRecurringExpenseMatchAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -370,4 +378,4 @@ export async function confirmRecurringExpenseMatchAction(
   });
 
   revalidateAppPages();
-}
+});

@@ -9,6 +9,7 @@ import { justGotPaidAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
+import { useToast } from "../../_components/ToastProvider";
 
 export function HeroCard({
   amountLeft,
@@ -26,6 +27,7 @@ export function HeroCard({
   closed?: boolean;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
@@ -44,14 +46,22 @@ export function HeroCard({
   async function handleConfirmedJustGotPaid(payDate: string) {
     setConfirming(false);
     setPending(true);
-    const summary = await justGotPaidAction(payDate);
-    setPending(false);
-    setClosedSummary(summary);
-    // The new cycle exists in the DB now, even while CycleClosedCard's own
-    // overlay (built from this response, not a re-fetch) is still showing —
-    // refresh so the Home content underneath is already correct once the
-    // overlay dismisses, instead of relying only on revalidatePath.
-    router.refresh();
+    try {
+      const result = await justGotPaidAction(payDate);
+      if ("error" in result) {
+        showToast(result.error);
+        return;
+      }
+      setClosedSummary(result);
+      // The new cycle exists in the DB now, even while CycleClosedCard's
+      // own overlay (built from this response, not a re-fetch) is still
+      // showing — refresh so the Home content underneath is already
+      // correct once the overlay dismisses, instead of relying only on
+      // revalidatePath.
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
   }
 
   function handleDismissSummary() {

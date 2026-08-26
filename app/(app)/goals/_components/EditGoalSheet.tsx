@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateGoalAction, adjustGoalContributionAction } from "../actions";
-import { addTransactionAction } from "../../_actions/transactions";
+import { updateGoalWithContributionAction } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import { useModalFocus } from "../../_components/useModalFocus";
 import { formatCurrency } from "@/lib/format";
@@ -19,15 +18,16 @@ export interface EditableGoal {
 
 /**
  * Edits an existing goal's name, total target, per-cycle contribution, and
- * "amount saved so far." The first three are a plain field edit
- * (updateGoalAction). The last one is the one field with real accounting
- * implications: savedSoFar is always transactions + manualAdjustment (see
- * lib/goals.ts), never a raw editable number, so changing it here always
- * means changing one of those two terms -- an increase asks whether to
- * record it as a real transaction (money that actually moved just now) or
- * as a correction (manualAdjustment only, doesn't touch transaction
- * history); a decrease is always a correction, since this app's
- * transaction model has no way to represent a savings withdrawal.
+ * "amount saved so far" — all committed together by one server action
+ * (updateGoalWithContributionAction). The last field is the one with real
+ * accounting implications: savedSoFar is always transactions +
+ * manualAdjustment (see lib/goals.ts), never a raw editable number, so
+ * changing it here always means changing one of those two terms -- an
+ * increase asks whether to record it as a real transaction (money that
+ * actually moved just now) or as a correction (manualAdjustment only,
+ * doesn't touch transaction history); a decrease is always a correction,
+ * since this app's transaction model has no way to represent a savings
+ * withdrawal.
  */
 export function EditGoalSheet({
   goal,
@@ -64,63 +64,38 @@ export function EditGoalSheet({
     setTimeout(onDone, 200);
   }
 
-  /** Commits the name/target/recurring fields — always runs, regardless of whether savedSoFar changed. */
-  async function submitBaseFields(name: string): Promise<string | null> {
-    const fd = new FormData();
-    fd.set("categoryId", goal.categoryId);
-    fd.set("name", name);
-    fd.set("lifetimeTargetAmount", lifetimeTargetAmount);
-    if (recurringAmount.trim()) fd.set("recurringAmount", recurringAmount);
-    const result = await updateGoalAction(undefined, fd);
-    return result?.error ?? null;
-  }
-
-  async function finishWithTransaction(name: string, delta: number) {
+  /**
+   * The one call behind every submit path here — base fields plus,
+   * whenever savedSoFar changed, the resulting transaction-or-adjustment
+   * write, all committed atomically server-side (see
+   * updateGoalWithContributionAction's own comment for why this used to
+   * be two separate round-trips and isn't anymore).
+   */
+  async function submitGoal(name: string, delta: number, recordAsTransaction: boolean) {
     setPending(true);
     setError(null);
-    const baseError = await submitBaseFields(name);
-    if (baseError) {
+    try {
+      const fd = new FormData();
+      fd.set("categoryId", goal.categoryId);
+      fd.set("name", name);
+      fd.set("lifetimeTargetAmount", lifetimeTargetAmount);
+      if (recurringAmount.trim()) fd.set("recurringAmount", recurringAmount);
+      if (delta !== 0) {
+        fd.set("delta", String(delta));
+        fd.set("recordAsTransaction", recordAsTransaction ? "true" : "false");
+      }
+      const result = await updateGoalWithContributionAction(fd);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+      handleClose();
+    } catch {
+      setError("Something went wrong. Your changes weren't saved — please try again.");
+    } finally {
       setPending(false);
-      setError(baseError);
-      return;
     }
-    // Uses the just-submitted `name`, not goal.name -- submitBaseFields
-    // above may have just renamed this same category (goal.categoryId),
-    // so addTransactionAction's own name-based category lookup
-    // (getOrCreateCategory) needs the CURRENT name to land on that same
-    // renamed row instead of recreating an orphaned category under the
-    // now-stale old name.
-    const fd = new FormData();
-    fd.set("type", "SAVINGS");
-    fd.set("name", name);
-    fd.set("amount", delta.toFixed(2));
-    const result = await addTransactionAction(undefined, fd);
-    setPending(false);
-    if (result && "error" in result) {
-      setError(result.error);
-      return;
-    }
-    router.refresh();
-    handleClose();
-  }
-
-  async function finishWithAdjustment(name: string, delta: number) {
-    setPending(true);
-    setError(null);
-    const baseError = await submitBaseFields(name);
-    if (baseError) {
-      setPending(false);
-      setError(baseError);
-      return;
-    }
-    const result = await adjustGoalContributionAction(goal.categoryId, delta);
-    setPending(false);
-    if (result && "error" in result) {
-      setError(result.error);
-      return;
-    }
-    router.refresh();
-    handleClose();
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -152,15 +127,7 @@ export function EditGoalSheet({
 
     const delta = Math.round((Number(savedSoFar) - goal.savedSoFar) * 100) / 100;
     if (delta === 0) {
-      setPending(true);
-      const baseError = await submitBaseFields(name);
-      setPending(false);
-      if (baseError) {
-        setError(baseError);
-        return;
-      }
-      router.refresh();
-      handleClose();
+      await submitGoal(name, 0, false);
       return;
     }
 
@@ -261,7 +228,7 @@ export function EditGoalSheet({
                   type="button"
                   className="button sheet-submit"
                   disabled={pending}
-                  onClick={() => finishWithTransaction(pendingChange.name, pendingChange.delta)}
+                  onClick={() => submitGoal(pendingChange.name, pendingChange.delta, true)}
                 >
                   {pending ? "Saving..." : "Yes, record as transaction"}
                 </button>
@@ -270,7 +237,7 @@ export function EditGoalSheet({
                 type="button"
                 className="button button--secondary sheet-submit"
                 disabled={pending}
-                onClick={() => finishWithAdjustment(pendingChange.name, pendingChange.delta)}
+                onClick={() => submitGoal(pendingChange.name, pendingChange.delta, false)}
               >
                 {pending ? "Saving..." : isIncrease ? "No, just update the goal" : "Continue"}
               </button>

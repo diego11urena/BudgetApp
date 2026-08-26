@@ -5,19 +5,23 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { computeSavedSoFar, validateContributionDelta } from "@/lib/goals";
+import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
-import { adjustGoalContributionSchema, goalSchema, updateGoalSchema } from "@/lib/validations/goals";
+import { goalContributionDeltaSchema, goalSchema, updateGoalSchema } from "@/lib/validations/goals";
+import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 export type GoalFormState = { error?: string } | undefined;
 
 /**
  * Creates a new goal (or resurrects a previously-removed one matching the
  * same name — see removeGoalAction, which never deletes the underlying
- * category). Editing an EXISTING goal by id goes through updateGoalAction
- * instead; this upsert-by-name behavior is only appropriate at creation
- * time, since a genuinely new goal has no id yet.
+ * category). Editing an EXISTING goal by id goes through
+ * updateGoalWithContributionAction instead; this upsert-by-name behavior
+ * is only appropriate at creation time, since a genuinely new goal has no
+ * id yet.
  */
-export async function upsertGoalAction(
+export const upsertGoalAction = withActionErrorHandling(async function upsertGoalAction(
   _prevState: GoalFormState,
   formData: FormData,
 ): Promise<GoalFormState> {
@@ -48,41 +52,53 @@ export async function upsertGoalAction(
   // on the create branch, since re-submitting this same form for an
   // already-existing goal of the same name should never silently reset or
   // re-add to its tracked total.
-  const category = await prisma.expenseCategory.upsert({
-    where: { userId_name_type: { userId, name, type: "SAVINGS" } },
-    create: {
-      userId,
-      name,
-      type: "SAVINGS",
-      lifetimeTargetAmount,
-      recurring: true,
-      manualAdjustment: alreadySavedAmount ?? 0,
-    },
-    update: { lifetimeTargetAmount, recurring: true },
+  await prisma.$transaction(async (tx) => {
+    const category = await tx.expenseCategory.upsert({
+      where: { userId_name_type: { userId, name, type: "SAVINGS" } },
+      create: {
+        userId,
+        name,
+        type: "SAVINGS",
+        lifetimeTargetAmount,
+        recurring: true,
+        manualAdjustment: alreadySavedAmount ?? 0,
+      },
+      update: { lifetimeTargetAmount, recurring: true },
+    });
+
+    if (recurringAmount) {
+      const cycle = await getOrCreateDraftCycle(userId);
+      await tx.cycleBudgetGoal.upsert({
+        where: {
+          cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: category.id },
+        },
+        create: { cycleId: cycle.id, expenseCategoryId: category.id, targetAmount: recurringAmount },
+        update: { targetAmount: recurringAmount },
+      });
+    }
   });
 
-  if (recurringAmount) {
-    const cycle = await getOrCreateDraftCycle(userId);
-    await prisma.cycleBudgetGoal.upsert({
-      where: {
-        cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: category.id },
-      },
-      create: { cycleId: cycle.id, expenseCategoryId: category.id, targetAmount: recurringAmount },
-      update: { targetAmount: recurringAmount },
-    });
-  }
-
   revalidateAppPages();
-}
+});
+
+class ContributionConcurrencyLostError extends Error {}
 
 /**
- * Edits an existing goal by id — name, total target, per-cycle
- * contribution. Never touches savedSoFar (transactions + manualAdjustment)
- * -- that's adjustGoalContributionAction's job, kept separate so a plain
- * rename/retarget can't accidentally also touch the tracked total.
+ * EditGoalSheet's only server action — the base fields (name/target/
+ * recurring) and, whenever savedSoFar also changed, the resulting
+ * contribution write (either a real SAVINGS transaction or a
+ * manualAdjustment correction) all happen inside one $transaction, instead
+ * of two separate client-orchestrated round-trips (this used to be
+ * updateGoalAction followed by addTransactionAction or
+ * adjustGoalContributionAction). Previously, a failure on the second call
+ * left the goal already renamed/retargeted with the contribution silently
+ * dropped, and the UI only ever surfaced the second call's error.
+ *
+ * delta === 0 (savedSoFar untouched) still runs the base-field update, just
+ * with no contribution write — the same single action covers both of
+ * EditGoalSheet's submit paths.
  */
-export async function updateGoalAction(
-  _prevState: GoalFormState,
+export const updateGoalWithContributionAction = withActionErrorHandling(async function updateGoalWithContributionAction(
   formData: FormData,
 ): Promise<GoalFormState> {
   const session = await auth();
@@ -97,17 +113,33 @@ export async function updateGoalAction(
     lifetimeTargetAmount: formData.get("lifetimeTargetAmount"),
     recurringAmount: formData.get("recurringAmount") || undefined,
   });
-
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
-
   const { categoryId, name, lifetimeTargetAmount, recurringAmount } = parsed.data;
+
+  const rawDelta = formData.get("delta");
+  const deltaParsed = goalContributionDeltaSchema.safeParse(
+    typeof rawDelta === "string" && rawDelta ? Number(rawDelta) : 0,
+  );
+  if (!deltaParsed.success) {
+    return { error: deltaParsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+  }
+  const delta = deltaParsed.data;
+  const recordAsTransaction = formData.get("recordAsTransaction") === "true";
+  // EditGoalSheet only ever offers "record as transaction" on an increase
+  // (isIncrease gates that button) -- this app's transaction model has no
+  // way to represent a savings withdrawal, so a non-positive delta here
+  // would create a transaction downstream sums assume is always positive.
+  if (recordAsTransaction && delta <= 0) {
+    return { error: "Invalid amount" };
+  }
 
   // Ownership-scoped: only this user's own SAVINGS category, matching the
   // pattern every other by-id action in this app already uses.
   const existing = await prisma.expenseCategory.findFirst({
     where: { id: categoryId, userId, type: "SAVINGS" },
+    include: { transactions: { where: { type: "SAVINGS" } } },
   });
   if (!existing) {
     return { error: "Goal not found" };
@@ -127,76 +159,80 @@ export async function updateGoalAction(
     }
   }
 
-  await prisma.expenseCategory.update({
-    where: { id: categoryId },
-    data: { name, lifetimeTargetAmount, recurring: true },
-  });
+  if (delta !== 0 && !recordAsTransaction) {
+    const currentSavedSoFar = computeSavedSoFar(existing.transactions, existing.manualAdjustment);
+    const validation = validateContributionDelta(currentSavedSoFar, delta);
+    if (!validation.ok) {
+      return { error: validation.error };
+    }
+  }
 
-  if (recurringAmount) {
-    const cycle = await getOrCreateDraftCycle(userId);
-    await prisma.cycleBudgetGoal.upsert({
-      where: { cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: categoryId } },
-      create: { cycleId: cycle.id, expenseCategoryId: categoryId, targetAmount: recurringAmount },
-      update: { targetAmount: recurringAmount },
+  // Resolved once, outside the transaction below (getOrCreateDraftCycle
+  // isn't tx-aware -- see its own cache() trap warning in lib/cycles.ts),
+  // same pattern upsertGoalAction already uses for its own recurringAmount
+  // write.
+  const cycle = recurringAmount || (delta !== 0 && recordAsTransaction) ? await getOrCreateDraftCycle(userId) : null;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.expenseCategory.update({
+        where: { id: categoryId },
+        data: { name, lifetimeTargetAmount, recurring: true },
+      });
+
+      if (recurringAmount && cycle) {
+        await tx.cycleBudgetGoal.upsert({
+          where: { cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: categoryId } },
+          create: { cycleId: cycle.id, expenseCategoryId: categoryId, targetAmount: recurringAmount },
+          update: { targetAmount: recurringAmount },
+        });
+      }
+
+      if (delta !== 0) {
+        if (recordAsTransaction && cycle) {
+          // Uses the just-submitted `name`, not existing.name -- the update
+          // above may have just renamed this same category, and this
+          // transaction should carry the current name forward.
+          await tx.cycleTransaction.create({
+            data: {
+              cycleId: cycle.id,
+              type: "SAVINGS",
+              name,
+              amount: delta.toFixed(2),
+              expenseCategoryId: categoryId,
+              occurredAt: nowInPanama(),
+            },
+          });
+        } else {
+          // `updateMany` with a `manualAdjustment: currentAdjustment` guard,
+          // not a blind atomic `increment` -- an atomic increment makes the
+          // *write* race-free, but two concurrent decrements can still both
+          // read the same pre-decrement savedSoFar, both pass
+          // validateContributionDelta above, and leave the total negative
+          // anyway. A losing concurrent writer's update matches zero rows
+          // instead of silently corrupting the invariant already checked,
+          // and throws to roll back the whole transaction -- committing the
+          // base-field edit while dropping the contribution would defeat
+          // the entire point of combining these into one transaction.
+          const { count } = await tx.expenseCategory.updateMany({
+            where: { id: categoryId, manualAdjustment: existing.manualAdjustment },
+            data: { manualAdjustment: { increment: delta } },
+          });
+          if (count === 0) {
+            throw new ContributionConcurrencyLostError();
+          }
+        }
+      }
     });
+  } catch (error) {
+    if (error instanceof ContributionConcurrencyLostError) {
+      return { error: "This goal changed elsewhere just now — please try again." };
+    }
+    throw error;
   }
 
   revalidateAppPages();
-}
-
-export type AdjustContributionResult = { error: string } | { newSavedSoFar: number } | undefined;
-
-/**
- * Adjusts a goal's manualAdjustment by a signed delta -- the "just update
- * the goal, don't log a transaction" half of editing "amount saved so
- * far" (see EditGoalSheet). The "record as transaction" half doesn't call
- * this at all; it goes through the ordinary addTransactionAction instead
- * (same as the existing Contribute button), so this action's only job is
- * the manualAdjustment term, never the transaction-sum term.
- *
- * Uses Prisma's atomic `increment` rather than read-current-then-write,
- * so this can never race with a concurrent edit or a concurrent
- * Contribute -- delta is exactly the change the client already computed
- * from values it just displayed, not a value that needs re-deriving here.
- */
-export async function adjustGoalContributionAction(
-  categoryId: string,
-  delta: number,
-): Promise<AdjustContributionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-  const userId = session.user.id;
-
-  const parsed = adjustGoalContributionSchema.safeParse({ categoryId, delta });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  }
-
-  const existing = await prisma.expenseCategory.findFirst({
-    where: { id: categoryId, userId, type: "SAVINGS" },
-    include: { transactions: { where: { type: "SAVINGS" } } },
-  });
-  if (!existing || existing.lifetimeTargetAmount === null) {
-    return { error: "Goal not found" };
-  }
-
-  const currentSavedSoFar = computeSavedSoFar(existing.transactions, existing.manualAdjustment);
-  const validation = validateContributionDelta(currentSavedSoFar, parsed.data.delta);
-  if (!validation.ok) {
-    return { error: validation.error };
-  }
-
-  const updated = await prisma.expenseCategory.update({
-    where: { id: categoryId },
-    data: { manualAdjustment: { increment: parsed.data.delta } },
-  });
-
-  revalidateAppPages();
-
-  return { newSavedSoFar: computeSavedSoFar(existing.transactions, updated.manualAdjustment) };
-}
+});
 
 export interface RemovedGoalSnapshot {
   categoryId: string;
@@ -208,7 +244,9 @@ export interface RemovedGoalSnapshot {
 /** Success carries a snapshot so a "Deleted · Undo" toast can restore it. */
 export type RemoveGoalResult = { error: string } | { removed: RemovedGoalSnapshot } | undefined;
 
-export async function removeGoalAction(formData: FormData): Promise<RemoveGoalResult> {
+export const removeGoalAction = withActionErrorHandling(async function removeGoalAction(
+  formData: FormData,
+): Promise<RemoveGoalResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -259,14 +297,16 @@ export async function removeGoalAction(formData: FormData): Promise<RemoveGoalRe
         : null,
     },
   };
-}
+});
 
 /**
  * Undo for a removed goal — reinstates lifetimeTargetAmount and recurring,
  * and if the current cycle had a per-cycle contribution set, restores that
  * too.
  */
-export async function restoreGoalAction(formData: FormData): Promise<{ error?: string } | undefined> {
+export const restoreGoalAction = withActionErrorHandling(async function restoreGoalAction(
+  formData: FormData,
+): Promise<{ error?: string } | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -286,6 +326,21 @@ export async function restoreGoalAction(formData: FormData): Promise<{ error?: s
   ) {
     return { error: "Invalid undo payload" };
   }
+  // A toast's client-held snapshot resubmitted verbatim -- same untrusted-
+  // input boundary the create/update forms already validate through, so
+  // undo can't hand Decimal a value that overflows the column.
+  const parsedLifetimeTarget = decimalString.safeParse(lifetimeTargetAmount);
+  if (!parsedLifetimeTarget.success) {
+    return { error: parsedLifetimeTarget.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+  }
+  let parsedTargetAmount: string | undefined;
+  if (typeof targetAmount === "string" && targetAmount) {
+    const result = decimalString.safeParse(targetAmount);
+    if (!result.success) {
+      return { error: result.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+    }
+    parsedTargetAmount = result.data;
+  }
 
   // Ownership-scoped: only restore this user's own goal category.
   const category = await prisma.expenseCategory.findFirst({
@@ -295,21 +350,23 @@ export async function restoreGoalAction(formData: FormData): Promise<{ error?: s
     return { error: "Goal not found" };
   }
 
-  await prisma.expenseCategory.update({
-    where: { id: category.id },
-    data: { lifetimeTargetAmount, recurring: true },
+  await prisma.$transaction(async (tx) => {
+    await tx.expenseCategory.update({
+      where: { id: category.id },
+      data: { lifetimeTargetAmount: parsedLifetimeTarget.data, recurring: true },
+    });
+
+    if (typeof cycleId === "string" && cycleId && parsedTargetAmount) {
+      const cycle = await tx.budgetCycle.findFirst({ where: { id: cycleId, userId } });
+      if (cycle) {
+        await tx.cycleBudgetGoal.upsert({
+          where: { cycleId_expenseCategoryId: { cycleId, expenseCategoryId: category.id } },
+          create: { cycleId, expenseCategoryId: category.id, targetAmount: parsedTargetAmount },
+          update: { targetAmount: parsedTargetAmount },
+        });
+      }
+    }
   });
 
-  if (typeof cycleId === "string" && cycleId && typeof targetAmount === "string" && targetAmount) {
-    const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
-    if (cycle) {
-      await prisma.cycleBudgetGoal.upsert({
-        where: { cycleId_expenseCategoryId: { cycleId, expenseCategoryId: category.id } },
-        create: { cycleId, expenseCategoryId: category.id, targetAmount },
-        update: { targetAmount },
-      });
-    }
-  }
-
   revalidateAppPages();
-}
+});

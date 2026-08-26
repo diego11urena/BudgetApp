@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 /**
  * Dev-only testing helper. getOrCreateDraftCycle returns whichever cycle is
@@ -15,7 +16,7 @@ import { getOrCreateDraftCycle } from "@/lib/cycles";
  * DevResetButton, since this can destroy real logged data, not just an
  * abandoned in-progress signup.
  */
-export async function resetOnboardingAction() {
+export const resetOnboardingAction = withActionErrorHandling(async function resetOnboardingAction() {
   if (process.env.NODE_ENV === "production") {
     return;
   }
@@ -34,4 +35,4 @@ export async function resetOnboardingAction() {
   ]);
 
   redirect("/onboarding");
-}
+});

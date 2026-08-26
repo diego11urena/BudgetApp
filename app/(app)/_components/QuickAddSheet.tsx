@@ -247,35 +247,44 @@ export function QuickAddSheet({
     setError(null);
     setErrorField(null);
     const action = isEditing ? updateTransactionAction : addTransactionAction;
-    const result = await action(undefined, formData);
+    // try/finally, not a bare await: a rejected promise (a network failure,
+    // not a validation/server error -- those already come back as a normal
+    // { error } return) would otherwise skip every line below, including
+    // setPending(false), leaving the submit button disabled forever with
+    // no way to retry.
+    try {
+      const result = await action(undefined, formData);
 
-    if (result && "error" in result) {
+      if (result && "error" in result) {
+        setError(result.error);
+        return;
+      }
+
+      if (!isEditing && result && "transactionId" in result) {
+        const amountNumber = Number(formData.get("amount"));
+        const label = String(formData.get("name") ?? "").trim() || "transaction";
+        const newTransactionId = result.transactionId;
+        showToast(`Logged ${formatCurrency(amountNumber)} for ${label}`, {
+          label: "Undo",
+          onClick: () => {
+            const fd = new FormData();
+            fd.set("transactionId", newTransactionId);
+            deleteTransactionAction(undefined, fd).then(() => router.refresh());
+          },
+        });
+      }
+
+      if (isEditing && result && "transactionId" in result && result.message) {
+        showToast(result.message);
+      }
+
+      router.refresh();
+      handleClose();
+    } catch {
+      setError("Something went wrong. Your changes weren't saved — please try again.");
+    } finally {
       setPending(false);
-      setError(result.error);
-      return;
     }
-
-    if (!isEditing && result && "transactionId" in result) {
-      const amountNumber = Number(formData.get("amount"));
-      const label = String(formData.get("name") ?? "").trim() || "transaction";
-      const newTransactionId = result.transactionId;
-      showToast(`Logged ${formatCurrency(amountNumber)} for ${label}`, {
-        label: "Undo",
-        onClick: () => {
-          const fd = new FormData();
-          fd.set("transactionId", newTransactionId);
-          deleteTransactionAction(undefined, fd).then(() => router.refresh());
-        },
-      });
-    }
-
-    if (isEditing && result && "transactionId" in result && result.message) {
-      showToast(result.message);
-    }
-
-    setPending(false);
-    router.refresh();
-    handleClose();
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -327,35 +336,45 @@ export function QuickAddSheet({
   async function handleDelete() {
     if (!editingTransaction) return;
     setDeletePending(true);
-    const fd = new FormData();
-    fd.set("transactionId", editingTransaction.id);
-    const result = await deleteTransactionAction(undefined, fd);
+    try {
+      const fd = new FormData();
+      fd.set("transactionId", editingTransaction.id);
+      const result = await deleteTransactionAction(undefined, fd);
 
-    if (result && "deleted" in result) {
-      const d = result.deleted;
-      showToast("Deleted", {
-        label: "Undo",
-        onClick: () => {
-          const restoreFd = new FormData();
-          restoreFd.set("cycleId", d.cycleId);
-          restoreFd.set("type", d.type);
-          restoreFd.set("name", d.name);
-          restoreFd.set("amount", String(d.amount));
-          restoreFd.set("occurredAt", d.occurredAt);
-          if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
-          if (d.description) restoreFd.set("description", d.description);
-          if (d.expenseCategoryId) restoreFd.set("expenseCategoryId", d.expenseCategoryId);
-          if (d.recurringExpenseId) restoreFd.set("recurringExpenseId", d.recurringExpenseId);
-          restoreFd.set("importSource", d.importSource);
-          if (d.sourceMessageId) restoreFd.set("sourceMessageId", d.sourceMessageId);
-          restoreTransactionAction(restoreFd).then(() => router.refresh());
-        },
-      });
+      if (result && "error" in result) {
+        showToast(result.error);
+        return;
+      }
+
+      if (result && "deleted" in result) {
+        const d = result.deleted;
+        showToast("Deleted", {
+          label: "Undo",
+          onClick: () => {
+            const restoreFd = new FormData();
+            restoreFd.set("cycleId", d.cycleId);
+            restoreFd.set("type", d.type);
+            restoreFd.set("name", d.name);
+            restoreFd.set("amount", String(d.amount));
+            restoreFd.set("occurredAt", d.occurredAt);
+            if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
+            if (d.description) restoreFd.set("description", d.description);
+            if (d.expenseCategoryId) restoreFd.set("expenseCategoryId", d.expenseCategoryId);
+            if (d.recurringExpenseId) restoreFd.set("recurringExpenseId", d.recurringExpenseId);
+            restoreFd.set("importSource", d.importSource);
+            if (d.sourceMessageId) restoreFd.set("sourceMessageId", d.sourceMessageId);
+            restoreTransactionAction(restoreFd).then(() => router.refresh());
+          },
+        });
+      }
+
+      router.refresh();
+      handleClose();
+    } catch {
+      showToast("Something went wrong. Your changes weren't saved — please try again.");
+    } finally {
+      setDeletePending(false);
     }
-
-    router.refresh();
-    setDeletePending(false);
-    handleClose();
   }
 
   function handleTypeChange(next: TxType) {

@@ -62,19 +62,28 @@ export function RecordPaymentSheet({
     setPending(true);
     setError(null);
 
-    const fd = new FormData();
-    fd.set("recurringExpenseId", recurringExpenseId);
-    fd.set("amount", amount);
-    if (paymentMethod) fd.set("paymentMethod", paymentMethod);
-    const result = await recordRecurringExpensePaymentAction(undefined, fd);
+    // try/finally, not a bare await: a rejected promise (a network
+    // failure, not a validation/server error -- those already come back
+    // as a normal { error } return) would otherwise skip setPending(false)
+    // entirely, leaving the submit button disabled forever.
+    try {
+      const fd = new FormData();
+      fd.set("recurringExpenseId", recurringExpenseId);
+      fd.set("amount", amount);
+      if (paymentMethod) fd.set("paymentMethod", paymentMethod);
+      const result = await recordRecurringExpensePaymentAction(undefined, fd);
 
-    setPending(false);
-    if (result && "error" in result) {
-      setError(result.error);
-      return;
+      if (result && "error" in result) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+      handleClose();
+    } catch {
+      setError("Something went wrong. Your changes weren't saved — please try again.");
+    } finally {
+      setPending(false);
     }
-    router.refresh();
-    handleClose();
   }
 
   return (

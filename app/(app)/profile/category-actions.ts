@@ -8,6 +8,7 @@ import { recomputeCategoryBudgetGoal } from "@/lib/cycles";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 const VALID_CATEGORY_COLOR = /^chart-cat-[1-8]$/;
 
@@ -122,7 +123,7 @@ async function mergeCategoryRecurringExpenses(
  * than dropped, and the source category is deleted. Irreversible — the
  * caller is expected to confirm first.
  */
-export async function mergeCategoryAction(
+export const mergeCategoryAction = withActionErrorHandling(async function mergeCategoryAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -229,7 +230,7 @@ export async function mergeCategoryAction(
   });
 
   revalidateAppPages();
-}
+});
 
 /**
  * Creates a new EXPENSE category from the Manage Categories screen's
@@ -239,7 +240,7 @@ export async function mergeCategoryAction(
  * user-driven "make a new one," so a name collision is a real error to
  * surface, not something to quietly paper over).
  */
-export async function createCategoryAction(
+export const createCategoryAction = withActionErrorHandling(async function createCategoryAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -275,7 +276,7 @@ export async function createCategoryAction(
   });
 
   revalidateAppPages();
-}
+});
 
 /**
  * Edits an existing Expense or Income category's name, icon, and color
@@ -284,7 +285,7 @@ export async function createCategoryAction(
  * deliberately not reachable through this action; goals/actions.ts owns
  * that instead.
  */
-export async function updateCategoryAction(
+export const updateCategoryAction = withActionErrorHandling(async function updateCategoryAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -339,7 +340,7 @@ export async function updateCategoryAction(
     data: { name, icon: parsedIcon.icon, color: parsedColor.color },
   });
   revalidateAppPages();
-}
+});
 
 /**
  * Deletes an Expense or Income category outright — allowed regardless of
@@ -362,7 +363,7 @@ export async function updateCategoryAction(
  * this-cycle-only recurring expenses, or none at all) still deletes freely
  * — there's nothing there worth blocking over.
  */
-export async function deleteCategoryAction(
+export const deleteCategoryAction = withActionErrorHandling(async function deleteCategoryAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -401,4 +402,4 @@ export async function deleteCategoryAction(
 
   await prisma.expenseCategory.delete({ where: { id: category.id } });
   revalidateAppPages();
-}
+});

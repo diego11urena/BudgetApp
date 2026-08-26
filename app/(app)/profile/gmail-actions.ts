@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidateAppPages } from "@/lib/revalidate";
+import { withActionErrorHandling } from "@/lib/action-error";
 
-export async function disconnectGmailAction(): Promise<void> {
+export const disconnectGmailAction = withActionErrorHandling(async function disconnectGmailAction(): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -16,4 +17,4 @@ export async function disconnectGmailAction(): Promise<void> {
   await prisma.gmailConnection.deleteMany({ where: { userId: session.user.id } });
 
   revalidateAppPages();
-}
+});

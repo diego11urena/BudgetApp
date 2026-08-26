@@ -28,9 +28,9 @@ interface GoalCategoryLike {
  * category PLUS manualAdjustment -- a second, independent term for money
  * that was already saved before the goal existed in this app, or a
  * correction to the tracked total that was deliberately NOT logged as a
- * transaction (see adjustGoalContributionAction in goals/actions.ts). The
- * one place either term is combined -- summarizeGoalProgress below and
- * every reader of a goal's current total (adjustGoalContributionAction's
+ * transaction (see updateGoalWithContributionAction in goals/actions.ts).
+ * The one place either term is combined -- summarizeGoalProgress below and
+ * every reader of a goal's current total (updateGoalWithContributionAction's
  * own before/after validation) shares this instead of each re-deriving it.
  */
 export function computeSavedSoFar(
@@ -64,10 +64,10 @@ export function summarizeGoalProgress(category: GoalCategoryLike): GoalWithProgr
 export type ContributionDeltaResult = { ok: true; newSavedSoFar: number } | { ok: false; error: string };
 
 /**
- * Pure validation for adjustGoalContributionAction — separated out so the
- * "can't go negative" rule is directly unit-testable without a database,
- * same reasoning as summarizeGoalProgress above. delta is signed: positive
- * for an increase, negative for a decrease.
+ * Pure validation for updateGoalWithContributionAction — separated out so
+ * the "can't go negative" rule is directly unit-testable without a
+ * database, same reasoning as summarizeGoalProgress above. delta is
+ * signed: positive for an increase, negative for a decrease.
  */
 export function validateContributionDelta(currentSavedSoFar: number, delta: number): ContributionDeltaResult {
   const newSavedSoFar = Math.round((currentSavedSoFar + delta) * 100) / 100;

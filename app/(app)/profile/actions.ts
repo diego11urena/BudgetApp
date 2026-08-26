@@ -9,16 +9,17 @@ import { getActiveIncomeSource, getOrCreateDraftCycle, upsertCycleIncomeEntry } 
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { changePasswordSchema, incomeStepSchema } from "@/lib/validations/onboarding";
+import { withActionErrorHandling } from "@/lib/action-error";
 
-export async function signOutAction() {
+export const signOutAction = withActionErrorHandling(async function signOutAction() {
   await signOut({ redirectTo: "/login" });
-}
+});
 
 export type ChangePasswordFormState = { error?: string; success?: boolean } | undefined;
 
 const CHANGE_PASSWORD_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 
-export async function changePasswordAction(
+export const changePasswordAction = withActionErrorHandling(async function changePasswordAction(
   _prevState: ChangePasswordFormState,
   formData: FormData,
 ): Promise<ChangePasswordFormState> {
@@ -59,11 +60,11 @@ export async function changePasswordAction(
   await prisma.user.update({ where: { id: userId }, data: { hashedPassword } });
 
   return { success: true };
-}
+});
 
 export type IncomeSettingsFormState = { error?: string; success?: boolean } | undefined;
 
-export async function updateIncomeAction(
+export const updateIncomeAction = withActionErrorHandling(async function updateIncomeAction(
   _prevState: IncomeSettingsFormState,
   formData: FormData,
 ): Promise<IncomeSettingsFormState> {
@@ -89,16 +90,20 @@ export async function updateIncomeAction(
     return { error: "No income source found yet — complete onboarding first." };
   }
 
-  await prisma.incomeSource.update({
-    where: { id: incomeSource.id },
-    data: { name, netQuincenaAmount },
-  });
-
   // Updates the current open cycle's income entry in place — creating one
   // if it's somehow missing, rather than silently doing nothing. Past
-  // closed cycles are frozen history and are never rewritten.
+  // closed cycles are frozen history and are never rewritten. Both writes
+  // share one $transaction so a mid-way failure can't leave Profile
+  // showing the new amount while Home's own cycle entry still has the old
+  // one (they were previously two separate awaits).
   const cycle = await getOrCreateDraftCycle(userId);
-  await upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount);
+  await prisma.$transaction([
+    prisma.incomeSource.update({
+      where: { id: incomeSource.id },
+      data: { name, netQuincenaAmount },
+    }),
+    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
+  ]);
 
   revalidatePath("/profile");
   revalidatePath("/dashboard");
@@ -107,4 +112,4 @@ export async function updateIncomeAction(
   revalidatePath("/transactions");
 
   return { success: true };
-}
+});

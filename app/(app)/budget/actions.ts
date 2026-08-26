@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 /**
  * Marks the Recurring Expenses tab's explainer tooltip as seen, so it never
@@ -13,7 +14,7 @@ import { prisma } from "@/lib/prisma";
  * would mean a migration for a purely cosmetic cleanup) -- only this
  * action's own name follows the tab's current one.
  */
-export async function markRecurringExpenseHintSeenAction(): Promise<void> {
+export const markRecurringExpenseHintSeenAction = withActionErrorHandling(async function markRecurringExpenseHintSeenAction(): Promise<void> {
   const session = await auth();
   // No redirect("/login") here, unlike this app's other actions -- this
   // fires from a client-side useEffect on mount, not a user-initiated
@@ -28,4 +29,4 @@ export async function markRecurringExpenseHintSeenAction(): Promise<void> {
     where: { id: session.user.id },
     data: { seenFixedExpenseHintAt: new Date() },
   });
-}
+});

@@ -7,6 +7,7 @@ import { signIn } from "@/lib/auth";
 import { signupSchema } from "@/lib/validations/onboarding";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { seedDefaultIncomeCategories } from "@/lib/categories";
+import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 
 export type SignupFormState = { error?: string } | undefined;
 
@@ -46,11 +47,24 @@ export async function signupAction(
   }
 
   const hashedPassword = await hashPassword(password);
-  const user = await prisma.user.create({ data: { name, email, hashedPassword } });
-  // Income has no organic way to build up a category list the way
-  // onboarding's expenses/savings steps do (add a fixed expense/goal) --
-  // seed a starting set so the picker isn't empty on day one.
-  await seedDefaultIncomeCategories(prisma, user.id);
+  try {
+    // One transaction: a user with zero income categories (the seed
+    // failing after the user row committed) can't complete onboarding's
+    // income step, which has nothing to show in an empty picker.
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: { name, email, hashedPassword } });
+      // Income has no organic way to build up a category list the way
+      // onboarding's expenses/savings steps do (add a fixed expense/goal)
+      // -- seed a starting set so the picker isn't empty on day one.
+      await seedDefaultIncomeCategories(tx, user.id);
+    });
+  } catch (error) {
+    if (!isUniqueConstraintViolation(error)) throw error;
+    // Lost the race to a concurrent signup with the same email (the check
+    // above passed for both) -- the unique constraint on User.email
+    // guarantees exactly one winner.
+    return { error: "An account with that email already exists" };
+  }
 
   await signIn("credentials", { email, password, redirect: false });
 

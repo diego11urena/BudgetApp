@@ -88,8 +88,8 @@ describe("summarizeGoalProgress", () => {
   // manualAdjustment covers two real scenarios: an opening balance entered
   // at goal creation ("I already have $450 saved"), and a correction made
   // later without logging a phantom transaction (see
-  // adjustGoalContributionAction in goals/actions.ts). Both cases just add
-  // into the same total as real transactions -- this is the one place
+  // updateGoalWithContributionAction in goals/actions.ts). Both cases just
+  // add into the same total as real transactions -- this is the one place
   // that combination happens.
   it("adds manualAdjustment on top of the transaction sum", () => {
     const result = summarizeGoalProgress({

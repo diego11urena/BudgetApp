@@ -28,7 +28,13 @@ export const budgetLineItemSchema = z.object({
 });
 
 export const budgetLineItemsSchema = z.object({
-  items: z.array(budgetLineItemSchema),
+  // saveExpensesAction/saveSavingsAction iterate this inside one
+  // interactive $transaction with 2-3 writes per item -- an unbounded
+  // array turns a large-but-plausible client payload into a long-running
+  // transaction against the DB. 50 is generously above any real onboarding
+  // list (a handful of fixed expenses/goals) while still bounding the
+  // worst case.
+  items: z.array(budgetLineItemSchema).max(50),
 });
 
 export type SignupInput = z.infer<typeof signupSchema>;

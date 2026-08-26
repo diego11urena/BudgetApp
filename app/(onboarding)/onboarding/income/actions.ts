@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { getOrCreateDraftCycle, upsertCycleIncomeEntry } from "@/lib/cycles";
 import { incomeStepSchema } from "@/lib/validations/onboarding";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 
@@ -64,21 +64,12 @@ export async function saveIncomeAction(
     }
   }
 
-  const existingEntry = await prisma.cycleIncomeEntry.findFirst({ where: { cycleId: cycle.id } });
-
   await prisma.$transaction([
     prisma.incomeSource.update({
       where: { id: incomeSource.id },
       data: { name, netQuincenaAmount },
     }),
-    existingEntry
-      ? prisma.cycleIncomeEntry.update({
-          where: { id: existingEntry.id },
-          data: { netAmount: netQuincenaAmount },
-        })
-      : prisma.cycleIncomeEntry.create({
-          data: { cycleId: cycle.id, incomeSourceId: incomeSource.id, netAmount: netQuincenaAmount },
-        }),
+    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
   ]);
 
   redirect("/onboarding/expenses");

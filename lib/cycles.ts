@@ -288,7 +288,8 @@ export function upsertCycleIncomeEntry(
   });
 }
 
-function findOpenCycle(userId: string) {
+/** Uncached read of the user's current open (DRAFT or ACTIVE) cycle -- see getOrCreateDraftCycle's own cache() trap warning for when this, not that, is the right call. */
+export function findOpenCycle(userId: string) {
   return prisma.budgetCycle.findFirst({
     where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
     orderBy: { periodStart: "desc" },
@@ -316,6 +317,14 @@ function findOpenCycle(userId: string) {
  * a per-request dedupe only, not a concurrency fix — it doesn't help two
  * different concurrent requests, which is why the DB constraint above is
  * still required.
+ *
+ * TRAP: cache() memoizes for the lifetime of the current request, keyed on
+ * userId — so calling this again *later in the same request*, after
+ * something in that same request closed or created a cycle (e.g. right
+ * after closeCycleAndStartNext), returns the now-stale cached value, not
+ * the actual current draft cycle. No caller does this today; if one ever
+ * needs "the draft cycle, freshly re-read, after a mutation earlier in
+ * this same request," call findOpenCycle directly instead of this.
  */
 export const getOrCreateDraftCycle = cache(async (userId: string): Promise<BudgetCycle> => {
   const existing = await findOpenCycle(userId);
@@ -599,63 +608,86 @@ export async function closeCycleAndStartNext(
   const currentCycle = await getOrCreateDraftCycle(userId);
   const closedCycleFinancials = await getCycleFinancials(currentCycle.id);
 
-  const { closed: closedCycle, created: newCycle } = await prisma.$transaction(async (tx) => {
-    const closed = await tx.budgetCycle.update({
-      where: { id: currentCycle.id },
-      data: { status: "CLOSED", periodEnd: payDate },
-    });
-
-    const created = await tx.budgetCycle.create({
-      data: {
-        userId,
-        label: formatCycleLabel(payDate),
-        periodStart: payDate,
-        status: "ACTIVE",
-      },
-    });
-
-    const incomeSource = await getActiveIncomeSource(tx, userId);
-    if (incomeSource) {
-      await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netQuincenaAmount);
-    }
-
-    // Only categories marked recurring auto-carry their most recent target
-    // into the new cycle — a category's own setting, independent of any
-    // one cycle's targetAmount (which is never rewritten by this). Which
-    // *cycles* a category carries into is a separate decision (see
-    // shouldCarryForwardToCycle): BIWEEKLY carries into all of them, MONTHLY
-    // only into the one quincena matching its dueDay. SAVINGS categories
-    // still work exactly this way today (the Goals tab has no concept of
-    // individual recurring expenses). EXPENSE categories moved to the
-    // RecurringExpense model -- see carryForwardRecurringExpenses.
-    const previousSavingsGoals = await tx.cycleBudgetGoal.findMany({
-      where: { cycleId: closed.id, expenseCategory: { recurring: true, type: "SAVINGS" } },
-      include: { expenseCategory: true },
-    });
-
-    for (const goal of previousSavingsGoals) {
-      if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart)) continue;
-
-      // upsert, not create: makes this idempotent against a retry of this
-      // transaction, so a rule can never end up with two CycleBudgetGoal
-      // rows for the same new cycle.
-      await tx.cycleBudgetGoal.upsert({
-        where: {
-          cycleId_expenseCategoryId: { cycleId: created.id, expenseCategoryId: goal.expenseCategoryId },
-        },
-        create: {
-          cycleId: created.id,
-          expenseCategoryId: goal.expenseCategoryId,
-          targetAmount: goal.targetAmount,
-        },
-        update: {},
+  let closedCycle: BudgetCycle;
+  let newCycle: BudgetCycle;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const closed = await tx.budgetCycle.update({
+        where: { id: currentCycle.id },
+        data: { status: "CLOSED", periodEnd: payDate },
       });
-    }
 
-    await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart);
+      const created = await tx.budgetCycle.create({
+        data: {
+          userId,
+          label: formatCycleLabel(payDate),
+          periodStart: payDate,
+          status: "ACTIVE",
+        },
+      });
 
-    return { closed, created };
-  });
+      const incomeSource = await getActiveIncomeSource(tx, userId);
+      if (incomeSource) {
+        await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netQuincenaAmount);
+      }
+
+      // Only categories marked recurring auto-carry their most recent target
+      // into the new cycle — a category's own setting, independent of any
+      // one cycle's targetAmount (which is never rewritten by this). Which
+      // *cycles* a category carries into is a separate decision (see
+      // shouldCarryForwardToCycle): BIWEEKLY carries into all of them, MONTHLY
+      // only into the one quincena matching its dueDay. SAVINGS categories
+      // still work exactly this way today (the Goals tab has no concept of
+      // individual recurring expenses). EXPENSE categories moved to the
+      // RecurringExpense model -- see carryForwardRecurringExpenses.
+      const previousSavingsGoals = await tx.cycleBudgetGoal.findMany({
+        where: { cycleId: closed.id, expenseCategory: { recurring: true, type: "SAVINGS" } },
+        include: { expenseCategory: true },
+      });
+
+      for (const goal of previousSavingsGoals) {
+        if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart)) continue;
+
+        // upsert, not create: makes this idempotent against a retry of this
+        // transaction, so a rule can never end up with two CycleBudgetGoal
+        // rows for the same new cycle.
+        await tx.cycleBudgetGoal.upsert({
+          where: {
+            cycleId_expenseCategoryId: { cycleId: created.id, expenseCategoryId: goal.expenseCategoryId },
+          },
+          create: {
+            cycleId: created.id,
+            expenseCategoryId: goal.expenseCategoryId,
+            targetAmount: goal.targetAmount,
+          },
+          update: {},
+        });
+      }
+
+      await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart);
+
+      return { closed, created };
+    });
+    closedCycle = result.closed;
+    newCycle = result.created;
+  } catch (error) {
+    if (!isUniqueConstraintViolation(error)) throw error;
+    // Lost the race to a concurrent "I just got paid" on the same draft
+    // cycle (two tabs, near-simultaneous taps) — the partial unique index
+    // on (userId) WHERE status IN (DRAFT, ACTIVE) means only one of the two
+    // budgetCycle.create calls above can win, and the loser's whole
+    // transaction rolls back (including its own close of currentCycle),
+    // never leaving partial state. The cycle IS closed regardless — just by
+    // the other caller — so re-read what actually happened instead of
+    // surfacing this as a failure.
+    const [reReadClosed, reReadNew] = await Promise.all([
+      prisma.budgetCycle.findUniqueOrThrow({ where: { id: currentCycle.id } }),
+      findOpenCycle(userId),
+    ]);
+    if (!reReadNew) throw error;
+    closedCycle = reReadClosed;
+    newCycle = reReadNew;
+  }
 
   return { closedCycle, newCycle, closedCycleFinancials };
 }

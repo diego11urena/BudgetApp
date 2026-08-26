@@ -13,7 +13,9 @@ import {
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
+import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { nowInPanama, panamaDateParts, parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 /**
  * Success carries the row's id — used by a "Logged · Undo" toast to delete
@@ -46,7 +48,7 @@ export type DeleteTransactionResult =
   | { deleted: DeletedTransactionSnapshot }
   | undefined;
 
-export async function addTransactionAction(
+export const addTransactionAction = withActionErrorHandling(async function addTransactionAction(
   _prevState: TransactionMutationResult,
   formData: FormData,
 ): Promise<TransactionMutationResult> {
@@ -164,9 +166,9 @@ export async function addTransactionAction(
   revalidateAppPages();
 
   return { transactionId: created.id };
-}
+});
 
-export async function updateTransactionAction(
+export const updateTransactionAction = withActionErrorHandling(async function updateTransactionAction(
   _prevState: TransactionMutationResult,
   formData: FormData,
 ): Promise<TransactionMutationResult> {
@@ -323,7 +325,7 @@ export async function updateTransactionAction(
       ? "Removed the link to the recurring expense because you changed categories."
       : undefined,
   };
-}
+});
 
 /**
  * Lighter-weight sibling of updateTransactionAction for the "categorize
@@ -331,7 +333,7 @@ export async function updateTransactionAction(
  * the category changes, so it skips re-validating type/name/amount and
  * doesn't require resubmitting them.
  */
-export async function categorizeTransactionAction(
+export const categorizeTransactionAction = withActionErrorHandling(async function categorizeTransactionAction(
   formData: FormData,
 ): Promise<{ error: string } | { transactionId: string }> {
   const session = await auth();
@@ -397,7 +399,7 @@ export async function categorizeTransactionAction(
   revalidateAppPages();
 
   return { transactionId };
-}
+});
 
 /**
  * Lighter-weight sibling of updateTransactionAction for the "describe this
@@ -408,7 +410,7 @@ export async function categorizeTransactionAction(
  * updateTransactionAction's own "editing history is always allowed" (see
  * its comment) — the description just wasn't known yet at import time.
  */
-export async function describeTransactionAction(
+export const describeTransactionAction = withActionErrorHandling(async function describeTransactionAction(
   formData: FormData,
 ): Promise<{ error: string } | { transactionId: string }> {
   const session = await auth();
@@ -442,9 +444,9 @@ export async function describeTransactionAction(
   revalidateAppPages();
 
   return { transactionId };
-}
+});
 
-export async function deleteTransactionAction(
+export const deleteTransactionAction = withActionErrorHandling(async function deleteTransactionAction(
   _prevState: DeleteTransactionResult,
   formData: FormData,
 ): Promise<DeleteTransactionResult> {
@@ -491,7 +493,7 @@ export async function deleteTransactionAction(
       sourceMessageId: existing.sourceMessageId,
     },
   };
-}
+});
 
 /**
  * Undo for a deleted transaction — recreates it with its original cycle,
@@ -499,7 +501,7 @@ export async function deleteTransactionAction(
  * an already-closed cycle's history (frozen history is about not silently
  * rewriting totals elsewhere, not about blocking an explicit user undo).
  */
-export async function restoreTransactionAction(
+export const restoreTransactionAction = withActionErrorHandling(async function restoreTransactionAction(
   formData: FormData,
 ): Promise<{ error?: string } | undefined> {
   const session = await auth();
@@ -533,6 +535,23 @@ export async function restoreTransactionAction(
   ) {
     return { error: "Invalid undo payload" };
   }
+  // The rest of this action's inputs are trusted (validated at delete
+  // time, ownership-checked below), but amount/occurredAt are a toast's
+  // client-held snapshot resubmitted verbatim -- the same untrusted-input
+  // boundary addTransactionAction's own schema already guards, so undo
+  // can't hand Decimal(12,2) a value that overflows it, or `new Date()` a
+  // string that silently produces an Invalid Date. occurredAt is a full
+  // ISO timestamp (deleteTransactionAction's own toISOString() snapshot,
+  // not a "YYYY-MM-DD"-only value), so this checks validity directly
+  // rather than through parseDateOnly, which only accepts the latter.
+  const parsedAmount = decimalString.safeParse(amount);
+  if (!parsedAmount.success) {
+    return { error: parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+  }
+  const parsedOccurredAt = new Date(occurredAt);
+  if (Number.isNaN(parsedOccurredAt.getTime())) {
+    return { error: "Invalid date" };
+  }
   const paymentMethodParsed = paymentMethodSchema.safeParse(rawPaymentMethod);
   const paymentMethod = paymentMethodParsed.success ? paymentMethodParsed.data : null;
   const expenseCategoryId = typeof rawExpenseCategoryId === "string" && rawExpenseCategoryId ? rawExpenseCategoryId : null;
@@ -558,19 +577,19 @@ export async function restoreTransactionAction(
       cycleId,
       type,
       name,
-      amount,
+      amount: parsedAmount.data,
       expenseCategoryId,
       recurringExpenseId,
       importSource,
       sourceMessageId,
       paymentMethod: type !== "SAVINGS" ? paymentMethod : null,
       description: typeof description === "string" && description ? description : null,
-      occurredAt: new Date(occurredAt),
+      occurredAt: parsedOccurredAt,
     },
   });
 
   revalidateAppPages();
-}
+});
 
 export interface CyclePreview {
   cycleId: string;
@@ -585,7 +604,9 @@ export interface CyclePreview {
  * do the real reassignment, so the confirmation preview can never disagree
  * with what actually happens on submit.
  */
-export async function resolveCycleForDateAction(dateStr: string): Promise<CyclePreview | null> {
+export const resolveCycleForDateAction = withActionErrorHandling(async function resolveCycleForDateAction(
+  dateStr: string,
+): Promise<CyclePreview | null> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -599,4 +620,4 @@ export async function resolveCycleForDateAction(dateStr: string): Promise<CycleP
   if (!cycle) return null;
 
   return { cycleId: cycle.id, label: cycle.label, rangeText: formatCycleRangeText(cycle) };
-}
+});

@@ -13,6 +13,7 @@ import {
 } from "@/lib/cycles";
 import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 /**
  * Deletes every cycle for the user — cascades every transaction, budget
@@ -28,7 +29,7 @@ import { revalidateAppPages } from "@/lib/revalidate";
  * one transaction so a failure partway through can't leave a fresh cycle
  * with no income entry.
  */
-export async function eraseAllCyclesAction(): Promise<void> {
+export const eraseAllCyclesAction = withActionErrorHandling(async function eraseAllCyclesAction(): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -73,4 +74,4 @@ export async function eraseAllCyclesAction(): Promise<void> {
   });
 
   revalidateAppPages();
-}
+});

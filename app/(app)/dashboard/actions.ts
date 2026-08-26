@@ -18,6 +18,7 @@ import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/
 import { getBudgetUsage } from "@/lib/budget-status";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
+import { withActionErrorHandling } from "@/lib/action-error";
 
 export interface CycleClosedSummary {
   spent: number;
@@ -30,13 +31,18 @@ export interface CycleClosedSummary {
   carriedIncomeAmount: number;
 }
 
+/** Not a form submission (no _prevState/useActionState here), so this can't share the `{ error }`-shaped form-state unions the rest of this file uses — the caller (HeroCard) checks `"error" in result` directly instead. */
+export type CycleClosedResult = CycleClosedSummary | { error: string };
+
 /**
  * payDateStr is the "When did you get paid?" date input's value
  * ("YYYY-MM-DD"). An invalid/out-of-range value (the field's own min/max
  * already constrain this client-side; this is the server-side backstop)
  * falls back to today rather than failing the whole close-cycle action.
  */
-export async function justGotPaidAction(payDateStr?: string): Promise<CycleClosedSummary> {
+export const justGotPaidAction = withActionErrorHandling(async function justGotPaidAction(
+  payDateStr?: string,
+): Promise<CycleClosedResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -68,7 +74,7 @@ export async function justGotPaidAction(payDateStr?: string): Promise<CycleClose
     },
     carriedIncomeAmount: carriedEntry?.netAmount.toNumber() ?? 0,
   };
-}
+});
 
 export type ConfirmNewCycleIncomeResult = { error?: string } | undefined;
 
@@ -79,7 +85,7 @@ export type ConfirmNewCycleIncomeResult = { error?: string } | undefined;
  * reusing whatever was set last. Updates IncomeSource.netQuincenaAmount too,
  * so it becomes the new baseline (and what the *next* prompt prefills).
  */
-export async function confirmNewCycleIncomeAction(
+export const confirmNewCycleIncomeAction = withActionErrorHandling(async function confirmNewCycleIncomeAction(
   formData: FormData,
 ): Promise<ConfirmNewCycleIncomeResult> {
   const session = await auth();
@@ -107,7 +113,7 @@ export async function confirmNewCycleIncomeAction(
   ]);
 
   revalidateAppPages();
-}
+});
 
 export type EditPayInfoResult = { error?: string } | undefined;
 
@@ -133,7 +139,9 @@ export type EditPayInfoResult = { error?: string } | undefined;
  * left alone — only the currently-open cycle's edits should change what
  * prefills the *next* cycle's income prompt.
  */
-export async function editCyclePayInfoAction(formData: FormData): Promise<EditPayInfoResult> {
+export const editCyclePayInfoAction = withActionErrorHandling(async function editCyclePayInfoAction(
+  formData: FormData,
+): Promise<EditPayInfoResult> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -212,7 +220,7 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
   await prisma.$transaction(writes);
 
   revalidateAppPages();
-}
+});
 
 /**
  * Read-only preview for a past cycle's pay-date edit — how many
@@ -221,7 +229,7 @@ export async function editCyclePayInfoAction(formData: FormData): Promise<EditPa
  * (editCyclePayInfoAction) so this can never show a different outcome than
  * what saving actually does.
  */
-export async function previewPayDateChangeAction(
+export const previewPayDateChangeAction = withActionErrorHandling(async function previewPayDateChangeAction(
   cycleId: string,
   newPayDateStr: string,
 ): Promise<PayDateChangeResult> {
@@ -241,4 +249,4 @@ export async function previewPayDateChangeAction(
   }
 
   return assessPayDateChange(userId, cycle, newDate);
-}
+});
