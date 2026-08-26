@@ -28,9 +28,12 @@ const SORT_OPTIONS = [
 
 export function TransactionFilters({
   categories,
+  cycles,
 }: {
   /** Every category across all three types, pre-sorted by type then name — same source of truth Manage Categories uses. */
   categories: { id: string; name: string }[];
+  /** Current cycle first, then closed ones newest-first -- mirrors the page's own default-to-current scoping, so "Current quincena" (value "") and clearing the param mean the same thing. */
+  cycles: { id: string; label: string }[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -74,6 +77,18 @@ export function TransactionFilters({
         aria-label="Search transactions"
       />
       <div className="transaction-filters-row">
+        <select
+          value={searchParams.get("cycleId") ?? ""}
+          onChange={(e) => updateParam("cycleId", e.target.value)}
+          aria-label="Filter by quincena"
+        >
+          <option value="">Current quincena</option>
+          {cycles.slice(1).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         <select
           value={searchParams.get("type") ?? ""}
           onChange={(e) => updateParam("type", e.target.value)}

@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
-import { getOrCreateDraftCycle } from "@/lib/cycles";
+import { formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -24,7 +22,7 @@ export default async function TransactionsPage({
     sort?: string;
     paymentMethod?: string;
     category?: string;
-    /** Set only when arriving from a Fixed Expenses row tap -- scopes the list to that one cycle and shows a way back. Not exposed in TransactionFilters' own UI (nothing there sets or clears it). */
+    /** Set by TransactionFilters' own quincena selector when viewing a past cycle -- absent means "the current cycle" (see cycle.id fallback below), not "every cycle ever." */
     cycleId?: string;
   }>;
 }) {
@@ -44,7 +42,12 @@ export default async function TransactionsPage({
     // cycleId in the URL just matches zero rows rather than needing its
     // own separate ownership check.
     cycle: { userId },
-    ...(cycleId ? { cycleId } : {}),
+    // Defaults to the current cycle, not "every cycle" -- with no filter
+    // here, this page used to silently return the user's entire
+    // transaction history (cut off at take: 100 below with no on-screen
+    // indicator), the most abrupt scope jump in the app relative to every
+    // other screen, which is cycle-scoped by default.
+    cycleId: cycleId ?? cycle.id,
     ...(TX_TYPES.includes(type as (typeof TX_TYPES)[number]) ? { type: type as (typeof TX_TYPES)[number] } : {}),
     ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
       ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
@@ -74,7 +77,7 @@ export default async function TransactionsPage({
           ? { amount: "asc" }
           : { occurredAt: "desc" };
 
-  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, allCategories] =
+  const [rawTransactions, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, allCategories, recentCycles] =
     await Promise.all([
       prisma.cycleTransaction.findMany({
         where,
@@ -93,6 +96,16 @@ export default async function TransactionsPage({
         select: { id: true, name: true },
         orderBy: [{ type: "asc" }, { name: "asc" }],
       }),
+      // For TransactionFilters' quincena selector -- current cycle plus a
+      // handful of recent closed ones. Only what a <select> needs, not the
+      // heavier getRecentCycles (which also eager-loads every transaction/
+      // income entry for financials math this page has no use for).
+      prisma.budgetCycle.findMany({
+        where: { userId },
+        orderBy: { periodStart: "desc" },
+        take: 6,
+        select: { id: true, periodStart: true, periodEnd: true },
+      }),
     ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
@@ -102,17 +115,22 @@ export default async function TransactionsPage({
     }),
   );
 
+  // Current cycle first (TransactionFilters relies on this order -- see its
+  // own prop comment), even though periodStart-desc would normally already
+  // put it there; explicit rather than assumed, since "most recent
+  // periodStart" and "the draft/active cycle" are two different concepts
+  // that only happen to agree here.
+  const cycleOptions = [
+    cycle,
+    ...recentCycles.filter((c) => c.id !== cycle.id),
+  ].map((c) => ({ id: c.id, label: formatCycleRangeText(c, { includeYear: false }) }));
+
   return (
     <div className="home-page">
-      {cycleId && (
-        <Link href="/budget" className="back-link">
-          <ChevronLeft size={16} aria-hidden="true" /> Back to Fixed Expenses
-        </Link>
-      )}
       <h1 className="page-title">Transactions</h1>
 
       <div className="dashboard-section">
-        <TransactionFilters categories={allCategories} />
+        <TransactionFilters categories={allCategories} cycles={cycleOptions} />
         <TransactionList
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}

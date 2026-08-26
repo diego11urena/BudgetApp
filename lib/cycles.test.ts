@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { formatCycleRangeText, latestGoalPerCategory, quincenaForDay, shouldCarryForwardToCycle } from "./cycles";
 
+// Mirrors pay-date.ts's own panamaMidnight anchor (Panama midnight = 05:00
+// UTC, since Panama is UTC-5 year-round) -- only needed for the one test
+// below that exercises quincenaEnd's calendar fallback (no periodEnd),
+// since that path now reads periodStart via Panama's own timezone (see
+// lib/quincena-pace.ts); a local `new Date(y, m, d)` input there disagrees
+// with the real Panama-anchored value on any test machine outside
+// UTC-5/no-DST, e.g. TZ=America/New_York in August (EDT, UTC-4).
+function panama(year: number, month: number, day: number): Date {
+  return new Date(Date.UTC(year, month - 1, day, 5, 0, 0));
+}
+
 describe("quincenaForDay", () => {
   it("treats day 1 as the first quincena", () => {
     expect(quincenaForDay(1)).toBe("FIRST");
@@ -119,7 +130,7 @@ describe("formatCycleRangeText", () => {
   });
 
   it("falls back to the calendar-idealized end when periodEnd is null (still-open cycle)", () => {
-    const cycle = { periodStart: new Date(2026, 7, 1), periodEnd: null };
+    const cycle = { periodStart: panama(2026, 8, 1), periodEnd: null };
     expect(formatCycleRangeText(cycle, { includeYear: false })).toBe("Aug 1–15");
   });
 });

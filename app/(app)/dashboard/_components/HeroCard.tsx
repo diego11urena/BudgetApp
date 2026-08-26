@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
@@ -13,11 +13,14 @@ import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
 export function HeroCard({
   amountLeft,
   periodStart,
+  periodEnd = null,
   totalExpenses,
   closed = false,
 }: {
   amountLeft: number;
   periodStart: Date;
+  /** Only ever set once a cycle is closed -- null for the active cycle, in which case computeQuincenaPace derives the nominal end from the calendar instead. Passed through so an edited pay date (which sets this) can't disagree with the days-remaining/pace line below it. */
+  periodEnd?: Date | null;
   totalExpenses: number;
   /** True for a past/closed cycle being viewed historically — swaps the label to "Final available," drops the days-left/per-day pace line (meaningless for a period that's already over), and hides "I just got paid" (that flow only ever closes *the* current open cycle). Defaults false so every active-cycle caller is unchanged. */
   closed?: boolean;
@@ -36,7 +39,7 @@ export function HeroCard({
   const isPositive = amountLeft >= 0;
   const pace = closed
     ? null
-    : computeQuincenaPace({ periodStart, now: new Date(), amountLeft, totalExpenses });
+    : computeQuincenaPace({ periodStart, periodEnd, now: new Date(), amountLeft, totalExpenses });
 
   async function handleConfirmedJustGotPaid(payDate: string) {
     setConfirming(false);
@@ -72,18 +75,23 @@ export function HeroCard({
         </p>
         {!closed && (
           <>
-            <p className="hero-subtitle">Remaining this Quincena</p>
-            {/* Always the hero card's plain on-accent white, deterministically —
-                this used to switch to --color-warning-on-dark (gold) when the
-                user's spend pace was running hot, which read as inconsistent
-                since it depended on each user's own numbers. The gold "over
-                pace" signal was a deliberate design choice, but the user
-                asked for this line to just always be white, so isOverPace is
-                no longer read into the class list here. */}
+            {/* No separate subtitle line -- "Remaining this Quincena" used to
+                sit here, restating exactly what the pace line below already
+                says, with a number ("N days left"), better. Always the hero
+                card's plain on-accent white, deterministically -- this used
+                to switch to --color-warning-on-dark (gold) when the user's
+                spend pace was running hot, which read as inconsistent since
+                it depended on each user's own numbers. The gold "over pace"
+                signal was a deliberate design choice, but the user asked for
+                this line to just always be white, so isOverPace is no
+                longer read into the class list here. */}
             {pace && (
               <p className="hero-pace">
-                {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left ·{" "}
-                {pace.isLastDay ? "Last day of this quincena" : `~${formatCurrency(pace.perDay)}/day`}
+                {pace.phase === "running" &&
+                  `${pace.daysRemaining} days left · ~${formatCurrency(pace.perDay)}/day`}
+                {pace.phase === "last-day" && `Last day · ${formatCurrency(amountLeft)} to spend`}
+                {pace.phase === "ended" &&
+                  `Quincena ended ${formatFriendlyDate(pace.cycleEnd)} · tap "I just got paid"`}
               </p>
             )}
             <button

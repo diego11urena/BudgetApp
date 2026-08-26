@@ -173,6 +173,7 @@ export default async function DashboardPage() {
         <HeroCard
           amountLeft={financials.amountLeft}
           periodStart={cycle.periodStart}
+          periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
         />
       </div>

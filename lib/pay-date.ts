@@ -31,8 +31,8 @@ function panamaMidnight(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month - 1, day, 5, 0, 0));
 }
 
-/** Y/M/D as they fall in Panama's timezone for the given absolute instant — the read half of the panamaMidnight anchor above, used any time an existing Date needs its calendar day back (formatting, re-deriving "day only" from a stored value, the invalid-date round-trip check in parseDateOnly). */
-function panamaDateParts(date: Date): { year: number; month: number; day: number } {
+/** Y/M/D (month 1-indexed, matching human convention -- NOT Date.getMonth()'s 0-indexed one) as they fall in Panama's timezone for the given absolute instant — the read half of the panamaMidnight anchor above, used any time an existing Date needs its calendar day back (formatting, re-deriving "day only" from a stored value, the invalid-date round-trip check in parseDateOnly). Exported for lib/quincena-pace.ts, which needs the same Panama-correct day/month/year reads for its own quincena-length and day-count math (see that file's own top comment). */
+export function panamaDateParts(date: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Panama",
     year: "numeric",
@@ -97,7 +97,8 @@ export function addDays(date: Date, days: number): Date {
   return result;
 }
 
-function startOfDay(date: Date): Date {
+/** Exported for lib/quincena-pace.ts's own calendarDaysBetween, which needs the same Panama-anchored (not local-timezone) day boundary. */
+export function startOfDay(date: Date): Date {
   const { year, month, day } = panamaDateParts(date);
   return panamaMidnight(year, month, day);
 }
