@@ -85,16 +85,19 @@ export function formatCycleLabel(date: Date = nowInPanama()): string {
 
 /**
  * Adds (or, with a negative count, subtracts) whole days to a
- * Panama-anchored Date, preserving its anchor -- Panama has no DST, so
- * every day is exactly 24 hours, making this safe regardless of which
- * timezone the calling machine is in. Used for the exclusive->inclusive
- * neighbor-boundary conversions in the pay-date-edit UI
- * (previousBoundDate/nextBoundDate).
+ * Panama-anchored Date, preserving its anchor. Re-derives Y/M/D via
+ * panamaDateParts and re-anchors through panamaMidnight/Date.UTC's own
+ * month/year rollover, rather than the previous `setDate()`/`getDate()`
+ * pair -- those read and write in the *calling machine's* local timezone,
+ * which happened to agree with Panama's calendar day only because this app
+ * has only ever run from Vercel's UTC servers or a Panama-timezone dev
+ * machine. A caller in any other timezone (a different Vercel region, a
+ * contributor's laptop, a CI runner) would read the wrong day off a
+ * 05:00-UTC-anchored Date before adding to it.
  */
 export function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
+  const { year, month, day } = panamaDateParts(date);
+  return panamaMidnight(year, month, day + days);
 }
 
 /** Exported for lib/quincena-pace.ts's own calendarDaysBetween, which needs the same Panama-anchored (not local-timezone) day boundary. */

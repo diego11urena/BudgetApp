@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CreditCard, Home, LayoutGrid, Target, type LucideIcon } from "lucide-react";
-import { QuickAddSheet } from "./QuickAddSheet";
+
+// BottomNav mounts in the app layout, on every page -- QuickAddSheet (its
+// own segmented type toggle, category chips, recurring-expense toggle,
+// Gmail-import cross-cycle-move confirmation, ~650 lines total) only
+// actually renders once the user taps "+", so it has no business being in
+// every page's initial JS bundle. next/dynamic defers its chunk to that
+// first tap; no ssr:false needed since it never renders during SSR anyway
+// (quickAddType starts null).
+const QuickAddSheet = dynamic(() => import("./QuickAddSheet").then((mod) => mod.QuickAddSheet));
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 

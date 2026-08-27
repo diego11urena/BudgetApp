@@ -147,10 +147,19 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
       });
       const affectedCycleIds = new Set(snapshots.map((s) => s.cycleId));
       affectedCycleIds.add(cycle.id);
-      for (const affectedCycleId of affectedCycleIds) {
-        await recomputeCategoryBudgetGoal(tx, affectedCycleId, existing.categoryId);
-        await recomputeCategoryBudgetGoal(tx, affectedCycleId, category.id);
-      }
+      // Concurrent, not one-at-a-time -- a recurring expense with years of
+      // history can touch a hundred-plus cycles, and each used to be two
+      // sequential round-trips (old category, new category) awaited in
+      // turn. Every (cycle, category) pair here is an independent
+      // read+upsert with no ordering dependency on any other pair, so
+      // there's nothing correctness-wise gained by serializing them --
+      // only latency lost.
+      await Promise.all(
+        [...affectedCycleIds].flatMap((affectedCycleId) => [
+          recomputeCategoryBudgetGoal(tx, affectedCycleId, existing.categoryId),
+          recomputeCategoryBudgetGoal(tx, affectedCycleId, category.id),
+        ]),
+      );
     } else {
       await recomputeCategoryBudgetGoal(tx, cycle.id, category.id);
     }

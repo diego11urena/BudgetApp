@@ -29,60 +29,51 @@ export default async function DashboardPage() {
   const userId = session.user.id;
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const financials = await getCycleFinancials(cycle.id);
-  // Exclusive neighbor boundary -> inclusive HTML date-input min, same
-  // conversion /history/[cycleId]/page.tsx uses -- so "Edit"'s date picker
-  // and assessPayDateChange's own boundary check can never disagree about
-  // the earliest valid pay date for this cycle.
-  const { previous: previousCycle } = await getAdjacentCycles(userId, cycle);
-  const previousBoundDate = previousCycle ? formatCycleLabel(addDays(previousCycle.periodStart, 1)) : null;
 
-  const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames] = await Promise.all([
+  // Everything below only depends on `cycle`/`userId`, not on each other --
+  // one Promise.all instead of a waterfall of sequential awaits (matching
+  // the pattern history/[cycleId]/page.tsx already uses). insights (sync,
+  // below) is the one thing that has to wait for several of these results.
+  const [
+    financials,
+    { previous: previousCycle },
+    expenseCategoryNames,
+    savingsCategoryNames,
+    incomeCategoryNames,
+    recentCycles,
+    // computeSuggestions: false -- Insights only needs paid/unpaid status
+    // and dollar amounts, not this cycle's best-effort match suggestions
+    // (that's the Recurring Expenses tab's own concern, not something an
+    // Insight line surfaces or acts on).
+    recurringExpenseCategories,
+    goals,
+    needsAttentionTransactionsRaw,
+  ] = await Promise.all([
+    getCycleFinancials(cycle.id),
+    getAdjacentCycles(userId, cycle),
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
     getOrderedCategoryNames(userId, cycle.id, "INCOME"),
-  ]);
-
-  const recentCycles = await getRecentCycles(userId);
-  const closedCycles = recentCycles.filter((c) => c.status === "CLOSED" && c.id !== cycle.id);
-  const previousClosedFinancials = closedCycles.map((c) =>
-    summarizeCycleFinancials(c.incomeEntries, c.transactions),
-  );
-
-  // computeSuggestions: false -- Insights only needs paid/unpaid status and
-  // dollar amounts, not this cycle's best-effort match suggestions (that's
-  // the Recurring Expenses tab's own concern, not something an Insight
-  // line surfaces or acts on).
-  const [recurringExpenseCategories, goals] = await Promise.all([
+    getRecentCycles(userId),
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
-  ]);
-  const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
-
-  const insights = generateInsights(financials, previousClosedFinancials, {
-    cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
-    recurringExpenseCategories,
-    goals,
-  });
-
-  // A transaction can be missing a category, a description, or both --
-  // most commonly a Yappy/Gmail import with no learned-merchant category
-  // AND no message attached. One query, one combined list, so a
-  // transaction missing both never has to be finished across two separate
-  // banners/sheets (see NeedsAttentionSheet). "Needs a category": every
-  // type now has a category concept (Extra income included, see
-  // lib/categories.ts), so this isn't EXPENSE-specific. "Needs a
-  // description": Yappy is P2P, so the counterparty's name alone (the only
-  // thing every notification email guarantees) doesn't say what the money
-  // was for -- Yappy's own optional "Mensaje" note fills that gap when the
-  // sender used it (see lib/gmail-parsers.ts), and this catches the rest,
-  // in both directions: a sent transfer is EXPENSE/paymentMethod YAPPY, a
-  // received one is INCOME/importSource GMAIL (the only way an INCOME
-  // import can exist at all -- see gmail-parsers.ts's
-  // yappyReceivedParser). Scoped to the current cycle only, consistent
-  // with the rest of this page.
-  const needsAttentionTransactions = (
-    await prisma.cycleTransaction.findMany({
+    // A transaction can be missing a category, a description, or both --
+    // most commonly a Yappy/Gmail import with no learned-merchant category
+    // AND no message attached. One query, one combined list, so a
+    // transaction missing both never has to be finished across two separate
+    // banners/sheets (see NeedsAttentionSheet). "Needs a category": every
+    // type now has a category concept (Extra income included, see
+    // lib/categories.ts), so this isn't EXPENSE-specific. "Needs a
+    // description": Yappy is P2P, so the counterparty's name alone (the only
+    // thing every notification email guarantees) doesn't say what the money
+    // was for -- Yappy's own optional "Mensaje" note fills that gap when the
+    // sender used it (see lib/gmail-parsers.ts), and this catches the rest,
+    // in both directions: a sent transfer is EXPENSE/paymentMethod YAPPY, a
+    // received one is INCOME/importSource GMAIL (the only way an INCOME
+    // import can exist at all -- see gmail-parsers.ts's
+    // yappyReceivedParser). Scoped to the current cycle only, consistent
+    // with the rest of this page.
+    prisma.cycleTransaction.findMany({
       where: {
         cycleId: cycle.id,
         OR: [
@@ -104,8 +95,29 @@ export default async function DashboardPage() {
         importSource: true,
       },
       orderBy: { occurredAt: "desc" },
-    })
-  ).map((t) => ({
+    }),
+  ]);
+
+  // Exclusive neighbor boundary -> inclusive HTML date-input min, same
+  // conversion /history/[cycleId]/page.tsx uses -- so "Edit"'s date picker
+  // and assessPayDateChange's own boundary check can never disagree about
+  // the earliest valid pay date for this cycle.
+  const previousBoundDate = previousCycle ? formatCycleLabel(addDays(previousCycle.periodStart, 1)) : null;
+
+  const closedCycles = recentCycles.filter((c) => c.status === "CLOSED" && c.id !== cycle.id);
+  const previousClosedFinancials = closedCycles.map((c) =>
+    summarizeCycleFinancials(c.incomeEntries, c.transactions),
+  );
+
+  const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
+
+  const insights = generateInsights(financials, previousClosedFinancials, {
+    cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
+    recurringExpenseCategories,
+    goals,
+  });
+
+  const needsAttentionTransactions = needsAttentionTransactionsRaw.map((t) => ({
     id: t.id,
     name: t.name,
     amount: t.amount.toNumber(),

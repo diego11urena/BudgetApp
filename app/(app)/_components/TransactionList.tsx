@@ -1,12 +1,16 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import dynamic from "next/dynamic";
 import { Lock } from "lucide-react";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { groupTransactionsByDate } from "@/lib/transaction-grouping";
-import { QuickAddSheet, type EditingTransaction } from "./QuickAddSheet";
+import type { EditingTransaction } from "./QuickAddSheet";
+
+// See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
+const QuickAddSheet = dynamic(() => import("./QuickAddSheet").then((mod) => mod.QuickAddSheet));
 
 const PAYMENT_METHOD_LABEL: Record<NonNullable<CycleTransactionSummary["paymentMethod"]>, string> = {
   CASH: "Cash",

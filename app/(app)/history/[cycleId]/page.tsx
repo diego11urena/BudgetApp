@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAdjacentCycles, formatCycleRangeText } from "@/lib/cycles";
+import { getAdjacentCycles, formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -40,12 +40,20 @@ export default async function CycleHistoryPage({
 
   const closed = cycle.status === "CLOSED";
 
+  // getOrderedCategoryNames is keyed by cycleId (see its own cache() doc
+  // comment) -- calling it with the *current* draft cycle, not this
+  // historical one, means it hits the same request-level cache entry
+  // app/(app)/layout.tsx already populated for BottomNav, instead of
+  // missing and re-running all 3 types' queries a second time just to
+  // reorder chips slightly differently for a past cycle.
+  const currentCycle = await getOrCreateDraftCycle(userId);
+
   const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }] =
     await Promise.all([
       getCycleFinancials(cycle.id),
-      getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
-      getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
-      getOrderedCategoryNames(userId, cycle.id, "INCOME"),
+      getOrderedCategoryNames(userId, currentCycle.id, "EXPENSE"),
+      getOrderedCategoryNames(userId, currentCycle.id, "SAVINGS"),
+      getOrderedCategoryNames(userId, currentCycle.id, "INCOME"),
       getAdjacentCycles(userId, cycle),
     ]);
 

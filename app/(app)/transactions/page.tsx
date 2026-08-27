@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
-import { toCycleTransactionSummary } from "@/lib/cycle-financials";
+import { toCycleTransactionSummary, TRANSACTION_SELECT } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../_components/TransactionList";
@@ -86,7 +86,11 @@ export default async function TransactionsPage({
         where,
         orderBy,
         take: 100,
-        include: { expenseCategory: true, cycle: true },
+        // TRANSACTION_SELECT covers everything toCycleTransactionSummary
+        // reads off the row itself; this page also names the cycle it
+        // belongs to (a transaction can span cycles via the selector), so
+        // only label/status are added on top -- not every BudgetCycle column.
+        select: { ...TRANSACTION_SELECT, cycle: { select: { label: true, status: true } } },
       }),
       getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),

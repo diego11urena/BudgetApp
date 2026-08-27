@@ -76,6 +76,30 @@ interface TransactionLike {
 }
 
 /**
+ * The exact fields toCycleTransactionSummary reads off a raw
+ * CycleTransaction row (plus its expenseCategory relation) -- shared so
+ * every caller that fetches a batch of transactions for this shape uses an
+ * explicit `select` instead of Prisma's `include: true`, which would pull
+ * every column (id/cycleId/type/name/amount/occurredAt cover the row
+ * itself; the rest are the optional `extra`-adjacent fields this shape
+ * also carries).
+ */
+export const TRANSACTION_SELECT = {
+  id: true,
+  cycleId: true,
+  type: true,
+  name: true,
+  amount: true,
+  occurredAt: true,
+  sourceMessageId: true,
+  importSource: true,
+  paymentMethod: true,
+  description: true,
+  recurringExpenseId: true,
+  expenseCategory: { select: { id: true, name: true, icon: true } },
+} as const;
+
+/**
  * Maps one raw transaction row into the shared display shape. `extra` is
  * for cross-cycle (all-time) callers like the Transactions tab, which know
  * a row's cycle label and whether that cycle is still editable — the

@@ -81,20 +81,35 @@ export function validateContributionDelta(currentSavedSoFar: number, delta: numb
  * A "goal" is a SAVINGS-type ExpenseCategory with lifetimeTargetAmount set
  * (deliberately not a separate model — see prisma/schema.prisma). Progress
  * sums CycleTransaction across ALL cycles (personal-budgeting scale, no
- * pagination needed), not just the current one.
+ * pagination needed), not just the current one -- but only the *sum*,
+ * via groupBy, rather than pulling every individual SAVINGS transaction a
+ * goal has ever received just to add them up in JS. At a few years of
+ * history that's a full per-category scan on every dashboard/goals load;
+ * the aggregate is the only thing summarizeGoalProgress actually needs.
  */
 export async function getGoalsWithProgress(
   userId: string,
   currentCycleId: string,
 ): Promise<GoalWithProgress[]> {
-  const categories = await prisma.expenseCategory.findMany({
-    where: { userId, type: "SAVINGS", lifetimeTargetAmount: { not: null } },
-    include: {
-      transactions: { where: { type: "SAVINGS" } },
-      budgetGoals: { where: { cycleId: currentCycleId } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const [categories, savingsSums] = await Promise.all([
+    prisma.expenseCategory.findMany({
+      where: { userId, type: "SAVINGS", lifetimeTargetAmount: { not: null } },
+      include: {
+        budgetGoals: { where: { cycleId: currentCycleId } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.cycleTransaction.groupBy({
+      by: ["expenseCategoryId"],
+      where: { type: "SAVINGS", cycle: { userId }, expenseCategoryId: { not: null } },
+      _sum: { amount: true },
+    }),
+  ]);
 
-  return categories.map(summarizeGoalProgress);
+  const savedByCategory = new Map(savingsSums.map((row) => [row.expenseCategoryId, row._sum.amount]));
+
+  return categories.map((category) => {
+    const sum = savedByCategory.get(category.id);
+    return summarizeGoalProgress({ ...category, transactions: sum ? [{ amount: sum }] : [] });
+  });
 }

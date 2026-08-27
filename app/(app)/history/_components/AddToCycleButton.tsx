@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
-import { QuickAddSheet } from "../../_components/QuickAddSheet";
+
+// See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
+const QuickAddSheet = dynamic(() => import("../../_components/QuickAddSheet").then((mod) => mod.QuickAddSheet));
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 

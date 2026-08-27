@@ -1,16 +1,14 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
-import { justGotPaidAction, type CycleClosedSummary } from "../actions";
-import { CycleClosedCard } from "./CycleClosedCard";
-import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
-import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
-import { useToast } from "../../_components/ToastProvider";
+import { HeroCardActions } from "./HeroCardActions";
 
+/**
+ * Server component -- the label/value/pace text below is pure display over
+ * props the page already fetched, with no client-only API involved. Only
+ * the "I just got paid" flow (HeroCardActions) needs a client boundary; see
+ * its own doc comment for why that split is worth it here specifically
+ * (this card renders on every Home/History-detail load).
+ */
 export function HeroCard({
   amountLeft,
   periodStart,
@@ -26,128 +24,41 @@ export function HeroCard({
   /** True for a past/closed cycle being viewed historically — swaps the label to "Final available," drops the days-left/per-day pace line (meaningless for a period that's already over), and hides "I just got paid" (that flow only ever closes *the* current open cycle). Defaults false so every active-cycle caller is unchanged. */
   closed?: boolean;
 }) {
-  const router = useRouter();
-  const { showToast } = useToast();
-  const [pending, setPending] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
-  const [showIncomePrompt, setShowIncomePrompt] = useState(false);
-  // Captured synchronously on click, before either modal mounts, and reused
-  // across both — the trigger button gets disabled while pending, so a
-  // modal that instead re-derives document.activeElement at its own mount
-  // time (rather than being handed this directly) can end up capturing
-  // <body> if that mount happens to land while the button is disabled.
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const isPositive = amountLeft >= 0;
   const pace = closed
     ? null
     : computeQuincenaPace({ periodStart, periodEnd, now: new Date(), amountLeft, totalExpenses });
 
-  async function handleConfirmedJustGotPaid(payDate: string) {
-    setConfirming(false);
-    setPending(true);
-    try {
-      const result = await justGotPaidAction(payDate);
-      if ("error" in result) {
-        showToast(result.error);
-        return;
-      }
-      setClosedSummary(result);
-      // The new cycle exists in the DB now, even while CycleClosedCard's
-      // own overlay (built from this response, not a re-fetch) is still
-      // showing — refresh so the Home content underneath is already
-      // correct once the overlay dismisses, instead of relying only on
-      // revalidatePath.
-      router.refresh();
-    } finally {
-      setPending(false);
-    }
-  }
-
-  function handleDismissSummary() {
-    setShowIncomePrompt(true);
-  }
-
-  function handleFinishIncomePrompt() {
-    setShowIncomePrompt(false);
-    setClosedSummary(null);
-    // Catches confirmNewCycleIncomeAction's write too (NewCycleIncomeSheet,
-    // the very last step of this flow).
-    router.refresh();
-  }
-
   return (
-    <>
-      <div className="hero-card">
-        <p className="hero-label">{closed ? "Final available" : "Available to spend"}</p>
-        <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
-          {formatCurrency(amountLeft)}
-        </p>
-        {!closed && (
-          <>
-            {/* No separate subtitle line -- "Remaining this Quincena" used to
-                sit here, restating exactly what the pace line below already
-                says, with a number ("N days left"), better. Always the hero
-                card's plain on-accent white, deterministically -- this used
-                to switch to --color-warning-on-dark (gold) when the user's
-                spend pace was running hot, which read as inconsistent since
-                it depended on each user's own numbers. The gold "over pace"
-                signal was a deliberate design choice, but the user asked for
-                this line to just always be white, so isOverPace is no
-                longer read into the class list here. */}
-            {pace && (
-              <p className="hero-pace">
-                {pace.phase === "running" &&
-                  `${pace.daysRemaining} days left · ~${formatCurrency(pace.perDay)}/day`}
-                {pace.phase === "last-day" && `Last day · ${formatCurrency(amountLeft)} to spend`}
-                {pace.phase === "ended" &&
-                  `Quincena ended ${formatFriendlyDate(pace.cycleEnd)} · tap "I just got paid"`}
-              </p>
-            )}
-            <button
-              type="button"
-              className="hero-action-link"
-              onClick={(e) => {
-                setTriggerElement(e.currentTarget);
-                setConfirming(true);
-              }}
-              disabled={pending}
-            >
-              {pending ? (
-                "Closing quincena..."
-              ) : (
-                <>
-                  I just got paid <ArrowRight size={16} aria-hidden="true" />
-                </>
-              )}
-            </button>
-          </>
-        )}
-      </div>
-
-      {confirming && (
-        <ConfirmJustGotPaidSheet
-          onConfirm={handleConfirmedJustGotPaid}
-          onCancel={() => setConfirming(false)}
-          returnFocusTo={triggerElement}
-        />
+    <div className="hero-card">
+      <p className="hero-label">{closed ? "Final available" : "Available to spend"}</p>
+      <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
+        {formatCurrency(amountLeft)}
+      </p>
+      {!closed && (
+        <>
+          {/* No separate subtitle line -- "Remaining this Quincena" used to
+              sit here, restating exactly what the pace line below already
+              says, with a number ("N days left"), better. Always the hero
+              card's plain on-accent white, deterministically -- this used
+              to switch to --color-warning-on-dark (gold) when the user's
+              spend pace was running hot, which read as inconsistent since
+              it depended on each user's own numbers. The gold "over pace"
+              signal was a deliberate design choice, but the user asked for
+              this line to just always be white, so isOverPace is no
+              longer read into the class list here. */}
+          {pace && (
+            <p className="hero-pace">
+              {pace.phase === "running" &&
+                `${pace.daysRemaining} days left · ~${formatCurrency(pace.perDay)}/day`}
+              {pace.phase === "last-day" && `Last day · ${formatCurrency(amountLeft)} to spend`}
+              {pace.phase === "ended" &&
+                `Quincena ended ${formatFriendlyDate(pace.cycleEnd)} · tap "I just got paid"`}
+            </p>
+          )}
+          <HeroCardActions />
+        </>
       )}
-
-      {closedSummary && !showIncomePrompt && (
-        <CycleClosedCard
-          summary={closedSummary}
-          onDismiss={handleDismissSummary}
-          returnFocusTo={triggerElement}
-        />
-      )}
-
-      {closedSummary && showIncomePrompt && (
-        <NewCycleIncomeSheet
-          initialAmount={closedSummary.carriedIncomeAmount}
-          onDone={handleFinishIncomePrompt}
-          returnFocusTo={triggerElement}
-        />
-      )}
-    </>
+    </div>
   );
 }

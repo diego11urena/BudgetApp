@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatCycleLabel, hourInPanama, nowInPanama, parsePayDate, parseTransactionDate } from "./pay-date";
+import { addDays, formatCycleLabel, hourInPanama, nowInPanama, parsePayDate, parseTransactionDate } from "./pay-date";
 
 // Mirrors pay-date.ts's own panamaMidnight anchor (Panama midnight = 05:00
 // UTC, since Panama is UTC-5 year-round) so every expected/input value in
@@ -43,6 +43,29 @@ describe("nowInPanama / hourInPanama", () => {
     vi.setSystemTime(new Date("2026-08-15T06:00:00.000Z"));
     expect(nowInPanama()).toEqual(panama(2026, 8, 15));
     expect(hourInPanama()).toBe(1);
+  });
+});
+
+// Regression anchor for T7 (fix-list batch 7.5): addDays used to read/write
+// via setDate()/getDate(), the *local-timezone* Date methods -- correct only
+// by coincidence, since this app has only ever run from Vercel's UTC servers
+// or a Panama-timezone dev machine. Re-run under a timezone far from both to
+// catch a regression back to that pattern.
+describe("addDays", () => {
+  it("adds a positive count of days", () => {
+    expect(addDays(panama(2026, 8, 10), 5)).toEqual(panama(2026, 8, 15));
+  });
+
+  it("subtracts with a negative count", () => {
+    expect(addDays(panama(2026, 8, 10), -3)).toEqual(panama(2026, 8, 7));
+  });
+
+  it("rolls over a month boundary", () => {
+    expect(addDays(panama(2026, 8, 29), 5)).toEqual(panama(2026, 9, 3));
+  });
+
+  it("rolls over a year boundary", () => {
+    expect(addDays(panama(2026, 12, 30), 5)).toEqual(panama(2027, 1, 4));
   });
 });
 

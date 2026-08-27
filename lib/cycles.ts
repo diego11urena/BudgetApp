@@ -1,8 +1,15 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
+import { getCycleFinancials, TRANSACTION_SELECT, type CycleFinancials } from "@/lib/cycle-financials";
 import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
-import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama, parsePayDate } from "@/lib/pay-date";
+import {
+  addDays,
+  FIRST_CYCLE_BACKDATE_FLOOR_DAYS,
+  formatCycleLabel,
+  nowInPanama,
+  panamaDateParts,
+  parsePayDate,
+} from "@/lib/pay-date";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 import { quincenaEnd } from "@/lib/quincena-pace";
 import { formatFriendlyDate } from "@/lib/format";
@@ -35,7 +42,13 @@ export function shouldCarryForwardToCycle(
 ): boolean {
   if (rule.frequency === "BIWEEKLY") return true;
   if (rule.dueDay === null) return false;
-  return quincenaForDay(rule.dueDay) === quincenaForDay(newCyclePeriodStart.getDate());
+  // panamaDateParts, not .getDate() -- the latter reads the calling
+  // machine's local timezone, which only agreed with Panama's calendar day
+  // by coincidence. A wrong answer here silently drops a MONTHLY recurring
+  // expense out of the budget for the quincena it was actually due in, or
+  // carries it into the wrong one -- the most consequential of this
+  // module's latent timezone bugs (fix-list T5), not just a display glitch.
+  return quincenaForDay(rule.dueDay) === quincenaForDay(panamaDateParts(newCyclePeriodStart).day);
 }
 
 /**
@@ -521,6 +534,14 @@ export async function assessPayDateChange(
  * year from every branch; defaults to true so existing callers (older
  * confirmation-copy contexts, where the year is genuinely useful context)
  * are unaffected.
+ *
+ * Every day/month/year read here goes through panamaDateParts, and every
+ * toLocaleDateString call gets an explicit America/Panama timeZone --
+ * `.toDateString()`/`.getMonth()`/`.getDate()`/`.getFullYear()` and a
+ * timeZone-less toLocaleDateString all read the *calling machine's* local
+ * timezone, which only agreed with Panama's calendar day because this app
+ * has only ever run from Vercel's UTC servers or a Panama-timezone dev
+ * machine.
  */
 export function formatCycleRangeText(
   cycle: Pick<BudgetCycle, "periodStart" | "periodEnd">,
@@ -528,21 +549,25 @@ export function formatCycleRangeText(
 ): string {
   const { includeYear = true } = options;
   const end = cycle.periodEnd ?? quincenaEnd(cycle.periodStart);
+  const startParts = panamaDateParts(cycle.periodStart);
+  const endParts = panamaDateParts(end);
   const dateOpts: Intl.DateTimeFormatOptions = includeYear
-    ? { month: "short", day: "numeric", year: "numeric" }
-    : { month: "short", day: "numeric" };
+    ? { month: "short", day: "numeric", year: "numeric", timeZone: "America/Panama" }
+    : { month: "short", day: "numeric", timeZone: "America/Panama" };
   // A same-day close (closing twice in one day is explicitly supported —
   // see closeCycleAndStartNext) makes periodStart and periodEnd the same
   // calendar day; "Aug 15–15, 2026" would read as a typo, not a range.
-  if (cycle.periodStart.toDateString() === end.toDateString()) {
+  if (startParts.year === endParts.year && startParts.month === endParts.month && startParts.day === endParts.day) {
     return includeYear ? formatFriendlyDate(cycle.periodStart) : cycle.periodStart.toLocaleDateString("en-US", dateOpts);
   }
-  const sameMonth =
-    cycle.periodStart.getMonth() === end.getMonth() &&
-    cycle.periodStart.getFullYear() === end.getFullYear();
-  const startText = cycle.periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const sameMonth = startParts.year === endParts.year && startParts.month === endParts.month;
+  const startText = cycle.periodStart.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "America/Panama",
+  });
   if (sameMonth) {
-    return includeYear ? `${startText}–${end.getDate()}, ${end.getFullYear()}` : `${startText}–${end.getDate()}`;
+    return includeYear ? `${startText}–${endParts.day}, ${endParts.year}` : `${startText}–${endParts.day}`;
   }
   return includeYear
     ? `${startText} – ${formatFriendlyDate(end)}`
@@ -556,9 +581,13 @@ export function getRecentCycles(userId: string, limit = 5) {
     orderBy: { periodStart: "desc" },
     take: limit,
     include: {
-      incomeEntries: true,
-      budgetGoals: { include: { expenseCategory: true } },
-      transactions: { include: { expenseCategory: true } },
+      incomeEntries: { select: { netAmount: true } },
+      // TRANSACTION_SELECT -- an explicit select instead of `include: true`
+      // so this, the largest payload on the dashboard's hot path, doesn't
+      // drag every other transaction/category column (or, previously, an
+      // entirely unused budgetGoals relation) along for the ride; see its
+      // own doc comment for why these exact fields.
+      transactions: { select: TRANSACTION_SELECT },
     },
   });
 }
@@ -575,8 +604,8 @@ export function getClosedCycles(userId: string, limit = 20) {
     orderBy: { periodStart: "desc" },
     take: limit,
     include: {
-      incomeEntries: true,
-      transactions: { include: { expenseCategory: true } },
+      incomeEntries: { select: { netAmount: true } },
+      transactions: { select: TRANSACTION_SELECT },
     },
   });
 }
