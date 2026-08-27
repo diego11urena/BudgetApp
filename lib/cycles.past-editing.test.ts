@@ -4,6 +4,17 @@ import { prisma } from "./prisma";
 import { assessPayDateChange } from "./cycles";
 import { getCycleFinancials } from "./cycle-financials";
 
+// Mirrors pay-date.ts's own panamaMidnight anchor (Panama midnight = 05:00
+// UTC, since Panama is UTC-5 year-round). These fixtures are seeded into a
+// real Postgres timestamptz column and later rendered back through
+// formatFriendlyDate (Panama-anchored, fix-list T3) -- a local
+// `new Date(y, m, d)` here would insert a *different* real instant
+// depending on the test runner's own timezone (e.g. CI's UTC runner), and
+// the "Jul 1" text assertion below would drift by a day.
+function panama(year: number, month: number, day: number): Date {
+  return new Date(Date.UTC(year, month - 1, day, 5, 0, 0));
+}
+
 // Real-Postgres tests for the past-quincena-editing feature — same pattern
 // as cycles.concurrency.test.ts (skipped unless DATABASE_URL is set, so
 // these run in the E2E CI job, not the fast no-DB one). Exercises the two
@@ -33,8 +44,8 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       data: {
         userId,
         label: "2026-07-01",
-        periodStart: new Date(2026, 6, 1),
-        periodEnd: new Date(2026, 6, 15),
+        periodStart: panama(2026, 7, 1),
+        periodEnd: panama(2026, 7, 15),
         status: "CLOSED",
       },
     });
@@ -54,7 +65,7 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
         type: "EXPENSE",
         name: "Late-added expense",
         amount: 42,
-        occurredAt: new Date(2026, 6, 5),
+        occurredAt: panama(2026, 7, 5),
       },
     });
 
@@ -70,8 +81,8 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       data: {
         userId,
         label: "2026-07-01",
-        periodStart: new Date(2026, 6, 1),
-        periodEnd: new Date(2026, 6, 15),
+        periodStart: panama(2026, 7, 1),
+        periodEnd: panama(2026, 7, 15),
         status: "CLOSED",
       },
     });
@@ -79,8 +90,8 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       data: {
         userId,
         label: "2026-07-16",
-        periodStart: new Date(2026, 6, 16),
-        periodEnd: new Date(2026, 7, 1),
+        periodStart: panama(2026, 7, 16),
+        periodEnd: panama(2026, 8, 1),
         status: "CLOSED",
       },
     });
@@ -88,7 +99,7 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       data: {
         userId,
         label: "2026-08-01",
-        periodStart: new Date(2026, 7, 1),
+        periodStart: panama(2026, 8, 1),
         status: "ACTIVE",
       },
     });
@@ -97,13 +108,13 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     // C once C's periodStart moves back to Jul 10; one that stays in P.
     await prisma.cycleTransaction.createMany({
       data: [
-        { cycleId: previous.id, userId, type: "EXPENSE", name: "a", amount: 10, occurredAt: new Date(2026, 6, 10) },
-        { cycleId: previous.id, userId, type: "EXPENSE", name: "b", amount: 20, occurredAt: new Date(2026, 6, 12) },
-        { cycleId: previous.id, userId, type: "EXPENSE", name: "c", amount: 30, occurredAt: new Date(2026, 6, 5) },
+        { cycleId: previous.id, userId, type: "EXPENSE", name: "a", amount: 10, occurredAt: panama(2026, 7, 10) },
+        { cycleId: previous.id, userId, type: "EXPENSE", name: "b", amount: 20, occurredAt: panama(2026, 7, 12) },
+        { cycleId: previous.id, userId, type: "EXPENSE", name: "c", amount: 30, occurredAt: panama(2026, 7, 5) },
       ],
     });
 
-    const newPeriodStart = new Date(2026, 6, 10);
+    const newPeriodStart = panama(2026, 7, 10);
     const assessment = await assessPayDateChange(userId, cycle, newPeriodStart);
     expect(assessment.ok).toBe(true);
     if (!assessment.ok) return;
@@ -136,8 +147,8 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       data: {
         userId,
         label: "2026-07-01",
-        periodStart: new Date(2026, 6, 1),
-        periodEnd: new Date(2026, 6, 15),
+        periodStart: panama(2026, 7, 1),
+        periodEnd: panama(2026, 7, 15),
         status: "CLOSED",
       },
     });
@@ -145,13 +156,13 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
       data: {
         userId,
         label: "2026-07-16",
-        periodStart: new Date(2026, 6, 16),
-        periodEnd: new Date(2026, 7, 1),
+        periodStart: panama(2026, 7, 16),
+        periodEnd: panama(2026, 8, 1),
         status: "CLOSED",
       },
     });
     await prisma.cycleTransaction.create({
-      data: { cycleId: previous.id, userId, type: "EXPENSE", name: "a", amount: 10, occurredAt: new Date(2026, 6, 5) },
+      data: { cycleId: previous.id, userId, type: "EXPENSE", name: "a", amount: 10, occurredAt: panama(2026, 7, 5) },
     });
 
     // On or before the previous cycle's own periodStart -- an outright conflict.

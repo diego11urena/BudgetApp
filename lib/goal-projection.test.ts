@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeGoalProjection } from "./goal-projection";
+import { parseDateOnly } from "./pay-date";
 
 describe("computeGoalProjection", () => {
   it("projects an ETA from the per-cycle contribution and remaining amount", () => {
@@ -7,7 +8,7 @@ describe("computeGoalProjection", () => {
       savedSoFar: 200,
       lifetimeTargetAmount: 1000,
       currentCycleRecurringAmount: 200,
-      now: new Date(2026, 7, 2),
+      now: parseDateOnly("2026-08-02")!,
     });
     // remaining 800, /200 per cycle = 4 quincenas. Walking 4 *real*
     // quincenas forward from Aug 2, 2026 (15 + 16 + 15 + 15 days -- the
@@ -17,7 +18,7 @@ describe("computeGoalProjection", () => {
     expect(result.percentage).toBe(20);
     expect(result.isComplete).toBe(false);
     expect(result.quincenasNeeded).toBe(4);
-    expect(result.etaDate).toEqual(new Date(2026, 9, 2));
+    expect(result.etaDate).toEqual(parseDateOnly("2026-10-02"));
   });
 
   it("rounds up partial quincenas", () => {
@@ -25,7 +26,7 @@ describe("computeGoalProjection", () => {
       savedSoFar: 0,
       lifetimeTargetAmount: 250,
       currentCycleRecurringAmount: 100,
-      now: new Date(2026, 7, 2),
+      now: parseDateOnly("2026-08-02")!,
     });
     // 250/100 = 2.5 -> 3 quincenas.
     expect(result.quincenasNeeded).toBe(3);

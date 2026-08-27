@@ -28,7 +28,7 @@ function makeExtras(
     now: Date;
   }> = {},
 ) {
-  const periodStart = new Date(2026, 7, 3);
+  const periodStart = parseDateOnly("2026-08-03")!;
   return {
     cycle: { periodStart, periodEnd: null },
     recurringExpenseCategories: [],
@@ -263,9 +263,13 @@ describe("generateInsights", () => {
 
   describe("pace-aware on-track rule", () => {
     // 15-day quincena (Aug 3-17, 2026); `now` = Aug 10 -> 8 of 15 days
-    // elapsed, 7 remaining.
-    const cycle = { periodStart: new Date(2026, 7, 3), periodEnd: null };
-    const now = new Date(2026, 7, 10);
+    // elapsed, 7 remaining. parseDateOnly (Panama-anchored), not a raw
+    // `new Date(y, m, d)` -- paceAwareCandidate's run-out projection feeds
+    // `now` through addDays (Panama-anchored, see lib/pay-date.ts), so a
+    // local-timezone-constructed `now` disagrees with it under any test
+    // runner outside UTC-5/no-DST, e.g. CI's UTC runner.
+    const cycle = { periodStart: parseDateOnly("2026-08-03")!, periodEnd: null };
+    const now = parseDateOnly("2026-08-10")!;
 
     it("gives a plain, non-repeating reassurance when the current daily rate would comfortably last the rest of the cycle", () => {
       // $400 spent over 8 days = $50/day; at that rate $600 left lasts 12
