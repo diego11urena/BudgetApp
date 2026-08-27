@@ -8,7 +8,16 @@ export interface RateLimitResult {
   retryAfterSeconds: number;
 }
 
-const redis = Redis.fromEnv();
+// Deliberately not eagerly Redis.fromEnv() at module scope -- an
+// environment that never configured Upstash at all (this repo's own CI,
+// which has no Upstash secrets wired up; a self-hosted deploy that
+// opts out) is a different situation from one that configured it and
+// is having a transient outage, and the two need different handling
+// (see checkRateLimit below): "not configured" always behaves as if no
+// rate limiter exists, regardless of failClosed, since there was never
+// a limiter here to fail-anything.
+const isConfigured = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+const redis = isConfigured ? Redis.fromEnv() : null;
 
 /**
  * A Redis-backed fixed-window rate limiter, shared across every serverless
@@ -25,7 +34,7 @@ function getLimiter(max: number, windowMs: number): Ratelimit {
   let limiter = limiters.get(cacheKey);
   if (!limiter) {
     limiter = new Ratelimit({
-      redis,
+      redis: redis!,
       // Fixed window, not sliding -- matches this limiter's original
       // in-memory semantics (see git history), rather than silently
       // becoming stricter or more lenient by switching algorithms.
@@ -56,6 +65,13 @@ export async function checkRateLimit(
     failClosed?: boolean;
   },
 ): Promise<RateLimitResult> {
+  if (!redis) {
+    // Never configured in this environment at all -- not a failure of a
+    // limiter that exists, so this ignores failClosed entirely. (The app's
+    // own CI has no Upstash secrets wired up; local dev normally does,
+    // via .env, per .env.example.)
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
   try {
     const { success, reset } = await getLimiter(max, windowMs).limit(key);
     return {

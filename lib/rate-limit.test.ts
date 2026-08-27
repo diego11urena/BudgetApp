@@ -33,6 +33,15 @@ vi.mock("next/headers", () => ({
   headers: async () => ({ get: headersGetMock }),
 }));
 
+// rate-limit.ts checks these at module load to distinguish "Upstash isn't
+// configured in this environment at all" from "it's configured but the
+// call failed" (see the "not configured" describe block below, which
+// covers that distinction directly) -- set for every other test in this
+// file so they exercise the normal configured path, same as before that
+// distinction existed.
+process.env.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com";
+process.env.UPSTASH_REDIS_REST_TOKEN = "fake-token";
+
 const { checkRateLimit, getClientIp } = await import("./rate-limit");
 
 describe("checkRateLimit", () => {
@@ -102,6 +111,38 @@ describe("checkRateLimit", () => {
     await checkRateLimit("key-a", { max: 333, windowMs: 60_000 });
     await checkRateLimit("key-a", { max: 333, windowMs: 90_000 });
     expect(ratelimitCtor).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("checkRateLimit when Upstash was never configured in this environment", () => {
+  // A distinct module instance with UPSTASH_REDIS_REST_URL/TOKEN absent --
+  // isolated via vi.resetModules() + a fresh dynamic import so it doesn't
+  // disturb the "configured" module instance (and its env vars) every
+  // other test in this file shares. This is the exact regression this
+  // guards: an environment with no Upstash wired up at all (this repo's
+  // own CI) must never be treated as "Upstash is down," or fail-closed
+  // callers (login/signup/change-password) would reject every request.
+  it("is always allowed, even with failClosed:true, and never touches the Ratelimit machinery", async () => {
+    const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    vi.resetModules();
+    try {
+      const { checkRateLimit: checkRateLimitUnconfigured } = await import("./rate-limit");
+      ratelimitCtor.mockClear();
+      const result = await checkRateLimitUnconfigured(
+        "some-key",
+        { max: 5, windowMs: 60_000 },
+        { failClosed: true },
+      );
+      expect(result).toEqual({ allowed: true, retryAfterSeconds: 0 });
+      expect(ratelimitCtor).not.toHaveBeenCalled();
+    } finally {
+      process.env.UPSTASH_REDIS_REST_URL = originalUrl;
+      process.env.UPSTASH_REDIS_REST_TOKEN = originalToken;
+      vi.resetModules();
+    }
   });
 });
 
