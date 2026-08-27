@@ -65,7 +65,6 @@ export default async function ProfilePage({
         <div className="dashboard-section">
           <EditIncomeSheet
             initial={{
-              name: incomeSource.name,
               netQuincenaAmount: incomeSource.netQuincenaAmount.toString(),
             }}
           />

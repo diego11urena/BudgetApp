@@ -21,8 +21,9 @@ export interface SheetProps {
    * Rendered as the dialog's own visible <h2>, and wired via
    * aria-labelledby so the accessible name always matches what's on
    * screen instead of a hand-kept-in-sync separate string. Omit only for
-   * a sheet with no natural single-line title (e.g. AddActionSheet's
-   * action grid) -- `ariaLabel` is required in that case instead.
+   * a sheet with no natural single-line title (e.g. QuickAddSheet, whose
+   * segmented type toggle is the real header) -- `ariaLabel` is required
+   * in that case instead.
    */
   title?: ReactNode;
   /** Overrides the title <h2>'s default centered/1rem-below spacing -- a few sheets use a tighter margin above body copy that immediately follows the heading. */

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CreditCard, Home, LayoutGrid, Target, type LucideIcon } from "lucide-react";
-import { AddActionSheet } from "./AddActionSheet";
 import { QuickAddSheet } from "./QuickAddSheet";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
@@ -38,7 +37,6 @@ export function BottomNav({
   cycleStartDate: string;
 }) {
   const pathname = usePathname();
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
   // Same trigger-capture-on-click pattern QuickActions used — see its
   // comment for why this can't just be derived inside the sheet itself.
@@ -69,7 +67,7 @@ export function BottomNav({
           aria-label="Add a transaction"
           onClick={(e) => {
             setTriggerElement(e.currentTarget);
-            setActionMenuOpen(true);
+            setQuickAddType("EXPENSE");
           }}
         >
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -83,17 +81,6 @@ export function BottomNav({
         </button>
         {TABS_AFTER_FAB.map(renderTab)}
       </nav>
-
-      {actionMenuOpen && (
-        <AddActionSheet
-          returnFocusTo={triggerElement}
-          onClose={() => setActionMenuOpen(false)}
-          onSelect={(type) => {
-            setActionMenuOpen(false);
-            setQuickAddType(type);
-          }}
-        />
-      )}
 
       {quickAddType && (
         <QuickAddSheet

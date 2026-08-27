@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateInsights } from "./insights";
+import { parseDateOnly } from "./pay-date";
 import type { CycleFinancials } from "./cycle-financials";
 import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "./recurring-expenses";
 import type { GoalWithProgress } from "./goals";
@@ -84,7 +85,9 @@ describe("generateInsights", () => {
     // streak) should require history.
     it("still shows the on-track insight for a brand-new user with no closed cycles yet", () => {
       const insights = generateInsights(makeFinancials({ amountLeft: 2000 }), [], makeExtras());
-      expect(insights).toEqual([{ text: "You're on track to have $2,000.00 left this cycle." }]);
+      expect(insights).toEqual([
+        { text: "You're spending at a sustainable pace to make it to your next payday." },
+      ]);
     });
 
     it("still shows the over-budget insight for a brand-new user with no closed cycles yet", () => {
@@ -99,7 +102,7 @@ describe("generateInsights", () => {
     it("never reports a comparative category-anomaly or streak insight with no closed cycles", () => {
       const current = makeFinancials({
         amountLeft: 100,
-        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
+        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 200 }],
       });
       const insights = generateInsights(current, [], makeExtras());
       expect(insights.some((i) => i.text.includes("vs "))).toBe(false);
@@ -128,11 +131,11 @@ describe("generateInsights", () => {
       const current = makeFinancials({
         amountLeft: 320,
         totalExpenses: 0,
-        categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, categoryColor: null, amount: 60 }],
+        categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 60 }],
       });
       const previous = [
-        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, categoryColor: null, amount: 20 }] }),
-        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, categoryColor: null, amount: 20 }] }),
+        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 20 }] }),
+        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 20 }] }),
       ];
       const extras = makeExtras({
         recurringExpenseCategories: [makeRecurringCategory([{ actual: 0, targetAmount: 20 }])],
@@ -190,10 +193,10 @@ describe("generateInsights", () => {
   describe("category anomaly rule (rolling average, with single-cycle fallback)", () => {
     it("falls back to a single-previous-cycle comparison with fewer than 2 closed cycles", () => {
       const current = makeFinancials({
-        topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 200 }],
+        topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 200 }],
       });
       const previous = makeFinancials({
-        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 158 }],
+        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 158 }],
       });
       const insights = generateInsights(current, [previous], makeExtras());
       expect(insights.some((i) => i.text === "Groceries spending is up $42.00 vs last cycle.")).toBe(true);
@@ -201,15 +204,15 @@ describe("generateInsights", () => {
 
     it("fallback still matches by categoryId across a rename, and never false-matches two categories sharing a name", () => {
       const renamed = generateInsights(
-        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Food", categoryIcon: null, categoryColor: null, amount: 200 }] }),
-        [makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 150 }] })],
+        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Food", categoryIcon: null, amount: 200 }] }),
+        [makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 150 }] })],
         makeExtras(),
       );
       expect(renamed.some((i) => i.text === "Food spending is up $50.00 vs last cycle.")).toBe(true);
 
       const collision = generateInsights(
-        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Travel", categoryIcon: null, categoryColor: null, amount: 200 }] }),
-        [makeFinancials({ categoryTotals: [{ categoryId: "c2", categoryName: "Travel", categoryIcon: null, categoryColor: null, amount: 158 }] })],
+        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Travel", categoryIcon: null, amount: 200 }] }),
+        [makeFinancials({ categoryTotals: [{ categoryId: "c2", categoryName: "Travel", categoryIcon: null, amount: 158 }] })],
         makeExtras(),
       );
       expect(collision.some((i) => i.text.includes("Travel spending is"))).toBe(false);
@@ -218,14 +221,14 @@ describe("generateInsights", () => {
     it("with 2+ closed cycles, flags the category with the largest RELATIVE deviation, not the largest absolute dollar amount", () => {
       const current = makeFinancials({
         categoryTotals: [
-          { categoryId: "rent", categoryName: "Rent", categoryIcon: null, categoryColor: null, amount: 1000 },
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, categoryColor: null, amount: 60 },
+          { categoryId: "rent", categoryName: "Rent", categoryIcon: null, amount: 1000 },
+          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 60 },
         ],
       });
       const stableWindowCycle = makeFinancials({
         categoryTotals: [
-          { categoryId: "rent", categoryName: "Rent", categoryIcon: null, categoryColor: null, amount: 1000 },
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, categoryColor: null, amount: 20 },
+          { categoryId: "rent", categoryName: "Rent", categoryIcon: null, amount: 1000 },
+          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 20 },
         ],
       });
       const insights = generateInsights(current, [stableWindowCycle, stableWindowCycle], makeExtras());
@@ -237,20 +240,20 @@ describe("generateInsights", () => {
 
     it("requires at least a 20% relative swing to fire", () => {
       const belowThreshold = generateInsights(
-        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 119 }] }),
+        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 119 }] }),
         [
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 100 }] }),
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 100 }] }),
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
         ],
         makeExtras(),
       );
       expect(belowThreshold.some((i) => i.text.includes("Groceries"))).toBe(false);
 
       const atThreshold = generateInsights(
-        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 120 }] }),
+        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 120 }] }),
         [
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 100 }] }),
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, categoryColor: null, amount: 100 }] }),
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
         ],
         makeExtras(),
       );
@@ -260,28 +263,39 @@ describe("generateInsights", () => {
 
   describe("pace-aware on-track rule", () => {
     // 15-day quincena (Aug 3-17, 2026); `now` = Aug 10 -> 8 of 15 days
-    // elapsed (53.3%). Both cases sit on either side of the 15-point gap
-    // threshold against that same elapsed-% figure.
+    // elapsed, 7 remaining.
     const cycle = { periodStart: new Date(2026, 7, 3), periodEnd: null };
     const now = new Date(2026, 7, 10);
 
-    it("keeps the plain on-track message when spend-pace is close to time-elapsed", () => {
+    it("gives a plain, non-repeating reassurance when the current daily rate would comfortably last the rest of the cycle", () => {
+      // $400 spent over 8 days = $50/day; at that rate $600 left lasts 12
+      // more days, well past the 7 remaining -- never at risk.
       const insights = generateInsights(
-        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 680, amountLeft: 320 }),
+        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 400, amountLeft: 600 }),
         [],
         makeExtras({ cycle, now }),
       );
-      expect(insights.some((i) => i.text === "You're on track to have $320.00 left this cycle.")).toBe(true);
+      expect(
+        insights.some((i) => i.text === "You're spending at a sustainable pace to make it to your next payday."),
+      ).toBe(true);
     });
 
-    it("escalates to a pacing-specific message once spend-pace runs 15+ points ahead of time-elapsed", () => {
+    it("projects a concrete run-out date once the current daily rate would exhaust the remaining balance before the cycle ends", () => {
+      // $700 spent over 8 days = $87.50/day; at that rate $300 left lasts
+      // ~3.43 more days (Aug 10 + 3 = Aug 13), 4 days short of the 7 remaining.
       const insights = generateInsights(
         makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 700, amountLeft: 300 }),
         [],
         makeExtras({ cycle, now }),
       );
-      expect(insights.some((i) => i.text === "You've used 70% of your budget with 47% of the cycle left.")).toBe(true);
-      expect(insights.some((i) => i.text.startsWith("You're on track"))).toBe(false);
+      expect(
+        insights.some(
+          (i) =>
+            i.text ===
+            "At your current pace you'll run out of cash around Aug 13, 2026 — 4 days before your next payday.",
+        ),
+      ).toBe(true);
+      expect(insights.some((i) => i.text.includes("sustainable pace"))).toBe(false);
     });
 
     it("over-budget always takes the plain over-budget message, regardless of pace", () => {
@@ -291,6 +305,104 @@ describe("generateInsights", () => {
         makeExtras({ cycle, now }),
       );
       expect(insights.some((i) => i.text === "You're $50.00 over budget this cycle so far.")).toBe(true);
+    });
+  });
+
+  describe("category anomaly rule only fires on an increase, never a decrease", () => {
+    it("produces no candidate when a category is spending LESS than its recent average", () => {
+      const current = makeFinancials({
+        categoryTotals: [
+          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 10 },
+        ],
+      });
+      const stableWindowCycle = makeFinancials({
+        categoryTotals: [
+          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 50 },
+        ],
+      });
+      const insights = generateInsights(current, [stableWindowCycle, stableWindowCycle], makeExtras());
+      expect(insights.some((i) => i.text.includes("Coffee"))).toBe(false);
+    });
+
+    it("the single-cycle fallback also produces no candidate for a decrease", () => {
+      const insights = generateInsights(
+        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
+        [makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 158 }] })],
+        makeExtras(),
+      );
+      expect(insights.some((i) => i.text.includes("Groceries"))).toBe(false);
+    });
+  });
+
+  describe("due-soon rule (MONTHLY recurring expense due day)", () => {
+    // parseDateOnly (not a raw `new Date(y, m, d)`) for every `now` here --
+    // dueSoonCandidate re-derives a Panama-anchored date purely from
+    // dueDay/panamaDateParts(now), which (unlike the pure-difference math
+    // calendarDaysBetween uses elsewhere in this file) has no built-in
+    // cancellation of a non-Panama-anchored `now`'s own timezone offset.
+    const aug3 = parseDateOnly("2026-08-03")!;
+    const aug5 = parseDateOnly("2026-08-05")!;
+
+    it("produces no candidate for a BIWEEKLY expense, even with a dueDay set", () => {
+      const categories = [
+        makeRecurringCategory([{ actual: 0, targetAmount: 650, frequency: "BIWEEKLY", dueDay: 5 }]),
+      ];
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
+      );
+      expect(insights.some((i) => i.text.includes("due"))).toBe(false);
+    });
+
+    it("produces no candidate once the expense is already paid", () => {
+      const categories = [
+        makeRecurringCategory([{ actual: 650, targetAmount: 650, frequency: "MONTHLY", dueDay: 5 }]),
+      ];
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
+      );
+      expect(insights.some((i) => i.text.includes("due"))).toBe(false);
+    });
+
+    it("names the expense, amount, and days-out for an unpaid MONTHLY expense due soon", () => {
+      const categories = [
+        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, frequency: "MONTHLY", dueDay: 5 }]),
+      ];
+      // now = Aug 3 -> Aug 5 due date is 2 days out.
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
+      );
+      expect(insights.some((i) => i.text === "Rent ($650.00) due in 2 days and isn't marked paid.")).toBe(true);
+    });
+
+    it("still fires for an expense whose due day already passed, unpaid", () => {
+      const categories = [
+        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, frequency: "MONTHLY", dueDay: 3 }]),
+      ];
+      // now = Aug 5 -> Aug 3 due date was 2 days ago.
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: aug5 }),
+      );
+      expect(insights.some((i) => i.text === "Rent ($650.00) was due 2 days ago and isn't marked paid.")).toBe(true);
+    });
+
+    it("produces no candidate when the due day is further out than the due-soon window", () => {
+      const categories = [
+        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, frequency: "MONTHLY", dueDay: 20 }]),
+      ];
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
+      );
+      expect(insights.some((i) => i.text.includes("due"))).toBe(false);
     });
   });
 

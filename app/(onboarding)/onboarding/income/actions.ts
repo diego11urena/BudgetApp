@@ -19,11 +19,7 @@ export async function saveIncomeAction(
   }
   const userId = session.user.id;
 
-  // There's only ever one income source and it's always a biweekly
-  // paycheck — no need to ask for a name. Profile still allows renaming it
-  // afterward for anyone who wants to.
   const parsed = incomeStepSchema.safeParse({
-    name: "Paycheck",
     netQuincenaAmount: formData.get("netQuincenaAmount"),
   });
 
@@ -31,7 +27,7 @@ export async function saveIncomeAction(
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { name, netQuincenaAmount } = parsed.data;
+  const { netQuincenaAmount } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
 
@@ -52,7 +48,7 @@ export async function saveIncomeAction(
 
   if (!incomeSource) {
     try {
-      incomeSource = await prisma.incomeSource.create({ data: { userId, name, netQuincenaAmount } });
+      incomeSource = await prisma.incomeSource.create({ data: { userId, netQuincenaAmount } });
     } catch (error) {
       if (!isUniqueConstraintViolation(error)) throw error;
       // Lost the race to a concurrent submit that also found no existing
@@ -67,7 +63,7 @@ export async function saveIncomeAction(
   await prisma.$transaction([
     prisma.incomeSource.update({
       where: { id: incomeSource.id },
-      data: { name, netQuincenaAmount },
+      data: { netQuincenaAmount },
     }),
     upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
   ]);

@@ -27,7 +27,6 @@ export const changePasswordSchema = z.object({
 });
 
 export const incomeStepSchema = z.object({
-  name: z.string().trim().min(1, "Give this income a name").max(100),
   netQuincenaAmount: decimalString,
 });
 
@@ -37,7 +36,7 @@ export const budgetLineItemSchema = z.object({
 });
 
 export const budgetLineItemsSchema = z.object({
-  // saveExpensesAction/saveSavingsAction iterate this inside one
+  // saveExpensesAction iterates this inside one
   // interactive $transaction with 2-3 writes per item -- an unbounded
   // array turns a large-but-plausible client payload into a long-running
   // transaction against the DB. 50 is generously above any real onboarding

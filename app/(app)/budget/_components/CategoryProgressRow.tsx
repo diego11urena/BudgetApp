@@ -35,6 +35,48 @@ export function CategoryProgressRow({
   const [expanded, setExpanded] = useState(false);
   const usage = getBudgetUsage(actual, targetAmount);
 
+  // A single recurring expense sharing the category's own name (e.g. a
+  // "Utilities" category holding only a "Utilities" account) has nothing
+  // left to reveal by expanding -- the tap-to-expand step and its chevron
+  // would just be extra friction to see a name you already read above.
+  const isSingleSelfNamed = expenses.length === 1 && expenses[0].name === categoryName;
+
+  const summaryContent = (
+    <div className="category-progress-row-content">
+      <div className="progress-bar-label">
+        <span>
+          <CategoryIcon name={categoryName} icon={categoryIcon} size={16} aria-hidden="true" /> {categoryName}
+        </span>
+        <span>{usage.percentage}%</span>
+      </div>
+      <ProgressBar current={actual} target={targetAmount} colorState={usage.state} />
+      <p className="field-hint" style={{ margin: "0.35rem 0 0" }}>
+        {formatCurrency(actual)} / {formatCurrency(targetAmount)}
+        {usage.overBy > 0 && (
+          <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
+        )}
+      </p>
+    </div>
+  );
+
+  if (isSingleSelfNamed) {
+    return (
+      <div className="category-progress-row">
+        <div className="category-progress-row-summary category-progress-row-summary--static">
+          {summaryContent}
+        </div>
+        <div className="recurring-expense-list">
+          <RecurringExpenseRow
+            expense={expenses[0]}
+            categoryName={categoryName}
+            categoryNames={categoryNames}
+            readOnly={readOnly}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="category-progress-row">
       <button
@@ -48,21 +90,7 @@ export function CategoryProgressRow({
         ) : (
           <ChevronRight size={16} aria-hidden="true" className="category-progress-row-chevron" />
         )}
-        <div className="category-progress-row-content">
-          <div className="progress-bar-label">
-            <span>
-              <CategoryIcon name={categoryName} icon={categoryIcon} size={16} aria-hidden="true" /> {categoryName}
-            </span>
-            <span>{usage.percentage}%</span>
-          </div>
-          <ProgressBar current={actual} target={targetAmount} colorState={usage.state} />
-          <p className="field-hint" style={{ margin: "0.35rem 0 0" }}>
-            {formatCurrency(actual)} / {formatCurrency(targetAmount)}
-            {usage.overBy > 0 && (
-              <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
-            )}
-          </p>
-        </div>
+        {summaryContent}
       </button>
 
       {expanded && (

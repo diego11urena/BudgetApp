@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAdjacentCycles, getMostRecentClosedCycle, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
+import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { generateInsights } from "@/lib/insights";
@@ -16,7 +16,6 @@ import { HeroCard } from "./_components/HeroCard";
 import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { InsightsCard } from "./_components/InsightsCard";
-import { LastPaycheckBanner } from "./_components/LastPaycheckBanner";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { TransactionList } from "../_components/TransactionList";
 
@@ -43,11 +42,6 @@ export default async function DashboardPage() {
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
     getOrderedCategoryNames(userId, cycle.id, "INCOME"),
   ]);
-
-  const lastClosedCycle = await getMostRecentClosedCycle(userId);
-  const lastClosedFinancials = lastClosedCycle
-    ? await getCycleFinancials(lastClosedCycle.id)
-    : null;
 
   const recentCycles = await getRecentCycles(userId);
   const closedCycles = recentCycles.filter((c) => c.status === "CLOSED" && c.id !== cycle.id);
@@ -135,14 +129,11 @@ export default async function DashboardPage() {
 
       {/* Action-required banners (missing category, missing description)
           always render first — they're calls to action, something the
-          user actually needs to do, and in some cases something that
-          affects whether Insights' own numbers are even accurate yet.
-          Insights is passive, read-only information, so it must never
-          visually separate two groups of action items — it comes
-          immediately after the last one instead, still ahead of every
-          other card/banner: it's the one thing here framed as "here's
-          what stands out," so among everything that ISN'T a call to
-          action, it still reads best before the raw numbers. */}
+          user actually needs to do. HeroCard comes next: it's the number
+          that anchors the whole screen, so it belongs above the fold on a
+          real phone, not pushed under a card whose own text used to repeat
+          that exact number. Insights follows -- context on that number,
+          not a substitute for it. */}
       {needsAttentionTransactions.length > 0 && (
         <div className="dashboard-section dashboard-section--plain">
           <NeedsAttentionBanner
@@ -154,18 +145,6 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* InsightsCard itself renders null when there's nothing to say, so
-          this costs nothing for a user with no insights yet. */}
-      <div className="dashboard-section dashboard-section--plain">
-        <InsightsCard insights={insights} />
-      </div>
-
-      {lastClosedFinancials && (
-        <div className="dashboard-section dashboard-section--plain">
-          <LastPaycheckBanner amountLeft={lastClosedFinancials.amountLeft} />
-        </div>
-      )}
-
       <div className="dashboard-section dashboard-section--plain">
         <HeroCard
           amountLeft={financials.amountLeft}
@@ -173,6 +152,12 @@ export default async function DashboardPage() {
           periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
         />
+      </div>
+
+      {/* InsightsCard itself renders null when there's nothing to say, so
+          this costs nothing for a user with no insights yet. */}
+      <div className="dashboard-section dashboard-section--plain">
+        <InsightsCard insights={insights} />
       </div>
 
       <div className="dashboard-section">

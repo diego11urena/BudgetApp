@@ -2,17 +2,16 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { AddActionSheet } from "../../_components/AddActionSheet";
 import { QuickAddSheet } from "../../_components/QuickAddSheet";
 
 type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 
 /**
- * A past cycle's own "add a transaction" entry point — same AddActionSheet
- * -> QuickAddSheet wiring BottomNav's global "+" FAB uses, just scoped to
- * this specific cycle via targetCycleId instead of wherever today's draft
- * cycle happens to be. The global FAB is untouched and still always means
- * "today," everywhere, including on this page.
+ * A past cycle's own "add a transaction" entry point — same QuickAddSheet
+ * BottomNav's global "+" FAB opens, just scoped to this specific cycle via
+ * targetCycleId instead of wherever today's draft cycle happens to be. The
+ * global FAB is untouched and still always means "today," everywhere,
+ * including on this page.
  */
 export function AddToCycleButton({
   cycleId,
@@ -28,7 +27,6 @@ export function AddToCycleButton({
   savingsCategoryNames: string[];
   incomeCategoryNames: string[];
 }) {
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
   // Same trigger-capture-on-click pattern BottomNav uses — see QuickAddSheet's
   // returnFocusTo doc comment for why this can't just be derived later.
@@ -41,22 +39,11 @@ export function AddToCycleButton({
         className="button button--secondary"
         onClick={(e) => {
           setTriggerElement(e.currentTarget);
-          setActionMenuOpen(true);
+          setQuickAddType("EXPENSE");
         }}
       >
         <Plus size={16} aria-hidden="true" /> Add to this quincena
       </button>
-
-      {actionMenuOpen && (
-        <AddActionSheet
-          returnFocusTo={triggerElement}
-          onClose={() => setActionMenuOpen(false)}
-          onSelect={(type) => {
-            setActionMenuOpen(false);
-            setQuickAddType(type);
-          }}
-        />
-      )}
 
       {quickAddType && (
         <QuickAddSheet

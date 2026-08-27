@@ -6,17 +6,6 @@ async function clickSheetButton(page: Page, text: string) {
   await page.locator(".sheet").getByRole("button", { name: text, exact: true }).click();
 }
 
-/** Dismisses the auto-shown explainer tooltip if it appears -- waitFor (not a synchronous isVisible check) since it opens via a useEffect + rAF a beat after mount. */
-async function dismissHintIfShown(page: Page) {
-  try {
-    await page.locator(".sheet-backdrop").waitFor({ state: "visible", timeout: 3000 });
-    await clickSheetButton(page, "Got it");
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-  } catch {
-    // Never showed -- nothing to dismiss.
-  }
-}
-
 async function createRecurringExpense(
   page: Page,
   opts: { name: string; amount: string; category: string },
@@ -38,7 +27,6 @@ test.describe("Recurring Expenses screen", () => {
     await signUpAndOnboard(page);
     await page.goto("/budget");
     await page.waitForSelector(".dashboard-section");
-    await dismissHintIfShown(page);
 
     // Matches Goals/History/Transactions/Profile's own <h1 className="page-title">.
     await expect(page.locator("h1.page-title")).toHaveText("Recurring Expenses");
@@ -47,52 +35,11 @@ test.describe("Recurring Expenses screen", () => {
     await expect(page.locator(".dashboard-section h2")).not.toHaveText(/Recurring [Ee]xpenses/);
   });
 
-  test("the explainer tooltip auto-shows once, then only on tap", async ({ page }) => {
-    await signUpAndOnboard(page);
-    await page.goto("/budget");
-
-    // First-ever visit: auto-shown with no interaction.
-    await expect(page.locator(".sheet-backdrop")).toBeVisible();
-    await expect(page.getByText(/Each category can hold several recurring expenses/)).toBeVisible();
-    await clickSheetButton(page, "Got it");
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-
-    // Reload: does not auto-show a second time.
-    await page.reload();
-    await page.waitForSelector(".dashboard-section");
-    await page.waitForTimeout(500);
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
-
-    // Tap-to-reopen still works after the one-time auto-show is spent.
-    await page.click('button[aria-label="What are recurring expenses?"]');
-    await expect(page.locator(".sheet-backdrop")).toBeVisible();
-    await expect(page.getByText(/Each category can hold several recurring expenses/)).toBeVisible();
-    await clickSheetButton(page, "Got it");
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-  });
-
-  test("the tooltip does not auto-show again for a returning user across a fresh page load", async ({ page }) => {
-    await signUpAndOnboard(page);
-    await page.goto("/budget");
-    await expect(page.locator(".sheet-backdrop")).toBeVisible();
-    await clickSheetButton(page, "Got it");
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-
-    // A real fresh navigation (not just a client-side re-render) -- the
-    // "seen" flag has to be server-persisted, not just component state.
-    await page.goto("/dashboard");
-    await page.goto("/budget");
-    await page.waitForSelector(".dashboard-section");
-    await page.waitForTimeout(500);
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
-  });
-
   test("creating a category through its first recurring expense, then adding a second, sums into one category aggregate", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
 
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
     await expect(page.locator(".category-progress-row")).toHaveCount(1);
@@ -118,7 +65,6 @@ test.describe("Recurring Expenses screen", () => {
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
     await page.click(".category-progress-row-summary");
@@ -140,7 +86,6 @@ test.describe("Recurring Expenses screen", () => {
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Gym", amount: "20.00", category: "Fitness" });
 
     // Record payment, not a raw QuickAdd transaction -- since the P1.1 fix,
@@ -163,7 +108,6 @@ test.describe("Recurring Expenses screen", () => {
   test("editing a recurring expense's amount updates the category aggregate", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
     await page.click(".category-progress-row-summary");
@@ -182,7 +126,6 @@ test.describe("Recurring Expenses screen", () => {
   test("deleting a recurring expense recomputes the category aggregate, with Undo", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
 
@@ -207,7 +150,6 @@ test.describe("Recurring Expenses screen", () => {
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
     await page.goto("/dashboard");
@@ -257,7 +199,6 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
       await page.goto("/budget");
-      await dismissHintIfShown(page);
       await expect(page.locator(".category-progress-row-content")).toContainText("Transportation");
       await page.click(".category-progress-row-summary");
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
@@ -322,7 +263,6 @@ test.describe("merging categories moves their recurring expenses", () => {
   test("merging two EXPENSE categories combines their recurring expenses under the target", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Streaming" });
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
 
@@ -353,7 +293,6 @@ test.describe("merging categories moves their recurring expenses", () => {
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/budget");
-    await dismissHintIfShown(page);
     // Both categories have a "Netflix" line -- a realistic collision.
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Streaming" });
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });

@@ -27,10 +27,7 @@ export function CategoryRow({
 
   return (
     <div className="category-row">
-      <span
-        className="category-row-swatch"
-        style={category.color ? { background: `var(--${category.color})` } : undefined}
-      >
+      <span className="category-row-swatch">
         <CategoryIcon name={category.name} icon={category.icon} size={18} aria-hidden="true" />
       </span>
       <div className="category-row-details">

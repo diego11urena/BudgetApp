@@ -4,7 +4,6 @@ export interface CategoryTotal {
   categoryId: string;
   categoryName: string;
   categoryIcon: string | null;
-  categoryColor: string | null;
   amount: number;
 }
 
@@ -68,7 +67,7 @@ interface TransactionLike {
   name: string;
   amount: DecimalLike;
   occurredAt: Date;
-  expenseCategory: { id: string; name: string; icon: string | null; color: string | null } | null;
+  expenseCategory: { id: string; name: string; icon: string | null } | null;
   sourceMessageId?: string | null;
   importSource?: "MANUAL" | "GMAIL";
   paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
@@ -140,7 +139,6 @@ export function summarizeCycleFinancials(
         categoryId: tx.expenseCategory.id,
         categoryName: tx.expenseCategory.name,
         categoryIcon: tx.expenseCategory.icon,
-        categoryColor: tx.expenseCategory.color,
         amount,
       });
     }

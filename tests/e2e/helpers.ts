@@ -30,9 +30,6 @@ export async function signUpAndOnboard(
   await page.waitForURL(/onboarding\/expenses/, { timeout: 60_000, waitUntil: "commit" });
 
   await page.click('button:has-text("Continue")');
-  await page.waitForURL(/onboarding\/savings/, { timeout: 60_000, waitUntil: "commit" });
-
-  await page.click('button:has-text("Finish setup")');
   await page.waitForURL(/dashboard/, { timeout: 60_000, waitUntil: "commit" });
 
   return { email };
@@ -44,8 +41,13 @@ export async function openQuickAdd(
   type: "Expense" | "Income" | "Savings",
 ): Promise<void> {
   await page.locator(".bottom-nav-fab").click();
-  await page.click(`button:has-text("Add ${type}")`);
   await page.getByLabel("Amount (USD)").waitFor();
+  // The FAB always opens straight into EXPENSE -- switch via the sheet's
+  // own segmented type toggle for the other two.
+  if (type !== "Expense") {
+    const label = type === "Income" ? "Extra income" : "Savings";
+    await page.locator(".type-toggle-btn", { hasText: label }).click();
+  }
 }
 
 /**

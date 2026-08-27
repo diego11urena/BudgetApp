@@ -189,5 +189,14 @@ export async function getRecurringExpensesForCycle(
     });
   }
 
+  // dueDay is meaningful sort order for the one frequency that has it --
+  // whichever MONTHLY bill comes due soonest belongs at the top, ahead of
+  // whatever happened to be created first. BIWEEKLY expenses (dueDay always
+  // null) have no calendar day to sort by, so they keep insertion order and
+  // sink below any MONTHLY ones via Infinity.
+  for (const category of categoriesMap.values()) {
+    category.expenses.sort((a, b) => (a.dueDay ?? Infinity) - (b.dueDay ?? Infinity));
+  }
+
   return [...categoriesMap.values()];
 }

@@ -5,11 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMostRecentClosedCycle, getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
-import {
-  computePaymentMethodTotals,
-  withUncategorizedBucket,
-  type GroupTotal,
-} from "@/lib/paycheck-breakdown";
+import { withUncategorizedBucket, type GroupTotal } from "@/lib/paycheck-breakdown";
 import { BreakdownScreen, type BreakdownCycleData } from "./_components/BreakdownScreen";
 
 function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
@@ -17,7 +13,6 @@ function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
     id: c.categoryId,
     name: c.categoryName,
     amount: c.amount,
-    color: c.categoryColor,
   }));
 
   return {
@@ -26,7 +21,6 @@ function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
     totalExpenses: financials.totalExpenses,
     totalSavings: financials.totalSavings,
     categoryTotals: withUncategorizedBucket(categoryTotals, financials.totalExpenses),
-    paymentMethodTotals: computePaymentMethodTotals(financials.transactions),
     transactions: financials.transactions,
   };
 }

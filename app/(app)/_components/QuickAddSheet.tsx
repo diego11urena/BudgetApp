@@ -354,7 +354,7 @@ export function QuickAddSheet({
 
       if (result && "deleted" in result) {
         const d = result.deleted;
-        showToast("Deleted", {
+        showToast(`Deleted ${formatCurrency(d.amount)} — ${d.name}`, {
           label: "Undo",
           onClick: () => {
             const restoreFd = new FormData();

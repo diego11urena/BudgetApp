@@ -17,12 +17,10 @@ import type { CategoryWithUsage } from "./types";
  * Shared identically between Expense and Income (type prop) — Savings goals
  * use their own dedicated flow on the Goals page instead.
  *
- * No color picker here on purpose — every category uses the same neutral
- * icon-background treatment now. `ExpenseCategory.color` still exists in
- * the schema (existing rows that already have one keep rendering it, see
- * CategoryRow/IncomeCategoryRow) and updateCategoryAction/createCategoryAction
- * still accept it, but this form simply never sends it, so it can't be set
- * or changed here anymore.
+ * No color picker here -- every category uses the same neutral
+ * icon-background treatment (ExpenseCategory.color, the field that used to
+ * back a per-category swatch color, has been removed entirely: nothing in
+ * the UI ever offered a way to set it).
  */
 export function CategoryFormSheet({
   type,

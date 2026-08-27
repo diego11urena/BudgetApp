@@ -82,7 +82,12 @@ export function RecurringExpenseRow({
 
   const nameAmountContent = (
     <>
-      <span className="recurring-expense-row-name">{expense.name}</span>
+      <span className="recurring-expense-row-name">
+        {expense.name}
+        {expense.frequency === "MONTHLY" && expense.dueDay !== null && (
+          <span className="recurring-expense-row-due"> · Due day {expense.dueDay}</span>
+        )}
+      </span>
       <span className="recurring-expense-row-amount">{formatCurrency(expense.targetAmount)}</span>
     </>
   );

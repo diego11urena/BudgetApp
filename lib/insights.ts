@@ -1,6 +1,6 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
-import { formatCurrency } from "@/lib/format";
-import { nowInPanama } from "@/lib/pay-date";
+import { formatCurrency, formatFriendlyDate } from "@/lib/format";
+import { addDays, nowInPanama, panamaDateParts, parseDateOnly } from "@/lib/pay-date";
 import { calendarDaysBetween, quincenaEnd } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
@@ -30,6 +30,7 @@ interface Candidate {
  * they always apply.
  */
 const PRIORITY = {
+  DUE_SOON: 95,
   UNPAID_RECURRING: 90,
   CATEGORY_ANOMALY: 80,
   PACE_WARNING: 75,
@@ -45,10 +46,10 @@ const ANOMALY_THRESHOLD_FRACTION = 0.2;
 const ANOMALY_WINDOW_SIZE = 4;
 /** Minimum closed cycles of history required before the rolling-average rule runs at all -- below this, categoryAnomalyCandidate falls back to the older single-previous-cycle comparison so a newer user still sees something. */
 const ANOMALY_MIN_HISTORY = 2;
-/** Percentage points spend-pace can run ahead of time-elapsed before the plain on-track line escalates to a pacing-specific warning. */
-const PACE_GAP_THRESHOLD_FRACTION = 0.15;
 /** How close (as % of a savings goal's lifetime target) progress has to be before it's worth calling out -- skips a goal that's barely started, which would otherwise read as "you're 90% short" framed as good news. */
 const SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT = 80;
+/** How many days out (in either direction -- "due in N days" or "N days overdue") a MONTHLY recurring expense's own due day has to fall within, unpaid, before it's worth a dedicated call-out. */
+const DUE_SOON_WITHIN_DAYS = 3;
 
 /**
  * Rule-based insights from real cycle history — no LLM call. Each rule
@@ -76,6 +77,9 @@ export function generateInsights(
   const now = extras.now ?? nowInPanama();
   const candidates: Candidate[] = [];
 
+  const dueSoon = dueSoonCandidate(now, extras.recurringExpenseCategories);
+  if (dueSoon) candidates.push(dueSoon);
+
   const unpaidRecurring = unpaidRecurringCandidate(extras.recurringExpenseCategories);
   if (unpaidRecurring) candidates.push(unpaidRecurring);
 
@@ -90,14 +94,63 @@ export function generateInsights(
   const savingsGoal = savingsGoalCandidate(extras.goals, now);
   if (savingsGoal) candidates.push(savingsGoal);
 
-  if (candidates.length === 0) {
-    return [{ text: "Log a few transactions to start seeing insights." }];
-  }
-
   return candidates
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 3)
     .map(({ text, href }) => (href ? { text, href } : { text }));
+}
+
+/**
+ * Names the single most urgent still-unpaid MONTHLY recurring expense whose
+ * own due day falls within DUE_SOON_WITHIN_DAYS of today (including
+ * already-overdue) -- dueDay has always been captured (see
+ * RecurringExpenseEditSheet) but never surfaced anywhere a user just
+ * glances at the list; this is the one place it actually changes what
+ * someone does. Only ever names the single most urgent one (never a count,
+ * unlike unpaidRecurringCandidate) since "which one, and when" is the whole
+ * point. BIWEEKLY expenses have no fixed calendar day to compare against,
+ * so they're not eligible here.
+ */
+function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]): Candidate | null {
+  const { year, month } = panamaDateParts(now);
+  let best: { name: string; amount: number; daysUntilDue: number } | null = null;
+
+  for (const category of categories) {
+    for (const expense of category.expenses) {
+      if (expense.frequency !== "MONTHLY" || expense.dueDay === null) continue;
+      const status = getRecurringExpensePaymentStatus(expense.actual, expense.targetAmount);
+      if (status !== "not-started" && status !== "partial") continue;
+
+      const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(expense.dueDay).padStart(2, "0")}`;
+      const dueDate = parseDateOnly(dueDateStr);
+      if (!dueDate) continue; // e.g. dueDay 31 in a 30-day month -- nothing to compare this cycle.
+
+      const daysUntilDue = calendarDaysBetween(now, dueDate);
+      if (daysUntilDue > DUE_SOON_WITHIN_DAYS || daysUntilDue < -DUE_SOON_WITHIN_DAYS) continue;
+
+      if (!best || daysUntilDue < best.daysUntilDue) {
+        best = { name: expense.name, amount: expense.targetAmount - expense.actual, daysUntilDue };
+      }
+    }
+  }
+
+  if (!best) return null;
+  const dueText =
+    best.daysUntilDue === 0
+      ? "due today"
+      : best.daysUntilDue === 1
+        ? "due tomorrow"
+        : best.daysUntilDue > 1
+          ? `due in ${best.daysUntilDue} days`
+          : best.daysUntilDue === -1
+            ? "was due yesterday"
+            : `was due ${Math.abs(best.daysUntilDue)} days ago`;
+
+  return {
+    text: `${best.name} (${formatCurrency(best.amount)}) ${dueText} and isn't marked paid.`,
+    priority: PRIORITY.DUE_SOON,
+    href: "/budget",
+  };
 }
 
 /**
@@ -165,16 +218,17 @@ function categoryAnomalyCandidate(
     if (average <= 0) continue; // No baseline to compare against -- a brand-new category isn't an "anomaly."
 
     const relativeDelta = (category.amount - average) / average;
-    if (Math.abs(relativeDelta) < ANOMALY_THRESHOLD_FRACTION) continue;
-    if (!best || Math.abs(relativeDelta) > Math.abs(best.relativeDelta)) {
+    // Only an increase is actionable -- a category quietly spending LESS
+    // than usual isn't something a user needs to be told to look into.
+    if (relativeDelta < ANOMALY_THRESHOLD_FRACTION) continue;
+    if (!best || relativeDelta > best.relativeDelta) {
       best = { categoryId: category.categoryId, categoryName: category.categoryName, amount: category.amount, average, relativeDelta };
     }
   }
 
   if (!best) return null;
-  const direction = best.relativeDelta > 0 ? "up" : "down";
   return {
-    text: `${best.categoryName} spending is ${direction} ${formatCurrency(Math.abs(best.amount - best.average))} vs your recent average.`,
+    text: `${best.categoryName} spending is up ${formatCurrency(best.amount - best.average)} vs your recent average.`,
     priority: PRIORITY.CATEGORY_ANOMALY,
     href: `/transactions?category=${best.categoryId}`,
   };
@@ -194,26 +248,32 @@ function categoryDeltaFallback(
   if (!previousForCategory) return null;
 
   const delta = topCategory.amount - previousForCategory.amount;
-  if (Math.abs(delta) < 1) return null;
+  // Only an increase is actionable -- see categoryAnomalyCandidate's own comment.
+  if (delta < 1) return null;
 
-  const direction = delta > 0 ? "up" : "down";
   return {
-    text: `${topCategory.categoryName} spending is ${direction} ${formatCurrency(Math.abs(delta))} vs last cycle.`,
+    text: `${topCategory.categoryName} spending is up ${formatCurrency(delta)} vs last cycle.`,
     priority: PRIORITY.CATEGORY_ANOMALY,
     href: `/transactions?category=${topCategory.categoryId}`,
   };
 }
 
 /**
- * The on-track/over-budget line, now pace-aware: a flat balance check
- * means very different things on day 2 of a quincena versus day 13 --
- * someone quietly overspending early still shows "on track" right up
- * until they don't. When on track AND spend-pace is running well ahead of
- * time-elapsed, escalates to a pacing-specific message instead. Always
- * produces a candidate (same guarantee as the old Rule 2), but -- unlike
- * before -- no longer reserves itself a top-3 slot; with more rules
- * producing candidates, a cycle with more urgent things going on can
- * simply not mention plain on-track status.
+ * The on-track/over-budget line, now pace-aware -- and, unlike the old
+ * version, never just repeats HeroCard's own headline number. A flat
+ * balance check means very different things on day 2 of a quincena versus
+ * day 13, so once genuinely over budget is ruled out, this extrapolates
+ * today's own average daily spend forward: if that rate would exhaust
+ * amountLeft before the cycle actually ends, it names the real projected
+ * day that happens ("you'll run out of cash around Aug 14") instead of the
+ * old flat "X% of budget used" framing -- a concrete date is something a
+ * user can actually act on, and it's never a restatement of a number
+ * already on screen (HeroCard shows today's balance, this projects a
+ * future one). Only when the projection clears the whole cycle does this
+ * fall back to a plain reassurance, deliberately with no dollar figure in
+ * it. Always produces a candidate, but no longer reserves itself a top-3
+ * slot; with more rules producing candidates, a cycle with more urgent
+ * things going on can simply not mention pace at all.
  */
 function paceAwareCandidate(
   current: CycleFinancials,
@@ -230,20 +290,23 @@ function paceAwareCandidate(
   const cycleEnd = cycle.periodEnd ?? quincenaEnd(cycle.periodStart);
   const totalDays = calendarDaysBetween(cycle.periodStart, cycleEnd) + 1;
   const elapsedDays = Math.min(Math.max(calendarDaysBetween(cycle.periodStart, now) + 1, 1), totalDays);
-  const percentElapsed = totalDays > 0 ? elapsedDays / totalDays : 0;
+  const daysRemaining = Math.max(totalDays - elapsedDays, 0);
 
-  const totalAvailable = current.baseIncome + current.extraIncome;
-  const percentUsed = totalAvailable > 0 ? current.totalExpenses / totalAvailable : 0;
-
-  if (percentUsed - percentElapsed >= PACE_GAP_THRESHOLD_FRACTION) {
-    return {
-      text: `You've used ${Math.round(percentUsed * 100)}% of your budget with ${Math.round((1 - percentElapsed) * 100)}% of the cycle left.`,
-      priority: PRIORITY.PACE_WARNING,
-    };
+  const dailyRate = current.totalExpenses / elapsedDays;
+  if (dailyRate > 0) {
+    const daysUntilExhausted = current.amountLeft / dailyRate;
+    if (daysUntilExhausted < daysRemaining) {
+      const runOutDate = addDays(now, Math.floor(daysUntilExhausted));
+      const daysBeforePayday = daysRemaining - Math.floor(daysUntilExhausted);
+      return {
+        text: `At your current pace you'll run out of cash around ${formatFriendlyDate(runOutDate)} — ${daysBeforePayday} day${daysBeforePayday === 1 ? "" : "s"} before your next payday.`,
+        priority: PRIORITY.PACE_WARNING,
+      };
+    }
   }
 
   return {
-    text: `You're on track to have ${formatCurrency(current.amountLeft)} left this cycle.`,
+    text: "You're spending at a sustainable pace to make it to your next payday.",
     priority: PRIORITY.ON_TRACK,
   };
 }

@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  computeBreakdown,
-  computePaymentMethodTotals,
-  groupRecentTransactionsBySlice,
-  withUncategorizedBucket,
-} from "./paycheck-breakdown";
+import { computeBreakdown, groupRecentTransactionsBySlice, withUncategorizedBucket } from "./paycheck-breakdown";
 
 describe("computeBreakdown", () => {
   it("returns empty slices when there's no income and no spending", () => {
@@ -164,42 +159,6 @@ describe("computeBreakdown", () => {
     expect(colorA).toBe(colorB);
   });
 
-  // A user-picked category color (Manage Categories' color swatch) must win
-  // over the id-hash everywhere the category is drawn, including this pie —
-  // "custom categories work everywhere categories are displayed."
-  it("uses a category's explicit stored color instead of the id-hash when set", () => {
-    const result = computeBreakdown({
-      baseIncome: 100,
-      extraIncome: 0,
-      totalExpenses: 50,
-      totalSavings: 0,
-      groupTotals: [{ id: "groceries", name: "Groceries", amount: 50, color: "chart-cat-7" }],
-    });
-    const slice = result.legendSlices.find((s) => s.key === "groceries");
-    expect(slice?.colorVar).toBe("--chart-cat-7");
-  });
-
-  it("falls back to the id-hash when color is null/unset", () => {
-    const withNull = computeBreakdown({
-      baseIncome: 100,
-      extraIncome: 0,
-      totalExpenses: 50,
-      totalSavings: 0,
-      groupTotals: [{ id: "groceries", name: "Groceries", amount: 50, color: null }],
-    });
-    const withUnset = computeBreakdown({
-      baseIncome: 100,
-      extraIncome: 0,
-      totalExpenses: 50,
-      totalSavings: 0,
-      groupTotals: [{ id: "groceries", name: "Groceries", amount: 50 }],
-    });
-    const colorWithNull = withNull.legendSlices.find((s) => s.key === "groceries")?.colorVar;
-    const colorWithUnset = withUnset.legendSlices.find((s) => s.key === "groceries")?.colorVar;
-    expect(colorWithNull).toBe(colorWithUnset);
-    expect(colorWithNull).toMatch(/^--chart-cat-\d$/);
-  });
-
   it("gives every category a distinct chart color when there are no more categories than palette slots", () => {
     const groupTotals = ["Rent", "Groceries", "Dining", "Transportation", "Spotify", "Coffee"].map(
       (name, i) => ({ id: `cat-${i}`, name, amount: 10 + i }),
@@ -292,42 +251,6 @@ describe("computeBreakdown", () => {
     });
   });
 
-  describe("groupBy: paymentMethod", () => {
-    it("uses the fixed payment-method color map instead of the category hash", () => {
-      const result = computeBreakdown(
-        {
-          baseIncome: 100,
-          extraIncome: 0,
-          totalExpenses: 100,
-          totalSavings: 0,
-          groupTotals: [
-            { id: "CASH", name: "Cash", amount: 40 },
-            { id: "CREDIT_CARD", name: "Credit Card", amount: 60 },
-          ],
-        },
-        { groupBy: "paymentMethod" },
-      );
-      const cash = result.legendSlices.find((s) => s.key === "CASH");
-      const credit = result.legendSlices.find((s) => s.key === "CREDIT_CARD");
-      expect(cash?.colorVar).toBe("--chart-cat-1");
-      expect(credit?.colorVar).toBe("--chart-cat-2");
-    });
-
-    it("gives the Unspecified bucket the Other color", () => {
-      const result = computeBreakdown(
-        {
-          baseIncome: 100,
-          extraIncome: 0,
-          totalExpenses: 100,
-          totalSavings: 0,
-          groupTotals: [{ id: "UNSPECIFIED", name: "Unspecified", amount: 100 }],
-        },
-        { groupBy: "paymentMethod" },
-      );
-      expect(result.legendSlices[0].colorVar).toBe("--chart-other");
-    });
-  });
-
   it("regression: category-grouped slices sum to exactly 100% even with an uncategorized expense (previously silently dropped)", () => {
     // Income $1000; Rent $500 (categorized), an uncategorized Yappy send
     // $20, totalExpenses must include both.
@@ -373,62 +296,6 @@ describe("withUncategorizedBucket", () => {
   });
 });
 
-describe("computePaymentMethodTotals", () => {
-  function tx(overrides: Partial<{ type: "EXPENSE" | "INCOME" | "SAVINGS"; paymentMethod: string | null; amount: number }>) {
-    return {
-      id: Math.random().toString(),
-      cycleId: "cycle-1",
-      type: overrides.type ?? "EXPENSE",
-      name: "x",
-      amount: overrides.amount ?? 10,
-      categoryName: null,
-      expenseCategoryId: null,
-      recurringExpenseId: null,
-      occurredAt: new Date(),
-      isImported: false,
-      importSource: "MANUAL" as const,
-      paymentMethod: (overrides.paymentMethod ?? null) as
-        | "CASH"
-        | "CREDIT_CARD"
-        | "DEBIT_CARD"
-        | "YAPPY"
-        | null,
-      description: null,
-    };
-  }
-
-  it("sums EXPENSE transactions by payment method", () => {
-    const result = computePaymentMethodTotals([
-      tx({ paymentMethod: "CASH", amount: 10 }),
-      tx({ paymentMethod: "CASH", amount: 5 }),
-      tx({ paymentMethod: "CREDIT_CARD", amount: 20 }),
-    ]);
-    expect(result.find((g) => g.id === "CASH")?.amount).toBe(15);
-    expect(result.find((g) => g.id === "CREDIT_CARD")?.amount).toBe(20);
-  });
-
-  it("buckets a null payment method under Unspecified", () => {
-    const result = computePaymentMethodTotals([tx({ paymentMethod: null, amount: 10 })]);
-    expect(result).toEqual([{ id: "UNSPECIFIED", name: "Unspecified", amount: 10 }]);
-  });
-
-  it("ignores INCOME and SAVINGS transactions", () => {
-    const result = computePaymentMethodTotals([
-      tx({ type: "INCOME", amount: 100 }),
-      tx({ type: "SAVINGS", amount: 50 }),
-    ]);
-    expect(result).toEqual([]);
-  });
-
-  it("sorts descending by amount", () => {
-    const result = computePaymentMethodTotals([
-      tx({ paymentMethod: "CASH", amount: 5 }),
-      tx({ paymentMethod: "YAPPY", amount: 50 }),
-    ]);
-    expect(result.map((g) => g.id)).toEqual(["YAPPY", "CASH"]);
-  });
-});
-
 describe("groupRecentTransactionsBySlice", () => {
   const categoryTotals = [
     { id: "groceries", name: "Groceries", amount: 50 },
@@ -465,63 +332,41 @@ describe("groupRecentTransactionsBySlice", () => {
     };
   }
 
-  describe("groupBy: category", () => {
-    it("buckets EXPENSE transactions by their category's id", () => {
-      const result = groupRecentTransactionsBySlice(
-        [tx({ id: "1", categoryName: "Groceries" }), tx({ id: "2", categoryName: "Rent" })],
-        "category",
-        categoryTotals,
-      );
-      expect(result.groceries.map((t) => t.id)).toEqual(["1"]);
-      expect(result.rent.map((t) => t.id)).toEqual(["2"]);
-    });
-
-    it("buckets an EXPENSE transaction under UNCATEGORIZED when it has no category", () => {
-      const result = groupRecentTransactionsBySlice([tx({ id: "1", categoryName: null })], "category", categoryTotals);
-      expect(result.UNCATEGORIZED.map((t) => t.id)).toEqual(["1"]);
-    });
-
-    it("also buckets under UNCATEGORIZED when the category name doesn't match any known category (defensive — e.g. renamed/merged away)", () => {
-      const result = groupRecentTransactionsBySlice(
-        [tx({ id: "1", categoryName: "Some Deleted Category" })],
-        "category",
-        categoryTotals,
-      );
-      expect(result.UNCATEGORIZED.map((t) => t.id)).toEqual(["1"]);
-    });
+  it("buckets EXPENSE transactions by their category's id", () => {
+    const result = groupRecentTransactionsBySlice(
+      [tx({ id: "1", categoryName: "Groceries" }), tx({ id: "2", categoryName: "Rent" })],
+      categoryTotals,
+    );
+    expect(result.groceries.map((t) => t.id)).toEqual(["1"]);
+    expect(result.rent.map((t) => t.id)).toEqual(["2"]);
   });
 
-  describe("groupBy: paymentMethod", () => {
-    it("buckets EXPENSE transactions by their payment method", () => {
-      const result = groupRecentTransactionsBySlice(
-        [tx({ id: "1", paymentMethod: "CASH" }), tx({ id: "2", paymentMethod: "CREDIT_CARD" })],
-        "paymentMethod",
-        [],
-      );
-      expect(result.CASH.map((t) => t.id)).toEqual(["1"]);
-      expect(result.CREDIT_CARD.map((t) => t.id)).toEqual(["2"]);
-    });
-
-    it("buckets a null payment method under UNSPECIFIED", () => {
-      const result = groupRecentTransactionsBySlice([tx({ id: "1", paymentMethod: null })], "paymentMethod", []);
-      expect(result.UNSPECIFIED.map((t) => t.id)).toEqual(["1"]);
-    });
+  it("buckets an EXPENSE transaction under UNCATEGORIZED when it has no category", () => {
+    const result = groupRecentTransactionsBySlice([tx({ id: "1", categoryName: null })], categoryTotals);
+    expect(result.UNCATEGORIZED.map((t) => t.id)).toEqual(["1"]);
   });
 
-  it("buckets every SAVINGS transaction under one combined 'savings' key regardless of grouping axis", () => {
+  it("also buckets under UNCATEGORIZED when the category name doesn't match any known category (defensive — e.g. renamed/merged away)", () => {
+    const result = groupRecentTransactionsBySlice(
+      [tx({ id: "1", categoryName: "Some Deleted Category" })],
+      categoryTotals,
+    );
+    expect(result.UNCATEGORIZED.map((t) => t.id)).toEqual(["1"]);
+  });
+
+  it("buckets every SAVINGS transaction under one combined 'savings' key", () => {
     const result = groupRecentTransactionsBySlice(
       [
         tx({ id: "1", type: "SAVINGS", categoryName: "Emergency Fund" }),
         tx({ id: "2", type: "SAVINGS", categoryName: "Vacation" }),
       ],
-      "category",
       categoryTotals,
     );
     expect(result.savings.map((t) => t.id)).toEqual(["1", "2"]);
   });
 
   it("ignores INCOME transactions entirely", () => {
-    const result = groupRecentTransactionsBySlice([tx({ type: "INCOME" })], "category", categoryTotals);
+    const result = groupRecentTransactionsBySlice([tx({ type: "INCOME" })], categoryTotals);
     expect(result).toEqual({});
   });
 
@@ -533,7 +378,6 @@ describe("groupRecentTransactionsBySlice", () => {
         tx({ id: "3", categoryName: "Groceries" }),
         tx({ id: "4", categoryName: "Groceries" }),
       ],
-      "category",
       categoryTotals,
       3,
     );

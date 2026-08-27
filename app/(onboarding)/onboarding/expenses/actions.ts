@@ -78,9 +78,14 @@ export async function saveExpensesAction(
 
     await tx.budgetCycle.update({
       where: { id: cycle.id },
-      data: { expensesConfirmedAt: new Date() },
+      data: { expensesConfirmedAt: new Date(), status: "ACTIVE" },
+    });
+
+    await tx.user.update({
+      where: { id: userId },
+      data: { onboardingCompletedAt: new Date() },
     });
   });
 
-  redirect("/onboarding/savings");
+  redirect("/dashboard");
 }

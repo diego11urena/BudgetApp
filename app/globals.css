@@ -97,9 +97,8 @@
      the one intentional exception (not a step in this scale).
      --radius-button now equals --radius-pill: buttons/tags/nav are full
      pills in this design system, not just rounded rectangles — see
-     .button, .sheet-delete. Its non-button consumers (.card, .kpi-tile)
-     were repointed to --radius-lg to keep their own card-appropriate
-     rounding. */
+     .button, .sheet-delete. Its non-button consumers (.card) were
+     repointed to --radius-lg to keep their own card-appropriate rounding. */
   --radius-xs: 8px;
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -150,8 +149,16 @@
   /* Was a second gray (#5f6975) -- same fix as --chart-cat-2 above. */
   --chart-cat-8: #b23a3a;
   --chart-savings: var(--color-savings);
-  --chart-remaining: #d8dce0;
-  --chart-other: #7a828f;
+  /* Was #d8dce0 -- only 1.38:1 against white (needs 3:1). Also a cool
+     gray, same hue family as --chart-other below; the two are now
+     distinguished by hue (cool blue-gray vs warm taupe), not just
+     lightness, so they don't read as "the same gray" at a glance the way
+     the two dark-mode grays used to. */
+  --chart-remaining: #8b939b;
+  /* Was #7a828f -- adjacent to --chart-remaining in both hue and
+     lightness, and (in dark mode below) nearly indistinguishable from it.
+     Now a warm taupe instead of a second cool gray. */
+  --chart-other: #7a6a5c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -214,8 +221,14 @@
     /* Was a second gray (#8992a0) -- same fix as light mode's --chart-cat-8. Kept distinct from --color-error (#ff6b6f) so a red category slice never reads as an error state. */
     --chart-cat-8: #c96a6a;
     --chart-savings: var(--color-savings);
-    --chart-remaining: #3a4149;
-    --chart-other: #5f6975;
+    /* Was #3a4149 -- only 1.70:1 against --color-card, and its own stroke
+       (--color-border, formerly --color-card) used to be literally the
+       same color as the card underneath it. Lightened, and given the same
+       cool-vs-warm hue split as light mode's pair above. */
+    --chart-remaining: #6b7480;
+    /* Was #5f6975 -- effectively the same gray as --chart-remaining right
+       next to it. Now a warm taupe instead. */
+    --chart-other: #8a7a6a;
 
     --background: var(--color-bg);
     --foreground: var(--color-text-primary);
@@ -870,7 +883,7 @@ button.line-item--link {
 }
 
 .hero-pace {
-  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
   color: var(--color-on-accent);
   opacity: 0.8;
@@ -1023,41 +1036,6 @@ button.line-item--link {
   font-weight: 500;
 }
 
-/* Quick actions */
-.quick-actions {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.quick-action {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.85rem 0.5rem;
-  border-radius: var(--radius-xl);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 1px 3px var(--shadow-color);
-  font-family: inherit;
-  color: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    transform 0.1s ease,
-    box-shadow 0.1s ease;
-}
-
-.quick-action:active {
-  transform: scale(0.97);
-}
-
-.quick-action-icon {
-  font-size: 1.4rem;
-}
-
 /* Quick-add bottom sheet */
 .sheet-backdrop {
   position: fixed;
@@ -1166,7 +1144,7 @@ button.line-item--link {
 }
 
 .sheet-amount-input {
-  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 2.5rem !important;
   font-weight: 700;
   text-align: center;
@@ -1371,7 +1349,12 @@ button.line-item--link {
   transition:
     transform 0.15s ease,
     opacity 0.15s ease;
-  stroke: var(--color-card);
+  /* Was --color-card -- on the dark-mode card background that's the exact
+     same color as the card itself, so it separated nothing between two
+     adjacent slices of a similar tone. --color-border is the token this
+     app already uses everywhere else a visible-but-quiet separator is
+     needed. */
+  stroke: var(--color-border);
   stroke-width: 1.5;
 }
 
@@ -1425,6 +1408,11 @@ button.line-item--link {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.breakdown-legend-sublabel {
+  color: var(--color-text-secondary);
+  font-weight: 400;
 }
 
 .breakdown-legend-amount {
@@ -1496,44 +1484,6 @@ button.line-item--link {
 
 .breakdown-detail-member-row:last-child {
   border-bottom: none;
-}
-
-/* KPI stat tile */
-.kpi-tile {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  background: var(--color-card);
-}
-
-.kpi-value {
-  font-size: 3rem;
-  font-weight: 600;
-  line-height: 1.1;
-  margin: 0.35rem 0;
-  font-variant-numeric: proportional-nums;
-}
-
-.kpi-value--good {
-  color: var(--color-success);
-}
-
-.kpi-value--critical {
-  color: var(--color-error);
-}
-
-.kpi-breakdown {
-  margin-top: 1.25rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem 1.5rem;
-}
-
-.kpi-breakdown-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
 }
 
 /* Top categories horizontal bar chart */
@@ -1964,6 +1914,11 @@ button.line-item--link {
   border-top: 1px solid var(--color-border);
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 50;
+  /* Matches .app-content's own column width -- on desktop this keeps the
+     nav under the content it controls instead of stretching edge-to-edge
+     of a 1800px window with a 480px column floating in the middle of it. */
+  max-width: 30rem;
+  margin: 0 auto;
 }
 
 .bottom-nav-item {
@@ -2187,6 +2142,12 @@ button.line-item--link {
   font-family: inherit;
 }
 
+/* The single-self-named-expense case (CategoryProgressRow) renders this as
+   a plain div, not a button -- nothing to tap here, so no pointer cursor. */
+.category-progress-row-summary--static {
+  cursor: default;
+}
+
 .category-progress-row-chevron {
   flex-shrink: 0;
   margin-top: 0.2rem;
@@ -2242,6 +2203,12 @@ button.line-item--link {
 
 .recurring-expense-row-name {
   font-weight: 600;
+}
+
+.recurring-expense-row-due {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-size: 0.85em;
 }
 
 .recurring-expense-row-amount {

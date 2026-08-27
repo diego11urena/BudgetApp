@@ -13,19 +13,11 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 const MERGE_CATEGORY_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
-const VALID_CATEGORY_COLOR = /^chart-cat-[1-8]$/;
-
 /** null/undefined stays null (falls back to CategoryIcon's name heuristic); anything else must resolve in the icon library, or it's rejected rather than silently stored as a dead string. */
 function parseIcon(value: FormDataEntryValue | null): { ok: true; icon: string | null } | { ok: false } {
   if (typeof value !== "string" || !value) return { ok: true, icon: null };
   if (!getIconByName(value)) return { ok: false };
   return { ok: true, icon: value };
-}
-
-function parseColor(value: FormDataEntryValue | null): { ok: true; color: string | null } | { ok: false } {
-  if (typeof value !== "string" || !value) return { ok: true, color: null };
-  if (!VALID_CATEGORY_COLOR.test(value)) return { ok: false };
-  return { ok: true, color: value };
 }
 
 /** Edit/Delete are shared between Expense and Income (Savings deliberately excluded — it has its own dedicated flow on the Goals page, see goals/actions.ts) — every caller must say which type it's scoped to rather than this silently defaulting to one. */
@@ -270,10 +262,6 @@ export const createCategoryAction = withActionErrorHandling(async function creat
   if (!parsedIcon.ok) {
     return { error: "Invalid icon" };
   }
-  const parsedColor = parseColor(formData.get("color"));
-  if (!parsedColor.ok) {
-    return { error: "Invalid color" };
-  }
 
   const conflict = await prisma.expenseCategory.findFirst({
     where: { userId, type: "EXPENSE", name: { equals: name, mode: "insensitive" } },
@@ -283,18 +271,17 @@ export const createCategoryAction = withActionErrorHandling(async function creat
   }
 
   await prisma.expenseCategory.create({
-    data: { userId, type: "EXPENSE", name, icon: parsedIcon.icon, color: parsedColor.color },
+    data: { userId, type: "EXPENSE", name, icon: parsedIcon.icon },
   });
 
   revalidateAppPages();
 });
 
 /**
- * Edits an existing Expense or Income category's name, icon, and color
- * together (the "Edit" sheet both types share — identical interaction on
- * both, just scoped by the `type` field the caller sends). Savings is
- * deliberately not reachable through this action; goals/actions.ts owns
- * that instead.
+ * Edits an existing Expense or Income category's name and icon together
+ * (the "Edit" sheet both types share — identical interaction on both, just
+ * scoped by the `type` field the caller sends). Savings is deliberately not
+ * reachable through this action; goals/actions.ts owns that instead.
  */
 export const updateCategoryAction = withActionErrorHandling(async function updateCategoryAction(
   formData: FormData,
@@ -324,10 +311,6 @@ export const updateCategoryAction = withActionErrorHandling(async function updat
   if (!parsedIcon.ok) {
     return { error: "Invalid icon" };
   }
-  const parsedColor = parseColor(formData.get("color"));
-  if (!parsedColor.ok) {
-    return { error: "Invalid color" };
-  }
 
   // Ownership- and type-scoped: only this user's own category of the type the caller claims.
   const category = await prisma.expenseCategory.findFirst({
@@ -348,7 +331,7 @@ export const updateCategoryAction = withActionErrorHandling(async function updat
 
   await prisma.expenseCategory.update({
     where: { id: category.id },
-    data: { name, icon: parsedIcon.icon, color: parsedColor.color },
+    data: { name, icon: parsedIcon.icon },
   });
   revalidateAppPages();
 });

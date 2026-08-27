@@ -36,8 +36,6 @@ test.describe("past quincenas", () => {
 
     // Add a transaction directly into this closed cycle via its own "+".
     await page.click('button:has-text("Add to this quincena")');
-    await page.waitForSelector(".quick-actions");
-    await page.click('button:has-text("Add Expense")');
     const amountField = page.getByLabel("Amount (USD)");
     await amountField.waitFor();
     await amountField.fill("25");

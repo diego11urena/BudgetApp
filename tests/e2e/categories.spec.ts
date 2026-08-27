@@ -194,13 +194,6 @@ test.describe("managing categories", () => {
 
     await page.goto("/budget");
     await page.waitForSelector(".dashboard-section");
-    try {
-      await page.locator(".sheet-backdrop").waitFor({ state: "visible", timeout: 3000 });
-      await page.click('button:has-text("Got it")');
-      await page.waitForSelector(".sheet-backdrop", { state: "detached" });
-    } catch {
-      // Never showed.
-    }
     await page.click('button:has-text("+ New recurring expense")');
     const recurringNameField = page.getByLabel("Name");
     await recurringNameField.waitFor();

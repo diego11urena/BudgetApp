@@ -23,7 +23,7 @@ export default async function ManageCategoriesPage() {
     prisma.expenseCategory.findMany({
       where: { userId, type: "EXPENSE" },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, icon: true, color: true },
+      select: { id: true, name: true, icon: true },
     }),
     getCategoryUsageStats(userId, "EXPENSE"),
   ]);
@@ -34,7 +34,6 @@ export default async function ManageCategoriesPage() {
       id: c.id,
       name: c.name,
       icon: c.icon,
-      color: c.color,
       transactionCount: usage?.transactionCount ?? 0,
       totalAmount: usage?.totalAmount ?? 0,
       hasBudgetGoal: usage?.hasBudgetGoal ?? false,

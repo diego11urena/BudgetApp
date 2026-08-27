@@ -6,7 +6,6 @@ import { ChevronRight } from "lucide-react";
 import {
   computeBreakdown,
   groupRecentTransactionsBySlice,
-  type BreakdownGroupBy,
   type BreakdownScope,
   type BreakdownSlice,
   type GroupTotal,
@@ -21,7 +20,6 @@ export interface BreakdownCycleData {
   totalExpenses: number;
   totalSavings: number;
   categoryTotals: GroupTotal[];
-  paymentMethodTotals: GroupTotal[];
   transactions: CycleTransactionSummary[];
 }
 
@@ -30,11 +28,6 @@ type Period = "current" | "last";
 const SCOPE_OPTIONS: { value: BreakdownScope; label: string }[] = [
   { value: "full", label: "Full paycheck" },
   { value: "spending", label: "Spending only" },
-];
-
-const GROUP_BY_OPTIONS: { value: BreakdownGroupBy; label: string }[] = [
-  { value: "category", label: "Category" },
-  { value: "paymentMethod", label: "Payment method" },
 ];
 
 export function BreakdownScreen({
@@ -46,25 +39,24 @@ export function BreakdownScreen({
 }) {
   const [scope, setScope] = useState<BreakdownScope>("full");
   const [period, setPeriod] = useState<Period>("current");
-  const [groupBy, setGroupBy] = useState<BreakdownGroupBy>("category");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const activeCycle = period === "last" ? lastCycle : currentCycle;
 
   const groupTotals = useMemo(() => {
     if (!activeCycle) return [];
-    return groupBy === "category" ? activeCycle.categoryTotals : activeCycle.paymentMethodTotals;
-  }, [activeCycle, groupBy]);
+    return activeCycle.categoryTotals;
+  }, [activeCycle]);
 
   const breakdown = useMemo(() => {
     if (!activeCycle) return { pieTotal: 0, legendSlices: [], chartSlices: [] };
-    return computeBreakdown({ ...activeCycle, groupTotals }, { scope, groupBy });
-  }, [activeCycle, groupTotals, scope, groupBy]);
+    return computeBreakdown({ ...activeCycle, groupTotals }, { scope });
+  }, [activeCycle, groupTotals, scope]);
 
   const recentTransactionsBySlice = useMemo(() => {
     if (!activeCycle) return {};
-    return groupRecentTransactionsBySlice(activeCycle.transactions, groupBy, groupTotals);
-  }, [activeCycle, groupBy, groupTotals]);
+    return groupRecentTransactionsBySlice(activeCycle.transactions, groupTotals);
+  }, [activeCycle, groupTotals]);
 
   const sliceByKey = useMemo(() => {
     const map = new Map<string, BreakdownSlice>();
@@ -88,11 +80,6 @@ export function BreakdownScreen({
 
   function handleScopeChange(next: BreakdownScope) {
     setScope(next);
-    setSelectedKey(null);
-  }
-
-  function handleGroupByChange(next: BreakdownGroupBy) {
-    setGroupBy(next);
     setSelectedKey(null);
   }
 
@@ -128,18 +115,6 @@ export function BreakdownScreen({
             Last quincena
           </button>
         </div>
-        <div className="type-toggle">
-          {GROUP_BY_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`type-toggle-btn ${groupBy === opt.value ? "is-active" : ""}`}
-              onClick={() => handleGroupByChange(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {!activeCycle && (
@@ -154,8 +129,14 @@ export function BreakdownScreen({
         <>
           <PieChart slices={breakdown.chartSlices} selectedKey={selectedKey} onSelect={handleSelect} />
 
+          {/* Renders chartSlices, not legendSlices -- the legend must list
+              exactly what the pie itself drew (including the folded
+              "Other" bucket, labeled with how many groups it holds), never
+              a longer, individually-colored list the chart never actually
+              shows. legendSlices still exists for the Other detail panel's
+              own member drill-down below. */}
           <ul className="breakdown-legend">
-            {breakdown.legendSlices.map((slice) => (
+            {breakdown.chartSlices.map((slice) => (
               <li key={slice.key}>
                 <button
                   type="button"
@@ -167,7 +148,15 @@ export function BreakdownScreen({
                     className="breakdown-legend-swatch"
                     style={{ background: `var(${slice.colorVar})` }}
                   />
-                  <span className="breakdown-legend-label">{slice.label}</span>
+                  <span className="breakdown-legend-label">
+                    {slice.label}
+                    {slice.kind === "other" && slice.members && (
+                      <span className="breakdown-legend-sublabel">
+                        {" "}
+                        ({slice.members.length} {slice.members.length === 1 ? "category" : "categories"})
+                      </span>
+                    )}
+                  </span>
                   <span className="breakdown-legend-amount">{formatCurrency(slice.amount)}</span>
                   <span className="breakdown-legend-percent">{Math.round(slice.percentage)}%</span>
                 </button>
@@ -178,7 +167,6 @@ export function BreakdownScreen({
           {selectedSlice && (
             <SliceDetailPanel
               slice={selectedSlice}
-              groupBy={groupBy}
               recentTransactions={recentTransactionsBySlice[selectedSlice.key] ?? []}
               onSelectMember={handleSelect}
             />
@@ -191,28 +179,21 @@ export function BreakdownScreen({
 
 function SliceDetailPanel({
   slice,
-  groupBy,
   recentTransactions,
   onSelectMember,
 }: {
   slice: BreakdownSlice;
-  groupBy: BreakdownGroupBy;
   recentTransactions: CycleTransactionSummary[];
   onSelectMember: (key: string) => void;
 }) {
-  // Neither bucket maps to a real Transactions filter — "Unspecified"
-  // isn't a pickable payment method, and a q= search for the literal text
-  // "Uncategorized" wouldn't match transactions that have no category name
-  // at all. The recent-transactions preview above still shows what's in it.
-  const hasNoRealFilter =
-    (groupBy === "paymentMethod" && slice.key === "UNSPECIFIED") ||
-    (groupBy === "category" && slice.key === "UNCATEGORIZED");
+  // "Uncategorized" doesn't map to a real Transactions filter -- a q= search
+  // for that literal text wouldn't match transactions that have no category
+  // name at all. The recent-transactions preview above still shows what's in it.
+  const hasNoRealFilter = slice.key === "UNCATEGORIZED";
   const seeAllHref =
     slice.kind === "savings"
       ? "/transactions?type=SAVINGS"
-      : groupBy === "paymentMethod"
-        ? `/transactions?paymentMethod=${encodeURIComponent(slice.key)}`
-        : `/transactions?q=${encodeURIComponent(slice.label)}`;
+      : `/transactions?q=${encodeURIComponent(slice.label)}`;
 
   return (
     <div className="breakdown-detail-panel">

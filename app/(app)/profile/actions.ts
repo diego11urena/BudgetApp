@@ -100,7 +100,6 @@ export const updateIncomeAction = withActionErrorHandling(async function updateI
   const userId = session.user.id;
 
   const parsed = incomeStepSchema.safeParse({
-    name: formData.get("name"),
     netQuincenaAmount: formData.get("netQuincenaAmount"),
   });
 
@@ -108,7 +107,7 @@ export const updateIncomeAction = withActionErrorHandling(async function updateI
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const { name, netQuincenaAmount } = parsed.data;
+  const { netQuincenaAmount } = parsed.data;
 
   const incomeSource = await getActiveIncomeSource(prisma, userId);
   if (!incomeSource) {
@@ -125,7 +124,7 @@ export const updateIncomeAction = withActionErrorHandling(async function updateI
   await prisma.$transaction([
     prisma.incomeSource.update({
       where: { id: incomeSource.id },
-      data: { name, netQuincenaAmount },
+      data: { netQuincenaAmount },
     }),
     upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
   ]);
