@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory } from "./helpers";
 
 function daysAgoISO(n: number): string {
   const d = new Date();
@@ -77,6 +77,7 @@ test.describe("past quincenas", () => {
     await openQuickAdd(page, "Expense");
     await page.getByLabel("Amount (USD)").fill("40");
     await fillCategory(page, "Coffee");
+    await openMoreDetails(page);
     await page.getByLabel("Date").fill(daysAgoISO(8));
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });

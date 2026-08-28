@@ -35,6 +35,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
     categoryName: formData.get("categoryName"),
     frequency: formData.get("frequency") || "BIWEEKLY",
     dueDay: formData.get("dueDay") || undefined,
+    recurring: formData.get("recurring") ?? undefined,
   });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -43,7 +44,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
-  const { name, amount, categoryName, frequency, dueDay } = parsed.data;
+  const { name, amount, categoryName, frequency, dueDay, recurring } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
   const category = await getOrCreateCategory(prisma, userId, categoryName, "EXPENSE");
@@ -57,6 +58,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
       amount,
       frequency,
       dueDay,
+      recurring,
     });
   });
 

@@ -8,6 +8,7 @@ import { confirmRecurringExpenseMatchAction } from "../recurring-actions";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
 import { RecurringExpenseEditSheet, type EditableRecurringExpense } from "./RecurringExpenseEditSheet";
 import { useSheet } from "../../_components/useSheet";
+import { dismissMatch, isMatchDismissed } from "@/lib/dismissed-matches";
 
 export interface RecurringExpenseRowData {
   id: string;
@@ -39,23 +40,25 @@ export function RecurringExpenseRow({
   categoryName,
   categoryNames,
   readOnly = false,
+  showCategoryLabel = false,
 }: {
   expense: RecurringExpenseRowData;
   categoryName: string;
   categoryNames: string[];
   /** History reuses this for a closed cycle -- no edit sheet, no Record payment, no match actions, just the status. */
   readOnly?: boolean;
+  /** Plan's flat bills list has no category-folder parent anymore, so each row names its own category inline -- CategoryProgressRow's own grouped usage (History, and a category with 2+ bills) leaves this off since the parent already says it. */
+  showCategoryLabel?: boolean;
 }) {
   const router = useRouter();
   const editSheet = useSheet();
   const paymentSheet = useSheet();
-  const [dismissedMatch, setDismissedMatch] = useState(false);
+  const [dismissedMatch, setDismissedMatch] = useState(
+    () => expense.suggestedMatch !== null && isMatchDismissed(expense.id, expense.suggestedMatch.transactionId),
+  );
   const [confirmingMatch, setConfirmingMatch] = useState(false);
 
   const status = getRecurringExpensePaymentStatus(expense.actual, expense.targetAmount);
-  // Dismissing a suggestion is local-only, not persisted -- it can
-  // resurface next visit, deliberately simple (see
-  // lib/recurring-expense-matching.ts).
   const showSuggestion = !readOnly && expense.suggestedMatch !== null && !dismissedMatch && status === "not-started";
 
   async function handleConfirmMatch() {
@@ -83,6 +86,9 @@ export function RecurringExpenseRow({
     <>
       <span className="recurring-expense-row-name">
         {expense.name}
+        {showCategoryLabel && (
+          <span className="recurring-expense-row-category"> · {categoryName}</span>
+        )}
         {expense.frequency === "MONTHLY" && expense.dueDay !== null && (
           <span className="recurring-expense-row-due"> · Due day {expense.dueDay}</span>
         )}
@@ -118,7 +124,10 @@ export function RecurringExpenseRow({
             <button
               type="button"
               className="button button--secondary button--small"
-              onClick={() => setDismissedMatch(true)}
+              onClick={() => {
+                setDismissedMatch(true);
+                if (expense.suggestedMatch) dismissMatch(expense.id, expense.suggestedMatch.transactionId);
+              }}
             >
               Not this one
             </button>

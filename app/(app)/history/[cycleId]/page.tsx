@@ -118,7 +118,7 @@ export default async function CycleHistoryPage({
 
       {recurringExpenseCategories.length > 0 && (
         <div className="dashboard-section">
-          <h2 style={{ marginBottom: "0.5rem" }}>Recurring expenses</h2>
+          <h2 style={{ marginBottom: "0.5rem" }}>Bills</h2>
           <div className="category-progress-list">
             {recurringExpenseCategories.map((category) => (
               <CategoryProgressRow

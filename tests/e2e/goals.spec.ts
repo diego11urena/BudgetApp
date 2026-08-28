@@ -2,12 +2,12 @@ import { test, expect } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 
 test.describe("savings goals", () => {
-  test("creating a goal and contributing to it updates saved-so-far and Available to spend", async ({
+  test("creating a goal and contributing to it updates saved-so-far and Safe to spend", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
-    await page.goto("/goals");
+    await page.goto("/plan");
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Emergency Fund");
@@ -36,7 +36,7 @@ test.describe("savings goals", () => {
 
     await expect(goalRow.getByText("$150.00 / $3,000.00")).toBeVisible();
 
-    // A savings contribution reduces Available to spend, same as an
+    // A savings contribution reduces Safe to spend, same as an
     // expense would (it's money leaving this quincena's spendable
     // balance), even though it isn't spent.
     await page.goto("/dashboard");
@@ -48,7 +48,7 @@ test.describe("savings goals", () => {
   }) => {
     await signUpAndOnboard(page);
 
-    await page.goto("/goals");
+    await page.goto("/plan");
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Vacation");
@@ -75,7 +75,7 @@ test.describe("savings goals", () => {
   test("editing a goal's saved amount upward can be recorded as a real transaction", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
-    await page.goto("/goals");
+    await page.goto("/plan");
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Emergency Fund");
@@ -97,7 +97,7 @@ test.describe("savings goals", () => {
     await expect(goalRow.getByText("$200.00 / $3,000.00")).toBeVisible();
 
     // Recording as a transaction means it shows up like any other logged
-    // contribution, and reduces Available to spend the same way Contribute
+    // contribution, and reduces Safe to spend the same way Contribute
     // does. Scoped to .transaction-name -- a bare getByText also matches
     // the goal's <option> in the category filter <select>, making the
     // locator ambiguous.
@@ -107,12 +107,12 @@ test.describe("savings goals", () => {
     await expect(page.locator(".hero-value")).toHaveText("$800.00");
   });
 
-  test("editing a goal's saved amount upward without a transaction leaves Available to spend and transaction history untouched", async ({
+  test("editing a goal's saved amount upward without a transaction leaves Safe to spend and transaction history untouched", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
-    await page.goto("/goals");
+    await page.goto("/plan");
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Pro Futuro");
@@ -144,7 +144,7 @@ test.describe("savings goals", () => {
   }) => {
     await signUpAndOnboard(page);
 
-    await page.goto("/goals");
+    await page.goto("/plan");
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Rainy Day");
@@ -176,7 +176,7 @@ test.describe("savings goals", () => {
   test("renaming a goal to an existing goal's name is rejected, not silently merged", async ({ page }) => {
     await signUpAndOnboard(page);
 
-    await page.goto("/goals");
+    await page.goto("/plan");
     for (const name of ["First Goal", "Second Goal"]) {
       await page.click('button:has-text("+ Add goal")');
       await page.waitForSelector("#goal-name");

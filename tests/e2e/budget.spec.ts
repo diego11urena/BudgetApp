@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -10,7 +10,7 @@ async function createRecurringExpense(
   page: Page,
   opts: { name: string; amount: string; category: string },
 ) {
-  await page.click('button:has-text("+ New recurring expense")');
+  await page.click('button:has-text("+ New bill")');
   const nameField = page.getByLabel("Name");
   await nameField.waitFor();
   await nameField.fill(opts.name);
@@ -20,54 +20,38 @@ async function createRecurringExpense(
   await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 }
 
-test.describe("Recurring Expenses screen", () => {
-  test("has a page <h1> matching every other tab, and the card header shows the cycle's date range instead of repeating it", async ({
-    page,
-  }) => {
+test.describe("Plan screen (Bills)", () => {
+  test("has a page <h1> of 'Plan', with Bills and Goals as its two sections", async ({ page }) => {
     await signUpAndOnboard(page);
-    await page.goto("/budget");
+    await page.goto("/plan");
     await page.waitForSelector(".dashboard-section");
 
-    // Matches Goals/History/Transactions/Profile's own <h1 className="page-title">.
-    await expect(page.locator("h1.page-title")).toHaveText("Recurring Expenses");
-    // The card header itself renders the cycle's own date range, not a
-    // second/third repeat of the page title.
-    await expect(page.locator(".dashboard-section h2")).not.toHaveText(/Recurring [Ee]xpenses/);
+    await expect(page.locator("h1.page-title")).toHaveText("Plan");
+    await expect(page.locator(".dashboard-section h2", { hasText: "Bills" })).toBeVisible();
+    await expect(page.locator(".dashboard-section h2", { hasText: "Your savings goals" })).toBeVisible();
   });
 
-  test("creating a category through its first recurring expense, then adding a second, sums into one category aggregate", async ({
+  test("creating a category through its first bill, then adding a second under the same category, lists both flat with a category label, no folder to expand", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
 
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
-    await expect(page.locator(".category-progress-row")).toHaveCount(1);
-    // Collapsed by default -- no child rows visible yet.
-    await expect(page.locator(".recurring-expense-row")).toHaveCount(0);
+    // Flat by default -- no category-folder wrapper, no expand needed.
+    await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
+    await expect(page.locator(".recurring-expense-row-category")).toHaveText("· Subscriptions");
 
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
-    // Still exactly one category row (same category, not a duplicate).
-    await expect(page.locator(".category-progress-row")).toHaveCount(1);
-    await expect(page.locator(".category-progress-row-content")).toContainText("$25.98");
-
-    await page.click(".category-progress-row-summary");
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
-    await expect(page.locator(".recurring-expense-row-name")).toHaveText(["Spotify", "Netflix"]);
-
-    // Collapses again on a second tap of the summary.
-    await page.click(".category-progress-row-summary");
-    await expect(page.locator(".recurring-expense-row")).toHaveCount(0);
+    await expect(page.locator(".recurring-expense-row-name")).toContainText(["Spotify", "Netflix"]);
   });
 
-  test("recording a payment marks a recurring expense Paid and updates the category's own aggregate spend", async ({
-    page,
-  }) => {
+  test("recording a payment marks a bill Paid", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
-    await page.click(".category-progress-row-summary");
     await expect(page.locator(".recurring-expense-status--not-started")).toBeVisible();
 
     await page.click('button:has-text("Record payment")');
@@ -77,40 +61,13 @@ test.describe("Recurring Expenses screen", () => {
 
     await expect(page.locator(".recurring-expense-status--paid")).toBeVisible();
     await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$9.99 / $9.99");
-    // The category-level bar reflects real spend now too.
-    await expect(page.locator(".category-progress-row-content")).toContainText("$9.99 / $9.99");
   });
 
-  test("a recurring expense spent exactly to its target renders green (paid), not the category-level warning color", async ({
-    page,
-  }) => {
+  test("editing a bill's amount is reflected on its own row", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
-    await createRecurringExpense(page, { name: "Gym", amount: "20.00", category: "Fitness" });
-
-    // Record payment, not a raw QuickAdd transaction -- since the P1.1 fix,
-    // the category-level bar only counts spend actually linked to a
-    // recurring expense, not every transaction posted to the category.
-    await page.click(".category-progress-row-summary");
-    await page.click('button:has-text("Record payment")');
-    await page.getByLabel("Amount (USD)").waitFor();
-    await page.click('.sheet button[type="submit"]');
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-    await expect(page.locator(".progress-bar-label", { hasText: "100%" })).toBeVisible();
-    const color = await page
-      .locator(".progress-bar-fill")
-      .first()
-      .evaluate((el) => getComputedStyle(el).backgroundColor);
-    // --color-success, not --color-warning/--color-error.
-    expect(color).toBe("rgb(26, 117, 78)");
-  });
-
-  test("editing a recurring expense's amount updates the category aggregate", async ({ page }) => {
-    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
-    await page.click(".category-progress-row-summary");
     await page.click(".recurring-expense-row-main");
     const editNameField = page.getByLabel("Name");
     await editNameField.waitFor();
@@ -119,17 +76,15 @@ test.describe("Recurring Expenses screen", () => {
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-    await expect(page.locator(".category-progress-row-content")).toContainText("$12.99");
     await expect(page.locator(".recurring-expense-row-amount")).toHaveText("$12.99");
   });
 
-  test("deleting a recurring expense recomputes the category aggregate, with Undo", async ({ page }) => {
+  test("deleting a bill removes it from the flat list, with Undo", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
 
-    await page.click(".category-progress-row-summary");
     const netflixRow = page.locator(".recurring-expense-row", { hasText: "Netflix" });
     await netflixRow.locator(".recurring-expense-row-main").click();
     await page.getByLabel("Name").waitFor();
@@ -137,19 +92,46 @@ test.describe("Recurring Expenses screen", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
-    await expect(page.locator(".category-progress-row-content")).toContainText("$9.99");
     await expect(page.locator(".toast", { hasText: "Deleted" })).toBeVisible();
 
     await page.click(".toast-action");
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2, { timeout: 15_000 });
-    await expect(page.locator(".category-progress-row-content")).toContainText("$25.98");
   });
 
-  test("closing a quincena carries a recurring expense forward and freezes a historical snapshot on History", async ({
+  test("choosing 'One-time' recurrence hides the due-day field and the bill doesn't carry into a new cycle", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
+
+    await page.click('button:has-text("+ New bill")');
+    await page.getByLabel("Name").fill("Car registration");
+    await page.getByLabel("Amount (USD)").fill("60.00");
+    await page.getByLabel("Category").fill("Car");
+    await page.getByLabel("Recurrence").selectOption("ONE_TIME");
+    await expect(page.getByLabel("Due day (1–31)")).toHaveCount(0);
+    await clickSheetButton(page, "Save");
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator(".recurring-expense-row", { hasText: "Car registration" })).toBeVisible();
+
+    await page.goto("/dashboard");
+    await page.waitForSelector(".dashboard-section");
+    await page.click('button:has-text("I just got paid")');
+    await page.getByLabel("When did you get paid?").waitFor();
+    await page.click('button:has-text("Yes, I got paid")');
+    await expect(page.getByText("Quincena closed")).toBeVisible();
+    await page.click('button:has-text("Continue")');
+
+    await page.goto("/plan");
+    await page.waitForSelector(".dashboard-section");
+    await expect(page.locator(".recurring-expense-row", { hasText: "Car registration" })).toHaveCount(0);
+  });
+
+  test("closing a quincena carries a bill forward and freezes a historical snapshot on History", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+    await page.goto("/plan");
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
     await page.goto("/dashboard");
@@ -160,17 +142,18 @@ test.describe("Recurring Expenses screen", () => {
     await expect(page.getByText("Quincena closed")).toBeVisible();
     await page.click('button:has-text("Continue")');
 
-    // The new active cycle carried the recurring expense forward.
-    await page.goto("/budget");
-    await page.waitForSelector(".category-progress-row");
-    await expect(page.locator(".category-progress-row-content")).toContainText("$9.99");
+    // The new active cycle carried the bill forward.
+    await page.goto("/plan");
+    await page.waitForSelector(".recurring-expense-row");
+    await expect(page.locator(".recurring-expense-row", { hasText: "Spotify" })).toBeVisible();
 
     // The closed cycle's History page shows the same historical snapshot,
-    // read-only.
+    // read-only -- History's own per-category breakdown is unchanged (it's
+    // not the live Plan screen, so it kept its category-grouped view).
     await page.goto("/history");
     await page.click(".preview-box .line-item >> nth=0");
     await page.waitForSelector(".hero-card");
-    await expect(page.getByRole("heading", { name: "Recurring expenses", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Bills", exact: true })).toBeVisible();
     await expect(page.locator(".category-progress-row")).toHaveCount(1);
 
     await page.click(".category-progress-row-summary");
@@ -184,47 +167,46 @@ test.describe("Recurring Expenses screen", () => {
   });
 });
 
-test.describe("the 'This is a recurring expense' toggle on a transaction", () => {
-  test("toggling on a manual expense creates (or links to) a recurring expense, same-named repeats dedupe, and toggling off unlinks without deleting it", async ({
+test.describe("the 'This is a bill' toggle on a transaction", () => {
+  test("toggling on a manual expense creates (or links to) a bill, same-named repeats dedupe, and toggling off unlinks without deleting it", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
-    await test.step("logging an expense with the toggle on creates a new recurring expense showing this transaction's amount as paid", async () => {
+    await test.step("logging an expense with the toggle on creates a new bill showing this transaction's amount as paid", async () => {
       await openQuickAdd(page, "Expense");
       await page.getByLabel("Amount (USD)").fill("20.00");
       await fillCategory(page, "Transportation");
-      await page.getByLabel("This is a recurring expense").check();
+      await openMoreDetails(page);
+      await page.getByLabel("This is a bill").check();
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-      await page.goto("/budget");
-      await expect(page.locator(".category-progress-row-content")).toContainText("Transportation");
-      await page.click(".category-progress-row-summary");
+      await page.goto("/plan");
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
       // Name defaulted to the category ("Transportation") -- untouched, per Feature 1's fallback.
-      await expect(page.locator(".recurring-expense-row-name")).toHaveText("Transportation");
+      await expect(page.locator(".recurring-expense-row-name")).toContainText("Transportation");
       await expect(page.locator(".recurring-expense-status--paid")).toBeVisible();
       await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$20.00 / $20.00");
     });
 
-    await test.step("a second same-named expense logged with the toggle on links to the SAME recurring expense (summed actual), not a second row", async () => {
+    await test.step("a second same-named expense logged with the toggle on links to the SAME bill (summed actual), not a second row", async () => {
       await openQuickAdd(page, "Expense");
       await page.getByLabel("Amount (USD)").fill("15.00");
       await fillCategory(page, "Transportation");
+      await openMoreDetails(page);
       // Name defaults to the category ("Transportation") on both -- an
       // exact, same-name repeat, exactly the dedup case the toggle guards.
-      await page.getByLabel("This is a recurring expense").check();
+      await page.getByLabel("This is a bill").check();
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-      await page.goto("/budget");
-      await page.click(".category-progress-row-summary");
+      await page.goto("/plan");
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
       await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$35.00 / $20.00");
     });
 
-    await test.step("toggling it off on edit unlinks the payment but leaves the recurring expense itself intact", async () => {
+    await test.step("toggling it off on edit unlinks the payment but leaves the bill itself intact", async () => {
       await page.goto("/transactions");
       // Both transactions share the same name/category ("Transportation") --
       // disambiguate by amount so this always unlinks the $15 one, leaving
@@ -232,15 +214,14 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
       // assert against below).
       await page.locator(".transaction-row", { hasText: "-$15.00" }).click();
       await page.getByLabel("Amount (USD)").waitFor();
-      await expect(page.getByLabel("This is a recurring expense")).toBeChecked();
-      await page.getByLabel("This is a recurring expense").uncheck();
+      await expect(page.getByLabel("This is a bill")).toBeChecked();
+      await page.getByLabel("This is a bill").uncheck();
       await page.click('button:has-text("Save changes")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-      await page.goto("/budget");
-      await page.waitForSelector(".category-progress-row");
+      await page.goto("/plan");
+      await page.waitForSelector(".recurring-expense-row");
       // Still exists -- just missing that one payment now ($20 left of $35).
-      await page.click(".category-progress-row-summary");
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
       await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$20.00 / $20.00");
     });
@@ -250,19 +231,21 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Income");
-    await expect(page.getByLabel("This is a recurring expense")).toHaveCount(0);
+    await openMoreDetails(page);
+    await expect(page.getByLabel("This is a bill")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await openQuickAdd(page, "Savings");
-    await expect(page.getByLabel("This is a recurring expense")).toHaveCount(0);
+    await openMoreDetails(page);
+    await expect(page.getByLabel("This is a bill")).toHaveCount(0);
   });
 });
 
-test.describe("merging categories moves their recurring expenses", () => {
-  test("merging two EXPENSE categories combines their recurring expenses under the target", async ({ page }) => {
+test.describe("merging categories moves their bills", () => {
+  test("merging two EXPENSE categories combines their bills under the target", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Streaming" });
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
 
@@ -278,21 +261,18 @@ test.describe("merging categories moves their recurring expenses", () => {
     await page.locator(".sheet").getByRole("button", { name: "Merge categories", exact: true }).click();
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-    await page.goto("/budget");
-    await page.waitForSelector(".category-progress-row");
-    // Exactly one category row left (Streaming merged away), holding both
-    // recurring expenses, aggregate summed.
-    await expect(page.locator(".category-progress-row")).toHaveCount(1);
-    await expect(page.locator(".category-progress-row-content")).toContainText("$25.98");
-    await page.click(".category-progress-row-summary");
+    await page.goto("/plan");
+    await page.waitForSelector(".recurring-expense-row");
+    // Both bills present, now both labeled under the surviving category.
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
+    await expect(page.locator(".recurring-expense-row-category", { hasText: "Subscriptions" })).toHaveCount(2);
   });
 
-  test("merging categories that both have a same-named recurring expense consolidates it instead of duplicating", async ({
+  test("merging categories that both have a same-named bill consolidates it instead of duplicating", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/budget");
+    await page.goto("/plan");
     // Both categories have a "Netflix" line -- a realistic collision.
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Streaming" });
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
@@ -309,19 +289,16 @@ test.describe("merging categories moves their recurring expenses", () => {
     await page.locator(".sheet").getByRole("button", { name: "Merge categories", exact: true }).click();
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-    await page.goto("/budget");
-    await page.waitForSelector(".category-progress-row");
-    await page.click(".category-progress-row-summary");
+    await page.goto("/plan");
+    await page.waitForSelector(".recurring-expense-row");
     // Netflix consolidated into one row (not duplicated), Hulu moved over
-    // alongside it -- three recurring expenses total would mean the merge
-    // failed to dedupe.
+    // alongside it -- three rows total would mean the merge failed to dedupe.
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
-    await expect(page.locator(".recurring-expense-row-name", { hasText: /^Netflix$/ })).toHaveCount(1);
-    await expect(page.locator(".recurring-expense-row-name", { hasText: /^Hulu$/ })).toHaveCount(1);
+    await expect(page.locator(".recurring-expense-row-name", { hasText: /^Netflix/ })).toHaveCount(1);
+    await expect(page.locator(".recurring-expense-row-name", { hasText: /^Hulu/ })).toHaveCount(1);
     // Both sides had a current-cycle snapshot for "Netflix", so they sum
     // (same "sum instead of drop" rule the rest of this merge uses) rather
-    // than one silently overwriting the other: $15.99 + $15.99 + $7.99.
+    // than one silently overwriting the other: $15.99 + $15.99, and $7.99.
     await expect(page.locator(".recurring-expense-row-amount")).toHaveText(["$31.98", "$7.99"]);
-    await expect(page.locator(".category-progress-row-content")).toContainText("$39.97");
   });
 });

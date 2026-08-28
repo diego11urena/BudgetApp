@@ -107,12 +107,25 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* A brand-new account otherwise has three half-empty cards below
+          (no top category, no recent activity, no bills/goals paid-count)
+          and nothing telling a first-time user what to actually do about
+          it -- see the Balboa fix list's batch 11.7. */}
+      {financials.transactions.length === 0 && recurringExpensesSummary.totalCount === 0 && goals.length === 0 && (
+        <div className="dashboard-section dashboard-section--plain">
+          <p className="banner banner--good" role="status">
+            Tap the + button below to log your first transaction.
+          </p>
+        </div>
+      )}
+
       <div className="dashboard-section dashboard-section--plain">
         <HeroCard
           amountLeft={financials.amountLeft}
           periodStart={cycle.periodStart}
           periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
+          pendingBills={recurringExpensesSummary.pendingAmount}
         />
       </div>
 

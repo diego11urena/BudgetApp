@@ -49,7 +49,7 @@ export function BudgetBreakdownCard({
       {recurringExpenses.totalCount > 0 && (
         <div className="card-divider">
           <div className="progress-bar-label">
-            <span>Recurring expenses</span>
+            <span>Bills</span>
             <span>
               {recurringExpenses.paidCount} of {recurringExpenses.totalCount} paid
             </span>

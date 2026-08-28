@@ -191,9 +191,9 @@ test.describe("managing categories", () => {
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
-    await page.goto("/budget");
+    await page.goto("/plan");
     await page.waitForSelector(".dashboard-section");
-    await page.click('button:has-text("+ New recurring expense")');
+    await page.click('button:has-text("+ New bill")');
     const recurringNameField = page.getByLabel("Name");
     await recurringNameField.waitFor();
     await recurringNameField.fill("Spotify");

@@ -455,6 +455,22 @@ input[type="checkbox"]::before {
   padding: 0;
 }
 
+/* A plain text-styled toggle/link button inline in a form -- e.g.
+   QuickAddSheet's "More details" disclosure. */
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-green);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.75rem;
+}
+
 .form-actions {
   display: flex;
   align-items: center;
@@ -1949,6 +1965,17 @@ button.line-item--link {
   margin: 0 auto;
 }
 
+/* ProfileHeaderLink's persistent avatar -- matches .app-content's own
+   width/centering so the icon sits above the same column on every page. */
+.app-topbar {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 30rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 0;
+}
+
 .page-content h1,
 .page-title {
   font-family: var(--font-display);
@@ -2224,6 +2251,12 @@ button.line-item--link {
   padding-left: calc(16px + var(--space-2));
 }
 
+/* Plan's flat bills list -- no chevron/category parent to nest under. */
+.recurring-expense-list--flat {
+  padding-left: 0;
+  margin-top: 0;
+}
+
 .recurring-expense-row {
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
@@ -2260,7 +2293,8 @@ button.line-item--link {
   font-weight: 600;
 }
 
-.recurring-expense-row-due {
+.recurring-expense-row-due,
+.recurring-expense-row-category {
   font-weight: 400;
   color: var(--color-text-secondary);
   font-size: 0.85em;

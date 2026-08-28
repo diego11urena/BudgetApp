@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { PieChart } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -8,12 +10,11 @@ import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary, TRANSACTION_SELECT } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCycleLabel } from "@/lib/pay-date";
-import { PAYMENT_METHODS } from "@/lib/payment-method";
 import { TRANSACTION_TYPES } from "@/lib/transaction-type";
 import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
 
-export const metadata: Metadata = { title: "Transactions" };
+export const metadata: Metadata = { title: "Activity" };
 
 export default async function TransactionsPage({
   searchParams,
@@ -21,8 +22,6 @@ export default async function TransactionsPage({
   searchParams: Promise<{
     q?: string;
     type?: string;
-    sort?: string;
-    paymentMethod?: string;
     category?: string;
     /** Set by TransactionFilters' own quincena selector when viewing a past cycle -- absent means "the current cycle" (see cycle.id fallback below), not "every cycle ever." */
     cycleId?: string;
@@ -35,7 +34,7 @@ export default async function TransactionsPage({
   const userId = session.user.id;
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const { q, type, sort, paymentMethod, category, cycleId } = await searchParams;
+  const { q, type, category, cycleId } = await searchParams;
 
   const where: Prisma.CycleTransactionWhereInput = {
     // cycleId alone would be enough to scope correctly (a transaction's
@@ -53,9 +52,6 @@ export default async function TransactionsPage({
     ...(TRANSACTION_TYPES.includes(type as (typeof TRANSACTION_TYPES)[number])
       ? { type: type as (typeof TRANSACTION_TYPES)[number] }
       : {}),
-    ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
-      ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
-      : {}),
     ...(category === "uncategorized"
       ? { expenseCategoryId: null }
       : category
@@ -71,21 +67,11 @@ export default async function TransactionsPage({
       : {}),
   };
 
-  const isAmountSort = sort === "amount_desc" || sort === "amount_asc";
-  const orderBy: Prisma.CycleTransactionOrderByWithRelationInput =
-    sort === "date_asc"
-      ? { occurredAt: "asc" }
-      : sort === "amount_desc"
-        ? { amount: "desc" }
-        : sort === "amount_asc"
-          ? { amount: "asc" }
-          : { occurredAt: "desc" };
-
   const [rawTransactions, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, allCategories, recentCycles] =
     await Promise.all([
       prisma.cycleTransaction.findMany({
         where,
-        orderBy,
+        orderBy: { occurredAt: "desc" },
         take: 100,
         // TRANSACTION_SELECT covers everything toCycleTransactionSummary
         // reads off the row itself; this page also names the cycle it
@@ -135,7 +121,18 @@ export default async function TransactionsPage({
 
   return (
     <div className="home-page">
-      <h1 className="page-title">Transactions</h1>
+      <div className="section-header-row">
+        <h1 className="page-title" style={{ marginBottom: 0 }}>
+          Activity
+        </h1>
+        {/* Breakdown is a VIEW of this same activity (a pie chart instead
+            of a list), not a separate concept -- see the Balboa fix list's
+            batch 11.3, which moved it here from its old orphaned spot
+            behind a text link on Home. */}
+        <Link href="/transactions/breakdown" className="line-item line-item--link" style={{ minHeight: "auto" }}>
+          <PieChart size={16} aria-hidden="true" /> Breakdown
+        </Link>
+      </div>
 
       <div className="dashboard-section">
         <TransactionFilters categories={allCategories} cycles={cycleOptions} />
@@ -146,11 +143,11 @@ export default async function TransactionsPage({
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
-            q || type || paymentMethod || category || cycleId
+            q || type || category || cycleId
               ? "No transactions match your search."
               : "No transactions logged yet."
           }
-          groupByDate={!isAmountSort}
+          groupByDate
         />
       </div>
     </div>

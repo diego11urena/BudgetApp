@@ -13,7 +13,7 @@ export function TopCategoriesChart({
   categories: CategoryTotal[];
   /** "This quincena" only reads correctly on Home — a past cycle's own page passes a plain "Top categories" instead. */
   title?: string;
-  /** /dashboard/breakdown only ever compares "this cycle vs. last" — irrelevant (and pointing at the wrong cycle) when this chart is rendering a past cycle's own page. Defaults true so Home is unchanged. */
+  /** /transactions/breakdown only ever compares "this cycle vs. last" — irrelevant (and pointing at the wrong cycle) when this chart is rendering a past cycle's own page. Defaults true so Home is unchanged. */
   showBreakdownLink?: boolean;
 }) {
   if (categories.length === 0) {
@@ -22,7 +22,7 @@ export function TopCategoriesChart({
         <h2>{title}</h2>
         <EmptyState>No expenses logged yet this quincena.</EmptyState>
         {showBreakdownLink && (
-          <Link href="/dashboard/breakdown" className="line-item line-item--link">
+          <Link href="/transactions/breakdown" className="line-item line-item--link">
             <span>View breakdown</span>
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
@@ -60,7 +60,7 @@ export function TopCategoriesChart({
         ))}
       </div>
       {showBreakdownLink && (
-        <Link href="/dashboard/breakdown" className="line-item line-item--link">
+        <Link href="/transactions/breakdown" className="line-item line-item--link">
           <span>View breakdown</span>
           <ArrowRight size={16} aria-hidden="true" />
         </Link>

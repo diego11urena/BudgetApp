@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
-import { LineItemsForm } from "../_components/LineItemsForm";
+import { RentStepForm } from "./_components/RentStepForm";
 import { saveExpensesAction } from "./actions";
 
 export const metadata: Metadata = { title: "Expenses" };
@@ -23,27 +23,24 @@ export default async function ExpensesStepPage() {
     orderBy: { createdAt: "asc" },
   });
 
-  const initialItems = existingGoals.map((goal) => ({
-    name: goal.expenseCategory.name,
-    amount: goal.targetAmount.toString(),
-  }));
+  const existingRent = existingGoals.find((g) => g.expenseCategory.name.toLowerCase() === "rent");
 
   return (
     <div className="card card--wide">
       <StepProgress current="expenses" />
-      <h1>Add your fixed expenses</h1>
+      <h1>How much is your rent?</h1>
       <p className="field-hint">
-        Things you pay every quincena, like rent or subscriptions. Add as many as you need
-        — you can always change these later.
+        Everything else — subscriptions, groceries, whatever else you pay regularly — builds up
+        on its own as you log it, or any time from Plan.
       </p>
-      <LineItemsForm
-        action={saveExpensesAction}
-        fieldName="itemsJson"
-        itemNounSingular="fixed expense"
-        amountLabel="Amount per quincena (USD)"
-        submitLabel="Continue"
-        initialItems={initialItems}
-      />
+      <RentStepForm action={saveExpensesAction} initialAmount={existingRent?.targetAmount.toString()} />
+      {/* The single biggest labor-saving feature in the app previously went
+          unmentioned anywhere in onboarding, only discoverable by
+          stumbling into Profile -- see the Balboa fix list's batch 11.6. */}
+      <p className="field-hint" style={{ marginTop: "1rem" }}>
+        Tip: connect Gmail from Profile afterward to import transactions automatically instead of
+        typing each one in.
+      </p>
     </div>
   );
 }

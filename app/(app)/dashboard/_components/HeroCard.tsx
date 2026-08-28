@@ -15,6 +15,7 @@ export function HeroCard({
   periodEnd = null,
   totalExpenses,
   closed = false,
+  pendingBills = 0,
 }: {
   amountLeft: number;
   periodStart: Date;
@@ -23,18 +24,33 @@ export function HeroCard({
   totalExpenses: number;
   /** True for a past/closed cycle being viewed historically — swaps the label to "Final available," drops the days-left/per-day pace line (meaningless for a period that's already over), and hides "I just got paid" (that flow only ever closes *the* current open cycle). Defaults false so every active-cycle caller is unchanged. */
   closed?: boolean;
+  /** Sum of (targetAmount - actual), floored at 0, across this cycle's still-unpaid bills -- e.g. RecurringExpensesSummary.pendingAmount. Subtracted from amountLeft for the headline number (see below); defaults 0 (no adjustment) for callers that don't have it, e.g. History's closed-cycle view, where "safety margin" isn't a meaningful concept for a period that's already over. */
+  pendingBills?: number;
 }) {
-  const isPositive = amountLeft >= 0;
+  // The hero number used to be raw amountLeft -- money that still includes
+  // whatever's sitting in unpaid bills (e.g. rent not paid yet). That reads
+  // as more spendable than it really is, and worst in the first half of
+  // every quincena, exactly when someone is most likely to overspend. This
+  // reserves unpaid bills off the headline instead, so the big number is
+  // never more optimistic than reality. See the Balboa fix list's batch
+  // 11.5, decision 1.
+  const safeToSpend = closed ? amountLeft : amountLeft - pendingBills;
+  const isPositive = safeToSpend >= 0;
   const pace = closed
     ? null
-    : computeQuincenaPace({ periodStart, periodEnd, now: new Date(), amountLeft, totalExpenses });
+    : computeQuincenaPace({ periodStart, periodEnd, now: new Date(), amountLeft: safeToSpend, totalExpenses });
 
   return (
     <div className="hero-card">
-      <p className="hero-label">{closed ? "Final available" : "Available to spend"}</p>
+      <p className="hero-label">{closed ? "Final available" : "Safe to spend"}</p>
       <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
-        {formatCurrency(amountLeft)}
+        {formatCurrency(safeToSpend)}
       </p>
+      {!closed && pendingBills > 0 && (
+        <p className="hero-subtitle">
+          {formatCurrency(amountLeft)} available before {formatCurrency(pendingBills)} in unpaid bills
+        </p>
+      )}
       {!closed && (
         <>
           {/* No separate subtitle line -- "Remaining this Quincena" used to
@@ -51,7 +67,7 @@ export function HeroCard({
             <p className="hero-pace">
               {pace.phase === "running" &&
                 `${pace.daysRemaining} days left · ~${formatCurrency(pace.perDay)}/day`}
-              {pace.phase === "last-day" && `Last day · ${formatCurrency(amountLeft)} to spend`}
+              {pace.phase === "last-day" && `Last day · ${formatCurrency(safeToSpend)} to spend`}
               {pace.phase === "ended" &&
                 `Quincena ended ${formatFriendlyDate(pace.cycleEnd)} · tap "I just got paid"`}
             </p>

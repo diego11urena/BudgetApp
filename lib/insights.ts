@@ -9,7 +9,7 @@ import { computeGoalProjection } from "@/lib/goal-projection";
 
 export interface Insight {
   text: string;
-  /** Present when this insight has a natural destination (e.g. the Recurring Expenses tab) -- absent for insights with nothing to link to (e.g. the streak), which InsightsCard renders as plain text. */
+  /** Present when this insight has a natural destination (e.g. the Plan tab) -- absent for insights with nothing to link to, which InsightsCard renders as plain text. */
   href?: string;
 }
 
@@ -196,7 +196,7 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
   return {
     text: `${best.name} (${formatCurrency(best.amount)}) ${dueText} and isn't marked paid.`,
     priority: PRIORITY.DUE_SOON,
-    href: "/budget",
+    href: "/plan",
   };
 }
 
@@ -243,7 +243,7 @@ function unpaidRecurringCandidate(
   return {
     text: `${count} ${noun} been paid yet this cycle (${formatCurrency(remaining)} left).`,
     priority: PRIORITY.UNPAID_RECURRING,
-    href: "/budget",
+    href: "/plan",
   };
 }
 
@@ -467,7 +467,7 @@ function savingsGoalCandidate(goals: GoalWithProgress[], now: Date): Candidate |
   return {
     text: `You're ${formatCurrency(best.remaining)} away from hitting your ${best.name} target.`,
     priority: PRIORITY.SAVINGS_GOAL,
-    href: "/goals",
+    href: "/plan",
   };
 }
 
@@ -513,6 +513,6 @@ function goalContributionCandidate(
   return {
     text: `You planned ${formatCurrency(best.planned)} for ${best.name} this quincena — only ${formatCurrency(best.actual)} logged so far, with ${phase.daysRemaining} day${phase.daysRemaining === 1 ? "" : "s"} left.`,
     priority: PRIORITY.GOAL_CONTRIBUTION,
-    href: "/goals",
+    href: "/plan",
   };
 }

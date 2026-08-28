@@ -16,10 +16,9 @@ import { revalidatePath } from "next/cache";
  */
 export function revalidateAppPages() {
   revalidatePath("/dashboard");
-  revalidatePath("/dashboard/breakdown");
   revalidatePath("/transactions");
-  revalidatePath("/budget");
-  revalidatePath("/goals");
+  revalidatePath("/transactions/breakdown");
+  revalidatePath("/plan");
   revalidatePath("/profile");
   revalidatePath("/history");
   revalidatePath("/history/[cycleId]", "page");

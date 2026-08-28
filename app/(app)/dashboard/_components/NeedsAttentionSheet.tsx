@@ -198,7 +198,7 @@ function NeedsAttentionRow({
                 checked={recurring}
                 onChange={(e) => setRecurring(e.target.checked)}
               />
-              This is a recurring expense
+              This is a bill
             </label>
           )}
         </>

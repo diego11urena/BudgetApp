@@ -162,6 +162,11 @@ export function QuickAddSheet({
   const [recurring, setRecurring] = useState(
     editingTransaction ? editingTransaction.recurringExpenseId !== null : false,
   );
+  // Amount + category cover the overwhelming majority of entries -- see the
+  // "More details" disclosure in the form below. Starts expanded when
+  // editing (an existing row's own merchant/date/payment/note are already
+  // meaningful, not blank defaults worth hiding).
+  const [showMore, setShowMore] = useState(isEditing);
   // Panama time, not the device's own local clock — a transaction date is
   // validated server-side against nowInPanama() regardless of where the
   // user's device thinks it is (traveling, a misconfigured clock, or just
@@ -423,6 +428,10 @@ export function QuickAddSheet({
       <form onSubmit={handleSubmit} noValidate>
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="name" value={nameValue} />
+        {/* Purely UI-controlled below (no name attribute) so collapsing it
+            under "More details" never drops it from submission -- see
+            showMore. */}
+        <input type="hidden" name="occurredAt" value={occurredAt} />
         {isEditing && <input type="hidden" name="transactionId" value={editingTransaction.id} />}
         {!isEditing && targetCycleId && <input type="hidden" name="cycleId" value={targetCycleId} />}
 
@@ -446,110 +455,130 @@ export function QuickAddSheet({
         </div>
 
         <div className="field">
-          <label htmlFor={nameId}>Merchant / name</label>
-          <input
-            id={nameId}
-            type="text"
-            placeholder="e.g. Panapass, Cafe Unido…"
-            value={displayName}
-            onChange={(e) => {
-              setName(e.target.value);
-              setNameTouched(true);
-            }}
-            required
-            maxLength={100}
-            className={errorField === "name" ? "is-invalid" : ""}
-            aria-invalid={errorField === "name" || undefined}
-            aria-describedby={errorField === "name" ? errorId : undefined}
+          <label htmlFor={categoryId}>Category</label>
+          <CategoryNameInput
+            // Remounts on a type change -- its own value state only ever
+            // reads defaultValue once, at mount (see handleTypeChange).
+            key={type}
+            id={categoryId}
+            name="category"
+            categoryNames={categoryNames}
+            defaultValue={categoryValue}
+            placeholder="Category name"
+            onValueChange={setCategoryValue}
+            invalid={errorField === "category"}
+            describedBy={errorId}
           />
         </div>
 
-        <div className="field">
-          <label htmlFor={dateId}>Date</label>
-          <input
-            id={dateId}
-            name="occurredAt"
-            type="date"
-            value={occurredAt}
-            // The cycle-start floor only applies to a plain create with no
-            // explicit target cycle — editing, and creating directly into
-            // a specific past quincena, both allow any past date (it
-            // resolves to whichever cycle that date actually belongs to;
-            // see updateTransactionAction / addTransactionAction). Form
-            // has noValidate, and validate() re-checks this explicitly
-            // either way, so this is just the picker widget's own hint,
-            // never a submit-blocker.
-            min={isEditing || targetCycleId ? undefined : cycleStartDate}
-            max={todayDate}
-            onChange={(e) => setOccurredAt(e.target.value)}
-            className={errorField === "date" ? "is-invalid" : ""}
-            aria-invalid={errorField === "date" || undefined}
-            aria-describedby={errorField === "date" ? errorId : undefined}
-          />
-        </div>
+        {/* Amount + category cover the overwhelming majority of entries --
+            everything else (merchant name, date, payment method, the bill
+            toggle, a note) is real but secondary, collapsed by default so
+            logging a typical transaction is a 2-field job instead of 7.
+            Nothing behind this loses its submitted value when collapsed:
+            merchant/date already submit via the hidden inputs above,
+            payment method and the bill toggle via their own hidden inputs
+            below, and description is genuinely optional either way. */}
+        <button
+          type="button"
+          className="button-link"
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
+        >
+          {showMore ? "Fewer details" : "More details"}
+        </button>
 
-          <div className="field">
-            <label htmlFor={categoryId}>Category</label>
-            <CategoryNameInput
-              // Remounts on a type change -- its own value state only ever
-              // reads defaultValue once, at mount (see handleTypeChange).
-              key={type}
-              id={categoryId}
-              name="category"
-              categoryNames={categoryNames}
-              defaultValue={categoryValue}
-              placeholder="Category name"
-              onValueChange={setCategoryValue}
-              invalid={errorField === "category"}
-              describedBy={errorId}
-            />
-          </div>
-
-          {type !== "SAVINGS" && (
+        {showMore && (
+          <>
             <div className="field">
-              <label id={paymentGroupLabelId}>Payment method</label>
-              <input type="hidden" name="paymentMethod" value={paymentMethod} />
-              <div role="group" aria-labelledby={paymentGroupLabelId} className="category-chips">
-                {PAYMENT_METHOD_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`category-chip ${paymentMethod === opt.value ? "is-active" : ""}`}
-                    onClick={() => setPaymentMethod((current) => (current === opt.value ? "" : opt.value))}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <label htmlFor={nameId}>Merchant / name</label>
+              <input
+                id={nameId}
+                type="text"
+                placeholder="e.g. Panapass, Cafe Unido…"
+                value={displayName}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameTouched(true);
+                }}
+                required
+                maxLength={100}
+                className={errorField === "name" ? "is-invalid" : ""}
+                aria-invalid={errorField === "name" || undefined}
+                aria-describedby={errorField === "name" ? errorId : undefined}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor={dateId}>Date</label>
+              <input
+                id={dateId}
+                type="date"
+                value={occurredAt}
+                // The cycle-start floor only applies to a plain create with no
+                // explicit target cycle — editing, and creating directly into
+                // a specific past quincena, both allow any past date (it
+                // resolves to whichever cycle that date actually belongs to;
+                // see updateTransactionAction / addTransactionAction). Form
+                // has noValidate, and validate() re-checks this explicitly
+                // either way, so this is just the picker widget's own hint,
+                // never a submit-blocker.
+                min={isEditing || targetCycleId ? undefined : cycleStartDate}
+                max={todayDate}
+                onChange={(e) => setOccurredAt(e.target.value)}
+                className={errorField === "date" ? "is-invalid" : ""}
+                aria-invalid={errorField === "date" || undefined}
+                aria-describedby={errorField === "date" ? errorId : undefined}
+              />
+            </div>
+
+            {type !== "SAVINGS" && (
+              <div className="field">
+                <label id={paymentGroupLabelId}>Payment method</label>
+                <input type="hidden" name="paymentMethod" value={paymentMethod} />
+                <div role="group" aria-labelledby={paymentGroupLabelId} className="category-chips">
+                  {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`category-chip ${paymentMethod === opt.value ? "is-active" : ""}`}
+                      onClick={() => setPaymentMethod((current) => (current === opt.value ? "" : opt.value))}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {type === "EXPENSE" && (
+            {type === "EXPENSE" && (
+              <div className="field">
+                <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={recurring}
+                    onChange={(e) => setRecurring(e.target.checked)}
+                  />
+                  This is a bill
+                </label>
+              </div>
+            )}
+
             <div className="field">
-              <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <input
-                  type="checkbox"
-                  checked={recurring}
-                  onChange={(e) => setRecurring(e.target.checked)}
-                />
-                This is a recurring expense
-              </label>
+              <label htmlFor={descriptionId}>Note (optional)</label>
+              <input
+                id={descriptionId}
+                name="description"
+                type="text"
+                placeholder="What was this for?"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={200}
+              />
             </div>
-          )}
-
-          <div className="field">
-            <label htmlFor={descriptionId}>Note (optional)</label>
-            <input
-              id={descriptionId}
-              name="description"
-              type="text"
-              placeholder="What was this for?"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={200}
-            />
-          </div>
+          </>
+        )}
 
           {error && (
             <p id={errorId} className="error-text" role="alert">

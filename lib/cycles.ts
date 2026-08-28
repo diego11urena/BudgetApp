@@ -166,6 +166,8 @@ export async function createRecurringExpenseWithSnapshot(
     amount: Prisma.Decimal | number | string;
     frequency?: "BIWEEKLY" | "MONTHLY";
     dueDay?: number | null;
+    /** Defaults true (the Prisma column's own default) -- false for a one-time bill that shouldn't carry into the next quincena. */
+    recurring?: boolean;
   },
 ) {
   // RecurringExpense.categoryId has no DB-level type constraint -- every
@@ -191,6 +193,7 @@ export async function createRecurringExpenseWithSnapshot(
       amount: params.amount,
       frequency: params.frequency ?? "BIWEEKLY",
       dueDay: params.frequency === "MONTHLY" ? (params.dueDay ?? null) : null,
+      recurring: params.recurring ?? true,
     },
   });
 

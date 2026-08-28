@@ -34,7 +34,7 @@ export function CategoryRow({
         <p className="field-hint category-row-usage">
           {category.transactionCount === 0
             ? category.hasBudgetGoal
-              ? "Recurring fixed expense · no transactions yet"
+              ? "Recurring bill · no transactions yet"
               : "No transactions yet"
             : `${category.transactionCount} transaction${category.transactionCount === 1 ? "" : "s"} · ${formatCurrency(category.totalAmount)}`}
         </p>

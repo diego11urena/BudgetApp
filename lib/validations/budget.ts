@@ -9,6 +9,18 @@ export const recurringExpenseSchema = z
     categoryName: categoryNameSchema,
     frequency: z.enum(["BIWEEKLY", "MONTHLY"]).default("BIWEEKLY"),
     dueDay: z.coerce.number().int().min(1).max(31).optional(),
+    /**
+     * Defaults true (create's own prior behavior, relying on the DB
+     * default) -- false marks a one-time bill that won't carry into the
+     * next quincena. See RecurringExpenseEditSheet's single
+     * recurrence-choice control. z.coerce.boolean() is deliberately NOT
+     * used here -- it coerces via JS's own Boolean(value), under which
+     * the string "false" is truthy and would silently become `true`.
+     */
+    recurring: z
+      .union([z.literal("true"), z.literal("false")])
+      .optional()
+      .transform((v) => v !== "false"),
   })
   .refine((data) => data.frequency !== "MONTHLY" || data.dueDay !== undefined, {
     message: "Pick a due day for a monthly expense",

@@ -2,24 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { PAYMENT_METHOD_OPTIONS as PAYMENT_METHOD_OPTIONS_BASE } from "@/lib/payment-method";
 import { TRANSACTION_TYPE_OPTIONS } from "@/lib/transaction-type";
 
-// "" ("any type") prepended onto the shared canonical list -- same pattern
-// as PAYMENT_METHOD_OPTIONS below.
-const TYPE_OPTIONS = [{ value: "", label: "Type" }, ...TRANSACTION_TYPE_OPTIONS];
-
-// "" ("any payment method") prepended onto the shared canonical list --
-// only this dropdown needs that sentinel, so it's added here rather than
-// in lib/payment-method.ts.
-const PAYMENT_METHOD_OPTIONS = [{ value: "", label: "Payment" }, ...PAYMENT_METHOD_OPTIONS_BASE];
-
-const SORT_OPTIONS = [
-  { value: "date_desc", label: "Newest" },
-  { value: "date_asc", label: "Oldest" },
-  { value: "amount_desc", label: "Highest amount" },
-  { value: "amount_asc", label: "Lowest amount" },
-];
+// "" ("any type") prepended onto the shared canonical list, for the "All"
+// segment.
+const TYPE_OPTIONS = [{ value: "", label: "All" }, ...TRANSACTION_TYPE_OPTIONS];
 
 export function TransactionFilters({
   categories,
@@ -71,6 +58,28 @@ export function TransactionFilters({
         onChange={(e) => setQ(e.target.value)}
         aria-label="Search transactions"
       />
+      {/* Type as a segmented control, same visual pattern QuickAddSheet's
+          own type toggle uses -- one fewer dropdown, and it's the filter
+          reached for most often. Payment method and the 4-way sort order
+          are gone entirely (see the Balboa fix list's batch 11.2): payment
+          method never drove any downstream decision here besides itself,
+          and a fixed newest-first order is simpler than a rarely-touched
+          sort control. */}
+      <div className="type-toggle" role="group" aria-label="Filter by type">
+        {TYPE_OPTIONS.map((opt) => {
+          const isActive = (searchParams.get("type") ?? "") === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              className={`type-toggle-btn ${isActive ? "is-active" : ""}`}
+              onClick={() => updateParam("type", opt.value)}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
       <div className="transaction-filters-row">
         <select
           value={searchParams.get("cycleId") ?? ""}
@@ -85,28 +94,6 @@ export function TransactionFilters({
           ))}
         </select>
         <select
-          value={searchParams.get("type") ?? ""}
-          onChange={(e) => updateParam("type", e.target.value)}
-          aria-label="Filter by type"
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={searchParams.get("paymentMethod") ?? ""}
-          onChange={(e) => updateParam("paymentMethod", e.target.value)}
-          aria-label="Filter by payment method"
-        >
-          {PAYMENT_METHOD_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <select
           value={searchParams.get("category") ?? ""}
           onChange={(e) => updateParam("category", e.target.value)}
           aria-label="Filter by category"
@@ -116,17 +103,6 @@ export function TransactionFilters({
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={searchParams.get("sort") ?? "date_desc"}
-          onChange={(e) => updateParam("sort", e.target.value)}
-          aria-label="Sort transactions"
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
             </option>
           ))}
         </select>

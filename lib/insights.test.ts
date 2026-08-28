@@ -231,7 +231,7 @@ describe("generateInsights", () => {
       );
       const match = insights.find((i) => i.text.includes("recurring expense"));
       expect(match?.text).toBe("1 recurring expense hasn't been paid yet this cycle ($20.00 left).");
-      expect(match?.href).toBe("/budget");
+      expect(match?.href).toBe("/plan");
     });
 
     it("pluralizes and sums remaining across multiple unpaid expenses, including a partial one", () => {
@@ -526,7 +526,7 @@ describe("generateInsights", () => {
       );
       const match = insights.find((i) => i.text.includes("Emergency fund"));
       expect(match?.text).toBe("You're $150.00 away from hitting your Emergency fund target.");
-      expect(match?.href).toBe("/goals");
+      expect(match?.href).toBe("/plan");
     });
 
     it("skips a goal that's already complete", () => {
@@ -601,7 +601,7 @@ describe("generateInsights", () => {
       expect(match?.text).toBe(
         "You planned $200.00 for Emergency fund this quincena — only $0.00 logged so far, with 4 days left.",
       );
-      expect(match?.href).toBe("/goals");
+      expect(match?.href).toBe("/plan");
     });
 
     it("does not fire once at least half the planned amount is actually logged this cycle", () => {

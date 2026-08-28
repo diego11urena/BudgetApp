@@ -1,35 +1,6 @@
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getOrCreateDraftCycle, formatCycleRangeText } from "@/lib/cycles";
-import { getOrderedCategoryNames } from "@/lib/category-order";
-import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
-import { RecurringExpensesPanel } from "./_components/RecurringExpensesPanel";
 
-export const metadata: Metadata = { title: "Recurring Expenses" };
-
-export default async function BudgetPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-  const userId = session.user.id;
-
-  const cycle = await getOrCreateDraftCycle(userId);
-  const categories = await getRecurringExpensesForCycle(userId, cycle.id);
-  const expenseCategoryNames = await getOrderedCategoryNames(userId, cycle.id, "EXPENSE");
-
-  return (
-    <div className="home-page">
-      <h1 className="page-title">Recurring Expenses</h1>
-
-      <div className="dashboard-section">
-        <RecurringExpensesPanel
-          categories={categories}
-          categoryNames={expenseCategoryNames}
-          dateRangeText={formatCycleRangeText(cycle, { includeYear: false })}
-        />
-      </div>
-    </div>
-  );
+/** /budget merged into /plan (Bills + Goals, one screen) -- see the Balboa fix list's batch 11. Kept as a redirect, not a 404, for any old bookmark/link. */
+export default function BudgetPageRedirect() {
+  redirect("/plan");
 }
