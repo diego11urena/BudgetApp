@@ -131,10 +131,13 @@ export default async function DashboardPage() {
           own doc comment for why gating its mount (rather than just its
           trigger's visibility) on this same server-derived condition would
           wipe its in-flight confirm/closed-summary state the moment
-          justGotPaidAction succeeds and this very page re-fetches. */}
-      <div className="dashboard-section dashboard-section--plain">
-        <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} />
-      </div>
+          justGotPaidAction succeeds and this very page re-fetches. No
+          wrapping div here -- HeroCardActions owns its own
+          .dashboard-section internally, rendered only alongside its
+          button, never on its own (see its own doc comment for why an
+          always-present empty one broke e2e's generic .dashboard-section
+          waits elsewhere on this page). */}
+      <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} />
 
       {/* A brand-new account otherwise has three half-empty cards below
           (no top category, no recent activity, no bills/goals paid-count)

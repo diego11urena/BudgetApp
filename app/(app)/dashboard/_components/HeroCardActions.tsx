@@ -96,20 +96,28 @@ export function HeroCardActions({
   return (
     <>
       {variant === "banner" ? (
+        // The wrapping .dashboard-section only renders alongside the
+        // button itself, together, never on its own -- an always-present
+        // but EMPTY .dashboard-section (matching a generic
+        // .dashboard-section selector elsewhere in this app's own e2e
+        // suite before any *visible* one) hangs Playwright's own
+        // waitForSelector forever on the first, invisible match.
         showBanner && (
-          <button
-            type="button"
-            className="banner banner--action"
-            aria-live="polite"
-            onClick={(e) => {
-              setTrigger(e.currentTarget);
-              setConfirming(true);
-            }}
-            disabled={pending}
-          >
-            <span>{pending ? "Closing quincena..." : bannerLabel}</span>
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
+          <div className="dashboard-section dashboard-section--plain">
+            <button
+              type="button"
+              className="banner banner--action"
+              aria-live="polite"
+              onClick={(e) => {
+                setTrigger(e.currentTarget);
+                setConfirming(true);
+              }}
+              disabled={pending}
+            >
+              <span>{pending ? "Closing quincena..." : bannerLabel}</span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </div>
         )
       ) : (
         <button
