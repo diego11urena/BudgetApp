@@ -19,10 +19,15 @@ export interface RecentTransactionTemplate {
  * most useful. Only surfaces a categorized transaction -- QuickAddSheet
  * requires a category, and there's no sensible one to prefill for a
  * transaction that predates categories existing or was left uncategorized.
+ * Also excludes a savings withdrawal (a negative-amount SAVINGS
+ * transaction, see goals/actions.ts) -- QuickAddSheet's own prefill path
+ * shows/submits a plain positive amount for every type, and "repeat this
+ * withdrawal" isn't a meaningful quick-log target the way repeating an
+ * expense or a contribution is.
  */
 export async function getMostRecentTransaction(userId: string): Promise<RecentTransactionTemplate | null> {
   const transaction = await prisma.cycleTransaction.findFirst({
-    where: { cycle: { userId }, expenseCategoryId: { not: null } },
+    where: { cycle: { userId }, expenseCategoryId: { not: null }, amount: { gte: 0 } },
     orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     include: { expenseCategory: { select: { name: true } } },
   });

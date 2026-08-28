@@ -127,11 +127,14 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
   }
   const delta = deltaParsed.data;
   const recordAsTransaction = formData.get("recordAsTransaction") === "true";
-  // EditGoalSheet only ever offers "record as transaction" on an increase
-  // (isIncrease gates that button) -- this app's transaction model has no
-  // way to represent a savings withdrawal, so a non-positive delta here
-  // would create a transaction downstream sums assume is always positive.
-  if (recordAsTransaction && delta <= 0) {
+  // A decrease recorded as a transaction is a withdrawal -- a real,
+  // negative-amount SAVINGS CycleTransaction, not just a manualAdjustment
+  // correction. Every downstream SAVINGS sum (computeSavedSoFar,
+  // cycle-financials' totalSavings, the insights goal-contribution rule)
+  // is a plain reduce, so a negative amount nets out correctly on its own;
+  // only display code that assumed SAVINGS amounts are always positive
+  // needed a matching fix (see TransactionList's AMOUNT_CLASS/sign logic).
+  if (recordAsTransaction && delta === 0) {
     return { error: "Invalid amount" };
   }
 
@@ -192,13 +195,17 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
         if (recordAsTransaction && cycle) {
           // Uses the just-submitted `name`, not existing.name -- the update
           // above may have just renamed this same category, and this
-          // transaction should carry the current name forward.
+          // transaction should carry the current name forward. delta's own
+          // sign carries through as-is: negative for a withdrawal, and
+          // decimal.toFixed keeps that sign, so no separate "direction"
+          // field is needed anywhere downstream -- the amount's sign IS
+          // the direction, all the way down to TransactionList's display.
           await tx.cycleTransaction.create({
             data: {
               cycleId: cycle.id,
               userId,
               type: "SAVINGS",
-              name,
+              name: delta > 0 ? name : `${name} withdrawal`,
               amount: delta.toFixed(2),
               expenseCategoryId: categoryId,
               occurredAt: nowInPanama(),

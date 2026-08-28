@@ -213,6 +213,17 @@ export const updateTransactionAction = withActionErrorHandling(async function up
   // an old transaction is exactly what "frozen history" was never meant to
   // block. See deleteTransactionAction for why deletion stays restricted.
 
+  // A savings withdrawal is stored as a real negative-amount SAVINGS
+  // CycleTransaction (see goals/actions.ts's updateGoalWithContributionAction).
+  // QuickAddSheet always shows/submits a plain positive number for amount
+  // (Math.abs on load, same as every other transaction type), so the sign
+  // has to be reapplied here from the row's OWN existing sign -- never
+  // from anything the client sends. Reverts to positive if the type
+  // changed away from SAVINGS mid-edit: "withdrawal" stops meaning
+  // anything once it's no longer a savings row.
+  const isWithdrawal = existing.type === "SAVINGS" && existing.amount.isNegative() && type === "SAVINGS";
+  const signedAmount = isWithdrawal ? `-${amount}` : amount;
+
   // No cycle bound here (unlike addTransactionAction's create-time min) —
   // just "not in the future", since a transaction can't have happened yet.
   // A date is never required on edit; leaving it alone keeps the existing
@@ -282,7 +293,7 @@ export const updateTransactionAction = withActionErrorHandling(async function up
         cycleId: targetCycleId,
         type,
         name,
-        amount,
+        amount: signedAmount,
         expenseCategoryId,
         // SAVINGS-only exclusion (not EXPENSE-only) — a payment method is
         // meaningful for money going out (EXPENSE) and, since Yappy/ACH are
@@ -543,10 +554,21 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   // ISO timestamp (deleteTransactionAction's own toISOString() snapshot,
   // not a "YYYY-MM-DD"-only value), so this checks validity directly
   // rather than through parseDateOnly, which only accepts the latter.
-  const parsedAmount = decimalString.safeParse(amount);
+  // decimalString itself has no sign in its regex -- deliberately, it's
+  // the shared validator for every user-TYPED amount field, none of which
+  // should ever accept a leading "-". A savings withdrawal's snapshot is
+  // the one legitimate exception (deleteTransactionAction's own amount:
+  // existing.amount.toNumber() carries its real negative sign through),
+  // so the sign is stripped before validating the magnitude through the
+  // same shared check, then reapplied after -- restoring a deleted
+  // withdrawal via its toast's Undo has to bring its sign back with it,
+  // not silently flip it into a positive contribution.
+  const isNegative = amount.startsWith("-");
+  const parsedAmount = decimalString.safeParse(isNegative ? amount.slice(1) : amount);
   if (!parsedAmount.success) {
     return { error: parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
   }
+  const signedAmount = isNegative ? `-${parsedAmount.data}` : parsedAmount.data;
   const parsedOccurredAt = new Date(occurredAt);
   if (Number.isNaN(parsedOccurredAt.getTime())) {
     return { error: "Invalid date" };
@@ -577,7 +599,7 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
       userId,
       type,
       name,
-      amount: parsedAmount.data,
+      amount: signedAmount,
       expenseCategoryId,
       recurringExpenseId,
       importSource,

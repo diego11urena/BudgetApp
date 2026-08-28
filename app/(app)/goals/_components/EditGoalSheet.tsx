@@ -22,12 +22,12 @@ export interface EditableGoal {
  * (updateGoalWithContributionAction). The last field is the one with real
  * accounting implications: savedSoFar is always transactions +
  * manualAdjustment (see lib/goals.ts), never a raw editable number, so
- * changing it here always means changing one of those two terms -- an
- * increase asks whether to record it as a real transaction (money that
- * actually moved just now) or as a correction (manualAdjustment only,
- * doesn't touch transaction history); a decrease is always a correction,
- * since this app's transaction model has no way to represent a savings
- * withdrawal.
+ * changing it here always means changing one of those two terms -- either
+ * direction asks whether to record it as a real transaction (money that
+ * actually moved just now -- a contribution or a withdrawal, a negative-
+ * amount SAVINGS CycleTransaction) or as a correction (manualAdjustment
+ * only, doesn't touch transaction history -- e.g. backfilling a balance
+ * that was never really tracked here, not money moving today).
  */
 export function EditGoalSheet({
   goal,
@@ -211,29 +211,27 @@ export function EditGoalSheet({
           <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
             {isIncrease
               ? `You're increasing the amount saved toward this goal by ${formatCurrency(pendingChange.delta)}. Would you like to record this as a transaction?`
-              : `You're decreasing the amount saved toward this goal by ${formatCurrency(Math.abs(pendingChange.delta))}. This won't affect your transaction history.`}
+              : `You're decreasing the amount saved toward this goal by ${formatCurrency(Math.abs(pendingChange.delta))}. Would you like to record this as a withdrawal?`}
           </p>
         )}
 
         {pendingChange !== null ? (
           <>
-            {isIncrease && (
-              <button
-                type="button"
-                className="button sheet-submit"
-                disabled={pending}
-                onClick={() => submitGoal(pendingChange.name, pendingChange.delta, true)}
-              >
-                {pending ? "Saving..." : "Yes, record as transaction"}
-              </button>
-            )}
+            <button
+              type="button"
+              className="button sheet-submit"
+              disabled={pending}
+              onClick={() => submitGoal(pendingChange.name, pendingChange.delta, true)}
+            >
+              {pending ? "Saving..." : isIncrease ? "Yes, record as transaction" : "Yes, record as withdrawal"}
+            </button>
             <button
               type="button"
               className="button button--secondary sheet-submit"
               disabled={pending}
               onClick={() => submitGoal(pendingChange.name, pendingChange.delta, false)}
             >
-              {pending ? "Saving..." : isIncrease ? "No, just update the goal" : "Continue"}
+              {pending ? "Saving..." : "No, just update the goal"}
             </button>
             <button
               type="button"

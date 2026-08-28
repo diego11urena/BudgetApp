@@ -139,10 +139,10 @@ test.describe("savings goals", () => {
     await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
   });
 
-  test("editing a goal's saved amount downward only ever offers a plain correction, never a transaction choice", async ({
+  test("editing a goal's saved amount downward can be recorded as a real withdrawal transaction", async ({
     page,
   }) => {
-    await signUpAndOnboard(page);
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
     await page.goto("/plan");
     await page.click('button:has-text("+ Add goal")');
@@ -164,13 +164,94 @@ test.describe("savings goals", () => {
     await expect(
       page.getByText("You're decreasing the amount saved toward this goal by $200.00"),
     ).toBeVisible();
-    // No "record as transaction" option for a decrease -- this app's
-    // transaction model has no way to represent a savings withdrawal.
-    await expect(page.getByText("Yes, record as transaction")).toHaveCount(0);
-    await page.click('button:has-text("Continue")');
+    await page.click("text=Yes, record as withdrawal");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
     await expect(goalRow.getByText("$300.00 / $1,000.00")).toBeVisible();
+
+    // A withdrawal shows up like any other transaction, but reads "+" (not
+    // "-") -- money is moving back to spendable balance, the opposite
+    // direction of a contribution.
+    await page.goto("/transactions");
+    const withdrawalRow = page.locator(".transaction-row", { hasText: "Rainy Day withdrawal" });
+    await expect(withdrawalRow).toBeVisible();
+    await expect(withdrawalRow.locator(".transaction-amount")).toHaveText("+$200.00");
+
+    // Safe to spend gains the withdrawn amount back -- the opening
+    // balance never touched it (see the sibling test above), so this
+    // isolates the withdrawal's own effect.
+    await page.goto("/dashboard");
+    await expect(page.locator(".hero-value")).toHaveText("$1,200.00");
+
+    // Editing the withdrawal via the normal tap-a-row flow: the Amount
+    // field shows a plain positive number (never the raw negative stored
+    // value), and re-saving a different amount keeps it a withdrawal --
+    // the sign is reapplied server-side from the row's own existing sign,
+    // not from anything this form submits.
+    await withdrawalRow.click();
+    const editAmount = page.getByLabel("Amount (USD)");
+    await editAmount.waitFor();
+    await expect(editAmount).toHaveValue("200.00");
+    await editAmount.fill("250.00");
+    await page.click('button:has-text("Save changes")');
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    await expect(withdrawalRow.locator(".transaction-amount")).toHaveText("+$250.00");
+    await page.goto("/dashboard");
+    await expect(page.locator(".hero-value")).toHaveText("$1,250.00");
+
+    // Deleting it removes its effect entirely (savedSoFar/Safe to spend
+    // are always derived live, never a stored running total -- see
+    // lib/goals.ts's computeSavedSoFar), and Undo brings it back exactly,
+    // sign included -- clicked immediately, before any navigation away
+    // that would lose the toast holding it.
+    await page.goto("/transactions");
+    await withdrawalRow.click();
+    await page.waitForSelector(".sheet-delete");
+    await page.click(".sheet-delete");
+    await expect(page.locator(".transaction-row", { hasText: "Rainy Day withdrawal" })).toHaveCount(0);
+
+    await page.locator(".toast-action").click();
+    await expect(withdrawalRow).toBeVisible();
+    await expect(withdrawalRow.locator(".transaction-amount")).toHaveText("+$250.00");
+    await page.goto("/dashboard");
+    await expect(page.locator(".hero-value")).toHaveText("$1,250.00");
+  });
+
+  test("editing a goal's saved amount downward without recording a withdrawal leaves Safe to spend and transaction history untouched", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+
+    await page.goto("/plan");
+    await page.click('button:has-text("+ Add goal")');
+    await page.waitForSelector("#goal-name");
+    await page.fill("#goal-name", "Sunny Day");
+    await page.fill("#goal-lifetime", "1000");
+    await page.click("text=Do you already have money saved toward this goal?");
+    await page.fill("#goal-already-saved", "500");
+    await page.click('button:has-text("Save goal")');
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
+
+    const goalRow = page.locator(".goal-row", { hasText: "Sunny Day" });
+    await goalRow.locator('button:has-text("Edit")').click();
+    const editGoalSaved = page.getByLabel("Amount saved so far");
+    await editGoalSaved.waitFor();
+    await editGoalSaved.fill("300");
+    await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
+
+    await expect(
+      page.getByText("You're decreasing the amount saved toward this goal by $200.00"),
+    ).toBeVisible();
+    await page.click("text=No, just update the goal");
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
+
+    await expect(goalRow.getByText("$300.00 / $1,000.00")).toBeVisible();
+
+    await page.goto("/transactions");
+    await expect(page.locator(".transaction-name", { hasText: "Sunny Day" })).toHaveCount(0);
+    await page.goto("/dashboard");
+    await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
   });
 
   test("renaming a goal to an existing goal's name is rejected, not silently merged", async ({ page }) => {

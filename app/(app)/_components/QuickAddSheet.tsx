@@ -160,8 +160,15 @@ export function QuickAddSheet({
   const [name, setName] = useState(editingTransaction?.name ?? prefill?.name ?? "");
   const [nameTouched, setNameTouched] = useState(Boolean(prefill));
   const displayName = isEditing || nameTouched ? name : categoryValue;
+  // Math.abs -- a savings withdrawal is the one case where
+  // editingTransaction.amount can itself be negative (see TransactionList's
+  // own comment on the same thing). The field always shows a plain
+  // positive number to type/edit, same as every other amount in this app;
+  // updateTransactionAction re-applies the withdrawal's negative sign
+  // server-side, from the existing row's own stored sign, not from
+  // anything this form submits.
   const [amount, setAmount] = useState(
-    editingTransaction ? editingTransaction.amount.toFixed(2) : (prefill?.amount.toFixed(2) ?? ""),
+    editingTransaction ? Math.abs(editingTransaction.amount).toFixed(2) : (prefill?.amount.toFixed(2) ?? ""),
   );
   // Optional for EXPENSE/INCOME — left unset ("") is a valid choice, not
   // every purchase or deposit needs a recorded method.

@@ -72,9 +72,17 @@ function TransactionRowContent({
           </span>
         )}
       </div>
+      {/* SAVINGS is the one type whose stored amount can itself be
+          negative -- a withdrawal (see EditGoalSheet's "record as
+          withdrawal" option), stored as a real negative-amount
+          CycleTransaction rather than a silent manualAdjustment
+          correction. Deriving the sign from tx.amount itself (not just
+          tx.type) means a withdrawal reads as "+" (money moving back to
+          spendable balance, same direction as amountLeft's own formula
+          treats it) instead of double-negating into "--$50.00". */}
       <span className={`transaction-amount ${AMOUNT_CLASS[tx.type]}`}>
-        {tx.type === "INCOME" ? "+" : "-"}
-        {formatCurrency(tx.amount)}
+        {tx.type === "INCOME" || tx.amount < 0 ? "+" : "-"}
+        {formatCurrency(Math.abs(tx.amount))}
       </span>
     </>
   );
