@@ -15,11 +15,18 @@ import { HeroCardActions } from "./HeroCardActions";
  * "ended" phase already derives, just never surfaced this prominently
  * before (it used to be a single line of pace text below the hero number,
  * easy to miss, not a real notification).
+ *
+ * Always mounted by the caller regardless of isOverdue -- see
+ * HeroCardActions' own showBanner doc comment for why gating this
+ * component's mount on that condition (rather than just the trigger's
+ * visibility) would wipe its in-flight confirm/closed-summary state the
+ * instant justGotPaidAction succeeds.
  */
-export function PaydayOverdueBanner({ cycleEndDate }: { cycleEndDate: Date }) {
+export function PaydayOverdueBanner({ cycleEndDate, isOverdue }: { cycleEndDate: Date; isOverdue: boolean }) {
   return (
     <HeroCardActions
       variant="banner"
+      showBanner={isOverdue}
       bannerLabel={`Your quincena ended ${formatFriendlyDate(cycleEndDate)} — did you get paid?`}
     />
   );

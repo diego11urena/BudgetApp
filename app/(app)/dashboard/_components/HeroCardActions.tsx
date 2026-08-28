@@ -25,13 +25,27 @@ import { useSheet } from "../../_components/useSheet";
  * triggered from several independent entry points (BottomNav's FAB,
  * AddToCycleButton, TransactionList's own row-tap) instead of one global
  * instance. bannerLabel is only read when variant is "banner".
+ *
+ * showBanner (banner variant only) controls just the trigger button's own
+ * visibility, never whether this component itself is mounted -- the
+ * caller's own "should the overdue prompt show at all" condition
+ * (pace.phase === "ended") is server-derived and flips the instant
+ * justGotPaidAction succeeds (the very next router.refresh() inside
+ * handleConfirmedJustGotPaid re-fetches it), so gating this component's
+ * own mount on that condition self-destructs its confirming/closedSummary
+ * state mid-flow -- CycleClosedCard would never even get a chance to
+ * render. Keeping the component permanently mounted and only toggling the
+ * trigger's visibility lets that local state survive the refresh, exactly
+ * like the always-mounted "link" variant already does.
  */
 export function HeroCardActions({
   variant = "link",
   bannerLabel,
+  showBanner = true,
 }: {
   variant?: "link" | "banner";
   bannerLabel?: string;
+  showBanner?: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -82,19 +96,21 @@ export function HeroCardActions({
   return (
     <>
       {variant === "banner" ? (
-        <button
-          type="button"
-          className="banner banner--action"
-          aria-live="polite"
-          onClick={(e) => {
-            setTrigger(e.currentTarget);
-            setConfirming(true);
-          }}
-          disabled={pending}
-        >
-          <span>{pending ? "Closing quincena..." : bannerLabel}</span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </button>
+        showBanner && (
+          <button
+            type="button"
+            className="banner banner--action"
+            aria-live="polite"
+            onClick={(e) => {
+              setTrigger(e.currentTarget);
+              setConfirming(true);
+            }}
+            disabled={pending}
+          >
+            <span>{pending ? "Closing quincena..." : bannerLabel}</span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </button>
+        )
       ) : (
         <button
           type="button"

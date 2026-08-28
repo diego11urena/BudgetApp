@@ -127,11 +127,14 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {pace.phase === "ended" && (
-        <div className="dashboard-section dashboard-section--plain">
-          <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} />
-        </div>
-      )}
+      {/* Always mounted, regardless of pace.phase -- see PaydayOverdueBanner's
+          own doc comment for why gating its mount (rather than just its
+          trigger's visibility) on this same server-derived condition would
+          wipe its in-flight confirm/closed-summary state the moment
+          justGotPaidAction succeeds and this very page re-fetches. */}
+      <div className="dashboard-section dashboard-section--plain">
+        <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} />
+      </div>
 
       {/* A brand-new account otherwise has three half-empty cards below
           (no top category, no recent activity, no bills/goals paid-count)
