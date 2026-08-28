@@ -67,6 +67,16 @@ export function CycleClosedCard({
           </div>
         )}
 
+        {/* Moved here from the dashboard's own Insights card -- a streak is
+            being won right at this exact moment (the cycle that just
+            closed is the newest one counted), not something worth
+            repeating all quincena long. */}
+        {summary.streak >= 2 && (
+          <div className="banner banner--good" role="status">
+            You&apos;ve stayed under budget for {summary.streak} cycles in a row.
+          </div>
+        )}
+
         <button type="button" className="button cycle-closed-cta" onClick={onDismiss}>
           Continue <ArrowRight size={16} aria-hidden="true" className="inline-arrow" />
         </button>

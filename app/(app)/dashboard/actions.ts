@@ -8,6 +8,7 @@ import {
   closeCycleAndStartNext,
   getActiveIncomeSource,
   getOrCreateDraftCycle,
+  getRecentCycles,
   parsePayDate,
   upsertCycleIncomeEntry,
   type PayDateChangeResult,
@@ -15,6 +16,8 @@ import {
 import type { Prisma } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
+import { summarizeCycleFinancials } from "@/lib/cycle-financials";
+import { computeStreak } from "@/lib/insights";
 import { getBudgetUsage } from "@/lib/budget-status";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
@@ -32,6 +35,8 @@ export interface CycleClosedSummary {
   budget: { hasBudget: boolean; overBy: number };
   /** The amount auto-carried into the new cycle — prefills the "how much did you get paid?" prompt. */
   carriedIncomeAmount: number;
+  /** Consecutive closed cycles (including the one that just closed) finishing with amountLeft >= 0 -- see computeStreak. Rendered on CycleClosedCard, not Insights: a streak is won right at the moment a cycle closes, which is this exact response. */
+  streak: number;
 }
 
 /** Not a form submission (no _prevState/useActionState here) — the caller (HeroCard) checks `"error" in result` directly instead of going through useActionState. */
@@ -65,12 +70,26 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
     session.user.id,
     payDate,
   );
-  const [recurringExpenseCategories, carriedEntry] = await Promise.all([
+  const [recurringExpenseCategories, carriedEntry, recentCycles] = await Promise.all([
     getRecurringExpensesForCycle(session.user.id, closedCycle.id, { computeSuggestions: false }),
     prisma.cycleIncomeEntry.findFirst({ where: { cycleId: newCycle.id } }),
+    // For the streak below -- previously-closed cycles, oldest boundary
+    // first, same newest-first order computeStreak (and Insights' own
+    // category-anomaly rule) already expects.
+    getRecentCycles(session.user.id),
   ]);
   const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
   const top = closedCycleFinancials.topCategories[0];
+
+  // The cycle that just closed counts as the most recent point in its own
+  // streak -- getRecentCycles was fetched after closeCycleAndStartNext
+  // committed, so it already includes closedCycle (now CLOSED) alongside
+  // whatever closed cycles came before it; excluding closedCycle.id here
+  // avoids counting it twice against closedCycleFinancials.
+  const olderClosedFinancials = recentCycles
+    .filter((c) => c.status === "CLOSED" && c.id !== closedCycle.id)
+    .map((c) => summarizeCycleFinancials(c.incomeEntries, c.transactions));
+  const streak = computeStreak([closedCycleFinancials, ...olderClosedFinancials]);
 
   revalidateAppPages();
 
@@ -79,6 +98,7 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
     saved: closedCycleFinancials.totalSavings,
     rolledOver: closedCycleFinancials.amountLeft,
     topCategory: top ? { name: top.categoryName, icon: top.categoryIcon, amount: top.amount } : null,
+    streak,
     budget: {
       hasBudget: recurringExpensesSummary.totalCount > 0,
       overBy: getBudgetUsage(recurringExpensesSummary.totalActual, recurringExpensesSummary.totalTarget).overBy,

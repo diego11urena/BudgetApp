@@ -1,9 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { generateInsights } from "./insights";
+import { computeStreak, generateInsights } from "./insights";
 import { parseDateOnly } from "./pay-date";
-import type { CycleFinancials } from "./cycle-financials";
+import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
 import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "./recurring-expenses";
 import type { GoalWithProgress } from "./goals";
+
+let nextTransactionId = 0;
+function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
+  nextTransactionId++;
+  return {
+    id: `tx-${nextTransactionId}`,
+    cycleId: "cycle-1",
+    type: "EXPENSE",
+    name: "Some Merchant",
+    amount: 10,
+    categoryName: null,
+    occurredAt: parseDateOnly("2026-08-03")!,
+    isImported: false,
+    importSource: "MANUAL",
+    paymentMethod: null,
+    description: null,
+    expenseCategoryId: null,
+    recurringExpenseId: null,
+    ...overrides,
+  };
+}
 
 function makeFinancials(overrides: Partial<CycleFinancials> = {}): CycleFinancials {
   return {
@@ -96,62 +117,76 @@ describe("generateInsights", () => {
         [],
         makeExtras(),
       );
-      expect(insights).toEqual([{ text: "You're $50.00 over budget this cycle so far." }]);
+      expect(insights).toEqual([
+        { text: "You're $50.00 over budget this cycle so far, with 14 days left." },
+      ]);
     });
 
-    it("never reports a comparative category-anomaly or streak insight with no closed cycles", () => {
+    it("never reports a comparative category-anomaly insight with no closed cycles", () => {
       const current = makeFinancials({
         amountLeft: 100,
         categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 200 }],
       });
       const insights = generateInsights(current, [], makeExtras());
       expect(insights.some((i) => i.text.includes("vs "))).toBe(false);
-      expect(insights.some((i) => i.text.includes("cycles in a row"))).toBe(false);
     });
+  });
 
-    it("reports an under-budget streak of 2 or more", () => {
+  // computeStreak moved out of generateInsights entirely -- it's no longer
+  // a dashboard Insights candidate (see its own doc comment for why), just
+  // a plain counting function CycleClosedCard's own data now calls
+  // directly.
+  describe("computeStreak", () => {
+    it("counts consecutive (newest-first) under-budget cycles, stopping at the first over-budget one", () => {
       const previous = [
         makeFinancials({ amountLeft: 100 }),
         makeFinancials({ amountLeft: 50 }),
         makeFinancials({ amountLeft: -10 }),
+        makeFinancials({ amountLeft: 200 }),
       ];
-      const insights = generateInsights(makeFinancials({ amountLeft: 200 }), previous, makeExtras());
-      expect(insights.some((i) => i.text === "You've stayed under budget for 2 cycles in a row.")).toBe(true);
+      expect(computeStreak(previous)).toBe(2);
     });
 
-    it("does not report a streak of only 1", () => {
-      const previous = [makeFinancials({ amountLeft: -10 }), makeFinancials({ amountLeft: 100 })];
-      const insights = generateInsights(makeFinancials({ amountLeft: 200 }), previous, makeExtras());
-      expect(insights.some((i) => i.text.includes("cycles in a row"))).toBe(false);
+    it("returns 0 for an empty history", () => {
+      expect(computeStreak([])).toBe(0);
+    });
+
+    it("returns 0 when the most recent cycle was over budget", () => {
+      expect(computeStreak([makeFinancials({ amountLeft: -10 }), makeFinancials({ amountLeft: 100 })])).toBe(0);
     });
   });
 
-  describe("priority-based top-3 selection", () => {
-    it("picks the 3 highest-priority candidates when more than 3 apply, dropping the rest", () => {
+  describe("priority-based top-2 selection", () => {
+    it("picks the 2 highest-priority candidates when more apply, dropping the rest", () => {
       const current = makeFinancials({
         amountLeft: 320,
         totalExpenses: 0,
         categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 60 }],
       });
       const previous = [
-        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 20 }] }),
-        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 20 }] }),
+        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 30 }] }),
+        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 30 }] }),
       ];
+      // now = the cycle's own last day, so the category-anomaly rule's
+      // proration is a no-op here (percentElapsed = 1) and the fixture's
+      // dollar amounts read the same as a full-cycle comparison; also past
+      // the unpaid-recurring rule's 50%-elapsed gate.
       const extras = makeExtras({
+        cycle: { periodStart: parseDateOnly("2026-08-03")!, periodEnd: null },
+        now: parseDateOnly("2026-08-17")!,
         recurringExpenseCategories: [makeRecurringCategory([{ actual: 0, targetAmount: 20 }])],
         goals: [makeGoal({ savedSoFar: 850, lifetimeTargetAmount: 1000 })],
       });
 
-      // 5 candidates apply here: unpaid-recurring (90), category-anomaly
-      // (80), savings-goal (60), on-track (40), streak (35) -- top 3 by
-      // priority should be unpaid-recurring, category-anomaly, savings-goal.
+      // 4 candidates apply here: unpaid-recurring (90), category-anomaly
+      // (80), savings-goal (60), on-track (40) -- capped at 2, so only
+      // unpaid-recurring and category-anomaly win a slot.
       const insights = generateInsights(current, previous, extras);
-      expect(insights).toHaveLength(3);
+      expect(insights).toHaveLength(2);
       expect(insights[0].text).toContain("recurring expense");
-      expect(insights[1].text).toContain("Coffee");
-      expect(insights[2].text).toContain("Emergency fund");
+      expect(insights[1].text).toBe("Coffee spending is up $30.00 vs your recent average.");
+      expect(insights.some((i) => i.text.includes("Emergency fund"))).toBe(false);
       expect(insights.some((i) => i.text.includes("on track"))).toBe(false);
-      expect(insights.some((i) => i.text.includes("cycles in a row"))).toBe(false);
     });
   });
 
@@ -167,9 +202,33 @@ describe("generateInsights", () => {
       expect(insights.some((i) => i.text.includes("recurring expense"))).toBe(false);
     });
 
+    it("does not fire before half the cycle has elapsed", () => {
+      // makeExtras() defaults to day 1 of a 15-day quincena -- everything
+      // is "unpaid" on day 1 by definition, so this rule should stay quiet.
+      const categories = [makeRecurringCategory([{ actual: 0, targetAmount: 20 }])];
+      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
+      expect(insights.some((i) => i.text.includes("recurring expense"))).toBe(false);
+    });
+
+    it("fires before the 50% mark anyway when a specific MONTHLY bill's own due day already passed", () => {
+      const categories = [
+        makeRecurringCategory([{ actual: 0, targetAmount: 650, frequency: "MONTHLY", dueDay: 1 }]),
+      ];
+      // now = Aug 3, day 1 of the cycle (well under 50% elapsed) -- but
+      // dueDay 1 already passed relative to Aug 3.
+      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
+      expect(insights.some((i) => i.text.includes("recurring expense hasn't"))).toBe(true);
+    });
+
     it("counts not-started and partial expenses, singular phrasing and remaining amount for exactly one", () => {
       const categories = [makeRecurringCategory([{ actual: 0, targetAmount: 20 }, { actual: 20, targetAmount: 20 }])];
-      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
+      // Past the rule's 50%-elapsed gate -- see "does not fire before half
+      // the cycle has elapsed" below for the gate itself.
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: parseDateOnly("2026-08-17")! }),
+      );
       const match = insights.find((i) => i.text.includes("recurring expense"));
       expect(match?.text).toBe("1 recurring expense hasn't been paid yet this cycle ($20.00 left).");
       expect(match?.href).toBe("/budget");
@@ -183,7 +242,11 @@ describe("generateInsights", () => {
           { id: "c", actual: 25, targetAmount: 25 },
         ]),
       ];
-      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ recurringExpenseCategories: categories, now: parseDateOnly("2026-08-17")! }),
+      );
       const match = insights.find((i) => i.text.includes("recurring expenses"));
       // Unpaid: "a" (remaining 20) + "b" (remaining 15) = 35; "c" already paid.
       expect(match?.text).toBe("2 recurring expenses haven't been paid yet this cycle ($35.00 left).");
@@ -228,24 +291,32 @@ describe("generateInsights", () => {
       const stableWindowCycle = makeFinancials({
         categoryTotals: [
           { categoryId: "rent", categoryName: "Rent", categoryIcon: null, amount: 1000 },
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 20 },
+          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 30 },
         ],
       });
-      const insights = generateInsights(current, [stableWindowCycle, stableWindowCycle], makeExtras());
+      // now = the cycle's own last day, so proration is a no-op and the
+      // fixture's dollar amounts read the same as a full-cycle comparison.
+      const insights = generateInsights(
+        current,
+        [stableWindowCycle, stableWindowCycle],
+        makeExtras({ now: parseDateOnly("2026-08-17")! }),
+      );
       const match = insights.find((i) => i.text.includes("vs your recent average"));
-      expect(match?.text).toBe("Coffee spending is up $40.00 vs your recent average.");
+      expect(match?.text).toBe("Coffee spending is up $30.00 vs your recent average.");
       expect(match?.href).toBe("/transactions?category=coffee");
       expect(insights.some((i) => i.text.includes("Rent"))).toBe(false);
     });
 
     it("requires at least a 20% relative swing to fire", () => {
+      // now = the cycle's own last day -- see the test above for why.
+      const extras = makeExtras({ now: parseDateOnly("2026-08-17")! });
       const belowThreshold = generateInsights(
         makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 119 }] }),
         [
           makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
           makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
         ],
-        makeExtras(),
+        extras,
       );
       expect(belowThreshold.some((i) => i.text.includes("Groceries"))).toBe(false);
 
@@ -255,9 +326,34 @@ describe("generateInsights", () => {
           makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
           makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
         ],
-        makeExtras(),
+        extras,
       );
       expect(atThreshold.some((i) => i.text.includes("Groceries"))).toBe(true);
+    });
+
+    it("ignores a category averaging below the minimum-average floor, even with a large relative swing", () => {
+      const insights = generateInsights(
+        makeFinancials({ categoryTotals: [{ categoryId: "tiny", categoryName: "Parking", categoryIcon: null, amount: 10 }] }),
+        [
+          makeFinancials({ categoryTotals: [{ categoryId: "tiny", categoryName: "Parking", categoryIcon: null, amount: 2 }] }),
+          makeFinancials({ categoryTotals: [{ categoryId: "tiny", categoryName: "Parking", categoryIcon: null, amount: 2 }] }),
+        ],
+        makeExtras({ now: parseDateOnly("2026-08-17")! }),
+      );
+      expect(insights.some((i) => i.text.includes("Parking"))).toBe(false);
+    });
+
+    it("ignores a dollar delta below the minimum-dollar-delta floor, even with a large relative swing", () => {
+      const insights = generateInsights(
+        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Snacks", categoryIcon: null, amount: 35 }] }),
+        [
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Snacks", categoryIcon: null, amount: 25 }] }),
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Snacks", categoryIcon: null, amount: 25 }] }),
+        ],
+        makeExtras({ now: parseDateOnly("2026-08-17")! }),
+      );
+      // average 25 (clears ANOMALY_MIN_AVERAGE), delta 10 (under ANOMALY_MIN_DOLLAR_DELTA of 15), 40% relative.
+      expect(insights.some((i) => i.text.includes("Snacks"))).toBe(false);
     });
   });
 
@@ -308,7 +404,9 @@ describe("generateInsights", () => {
         [],
         makeExtras({ cycle, now }),
       );
-      expect(insights.some((i) => i.text === "You're $50.00 over budget this cycle so far.")).toBe(true);
+      expect(
+        insights.some((i) => i.text === "You're $50.00 over budget this cycle so far, with 7 days left."),
+      ).toBe(true);
     });
   });
 
@@ -453,6 +551,165 @@ describe("generateInsights", () => {
       );
       expect(insights.some((i) => i.text.includes("New laptop"))).toBe(true);
       expect(insights.some((i) => i.text.includes("Vacation"))).toBe(false);
+    });
+
+    it("fires at the new, lower 60% proximity threshold (would not have fired at the old 80%)", () => {
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ goals: [makeGoal({ savedSoFar: 650, lifetimeTargetAmount: 1000 })] }),
+      );
+      expect(insights.some((i) => i.text.includes("Emergency fund"))).toBe(true);
+    });
+  });
+
+  describe("pace-aware rule links to Breakdown once it escalates", () => {
+    it("the run-out-of-cash warning links to /dashboard/breakdown", () => {
+      const cycle = { periodStart: parseDateOnly("2026-08-03")!, periodEnd: null };
+      const now = parseDateOnly("2026-08-10")!;
+      const insights = generateInsights(
+        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 700, amountLeft: 300 }),
+        [],
+        makeExtras({ cycle, now }),
+      );
+      const match = insights.find((i) => i.text.includes("run out of cash"));
+      expect(match?.href).toBe("/dashboard/breakdown");
+    });
+  });
+
+  describe("goal contribution rule (N2 -- planned vs. actually logged this cycle)", () => {
+    it("does not fire before 60% of the cycle has elapsed", () => {
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({ goals: [makeGoal({ currentCycleRecurringAmount: 200 })] }),
+      );
+      expect(insights.some((i) => i.text.includes("planned"))).toBe(false);
+    });
+
+    it("fires once 60%+ elapsed with nothing logged toward a planned contribution", () => {
+      const current = makeFinancials();
+      const insights = generateInsights(
+        current,
+        [],
+        makeExtras({
+          now: parseDateOnly("2026-08-13")!, // day 11 of 15 -> ~73% elapsed
+          goals: [makeGoal({ currentCycleRecurringAmount: 200 })],
+        }),
+      );
+      const match = insights.find((i) => i.text.includes("planned"));
+      expect(match?.text).toBe(
+        "You planned $200.00 for Emergency fund this quincena — only $0.00 logged so far, with 4 days left.",
+      );
+      expect(match?.href).toBe("/goals");
+    });
+
+    it("does not fire once at least half the planned amount is actually logged this cycle", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({ type: "SAVINGS", expenseCategoryId: "goal-1", amount: 100 }),
+        ],
+      });
+      const insights = generateInsights(
+        current,
+        [],
+        makeExtras({
+          now: parseDateOnly("2026-08-13")!,
+          goals: [makeGoal({ currentCycleRecurringAmount: 200 })],
+        }),
+      );
+      expect(insights.some((i) => i.text.includes("planned"))).toBe(false);
+    });
+
+    it("ignores a goal with no per-cycle plan set", () => {
+      const insights = generateInsights(
+        makeFinancials(),
+        [],
+        makeExtras({
+          now: parseDateOnly("2026-08-13")!,
+          goals: [makeGoal({ currentCycleRecurringAmount: null })],
+        }),
+      );
+      expect(insights.some((i) => i.text.includes("planned"))).toBe(false);
+    });
+  });
+
+  describe("duplicate-charge rule (N6)", () => {
+    it("flags two same-merchant, same-amount Gmail imports within 3 days of each other", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-08")!,
+          }),
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-09")!,
+          }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      const match = insights.find((i) => i.text.includes("duplicate"));
+      expect(match?.text).toBe("Two charges of $28.50 from Super 99 on Aug 9, 2026 — duplicate?");
+      expect(match?.href).toBe(`/transactions?q=${encodeURIComponent("Super 99")}`);
+    });
+
+    it("does not flag two manual entries, even matching on name/amount/date", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "MANUAL" }),
+          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "MANUAL" }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
+    });
+
+    it("does not flag a Gmail/manual pair -- both sides must be Gmail imports", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "GMAIL" }),
+          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "MANUAL" }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
+    });
+
+    it("does not flag two Gmail charges more than 3 days apart", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-01")!,
+          }),
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-09")!,
+          }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
+    });
+
+    it("does not flag two different amounts from the same Gmail merchant", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "GMAIL" }),
+          makeTransaction({ name: "Super 99", amount: 15.0, importSource: "GMAIL" }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
     });
   });
 });
