@@ -49,15 +49,12 @@ test.describe("dashboard 'needs attention' banner", () => {
     await expect(page.locator(".categorize-imports-row")).toHaveCount(1);
     const row = page.locator(".categorize-imports-row");
     await expect(row).toContainText("Sent to Juan Perez");
-    await expect(row.locator("select")).toHaveCount(1);
-    // The "new category" input isn't shown until "+ New category…" is
-    // picked -- only the description field (this transaction also needs
-    // one) is present so far.
-    await expect(row.locator('input[placeholder="New category name"]')).toHaveCount(0);
+    // CategoryNameInput's single always-visible input -- no separate
+    // "new category" field to reveal, it accepts free text directly.
+    await expect(row.locator('input[placeholder="Choose or enter a category"]')).toHaveCount(1);
     await expect(row.locator('input[placeholder="Rent, lunch, gift…"]')).toHaveCount(1);
 
-    await row.locator("select").selectOption({ label: "+ New category…" });
-    await row.locator('input[placeholder="New category name"]').fill("Transportation");
+    await row.locator('input[placeholder="Choose or enter a category"]').fill("Transportation");
     await row.locator('input[placeholder="Rent, lunch, gift…"]').fill("Taxi fare");
     await row.getByRole("button", { name: "Save", exact: true }).click();
 
@@ -83,7 +80,7 @@ test.describe("dashboard 'needs attention' banner", () => {
     const row = page.locator(".categorize-imports-row");
     await expect(row).toContainText("Cafe Unido");
     await expect(row).not.toContainText("Sent to");
-    await expect(row.locator("select")).toHaveCount(1);
+    await expect(row.locator('input[placeholder="Choose or enter a category"]')).toHaveCount(1);
     await expect(row.locator('input[placeholder="Rent, lunch, gift…"]')).toHaveCount(0);
   });
 });

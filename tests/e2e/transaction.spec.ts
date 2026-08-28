@@ -55,8 +55,8 @@ test.describe("logging a transaction", () => {
       const nameField = page.getByLabel("Merchant / name");
       await expect(nameField).toHaveValue("");
       await fillCategory(page, "Transportation");
-      // fillCategory's "Other…" free-text path -- the untouched Name field
-      // tracks it live.
+      // fillCategory's free-text path (a brand-new category) -- the
+      // untouched Name field tracks it live.
       await expect(nameField).toHaveValue("Transportation");
 
       await page.getByLabel("Amount (USD)").fill("45.50");

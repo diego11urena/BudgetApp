@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signOut } from "@/lib/auth";
 import { auth } from "@/lib/auth";
@@ -9,13 +8,14 @@ import { getActiveIncomeSource, getOrCreateDraftCycle, upsertCycleIncomeEntry } 
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { changePasswordSchema, incomeStepSchema } from "@/lib/validations/onboarding";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
+import { revalidateAppPages } from "@/lib/revalidate";
 
 export const signOutAction = withActionErrorHandling(async function signOutAction() {
   await signOut({ redirectTo: "/login" });
 });
 
-export type ChangePasswordFormState = { error?: string; success?: boolean } | undefined;
+export type ChangePasswordFormState = ActionResult<{ success: true }> | undefined;
 
 const CHANGE_PASSWORD_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 
@@ -87,7 +87,7 @@ export const logOutEverywhereAction = withActionErrorHandling(async function log
   await signOut({ redirectTo: "/login" });
 });
 
-export type IncomeSettingsFormState = { error?: string; success?: boolean } | undefined;
+export type IncomeSettingsFormState = ActionResult<{ success: true }> | undefined;
 
 export const updateIncomeAction = withActionErrorHandling(async function updateIncomeAction(
   _prevState: IncomeSettingsFormState,
@@ -129,11 +129,7 @@ export const updateIncomeAction = withActionErrorHandling(async function updateI
     upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
   ]);
 
-  revalidatePath("/profile");
-  revalidatePath("/dashboard");
-  revalidatePath("/budget");
-  revalidatePath("/goals");
-  revalidatePath("/transactions");
+  revalidateAppPages();
 
   return { success: true };
 });

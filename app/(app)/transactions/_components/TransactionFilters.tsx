@@ -2,22 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { PAYMENT_METHOD_OPTIONS as PAYMENT_METHOD_OPTIONS_BASE } from "@/lib/payment-method";
+import { TRANSACTION_TYPE_OPTIONS } from "@/lib/transaction-type";
 
-const TYPE_OPTIONS = [
-  { value: "", label: "Type" },
-  { value: "EXPENSE", label: "Expense" },
-  { value: "INCOME", label: "Extra income" },
-  { value: "SAVINGS", label: "Savings" },
-];
+// "" ("any type") prepended onto the shared canonical list -- same pattern
+// as PAYMENT_METHOD_OPTIONS below.
+const TYPE_OPTIONS = [{ value: "", label: "Type" }, ...TRANSACTION_TYPE_OPTIONS];
 
-const PAYMENT_METHOD_OPTIONS = [
-  { value: "", label: "Payment" },
-  { value: "CREDIT_CARD", label: "Credit Card" },
-  { value: "DEBIT_CARD", label: "Debit Card" },
-  { value: "YAPPY", label: "Yappy" },
-  { value: "ACH", label: "ACH" },
-  { value: "CASH", label: "Cash" },
-];
+// "" ("any payment method") prepended onto the shared canonical list --
+// only this dropdown needs that sentinel, so it's added here rather than
+// in lib/payment-method.ts.
+const PAYMENT_METHOD_OPTIONS = [{ value: "", label: "Payment" }, ...PAYMENT_METHOD_OPTIONS_BASE];
 
 const SORT_OPTIONS = [
   { value: "date_desc", label: "Newest" },

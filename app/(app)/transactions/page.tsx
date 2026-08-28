@@ -8,11 +8,10 @@ import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary, TRANSACTION_SELECT } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCycleLabel } from "@/lib/pay-date";
+import { PAYMENT_METHODS } from "@/lib/payment-method";
+import { TRANSACTION_TYPES } from "@/lib/transaction-type";
 import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
-
-const TX_TYPES = ["EXPENSE", "INCOME", "SAVINGS"] as const;
-const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"] as const;
 
 export const metadata: Metadata = { title: "Transactions" };
 
@@ -51,7 +50,9 @@ export default async function TransactionsPage({
     // indicator), the most abrupt scope jump in the app relative to every
     // other screen, which is cycle-scoped by default.
     cycleId: cycleId ?? cycle.id,
-    ...(TX_TYPES.includes(type as (typeof TX_TYPES)[number]) ? { type: type as (typeof TX_TYPES)[number] } : {}),
+    ...(TRANSACTION_TYPES.includes(type as (typeof TRANSACTION_TYPES)[number])
+      ? { type: type as (typeof TRANSACTION_TYPES)[number] }
+      : {}),
     ...(PAYMENT_METHODS.includes(paymentMethod as (typeof PAYMENT_METHODS)[number])
       ? { paymentMethod: paymentMethod as (typeof PAYMENT_METHODS)[number] }
       : {}),

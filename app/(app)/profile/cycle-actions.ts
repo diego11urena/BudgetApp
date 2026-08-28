@@ -13,7 +13,7 @@ import {
 } from "@/lib/cycles";
 import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const ERASE_CYCLES_RATE_LIMIT = { max: 10, windowMs: 60_000 };
@@ -33,7 +33,7 @@ const ERASE_CYCLES_RATE_LIMIT = { max: 10, windowMs: 60_000 };
  * with no income entry.
  */
 export const eraseAllCyclesAction = withActionErrorHandling(async function eraseAllCyclesAction(): Promise<
-  { error?: string } | undefined
+  ActionResult | undefined
 > {
   const session = await auth();
   if (!session?.user?.id) {

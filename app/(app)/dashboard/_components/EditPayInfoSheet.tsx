@@ -6,7 +6,7 @@ import { editCyclePayInfoAction, previewPayDateChangeAction } from "../actions";
 import type { PayDateChangeResult } from "@/lib/cycles";
 import { Sheet } from "../../_components/Sheet";
 import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama } from "@/lib/pay-date";
-import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
+import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
 
 /**
  * Corrects a cycle's already-recorded pay amount/date in place — distinct
@@ -109,8 +109,9 @@ export function EditPayInfoSheet({
     // Explicit checks instead of relying on the amount/date inputs' native
     // required/min/max — those silently block submission with no in-app
     // feedback (the form has noValidate specifically so this runs instead).
-    if (!amount.trim() || Number.isNaN(Number(amount))) {
-      setError(INVALID_AMOUNT_FORMAT_MESSAGE);
+    const amountFormatError = validateAmountFormat(amount);
+    if (amountFormatError) {
+      setError(amountFormatError);
       setErrorField("amount");
       return;
     }

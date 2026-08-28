@@ -4,16 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
 import { recordRecurringExpensePaymentAction } from "../recurring-actions";
-
-type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
-
-const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
-  { value: "CASH", label: "Cash" },
-  { value: "CREDIT_CARD", label: "Credit Card" },
-  { value: "DEBIT_CARD", label: "Debit Card" },
-  { value: "YAPPY", label: "Yappy" },
-  { value: "ACH", label: "ACH" },
-];
+import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method";
 
 /**
  * A deliberately minimal sheet — amount and payment method, pre-filled from

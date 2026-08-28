@@ -14,11 +14,9 @@ import { revalidateAppPages } from "@/lib/revalidate";
 import { recurringExpenseSchema } from "@/lib/validations/budget";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { paymentMethodSchema } from "@/lib/validations/transactions";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 
-export type RecurringExpenseFormState =
-  | { error?: string; field?: "name" | "amount" | "categoryName" | "dueDay" }
-  | undefined;
+export type RecurringExpenseFormState = ActionResult | undefined;
 
 /** Name/amount/category/frequency/due-day, all in one sheet -- replaces the old "create a target, then separately set its frequency" two-step flow. */
 export const createRecurringExpenseAction = withActionErrorHandling(async function createRecurringExpenseAction(
@@ -175,10 +173,7 @@ export interface DeletedRecurringExpenseSnapshot {
 }
 
 /** Success carries a snapshot so a "Deleted · Undo" toast can restore it. */
-export type DeleteRecurringExpenseResult =
-  | { error: string }
-  | { deleted: DeletedRecurringExpenseSnapshot }
-  | undefined;
+export type DeleteRecurringExpenseResult = ActionResult<{ deleted: DeletedRecurringExpenseSnapshot }> | undefined;
 
 export const deleteRecurringExpenseAction = withActionErrorHandling(async function deleteRecurringExpenseAction(
   _prevState: DeleteRecurringExpenseResult,
@@ -235,7 +230,7 @@ export const deleteRecurringExpenseAction = withActionErrorHandling(async functi
 /** Undo for a deleted recurring expense — flips `recurring` back on and restores this cycle's snapshot. */
 export const restoreRecurringExpenseAction = withActionErrorHandling(async function restoreRecurringExpenseAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -286,7 +281,7 @@ export const restoreRecurringExpenseAction = withActionErrorHandling(async funct
   revalidateAppPages();
 });
 
-export type RecordPaymentResult = { error: string } | { transactionId: string } | undefined;
+export type RecordPaymentResult = ActionResult<{ transactionId: string }> | undefined;
 
 /** Logs a real CycleTransaction for this cycle's payment of a recurring expense — amount pre-filled from the recurring expense's own amount but editable, so a bill that came in slightly different than usual is still recorded accurately. */
 export const recordRecurringExpensePaymentAction = withActionErrorHandling(async function recordRecurringExpensePaymentAction(
@@ -349,7 +344,7 @@ export const recordRecurringExpensePaymentAction = withActionErrorHandling(async
  */
 export const confirmRecurringExpenseMatchAction = withActionErrorHandling(async function confirmRecurringExpenseMatchAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");

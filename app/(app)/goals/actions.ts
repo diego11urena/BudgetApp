@@ -9,9 +9,9 @@ import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { goalContributionDeltaSchema, goalSchema, updateGoalSchema } from "@/lib/validations/goals";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 
-export type GoalFormState = { error?: string } | undefined;
+export type GoalFormState = ActionResult | undefined;
 
 /**
  * Creates a new goal (or resurrects a previously-removed one matching the
@@ -243,7 +243,7 @@ export interface RemovedGoalSnapshot {
 }
 
 /** Success carries a snapshot so a "Deleted · Undo" toast can restore it. */
-export type RemoveGoalResult = { error: string } | { removed: RemovedGoalSnapshot } | undefined;
+export type RemoveGoalResult = ActionResult<{ removed: RemovedGoalSnapshot }> | undefined;
 
 export const removeGoalAction = withActionErrorHandling(async function removeGoalAction(
   formData: FormData,
@@ -307,7 +307,7 @@ export const removeGoalAction = withActionErrorHandling(async function removeGoa
  */
 export const restoreGoalAction = withActionErrorHandling(async function restoreGoalAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");

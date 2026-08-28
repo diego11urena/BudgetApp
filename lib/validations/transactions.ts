@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { decimalString } from "./shared";
+import { PAYMENT_METHODS } from "@/lib/payment-method";
 
 export const transactionTypeSchema = z.enum(["EXPENSE", "INCOME", "SAVINGS"]);
 
-export const paymentMethodSchema = z.enum(["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"]);
+export const paymentMethodSchema = z.enum(PAYMENT_METHODS);
 
 export const addTransactionSchema = z.object({
   type: transactionTypeSchema,

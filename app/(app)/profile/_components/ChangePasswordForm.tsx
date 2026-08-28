@@ -56,12 +56,12 @@ export function ChangePasswordForm() {
         )}
       </div>
 
-      {state?.error && (
+      {!!state && "error" in state && (
         <p className="error-text" role="alert">
           {state.error}
         </p>
       )}
-      {state?.success && (
+      {!!state && "success" in state && (
         <p className="field-hint" style={{ marginTop: "0.5rem" }}>
           Password updated.
         </p>

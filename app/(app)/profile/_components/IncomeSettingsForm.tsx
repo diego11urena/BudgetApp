@@ -30,8 +30,8 @@ export function IncomeSettingsForm({ initial }: { initial: IncomeSettingsInitial
         </span>
       </div>
 
-      {state?.error && <p className="error-text">{state.error}</p>}
-      {state?.success && (
+      {!!state && "error" in state && <p className="error-text">{state.error}</p>}
+      {!!state && "success" in state && (
         <p className="field-hint" style={{ marginTop: "0.5rem" }}>
           Saved — this quincena&apos;s numbers are already updated.
         </p>

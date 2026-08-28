@@ -51,9 +51,10 @@ export async function openQuickAdd(
 }
 
 /**
- * Fills the category field, whichever mode it's currently in — chips (once
- * the user has at least one category) or the free-text/"Other…" input for
- * a brand-new one.
+ * Fills CategoryNameInput's category field — a chip for an existing
+ * category with an exact name match, or typing directly into its always-
+ * visible text input for a brand-new one (no separate "Other…" chip to
+ * click first; CategoryNameInput's combobox accepts free text as-is).
  */
 export async function fillCategory(page: Page, name: string): Promise<void> {
   const chip = page.locator(".category-chip", { hasText: new RegExp(`^${name}$`) });
@@ -61,7 +62,5 @@ export async function fillCategory(page: Page, name: string): Promise<void> {
     await chip.click();
     return;
   }
-  const otherChip = page.locator('.category-chip:has-text("Other")');
-  if (await otherChip.count()) await otherChip.click();
   await page.fill('input[placeholder="Category name"]', name);
 }

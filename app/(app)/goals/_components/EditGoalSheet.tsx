@@ -6,7 +6,7 @@ import { updateGoalWithContributionAction } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import { Sheet } from "../../_components/Sheet";
 import { formatCurrency } from "@/lib/format";
-import { INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
+import { INVALID_AMOUNT_FORMAT_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
 
 export interface EditableGoal {
   categoryId: string;
@@ -112,12 +112,15 @@ export function EditGoalSheet({
       setErrorField("name");
       return;
     }
-    if (!lifetimeTargetAmount.trim() || Number.isNaN(Number(lifetimeTargetAmount)) || Number(lifetimeTargetAmount) <= 0) {
+    if (validateAmountFormat(lifetimeTargetAmount) || Number(lifetimeTargetAmount) <= 0) {
       setError(INVALID_AMOUNT_FORMAT_MESSAGE);
       setErrorField("target");
       return;
     }
-    if (!savedSoFar.trim() || Number.isNaN(Number(savedSoFar)) || Number(savedSoFar) < 0) {
+    // No separate `< 0` check needed -- validateAmountFormat's regex has no
+    // sign, so anything that passes is already non-negative (savedSoFar,
+    // unlike lifetimeTargetAmount, is allowed to be exactly 0).
+    if (validateAmountFormat(savedSoFar)) {
       setError(INVALID_AMOUNT_FORMAT_MESSAGE);
       setErrorField("saved");
       return;

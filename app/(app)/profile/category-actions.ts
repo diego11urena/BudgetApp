@@ -8,7 +8,7 @@ import { recomputeCategoryBudgetGoal } from "@/lib/cycles";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const MERGE_CATEGORY_RATE_LIMIT = { max: 10, windowMs: 60_000 };
@@ -120,7 +120,7 @@ async function mergeCategoryRecurringExpenses(
  */
 export const mergeCategoryAction = withActionErrorHandling(async function mergeCategoryAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -245,7 +245,7 @@ export const mergeCategoryAction = withActionErrorHandling(async function mergeC
  */
 export const createCategoryAction = withActionErrorHandling(async function createCategoryAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -285,7 +285,7 @@ export const createCategoryAction = withActionErrorHandling(async function creat
  */
 export const updateCategoryAction = withActionErrorHandling(async function updateCategoryAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -359,7 +359,7 @@ export const updateCategoryAction = withActionErrorHandling(async function updat
  */
 export const deleteCategoryAction = withActionErrorHandling(async function deleteCategoryAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");

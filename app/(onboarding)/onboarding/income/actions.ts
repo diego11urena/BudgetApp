@@ -3,11 +3,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateDraftCycle, upsertCycleIncomeEntry } from "@/lib/cycles";
+import { getActiveIncomeSource, getOrCreateDraftCycle, upsertCycleIncomeEntry } from "@/lib/cycles";
 import { incomeStepSchema } from "@/lib/validations/onboarding";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
+import type { ActionResult } from "@/lib/action-error";
 
-export type IncomeFormState = { error?: string } | undefined;
+export type IncomeFormState = ActionResult | undefined;
 
 export async function saveIncomeAction(
   _prevState: IncomeFormState,
@@ -36,15 +37,9 @@ export async function saveIncomeAction(
   // hasn't gotten its own entry yet — e.g. right after "I just got paid",
   // or after the dev reset tool deletes a cycle but leaves IncomeSource
   // rows alone — reuses the existing source instead of quietly creating a
-  // second one that every downstream findFirst({ orderBy: createdAt: "asc" })
-  // would then never pick up.
-  const findActiveIncomeSource = () =>
-    prisma.incomeSource.findFirst({
-      where: { userId, isActive: true },
-      orderBy: { createdAt: "asc" },
-    });
-
-  let incomeSource = await findActiveIncomeSource();
+  // second one that every downstream getActiveIncomeSource would then
+  // never pick up.
+  let incomeSource = await getActiveIncomeSource(prisma, userId);
 
   if (!incomeSource) {
     try {
@@ -55,7 +50,7 @@ export async function saveIncomeAction(
       // source — the partial unique index on (userId) WHERE isActive
       // guarantees exactly one winner. Fall through and treat it like any
       // other already-existing income source below.
-      incomeSource = await findActiveIncomeSource();
+      incomeSource = await getActiveIncomeSource(prisma, userId);
       if (!incomeSource) throw error;
     }
   }

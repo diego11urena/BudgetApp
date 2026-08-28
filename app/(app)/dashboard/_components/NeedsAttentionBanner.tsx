@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { NeedsAttentionSheet, type NeedsAttentionTransaction } from "./NeedsAttentionSheet";
+import { NeedsAttentionSheet } from "./NeedsAttentionSheet";
+import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
 
 export function NeedsAttentionBanner({
   transactions,

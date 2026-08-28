@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useId, useRef, useState } from "react";
+import type { ActionResult } from "@/lib/action-error";
 
-export type LineItemsFormState = { error?: string } | undefined;
+export type LineItemsFormState = ActionResult | undefined;
 
 export interface LineItem {
   name: string;
@@ -116,7 +117,7 @@ export function LineItemsForm({
         + Add {rows.length > 0 ? "another" : "a"} {itemNounSingular}
       </button>
 
-      {state?.error && <p className="error-text">{state.error}</p>}
+      {!!state && "error" in state && <p className="error-text">{state.error}</p>}
 
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending}>

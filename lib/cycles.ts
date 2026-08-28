@@ -168,6 +168,21 @@ export async function createRecurringExpenseWithSnapshot(
     dueDay?: number | null;
   },
 ) {
+  // RecurringExpense.categoryId has no DB-level type constraint -- every
+  // caller today reaches this via getOrCreateCategory(..., "EXPENSE")
+  // (itself type-scoped, so it can never hand back a SAVINGS category), but
+  // nothing stops a future caller from passing an arbitrary id directly. If
+  // one ever pointed at a SAVINGS category, recomputeCategoryBudgetGoal
+  // would silently fold this expense's amount into that goal's aggregate
+  // (and delete it once the sum hits zero) -- the SAVINGS/EXPENSE split
+  // that the rest of the app assumes is airtight is really held together by
+  // this convention alone. Fail loudly here instead of corrupting a goal's
+  // number silently downstream.
+  const category = await db.expenseCategory.findUniqueOrThrow({ where: { id: params.categoryId } });
+  if (category.type !== "EXPENSE") {
+    throw new Error(`createRecurringExpenseWithSnapshot: category ${params.categoryId} is ${category.type}, not EXPENSE`);
+  }
+
   const recurringExpense = await db.recurringExpense.create({
     data: {
       userId: params.userId,

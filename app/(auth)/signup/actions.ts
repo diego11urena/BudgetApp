@@ -8,8 +8,9 @@ import { signupSchema } from "@/lib/validations/onboarding";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { seedDefaultIncomeCategories } from "@/lib/categories";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
+import type { ActionResult } from "@/lib/action-error";
 
-export type SignupFormState = { error?: string } | undefined;
+export type SignupFormState = ActionResult | undefined;
 
 const SIGNUP_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 // Looser than the per-email limit, same reasoning as login's IP check --

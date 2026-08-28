@@ -12,10 +12,11 @@ import {
 } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { revalidateAppPages } from "@/lib/revalidate";
-import { addTransactionSchema, paymentMethodSchema } from "@/lib/validations/transactions";
+import { addTransactionSchema, paymentMethodSchema, type AddTransactionInput } from "@/lib/validations/transactions";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { nowInPanama, panamaDateParts, parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
+import type { PaymentMethod } from "@/lib/payment-method";
 
 /**
  * Success carries the row's id — used by a "Logged · Undo" toast to delete
@@ -23,10 +24,7 @@ import { withActionErrorHandling } from "@/lib/action-error";
  * should still surface (e.g. updateTransactionAction silently unlinking a
  * recurring expense whose category no longer matches the edited row).
  */
-export type TransactionMutationResult =
-  | { error: string }
-  | { transactionId: string; message?: string }
-  | undefined;
+export type TransactionMutationResult = ActionResult<{ transactionId: string; message?: string }> | undefined;
 
 export interface DeletedTransactionSnapshot {
   cycleId: string;
@@ -34,7 +32,7 @@ export interface DeletedTransactionSnapshot {
   name: string;
   amount: number;
   occurredAt: string;
-  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
+  paymentMethod: PaymentMethod | null;
   description: string | null;
   expenseCategoryId: string | null;
   recurringExpenseId: string | null;
@@ -43,10 +41,30 @@ export interface DeletedTransactionSnapshot {
 }
 
 /** Success carries a snapshot of the deleted row so a "Deleted · Undo" toast can restore it. */
-export type DeleteTransactionResult =
-  | { error: string }
-  | { deleted: DeletedTransactionSnapshot }
-  | undefined;
+export type DeleteTransactionResult = ActionResult<{ deleted: DeletedTransactionSnapshot }> | undefined;
+
+/**
+ * The exact same addTransactionSchema.safeParse(formData) call, shared by
+ * addTransactionAction and updateTransactionAction (create and edit submit
+ * the identical set of fields) — everything after this point (cycle
+ * resolution, date validation, the recurring-link transition) genuinely
+ * diverges between the two and stays separate.
+ */
+function parseTransactionFields(formData: FormData): { error: string } | AddTransactionInput {
+  const parsed = addTransactionSchema.safeParse({
+    type: formData.get("type"),
+    name: formData.get("name"),
+    amount: formData.get("amount"),
+    category: formData.get("category") || undefined,
+    paymentMethod: formData.get("paymentMethod") ?? undefined,
+    occurredAt: formData.get("occurredAt") || undefined,
+    description: formData.get("description") ?? undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  return parsed.data;
+}
 
 export const addTransactionAction = withActionErrorHandling(async function addTransactionAction(
   _prevState: TransactionMutationResult,
@@ -58,22 +76,12 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
   }
   const userId = session.user.id;
 
-  const parsed = addTransactionSchema.safeParse({
-    type: formData.get("type"),
-    name: formData.get("name"),
-    amount: formData.get("amount"),
-    category: formData.get("category") || undefined,
-    paymentMethod: formData.get("paymentMethod") ?? undefined,
-    occurredAt: formData.get("occurredAt") || undefined,
-    description: formData.get("description") ?? undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const parsed = parseTransactionFields(formData);
+  if ("error" in parsed) {
+    return { error: parsed.error };
   }
 
-  const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } =
-    parsed.data;
+  const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } = parsed;
 
   // A hinted cycleId (from a past-quincena's own "+" — see
   // /history/[cycleId]) means "add into this specific cycle" rather than
@@ -184,22 +192,12 @@ export const updateTransactionAction = withActionErrorHandling(async function up
     return { error: "Missing transaction" };
   }
 
-  const parsed = addTransactionSchema.safeParse({
-    type: formData.get("type"),
-    name: formData.get("name"),
-    amount: formData.get("amount"),
-    category: formData.get("category") || undefined,
-    paymentMethod: formData.get("paymentMethod") ?? undefined,
-    occurredAt: formData.get("occurredAt") || undefined,
-    description: formData.get("description") ?? undefined,
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const parsed = parseTransactionFields(formData);
+  if ("error" in parsed) {
+    return { error: parsed.error };
   }
 
-  const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } =
-    parsed.data;
+  const { type, name, amount, category: categoryName, paymentMethod, occurredAt, description } = parsed;
 
   // Ownership-scoped: a plain update({ where: { id } }) would let a user
   // edit another user's row by guessing an id.
@@ -336,7 +334,7 @@ export const updateTransactionAction = withActionErrorHandling(async function up
  */
 export const categorizeTransactionAction = withActionErrorHandling(async function categorizeTransactionAction(
   formData: FormData,
-): Promise<{ error: string } | { transactionId: string }> {
+): Promise<ActionResult<{ transactionId: string }>> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -413,7 +411,7 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
  */
 export const describeTransactionAction = withActionErrorHandling(async function describeTransactionAction(
   formData: FormData,
-): Promise<{ error: string } | { transactionId: string }> {
+): Promise<ActionResult<{ transactionId: string }>> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -504,7 +502,7 @@ export const deleteTransactionAction = withActionErrorHandling(async function de
  */
 export const restoreTransactionAction = withActionErrorHandling(async function restoreTransactionAction(
   formData: FormData,
-): Promise<{ error?: string } | undefined> {
+): Promise<ActionResult | undefined> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");

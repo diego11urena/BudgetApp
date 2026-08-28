@@ -52,7 +52,7 @@ export function RecurringExpenseEditSheet({
   const [recurring, setRecurring] = useState(existing?.recurring ?? true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [errorField, setErrorField] = useState<"name" | "amount" | "categoryName" | "dueDay" | null>(null);
+  const [errorField, setErrorField] = useState<string | null>(null);
   const uid = useId();
   const nameId = `${uid}-name`;
   const amountId = `${uid}-amount`;

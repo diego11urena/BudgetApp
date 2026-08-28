@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { PaymentMethod } from "@/lib/payment-method";
 
 export interface CategoryTotal {
   categoryId: string;
@@ -21,7 +22,7 @@ export interface CycleTransactionSummary {
   /** How the transaction arrived — never a substitute for categoryName or paymentMethod, just the "📧 Gmail" display tag. */
   importSource: "MANUAL" | "GMAIL";
   /** What it was paid or received with — null for SAVINGS (no payment-method concept) or when never set. */
-  paymentMethod: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
+  paymentMethod: PaymentMethod | null;
   /** What the money was for, beyond name/merchant — mainly Yappy's own optional "Mensaje" note. Null for everything else. */
   description: string | null;
   /** The EXPENSE category this transaction belongs to, if any -- needed (distinct from categoryName) to scope the "make this recurring" toggle's exact-name lookup to the right category. Null for INCOME/SAVINGS or an uncategorized import. */
@@ -70,7 +71,7 @@ interface TransactionLike {
   expenseCategory: { id: string; name: string; icon: string | null } | null;
   sourceMessageId?: string | null;
   importSource?: "MANUAL" | "GMAIL";
-  paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH" | null;
+  paymentMethod?: PaymentMethod | null;
   description?: string | null;
   recurringExpenseId?: string | null;
 }

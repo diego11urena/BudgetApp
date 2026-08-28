@@ -26,16 +26,7 @@ export function RecurringExpensesPanel({
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "0.5rem",
-          marginBottom: "0.5rem",
-        }}
-      >
+      <div className="section-header-row">
         <h2 style={{ marginBottom: 0, minWidth: 0, flex: "1 1 auto" }}>{dateRangeText}</h2>
         <button
           type="button"

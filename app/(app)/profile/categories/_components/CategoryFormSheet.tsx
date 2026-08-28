@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "../../../_components/Sheet";
 import { CategoryIcon } from "@/lib/category-icons";
 import { createCategoryAction, updateCategoryAction } from "../../category-actions";
+import type { ActionResult } from "@/lib/action-error";
 import { IconPickerSheet } from "./IconPickerSheet";
 import type { CategoryWithUsage } from "./types";
 
@@ -68,7 +69,7 @@ export function CategoryFormSheet({
     fd.set("name", trimmed);
     if (icon) fd.set("icon", icon);
 
-    let result: { error?: string } | undefined;
+    let result: ActionResult | undefined;
     if (existingCategory) {
       fd.set("categoryId", existingCategory.id);
       fd.set("type", type);
@@ -78,7 +79,7 @@ export function CategoryFormSheet({
     }
 
     setPending(false);
-    if (result?.error) {
+    if (result && "error" in result) {
       setError(result.error);
       return;
     }

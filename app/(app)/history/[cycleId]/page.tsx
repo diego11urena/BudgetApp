@@ -144,19 +144,7 @@ export default async function CycleHistoryPage({
       </div>
 
       <div className="dashboard-section">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "0.5rem",
-            marginBottom: "0.5rem",
-          }}
-        >
-          {/* flex-wrap here for the same reason as BudgetGoalsPanel's header
-              row — lets the action button drop to its own line instead of
-              squeezing this heading down to a near-zero column. */}
+        <div className="section-header-row">
           <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Transactions</h2>
           <AddToCycleButton
             cycleId={cycle.id}

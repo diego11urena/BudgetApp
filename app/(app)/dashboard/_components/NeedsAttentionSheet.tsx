@@ -5,19 +5,8 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
 import { categorizeTransactionAction, describeTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
-
-const NEW_CATEGORY_VALUE = "__new__";
-
-export interface NeedsAttentionTransaction {
-  id: string;
-  name: string;
-  amount: number;
-  type: "EXPENSE" | "INCOME" | "SAVINGS";
-  needsCategory: boolean;
-  needsDescription: boolean;
-  /** Yappy is P2P — the counterparty's name alone doesn't say what the money was for, in either direction. Only used for the row's label when needsDescription. */
-  direction: "sent" | "received";
-}
+import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
+import { CategoryNameInput } from "../../_components/CategoryNameInput";
 
 /**
  * Replaces what used to be two separate banners/sheets (Categorize
@@ -65,11 +54,16 @@ export function NeedsAttentionSheet({
   }
 
   function handleDone(transactionId: string) {
-    setTransactions((prev) => {
-      const next = prev.filter((t) => t.id !== transactionId);
-      if (next.length === 0) handleClose();
-      return next;
-    });
+    // Computed from the current `transactions` state directly, not a
+    // setTransactions functional updater -- React may invoke an updater
+    // more than once (StrictMode, a concurrent re-render), which would
+    // fire handleClose()'s side effects (onClose, the close animation)
+    // twice. Each row calls this from its own completed async action, one
+    // at a time, so there's no risk of missing a concurrent removal that
+    // the functional form was guarding against.
+    const next = transactions.filter((t) => t.id !== transactionId);
+    setTransactions(next);
+    if (next.length === 0) handleClose();
   }
 
   return (
@@ -120,9 +114,7 @@ function NeedsAttentionRow({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [category, setCategory] = useState("");
-  const [newCategory, setNewCategory] = useState("");
+  const [categoryValue, setCategoryValue] = useState("");
   const [recurring, setRecurring] = useState(false);
   const [description, setDescription] = useState("");
 
@@ -135,8 +127,7 @@ function NeedsAttentionRow({
     e.preventDefault();
     setError(null);
 
-    const categoryValue = creatingNew ? newCategory.trim() : category;
-    if (transaction.needsCategory && !categoryValue) {
+    if (transaction.needsCategory && !categoryValue.trim()) {
       setError("Choose or enter a category");
       return;
     }
@@ -155,7 +146,7 @@ function NeedsAttentionRow({
     if (transaction.needsCategory) {
       const fd = new FormData();
       fd.set("transactionId", transaction.id);
-      fd.set("category", categoryValue);
+      fd.set("category", categoryValue.trim());
       if (recurring) fd.set("recurring", "true");
       const result = await categorizeTransactionAction(fd);
       if ("error" in result) {
@@ -182,7 +173,7 @@ function NeedsAttentionRow({
   }
 
   return (
-    <form className="categorize-imports-row" onSubmit={handleSubmit}>
+    <form className="categorize-imports-row" onSubmit={handleSubmit} noValidate>
       <div className="categorize-imports-row-header">
         <span className="categorize-imports-row-name">{label}</span>
         <span className="categorize-imports-row-amount">{formatCurrency(transaction.amount)}</span>
@@ -191,35 +182,16 @@ function NeedsAttentionRow({
       {transaction.needsCategory && (
         <>
           <div className="categorize-imports-row-input">
-            <select
+            <CategoryNameInput
               id={`needs-attention-category-${transaction.id}`}
-              defaultValue=""
-              onChange={(e) => {
-                setCreatingNew(e.target.value === NEW_CATEGORY_VALUE);
-                setCategory(e.target.value);
-              }}
-            >
-              <option value="" disabled>
-                Choose a category
-              </option>
-              {categoryNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-              <option value={NEW_CATEGORY_VALUE}>+ New category…</option>
-            </select>
-            {creatingNew && (
-              <input
-                type="text"
-                placeholder="New category name"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                autoComplete="off"
-              />
-            )}
+              name="category"
+              categoryNames={categoryNames}
+              placeholder="Choose or enter a category"
+              showChips={false}
+              onValueChange={setCategoryValue}
+            />
           </div>
-          {transaction.type === "EXPENSE" && (category || newCategory) && (
+          {transaction.type === "EXPENSE" && categoryValue.trim() && (
             <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
               <input
                 type="checkbox"

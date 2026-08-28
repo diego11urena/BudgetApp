@@ -7,18 +7,11 @@ import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { groupTransactionsByDate } from "@/lib/transaction-grouping";
+import { PAYMENT_METHOD_LABEL } from "@/lib/payment-method";
 import type { EditingTransaction } from "./QuickAddSheet";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
 const QuickAddSheet = dynamic(() => import("./QuickAddSheet").then((mod) => mod.QuickAddSheet));
-
-const PAYMENT_METHOD_LABEL: Record<NonNullable<CycleTransactionSummary["paymentMethod"]>, string> = {
-  CASH: "Cash",
-  CREDIT_CARD: "Credit Card",
-  DEBIT_CARD: "Debit Card",
-  YAPPY: "Yappy",
-  ACH: "ACH",
-};
 
 const AMOUNT_CLASS: Record<CycleTransactionSummary["type"], string> = {
   EXPENSE: "",

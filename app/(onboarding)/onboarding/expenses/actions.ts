@@ -6,8 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle, recomputeCategoryBudgetGoal } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
 import { budgetLineItemsSchema } from "@/lib/validations/onboarding";
+import type { ActionResult } from "@/lib/action-error";
 
-export type ExpensesFormState = { error?: string } | undefined;
+export type ExpensesFormState = ActionResult | undefined;
 
 export async function saveExpensesAction(
   _prevState: ExpensesFormState,
@@ -46,14 +47,35 @@ export async function saveExpensesAction(
       })
     ).map((goal) => goal.expenseCategoryId);
 
+    // The deleteMany below cascades away every one of this user's EXPENSE
+    // RecurringExpense rows' CycleRecurringExpense snapshots, in whichever
+    // cycle(s) they happen to live -- not just this draft cycle. Onboarding
+    // can't actually reach a second cycle in practice (closeCycleAndStart
+    // Next requires onboardingCompletedAt, which this action itself sets at
+    // the very end), so today that's always just this one cycle -- but
+    // capturing every affected (cycle, category) pair here, not only this
+    // cycle's, means the recompute loop below stays correct even if that
+    // stops being true, instead of silently leaving some other cycle's
+    // aggregate stale.
+    const affectedCyclesToCategoryIds = new Map<string, Set<string>>();
+    for (const snapshot of await tx.cycleRecurringExpense.findMany({
+      where: { recurringExpense: { userId, category: { type: "EXPENSE" } } },
+      select: { cycleId: true, recurringExpense: { select: { categoryId: true } } },
+    })) {
+      const categoryIds = affectedCyclesToCategoryIds.get(snapshot.cycleId) ?? new Set<string>();
+      categoryIds.add(snapshot.recurringExpense.categoryId);
+      affectedCyclesToCategoryIds.set(snapshot.cycleId, categoryIds);
+    }
+    const currentCycleCategoryIds = affectedCyclesToCategoryIds.get(cycle.id) ?? new Set<string>();
+    for (const categoryId of previouslyAffectedCategoryIds) currentCycleCategoryIds.add(categoryId);
+    affectedCyclesToCategoryIds.set(cycle.id, currentCycleCategoryIds);
+
     // Replace-all: a resubmission (e.g. after going back to edit) must drop
     // rows the user removed, not just upsert what's still present. Safe to
     // hard-delete here (unlike the "soft delete" recurring-actions.ts uses
     // post-onboarding) — nothing created during onboarding has any closed-
     // cycle history yet to preserve, since no cycle has ever closed.
     await tx.recurringExpense.deleteMany({ where: { userId, category: { type: "EXPENSE" } } });
-
-    const affectedCategoryIds = new Set(previouslyAffectedCategoryIds);
 
     for (const item of parsed.data.items) {
       const category = await getOrCreateCategory(tx, userId, item.name, "EXPENSE");
@@ -69,12 +91,14 @@ export async function saveExpensesAction(
       await tx.cycleRecurringExpense.create({
         data: { cycleId: cycle.id, recurringExpenseId: recurringExpense.id, targetAmount: item.targetAmount },
       });
-      affectedCategoryIds.add(category.id);
+      currentCycleCategoryIds.add(category.id);
     }
 
-    for (const categoryId of affectedCategoryIds) {
-      await recomputeCategoryBudgetGoal(tx, cycle.id, categoryId);
-    }
+    await Promise.all(
+      [...affectedCyclesToCategoryIds.entries()].flatMap(([cycleId, categoryIds]) =>
+        [...categoryIds].map((categoryId) => recomputeCategoryBudgetGoal(tx, cycleId, categoryId)),
+      ),
+    );
 
     await tx.budgetCycle.update({
       where: { id: cycle.id },

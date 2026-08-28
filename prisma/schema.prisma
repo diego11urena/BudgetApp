@@ -271,8 +271,8 @@ model CycleTransaction {
 // forward (see app/(app)/budget/recurring-actions.ts). Kept as its own
 // table (rather than replaced by RecurringExpense) so every existing
 // category-level reader -- the dashboard budget card, History,
-// sumFixedTargetSpend, Manage Categories' hasBudgetGoal check -- keeps
-// working unchanged.
+// lib/recurring-expenses.ts's summarizeRecurringExpenses, Manage
+// Categories' hasBudgetGoal check -- keeps working unchanged.
 model CycleBudgetGoal {
   id                String          @id @default(cuid())
   cycleId           String

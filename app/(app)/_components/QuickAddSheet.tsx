@@ -12,12 +12,12 @@ import {
 } from "../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
-import { AMOUNT_NOT_POSITIVE_MESSAGE, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
+import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
+import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method";
+import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxType } from "@/lib/transaction-type";
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
-
-type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
-type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
+import { CategoryNameInput } from "./CategoryNameInput";
 
 export interface EditingTransaction {
   id: string;
@@ -38,22 +38,7 @@ export interface EditingTransaction {
   recurringExpenseId: string | null;
 }
 
-const TYPE_OPTIONS: { value: TxType; label: string }[] = [
-  { value: "EXPENSE", label: "Expense" },
-  { value: "INCOME", label: "Extra income" },
-  { value: "SAVINGS", label: "Savings" },
-];
-
-const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
-  { value: "CASH", label: "Cash" },
-  { value: "CREDIT_CARD", label: "Credit Card" },
-  { value: "DEBIT_CARD", label: "Debit Card" },
-  { value: "YAPPY", label: "Yappy" },
-  { value: "ACH", label: "ACH" },
-];
-
 const SWIPE_DISMISS_THRESHOLD = 90;
-const TOP_CHIP_COUNT = 6;
 
 export function QuickAddSheet({
   initialType,
@@ -119,7 +104,7 @@ export function QuickAddSheet({
   const dateId = `${uid}-date`;
   const descriptionId = `${uid}-description`;
   const errorId = `${uid}-error`;
-  const categoryGroupLabelId = `${uid}-category-group-label`;
+  const categoryId = `${uid}-category`;
   const paymentGroupLabelId = `${uid}-payment-group-label`;
 
   function categoryNamesForType(t: TxType): string[] {
@@ -132,32 +117,22 @@ export function QuickAddSheet({
   // name — those differ for a Gmail-imported transaction (name is the raw
   // merchant string, category is "Bank Import"). A category that isn't in
   // the known list (renamed/deleted since, or exactly this imported case)
-  // falls back to free-text mode, pre-filled with its current category.
+  // still just becomes CategoryNameInput's defaultValue below -- it renders
+  // fine as free text even when it's not one of categoryNames' own chips/
+  // suggestions.
   const editingCategoryName = editingTransaction
     ? (editingTransaction.categoryName ?? editingTransaction.name)
     : null;
 
-  const [customMode, setCustomMode] = useState(
-    () =>
-      editingCategoryName !== null &&
-      !categoryNamesForType(editingTransaction!.type).includes(editingCategoryName),
-  );
-  const [customName, setCustomName] = useState(() => {
-    if (editingTransaction) {
-      return categoryNamesForType(editingTransaction.type).includes(editingCategoryName!)
-        ? ""
-        : editingCategoryName!;
-    }
-    return "";
-  });
   // The list is already ordered most-used-first, so its head is the default
   // when creating; editing pre-selects the transaction's own category.
-  const [selectedCategory, setSelectedCategory] = useState(() => {
+  // CategoryNameInput (below) owns the actual picker UI -- this just
+  // mirrors its live value, via onValueChange, for the two things that need
+  // to react to it here: displayName's live pre-fill and validate().
+  const [categoryValue, setCategoryValue] = useState(() => {
     if (editingCategoryName !== null) return editingCategoryName;
     return categoryNames[0] ?? "";
   });
-  const usingCustomInput = customMode || categoryNames.length === 0;
-  const categoryValue = usingCustomInput ? customName : selectedCategory;
   // Merchant/payee name, separate from category -- pre-filled with the
   // category as a starting suggestion (so a user who doesn't care can
   // leave it as-is and lose zero speed) but freely editable, on both
@@ -170,13 +145,6 @@ export function QuickAddSheet({
   const [nameTouched, setNameTouched] = useState(false);
   const displayName = isEditing || nameTouched ? name : categoryValue;
   const [amount, setAmount] = useState(editingTransaction ? editingTransaction.amount.toFixed(2) : "");
-  // "More…" expands the chip row to the full ordered list — starts expanded
-  // if editing a category that wouldn't otherwise be visible in the top 6.
-  const [showAllCategories, setShowAllCategories] = useState(() => {
-    if (editingCategoryName === null) return false;
-    const list = categoryNamesForType(editingTransaction!.type);
-    return list.length > TOP_CHIP_COUNT && !list.slice(0, TOP_CHIP_COUNT).includes(editingCategoryName);
-  });
   // Optional for EXPENSE/INCOME — left unset ("") is a valid choice, not
   // every purchase or deposit needs a recorded method.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
@@ -220,8 +188,9 @@ export function QuickAddSheet({
   // validation could. The server re-validates independently regardless;
   // this is purely for instant feedback without a round trip.
   function validate(): { field: "amount" | "name" | "category" | "date"; message: string } | null {
-    if (!amount.trim() || Number.isNaN(Number(amount))) {
-      return { field: "amount", message: INVALID_AMOUNT_FORMAT_MESSAGE };
+    const amountFormatError = validateAmountFormat(amount);
+    if (amountFormatError) {
+      return { field: "amount", message: amountFormatError };
     }
     if (Number(amount) <= 0) {
       return { field: "amount", message: AMOUNT_NOT_POSITIVE_MESSAGE };
@@ -385,10 +354,12 @@ export function QuickAddSheet({
 
   function handleTypeChange(next: TxType) {
     setType(next);
-    setCustomMode(false);
-    setShowAllCategories(false);
-    const nextCategoryNames = categoryNamesForType(next);
-    setSelectedCategory(nextCategoryNames[0] ?? "");
+    // CategoryNameInput below is keyed by `type`, so this remounts it fresh
+    // (its own internal value state only ever reads defaultValue once, on
+    // mount) -- setting categoryValue here, in the same batched update as
+    // setType, means the remounted instance's defaultValue is already
+    // correct for the new type by the time it renders.
+    setCategoryValue(categoryNamesForType(next)[0] ?? "");
   }
 
   function handleDragStart(e: React.TouchEvent) {
@@ -452,7 +423,6 @@ export function QuickAddSheet({
       <form onSubmit={handleSubmit} noValidate>
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="name" value={nameValue} />
-        <input type="hidden" name="category" value={categoryValue} />
         {isEditing && <input type="hidden" name="transactionId" value={editingTransaction.id} />}
         {!isEditing && targetCycleId && <input type="hidden" name="cycleId" value={targetCycleId} />}
 
@@ -519,58 +489,20 @@ export function QuickAddSheet({
         </div>
 
           <div className="field">
-            <label id={categoryGroupLabelId}>Category</label>
-            {!customMode && categoryNames.length > 0 && (
-              <div
-                role="group"
-                aria-labelledby={categoryGroupLabelId}
-                className={`category-chips ${showAllCategories ? "category-chips--wrap" : ""} ${errorField === "category" ? "is-invalid" : ""}`}
-              >
-                {(showAllCategories ? categoryNames : categoryNames.slice(0, TOP_CHIP_COUNT)).map(
-                  (name) => (
-                    <button
-                      key={name}
-                      type="button"
-                      className={`category-chip ${selectedCategory === name ? "is-active" : ""}`}
-                      onClick={() => setSelectedCategory(name)}
-                    >
-                      {name}
-                    </button>
-                  ),
-                )}
-                {!showAllCategories && categoryNames.length > TOP_CHIP_COUNT && (
-                  <button
-                    type="button"
-                    className="category-chip category-chip--more"
-                    onClick={() => setShowAllCategories(true)}
-                  >
-                    More…
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="category-chip category-chip--other"
-                  onClick={() => {
-                    setCustomMode(true);
-                    setCustomName("");
-                  }}
-                >
-                  Other…
-                </button>
-              </div>
-            )}
-            {(customMode || categoryNames.length === 0) && (
-              <input
-                type="text"
-                placeholder="Category name"
-                required
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                className={errorField === "category" ? "is-invalid" : ""}
-                aria-invalid={errorField === "category" || undefined}
-                aria-describedby={errorField === "category" ? errorId : undefined}
-              />
-            )}
+            <label htmlFor={categoryId}>Category</label>
+            <CategoryNameInput
+              // Remounts on a type change -- its own value state only ever
+              // reads defaultValue once, at mount (see handleTypeChange).
+              key={type}
+              id={categoryId}
+              name="category"
+              categoryNames={categoryNames}
+              defaultValue={categoryValue}
+              placeholder="Category name"
+              onValueChange={setCategoryValue}
+              invalid={errorField === "category"}
+              describedBy={errorId}
+            />
           </div>
 
           {type !== "SAVINGS" && (

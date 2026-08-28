@@ -5,8 +5,9 @@ import { AuthError } from "next-auth";
 import { signIn } from "@/lib/auth";
 import { loginSchema } from "@/lib/validations/onboarding";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import type { ActionResult } from "@/lib/action-error";
 
-export type LoginFormState = { error?: string } | undefined;
+export type LoginFormState = ActionResult | undefined;
 
 const LOGIN_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 // Deliberately looser than the per-email limit -- one IP can legitimately

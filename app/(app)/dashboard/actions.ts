@@ -18,7 +18,7 @@ import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/
 import { getBudgetUsage } from "@/lib/budget-status";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
-import { withActionErrorHandling } from "@/lib/action-error";
+import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 const JUST_GOT_PAID_RATE_LIMIT = { max: 10, windowMs: 60_000 };
@@ -34,8 +34,8 @@ export interface CycleClosedSummary {
   carriedIncomeAmount: number;
 }
 
-/** Not a form submission (no _prevState/useActionState here), so this can't share the `{ error }`-shaped form-state unions the rest of this file uses — the caller (HeroCard) checks `"error" in result` directly instead. */
-export type CycleClosedResult = CycleClosedSummary | { error: string };
+/** Not a form submission (no _prevState/useActionState here) — the caller (HeroCard) checks `"error" in result` directly instead of going through useActionState. */
+export type CycleClosedResult = ActionResult<CycleClosedSummary>;
 
 /**
  * payDateStr is the "When did you get paid?" date input's value
@@ -87,7 +87,7 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
   };
 });
 
-export type ConfirmNewCycleIncomeResult = { error?: string } | undefined;
+export type ConfirmNewCycleIncomeResult = ActionResult | undefined;
 
 /**
  * Sets this quincena's actual paycheck amount, prompted right after closing
@@ -126,7 +126,7 @@ export const confirmNewCycleIncomeAction = withActionErrorHandling(async functio
   revalidateAppPages();
 });
 
-export type EditPayInfoResult = { error?: string } | undefined;
+export type EditPayInfoResult = ActionResult | undefined;
 
 /**
  * "Edit" on the Home hero card, and (via an explicit cycleId in formData)

@@ -17,10 +17,11 @@ import {
 import { getIconByName } from "./category-icon-library";
 
 /**
- * Display-only keyword -> icon mapping for category names. ExpenseCategory
- * has an `icon` field in the schema, but nothing has ever set it (no UI to
- * pick one) — this derives a reasonable icon from the name instead, so
- * category rows don't all look the same, without adding an icon-picker UI.
+ * Display-only keyword -> icon mapping for category names -- the fallback
+ * CategoryIcon (below) falls back to when a category has no explicitly
+ * picked icon (ExpenseCategory.icon is null; see IconPickerSheet.tsx and
+ * profile/category-actions.ts, which do set it), so category rows never
+ * all look the same even before a user has picked anything.
  */
 const KEYWORD_ICONS: Array<{ keywords: string[]; icon: LucideIcon }> = [
   { keywords: ["rent", "housing", "mortgage"], icon: Home },

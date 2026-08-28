@@ -28,6 +28,7 @@ export function CategoryNameInput({
   showChips = true,
   invalid = false,
   describedBy,
+  onValueChange,
 }: {
   id: string;
   name: string;
@@ -41,6 +42,15 @@ export function CategoryNameInput({
   invalid?: boolean;
   /** id of the caller's error message, when invalid — wired to aria-describedby so screen readers announce why, same convention as every other field in the app. */
   describedBy?: string;
+  /**
+   * Most callers just let this input submit `name` on the form and never
+   * look at the value in between — but a caller that derives something
+   * else live from the category as the user picks/types it (e.g.
+   * QuickAddSheet pre-filling its merchant-name field from the category
+   * until the user types their own) needs the current value on every
+   * change, not just at submit time.
+   */
+  onValueChange?: (value: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState(defaultValue ?? "");
@@ -71,6 +81,7 @@ export function CategoryNameInput({
   function select(next: string) {
     setValue(next);
     setOpen(false);
+    onValueChange?.(next);
   }
 
   return (
@@ -104,6 +115,7 @@ export function CategoryNameInput({
           onChange={(e) => {
             setValue(e.target.value);
             setOpen(true);
+            onValueChange?.(e.target.value);
           }}
           onFocus={() => setOpen(true)}
         />
