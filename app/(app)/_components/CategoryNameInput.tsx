@@ -119,14 +119,22 @@ export function CategoryNameInput({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
-            // Consume Escape ourselves when the dropdown is open (stopping
-            // it from bubbling) so it closes just the suggestions, not the
-            // whole sheet -- useModalFocus's own Escape-to-close listener
-            // is on document and would otherwise catch the same keydown.
-            // Dropdown already closed -- let Escape bubble and close the
-            // sheet as normal.
+            // Consume Escape ourselves when the dropdown is open, so it
+            // closes just the suggestions, not the whole sheet --
+            // useModalFocus's own Escape-to-close listener is a SEPARATE
+            // document.addEventListener("keydown", ...) call, and React
+            // attaches its own delegated listener to `document` too (App
+            // Router hydrates onto `document`), so both listeners live on
+            // the very same node. Plain stopPropagation() only blocks
+            // propagation to *other* nodes -- it does nothing to a sibling
+            // listener already registered on this same node. Only
+            // stopImmediatePropagation() on the underlying native event
+            // stops that sibling call from firing at all, which is what
+            // actually keeps this key press from also closing the sheet.
+            // Dropdown already closed -- let Escape bubble/fire normally
+            // and close the sheet.
             if (e.key === "Escape" && open) {
-              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
               setOpen(false);
             }
           }}
