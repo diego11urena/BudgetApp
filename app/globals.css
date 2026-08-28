@@ -1863,19 +1863,6 @@ button.line-item--link {
   margin-bottom: 0.75rem;
 }
 
-.icon-picker-group {
-  margin-bottom: 1rem;
-}
-
-.icon-picker-group-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: 0.4rem;
-}
-
 .icon-picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));

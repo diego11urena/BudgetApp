@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getIconByName, ICON_GROUPS, ICON_LIBRARY, searchIcons } from "./category-icon-library";
+import { getIconByName, ICON_LIBRARY, searchIcons } from "./category-icon-library";
 
 describe("ICON_LIBRARY", () => {
   it("has no duplicate icon names", () => {
@@ -7,17 +7,8 @@ describe("ICON_LIBRARY", () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it("assigns every icon to one of the 12 defined groups", () => {
-    for (const entry of ICON_LIBRARY) {
-      expect(ICON_GROUPS).toContain(entry.group);
-    }
-  });
-
-  it("gives every group at least a handful of icons", () => {
-    for (const group of ICON_GROUPS) {
-      const count = ICON_LIBRARY.filter((entry) => entry.group === group).length;
-      expect(count).toBeGreaterThanOrEqual(5);
-    }
+  it("is curated down to roughly two dozen icons, not a sprawling library", () => {
+    expect(ICON_LIBRARY.length).toBeLessThanOrEqual(30);
   });
 });
 
@@ -26,7 +17,7 @@ describe("getIconByName", () => {
     expect(getIconByName("Dog")).toBeDefined();
   });
 
-  it("returns undefined for an unknown name", () => {
+  it("returns undefined for a name outside the curated set (e.g. one trimmed away, or never valid) -- CategoryIcon's own keyword heuristic is the fallback for this case, not this function", () => {
     expect(getIconByName("NotARealIcon")).toBeUndefined();
   });
 
@@ -40,15 +31,14 @@ describe("searchIcons", () => {
   it("surfaces transportation icons for 'car'", () => {
     const results = searchIcons("car").map((r) => r.name);
     expect(results).toContain("Car");
-    expect(results).toContain("CarFront");
   });
 
-  it("surfaces pet icons for 'dog'", () => {
+  it("surfaces Dog for 'dog'", () => {
     const results = searchIcons("dog").map((r) => r.name);
     expect(results).toContain("Dog");
   });
 
-  it("matches by group name", () => {
+  it("matches by keyword, not just the icon's own name", () => {
     const results = searchIcons("fitness").map((r) => r.name);
     expect(results).toContain("Dumbbell");
   });

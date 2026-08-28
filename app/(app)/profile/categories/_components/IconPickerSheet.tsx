@@ -3,15 +3,13 @@
 import { useEffect, useState } from "react";
 import { Sheet } from "../../../_components/Sheet";
 import { EmptyState } from "../../../_components/EmptyState";
-import { getIconGroups, searchIcons, type IconEntry } from "@/lib/category-icon-library";
-
-const GROUPS = getIconGroups();
+import { ICON_LIBRARY, searchIcons, type IconEntry } from "@/lib/category-icon-library";
 
 /**
- * Search at top; empty query shows all 12 groups (each its own small,
- * scannable grid) so nothing forces scrolling through hundreds of icons at
- * once, non-empty query flattens to matches across every group (name,
- * group, or keyword — "car" surfaces Transportation, "dog" surfaces Pets).
+ * A single flat grid of the curated ~24 icons -- small enough that no
+ * grouping/sectioning is needed to keep it scannable. Search (by name or
+ * keyword, e.g. "car" surfaces Car/Fuel, "dog" surfaces Dog) narrows the
+ * same grid rather than switching views.
  */
 export function IconPickerSheet({
   onPick,
@@ -34,7 +32,7 @@ export function IconPickerSheet({
   }
 
   const trimmed = query.trim();
-  const searchResults = trimmed ? searchIcons(trimmed) : null;
+  const icons = trimmed ? searchIcons(trimmed) : ICON_LIBRARY;
 
   function renderGrid(icons: IconEntry[]) {
     return (
@@ -76,20 +74,7 @@ export function IconPickerSheet({
       />
 
       <div className="icon-picker-scroll">
-        {searchResults ? (
-          searchResults.length > 0 ? (
-            renderGrid(searchResults)
-          ) : (
-            <EmptyState>No icons match &quot;{trimmed}&quot;.</EmptyState>
-          )
-        ) : (
-          GROUPS.map(({ group, icons }) => (
-            <div key={group} className="icon-picker-group">
-              <p className="icon-picker-group-title">{group}</p>
-              {renderGrid(icons)}
-            </div>
-          ))
-        )}
+        {icons.length > 0 ? renderGrid(icons) : <EmptyState>No icons match &quot;{trimmed}&quot;.</EmptyState>}
       </div>
 
       <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
