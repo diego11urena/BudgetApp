@@ -119,7 +119,16 @@ export function CategoryNameInput({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === "Escape") setOpen(false);
+            // Consume Escape ourselves when the dropdown is open (stopping
+            // it from bubbling) so it closes just the suggestions, not the
+            // whole sheet -- useModalFocus's own Escape-to-close listener
+            // is on document and would otherwise catch the same keydown.
+            // Dropdown already closed -- let Escape bubble and close the
+            // sheet as normal.
+            if (e.key === "Escape" && open) {
+              e.stopPropagation();
+              setOpen(false);
+            }
           }}
         />
         {open && (suggestions.length > 0 || showCreateOption) && (
