@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { CategoryIcon } from "@/lib/category-icons";
 import { formatCurrency } from "@/lib/format";
 import { CategoryActionsSheet } from "./CategoryActionsSheet";
+import { useSheet } from "../../../_components/useSheet";
 import type { CategoryWithUsage } from "./types";
 
 /**
@@ -22,8 +22,7 @@ export function CategoryRow({
   /** Every other EXPENSE category, for the row's "Merge into…" picker. */
   otherCategories: CategoryWithUsage[];
 }) {
-  const [open, setOpen] = useState(false);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <div className="category-row">
@@ -44,21 +43,13 @@ export function CategoryRow({
         type="button"
         className="category-row-kebab"
         aria-label={`Actions for ${category.name}`}
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
+        {...triggerProps}
       >
         <MoreHorizontal size={20} aria-hidden="true" />
       </button>
 
       {open && (
-        <CategoryActionsSheet
-          category={category}
-          otherCategories={otherCategories}
-          onDone={() => setOpen(false)}
-          returnFocusTo={triggerElement}
-        />
+        <CategoryActionsSheet category={category} otherCategories={otherCategories} onDone={close} {...sheetProps} />
       )}
     </div>
   );

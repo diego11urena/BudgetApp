@@ -6,34 +6,18 @@ import { addTransactionAction, deleteTransactionAction } from "../../_actions/tr
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "../../_components/ToastProvider";
 import { Sheet } from "../../_components/Sheet";
+import { useSheet } from "../../_components/useSheet";
 
 export function ContributeButton({ categoryName }: { categoryName: string }) {
-  const [open, setOpen] = useState(false);
-  // Captured synchronously on click, before the sheet mounts — see
-  // QuickAddSheet's returnFocusTo doc comment for why this can't just be
-  // auto-detected inside the sheet itself.
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button
-        type="button"
-        className="button button--secondary button--small"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
-      >
+      <button type="button" className="button button--secondary button--small" {...triggerProps}>
         Contribute
       </button>
 
-      {open && (
-        <ContributeSheet
-          categoryName={categoryName}
-          returnFocusTo={triggerElement}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {open && <ContributeSheet categoryName={categoryName} {...sheetProps} onClose={close} />}
     </>
   );
 }

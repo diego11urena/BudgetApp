@@ -7,6 +7,7 @@ import { getRecurringExpensePaymentStatus, type RecurringExpensePaymentStatus } 
 import { confirmRecurringExpenseMatchAction } from "../recurring-actions";
 import { RecordPaymentSheet } from "./RecordPaymentSheet";
 import { RecurringExpenseEditSheet, type EditableRecurringExpense } from "./RecurringExpenseEditSheet";
+import { useSheet } from "../../_components/useSheet";
 
 export interface RecurringExpenseRowData {
   id: string;
@@ -46,10 +47,8 @@ export function RecurringExpenseRow({
   readOnly?: boolean;
 }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
-  const [editTrigger, setEditTrigger] = useState<HTMLElement | null>(null);
-  const [recordingPayment, setRecordingPayment] = useState(false);
-  const [paymentTrigger, setPaymentTrigger] = useState<HTMLElement | null>(null);
+  const editSheet = useSheet();
+  const paymentSheet = useSheet();
   const [dismissedMatch, setDismissedMatch] = useState(false);
   const [confirmingMatch, setConfirmingMatch] = useState(false);
 
@@ -97,14 +96,7 @@ export function RecurringExpenseRow({
       {readOnly ? (
         <div className="recurring-expense-row-main recurring-expense-row-main--static">{nameAmountContent}</div>
       ) : (
-        <button
-          type="button"
-          className="recurring-expense-row-main"
-          onClick={(e) => {
-            setEditTrigger(e.currentTarget);
-            setEditing(true);
-          }}
-        >
+        <button type="button" className="recurring-expense-row-main" {...editSheet.triggerProps}>
           {nameAmountContent}
         </button>
       )}
@@ -141,35 +133,28 @@ export function RecurringExpenseRow({
             </span>
           )}
           {!readOnly && (status === "not-started" || status === "partial") && (
-            <button
-              type="button"
-              className="button button--secondary button--small"
-              onClick={(e) => {
-                setPaymentTrigger(e.currentTarget);
-                setRecordingPayment(true);
-              }}
-            >
+            <button type="button" className="button button--secondary button--small" {...paymentSheet.triggerProps}>
               Record payment
             </button>
           )}
         </div>
       )}
 
-      {!readOnly && editing && (
+      {!readOnly && editSheet.open && (
         <RecurringExpenseEditSheet
           categoryNames={categoryNames}
           existing={editable}
-          onDone={() => setEditing(false)}
-          returnFocusTo={editTrigger}
+          onDone={editSheet.close}
+          {...editSheet.sheetProps}
         />
       )}
-      {!readOnly && recordingPayment && (
+      {!readOnly && paymentSheet.open && (
         <RecordPaymentSheet
           recurringExpenseId={expense.id}
           name={expense.name}
           targetAmount={expense.targetAmount}
-          onDone={() => setRecordingPayment(false)}
-          returnFocusTo={paymentTrigger}
+          onDone={paymentSheet.close}
+          {...paymentSheet.sheetProps}
         />
       )}
     </div>

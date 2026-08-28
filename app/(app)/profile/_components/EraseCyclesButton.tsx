@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { eraseAllCyclesAction } from "../cycle-actions";
 import { Sheet } from "../../_components/Sheet";
+import { useSheet } from "../../_components/useSheet";
 
 /**
  * Mass-deleting all cycle history is the same class of "significant,
@@ -13,10 +14,9 @@ import { Sheet } from "../../_components/Sheet";
  */
 export function EraseCyclesButton() {
   const router = useRouter();
-  const [confirming, setConfirming] = useState(false);
+  const { open: confirming, triggerProps, sheetProps, close } = useSheet();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
   async function handleConfirm() {
     setPending(true);
@@ -32,25 +32,12 @@ export function EraseCyclesButton() {
 
   return (
     <>
-      <button
-        type="button"
-        className="button button--danger"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setConfirming(true);
-        }}
-      >
+      <button type="button" className="button button--danger" {...triggerProps}>
         Erase all cycles
       </button>
 
       {confirming && (
-        <EraseCyclesConfirmSheet
-          pending={pending}
-          error={error}
-          onConfirm={handleConfirm}
-          onCancel={() => setConfirming(false)}
-          returnFocusTo={triggerElement}
-        />
+        <EraseCyclesConfirmSheet pending={pending} error={error} onConfirm={handleConfirm} onCancel={close} {...sheetProps} />
       )}
     </>
   );

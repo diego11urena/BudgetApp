@@ -3,6 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
+import { useSheet } from "../../_components/useSheet";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
 const QuickAddSheet = dynamic(() => import("../../_components/QuickAddSheet").then((mod) => mod.QuickAddSheet));
@@ -31,9 +32,7 @@ export function AddToCycleButton({
   incomeCategoryNames: string[];
 }) {
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
-  // Same trigger-capture-on-click pattern BottomNav uses — see QuickAddSheet's
-  // returnFocusTo doc comment for why this can't just be derived later.
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { sheetProps, setTrigger } = useSheet();
 
   return (
     <>
@@ -41,7 +40,7 @@ export function AddToCycleButton({
         type="button"
         className="button button--secondary"
         onClick={(e) => {
-          setTriggerElement(e.currentTarget);
+          setTrigger(e.currentTarget);
           setQuickAddType("EXPENSE");
         }}
       >
@@ -56,7 +55,7 @@ export function AddToCycleButton({
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
           targetCycleId={cycleId}
-          returnFocusTo={triggerElement}
+          {...sheetProps}
           onClose={() => setQuickAddType(null)}
         />
       )}

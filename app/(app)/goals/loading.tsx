@@ -1,13 +1,15 @@
+import { Skeleton } from "../../_components/Skeleton";
+
 /** Bespoke to the Goals layout: title, section header, then a couple of goal rows (ring + text shape). */
 export default function Loading() {
   return (
     <div className="home-page" role="status">
       <span className="sr-only">Loading…</span>
-      <div className="skeleton-block skeleton-block--title" />
+      <Skeleton title />
       <div className="dashboard-section">
-        <div className="skeleton-block" style={{ width: "50%", marginBottom: "0.75rem" }} />
-        <div className="skeleton-block" style={{ height: "4.5rem" }} />
-        <div className="skeleton-block" style={{ height: "4.5rem", width: "90%" }} />
+        <Skeleton w={50} gap />
+        <Skeleton h="xl" />
+        <Skeleton h="xl" w={90} />
       </div>
     </div>
   );

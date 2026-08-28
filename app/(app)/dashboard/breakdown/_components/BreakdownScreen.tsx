@@ -12,6 +12,7 @@ import {
 } from "@/lib/paycheck-breakdown";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
+import { EmptyState } from "../../../_components/EmptyState";
 import { PieChart } from "./PieChart";
 
 export interface BreakdownCycleData {
@@ -117,12 +118,10 @@ export function BreakdownScreen({
         </div>
       </div>
 
-      {!activeCycle && (
-        <p className="field-hint">No previous quincena yet — close this one first.</p>
-      )}
+      {!activeCycle && <EmptyState>No previous quincena yet — close this one first.</EmptyState>}
 
       {activeCycle && breakdown.pieTotal <= 0 && (
-        <p className="field-hint">Nothing to show for this combination yet.</p>
+        <EmptyState>Nothing to show for this combination yet.</EmptyState>
       )}
 
       {activeCycle && breakdown.pieTotal > 0 && (
@@ -205,9 +204,7 @@ function SliceDetailPanel({
         </span>
       </div>
 
-      {slice.kind === "remaining" && (
-        <p className="field-hint">Not yet spent or saved this quincena.</p>
-      )}
+      {slice.kind === "remaining" && <EmptyState>Not yet spent or saved this quincena.</EmptyState>}
 
       {slice.kind === "other" && slice.members && (
         <div className="breakdown-detail-members">
@@ -242,7 +239,7 @@ function SliceDetailPanel({
               ))}
             </div>
           ) : (
-            <p className="field-hint">No transactions logged yet.</p>
+            <EmptyState>No transactions logged yet.</EmptyState>
           )}
           {!hasNoRealFilter && (
             <Link href={seeAllHref} className="line-item line-item--link">

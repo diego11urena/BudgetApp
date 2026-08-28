@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { NeedsAttentionSheet } from "./NeedsAttentionSheet";
+import { useSheet } from "../../_components/useSheet";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
 
 export function NeedsAttentionBanner({
@@ -16,20 +16,11 @@ export function NeedsAttentionBanner({
   incomeCategoryNames: string[];
   savingsCategoryNames: string[];
 }) {
-  const [open, setOpen] = useState(false);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button
-        type="button"
-        className="banner banner--action"
-        aria-live="polite"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
-      >
+      <button type="button" className="banner banner--action" aria-live="polite" {...triggerProps}>
         <span>
           {transactions.length} transaction{transactions.length === 1 ? "" : "s"} need
           {transactions.length === 1 ? "s" : ""} more info
@@ -43,8 +34,8 @@ export function NeedsAttentionBanner({
           expenseCategoryNames={expenseCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
-          returnFocusTo={triggerElement}
-          onClose={() => setOpen(false)}
+          {...sheetProps}
+          onClose={close}
         />
       )}
     </>

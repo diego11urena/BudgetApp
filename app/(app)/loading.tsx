@@ -1,3 +1,5 @@
+import { Skeleton } from "../_components/Skeleton";
+
 /**
  * The shared (app) layout's own fallback — shown while its own data
  * fetch (categories for BottomNav, etc.) is in flight, and for any route
@@ -12,17 +14,17 @@ export default function Loading() {
   return (
     <div className="home-page" role="status">
       <span className="sr-only">Loading…</span>
-      <div className="skeleton-block skeleton-block--title" />
+      <Skeleton title />
       <div className="dashboard-section dashboard-section--plain">
-        <div className="skeleton-block" style={{ height: "6rem" }} />
+        <Skeleton h="2xl" />
       </div>
       <div className="dashboard-section">
-        <div className="skeleton-block" />
-        <div className="skeleton-block" style={{ width: "70%" }} />
+        <Skeleton />
+        <Skeleton w={70} />
       </div>
       <div className="dashboard-section">
-        <div className="skeleton-block" />
-        <div className="skeleton-block" style={{ width: "55%" }} />
+        <Skeleton />
+        <Skeleton w={55} />
       </div>
     </div>
   );

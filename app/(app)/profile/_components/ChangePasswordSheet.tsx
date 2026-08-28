@@ -3,33 +3,21 @@
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
+import { useSheet } from "../../_components/useSheet";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 
 /** "Password" used to be a permanently-visible form on the main Profile screen — now behind this row, opened as a sheet. The form itself is untouched. */
 export function ChangePasswordSheet() {
-  const [open, setOpen] = useState(false);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button
-        type="button"
-        className="line-item line-item--link"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
-      >
+      <button type="button" className="line-item line-item--link" {...triggerProps}>
         <span>Change password</span>
         <ChevronRight size={18} aria-hidden="true" />
       </button>
 
-      {open && (
-        <ChangePasswordSheetContent
-          returnFocusTo={triggerElement}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {open && <ChangePasswordSheetContent {...sheetProps} onClose={close} />}
     </>
   );
 }

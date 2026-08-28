@@ -8,6 +8,7 @@ import { CycleClosedCard } from "./CycleClosedCard";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
 import { useToast } from "../../_components/ToastProvider";
+import { useSheet } from "../../_components/useSheet";
 
 /**
  * The one genuinely interactive slice of HeroCard -- the "I just got paid"
@@ -25,11 +26,11 @@ export function HeroCardActions() {
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
   const [showIncomePrompt, setShowIncomePrompt] = useState(false);
   // Captured synchronously on click, before either modal mounts, and reused
-  // across both — the trigger button gets disabled while pending, so a
+  // across all three — the trigger button gets disabled while pending, so a
   // modal that instead re-derives document.activeElement at its own mount
   // time (rather than being handed this directly) can end up capturing
   // <body> if that mount happens to land while the button is disabled.
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { sheetProps, setTrigger } = useSheet();
 
   async function handleConfirmedJustGotPaid(payDate: string) {
     setConfirming(false);
@@ -70,7 +71,7 @@ export function HeroCardActions() {
         type="button"
         className="hero-action-link"
         onClick={(e) => {
-          setTriggerElement(e.currentTarget);
+          setTrigger(e.currentTarget);
           setConfirming(true);
         }}
         disabled={pending}
@@ -85,26 +86,18 @@ export function HeroCardActions() {
       </button>
 
       {confirming && (
-        <ConfirmJustGotPaidSheet
-          onConfirm={handleConfirmedJustGotPaid}
-          onCancel={() => setConfirming(false)}
-          returnFocusTo={triggerElement}
-        />
+        <ConfirmJustGotPaidSheet onConfirm={handleConfirmedJustGotPaid} onCancel={() => setConfirming(false)} {...sheetProps} />
       )}
 
       {closedSummary && !showIncomePrompt && (
-        <CycleClosedCard
-          summary={closedSummary}
-          onDismiss={handleDismissSummary}
-          returnFocusTo={triggerElement}
-        />
+        <CycleClosedCard summary={closedSummary} onDismiss={handleDismissSummary} {...sheetProps} />
       )}
 
       {closedSummary && showIncomePrompt && (
         <NewCycleIncomeSheet
           initialAmount={closedSummary.carriedIncomeAmount}
           onDone={handleFinishIncomePrompt}
-          returnFocusTo={triggerElement}
+          {...sheetProps}
         />
       )}
     </>

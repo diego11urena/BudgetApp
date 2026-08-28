@@ -1,3 +1,5 @@
+import { Skeleton } from "../../_components/Skeleton";
+
 /**
  * Bespoke to this route's real layout (Insights card, balance card, budget
  * breakdown, top-categories chart, recent transactions) rather than the
@@ -10,29 +12,29 @@ export default function Loading() {
   return (
     <div className="home-page" role="status">
       <span className="sr-only">Loading…</span>
-      <div className="skeleton-block skeleton-block--title" />
+      <Skeleton title />
 
       <div className="dashboard-section dashboard-section--plain">
-        <div className="skeleton-block" style={{ height: "4.5rem" }} />
+        <Skeleton h="xl" />
       </div>
 
       <div className="dashboard-section dashboard-section--plain">
-        <div className="skeleton-block" style={{ height: "9rem" }} />
+        <Skeleton h="3xl" />
       </div>
 
       <div className="dashboard-section">
-        <div className="skeleton-block" style={{ height: "5rem" }} />
+        <Skeleton h="xl2" />
       </div>
 
       <div className="dashboard-section">
-        <div className="skeleton-block" style={{ height: "6rem" }} />
+        <Skeleton h="2xl" />
       </div>
 
       <div className="dashboard-section">
-        <div className="skeleton-block" style={{ width: "40%", marginBottom: "0.75rem" }} />
-        <div className="skeleton-block" style={{ height: "2.5rem" }} />
-        <div className="skeleton-block" style={{ height: "2.5rem" }} />
-        <div className="skeleton-block" style={{ height: "2.5rem", width: "80%" }} />
+        <Skeleton w={40} gap />
+        <Skeleton h="md" />
+        <Skeleton h="md" />
+        <Skeleton h="md" w={80} />
       </div>
     </div>
   );

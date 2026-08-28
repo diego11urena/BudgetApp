@@ -8,6 +8,7 @@ import { getOrderedCategoryNames } from "@/lib/category-order";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
+import { EmptyState } from "../_components/EmptyState";
 import { GoalRing } from "./_components/GoalRing";
 import { AddGoalSheet } from "./_components/AddGoalSheet";
 import { RemoveGoalButton } from "./_components/RemoveGoalButton";
@@ -36,9 +37,7 @@ export default async function GoalsPage() {
           <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Your savings goals</h2>
           <AddGoalSheet categoryNames={savingsCategoryNames} />
         </div>
-        {goals.length === 0 && (
-          <p className="field-hint">No goals yet — tap &quot;+ Add goal&quot; above.</p>
-        )}
+        {goals.length === 0 && <EmptyState>No goals yet — tap &quot;+ Add goal&quot; above.</EmptyState>}
         <div className="goal-list">
           {goals.map((goal) => {
             const projection = computeGoalProjection(goal);

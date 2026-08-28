@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { CategoryProgressRow } from "./CategoryProgressRow";
 import { RecurringExpenseEditSheet } from "./RecurringExpenseEditSheet";
+import { useSheet } from "../../_components/useSheet";
+import { EmptyState } from "../../_components/EmptyState";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 
 /**
@@ -21,29 +22,19 @@ export function RecurringExpensesPanel({
   /** e.g. "Aug 11–25" -- the card header, not a third repeat of the page title. */
   dateRangeText: string;
 }) {
-  const [adding, setAdding] = useState(false);
-  const [addTriggerElement, setAddTriggerElement] = useState<HTMLElement | null>(null);
+  const { open: adding, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
       <div className="section-header-row">
         <h2 style={{ marginBottom: 0, minWidth: 0, flex: "1 1 auto" }}>{dateRangeText}</h2>
-        <button
-          type="button"
-          className="button button--secondary button--small"
-          onClick={(e) => {
-            setAddTriggerElement(e.currentTarget);
-            setAdding(true);
-          }}
-        >
+        <button type="button" className="button button--secondary button--small" {...triggerProps}>
           + New recurring expense
         </button>
       </div>
 
       {categories.length === 0 && (
-        <p className="field-hint">
-          No recurring expenses yet — tap &quot;+ New recurring expense&quot; above.
-        </p>
+        <EmptyState>No recurring expenses yet — tap &quot;+ New recurring expense&quot; above.</EmptyState>
       )}
 
       <div className="category-progress-list">
@@ -60,13 +51,7 @@ export function RecurringExpensesPanel({
         ))}
       </div>
 
-      {adding && (
-        <RecurringExpenseEditSheet
-          categoryNames={categoryNames}
-          onDone={() => setAdding(false)}
-          returnFocusTo={addTriggerElement}
-        />
-      )}
+      {adding && <RecurringExpenseEditSheet categoryNames={categoryNames} onDone={close} {...sheetProps} />}
     </>
   );
 }

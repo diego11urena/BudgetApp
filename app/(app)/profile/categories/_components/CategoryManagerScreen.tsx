@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { CategoryRow } from "./CategoryRow";
 import { CategoryFormSheet } from "./CategoryFormSheet";
 import { CategoryCleanupSection, type DuplicatePairWithUsage } from "./CategoryCleanupSection";
+import { EmptyState } from "../../../_components/EmptyState";
 import type { CategoryWithUsage } from "./types";
 
 export function CategoryManagerScreen({
@@ -57,11 +58,13 @@ export function CategoryManagerScreen({
         </Link>
 
         {categories.length === 0 ? (
-          <p className="field-hint">No categories yet — tap the + above.</p>
+          <EmptyState action={{ label: "Add category", onClick: () => setAdding(true) }}>
+            No categories yet.
+          </EmptyState>
         ) : active.length === 0 ? (
-          <p className="field-hint">
+          <EmptyState>
             {q ? `No categories match "${query}".` : "No active categories — check Unused below."}
-          </p>
+          </EmptyState>
         ) : (
           <div className="category-row-list">
             {active.map((category) => (
@@ -92,7 +95,7 @@ export function CategoryManagerScreen({
             {showUnusedSection && (
               <div className="category-row-list">
                 {unusedMatches.length === 0 ? (
-                  <p className="field-hint">No unused categories match &quot;{query}&quot;.</p>
+                  <EmptyState>No unused categories match &quot;{query}&quot;.</EmptyState>
                 ) : (
                   unusedMatches.map((category) => (
                     <CategoryRow

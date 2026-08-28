@@ -3,34 +3,21 @@
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
+import { useSheet } from "../../_components/useSheet";
 import { IncomeSettingsForm, type IncomeSettingsInitial } from "./IncomeSettingsForm";
 
 /** "Income" used to be a permanently-visible form on the main Profile screen — now behind this row, opened as a sheet. The form itself is untouched. */
 export function EditIncomeSheet({ initial }: { initial: IncomeSettingsInitial }) {
-  const [open, setOpen] = useState(false);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button
-        type="button"
-        className="line-item line-item--link"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
-      >
+      <button type="button" className="line-item line-item--link" {...triggerProps}>
         <span>Edit income</span>
         <ChevronRight size={18} aria-hidden="true" />
       </button>
 
-      {open && (
-        <EditIncomeSheetContent
-          initial={initial}
-          returnFocusTo={triggerElement}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {open && <EditIncomeSheetContent initial={initial} {...sheetProps} onClose={close} />}
     </>
   );
 }

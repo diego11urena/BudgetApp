@@ -8,6 +8,8 @@ import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { groupTransactionsByDate } from "@/lib/transaction-grouping";
 import { PAYMENT_METHOD_LABEL } from "@/lib/payment-method";
+import { useSheet } from "./useSheet";
+import { EmptyState } from "./EmptyState";
 import type { EditingTransaction } from "./QuickAddSheet";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
@@ -129,17 +131,14 @@ export function TransactionList({
   groupByDate?: boolean;
 }) {
   const [editing, setEditing] = useState<EditingTransaction | null>(null);
-  // Captured synchronously on click, before the sheet mounts — see
-  // QuickAddSheet's returnFocusTo doc comment for why this can't just be
-  // auto-detected inside the sheet itself.
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { sheetProps, setTrigger } = useSheet();
 
   if (transactions.length === 0) {
-    return <p className="field-hint">{emptyMessage}</p>;
+    return <EmptyState>{emptyMessage}</EmptyState>;
   }
 
   function handleEdit(tx: CycleTransactionSummary, trigger: HTMLElement) {
-    setTriggerElement(trigger);
+    setTrigger(trigger);
     setEditing({
       id: tx.id,
       cycleId: tx.cycleId,
@@ -184,7 +183,7 @@ export function TransactionList({
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
           editingTransaction={editing}
-          returnFocusTo={triggerElement}
+          {...sheetProps}
           onClose={() => setEditing(null)}
         />
       )}

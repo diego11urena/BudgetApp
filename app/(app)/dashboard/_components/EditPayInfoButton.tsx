@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { EditPayInfoSheet } from "./EditPayInfoSheet";
+import { useSheet } from "../../_components/useSheet";
 
 /**
  * Plain-text "Edit" trigger for correcting a quincena's already-recorded
@@ -30,19 +30,11 @@ export function EditPayInfoButton({
   /** "YYYY-MM-DD", exclusive — the latest valid pay date (the next cycle's periodStart). Only meaningful when closed — the draft cycle has no next neighbor, so its ceiling is "today" instead (computed inside EditPayInfoSheet). */
   nextBoundDate?: string | null;
 }) {
-  const [open, setOpen] = useState(false);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button
-        type="button"
-        className="home-header-edit-link"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
-      >
+      <button type="button" className="home-header-edit-link" {...triggerProps}>
         Edit
       </button>
 
@@ -54,8 +46,8 @@ export function EditPayInfoButton({
           closed={closed}
           previousBoundDate={previousBoundDate}
           nextBoundDate={nextBoundDate}
-          returnFocusTo={triggerElement}
-          onDone={() => setOpen(false)}
+          onDone={close}
+          {...sheetProps}
         />
       )}
     </>

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CreditCard, Home, LayoutGrid, Target, type LucideIcon } from "lucide-react";
+import { useSheet } from "./useSheet";
 
 // BottomNav mounts in the app layout, on every page -- QuickAddSheet (its
 // own segmented type toggle, category chips, recurring-expense toggle,
@@ -47,9 +48,7 @@ export function BottomNav({
 }) {
   const pathname = usePathname();
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
-  // Same trigger-capture-on-click pattern QuickActions used — see its
-  // comment for why this can't just be derived inside the sheet itself.
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { sheetProps, setTrigger } = useSheet();
 
   function renderTab(tab: Tab) {
     const isActive = pathname.startsWith(tab.href);
@@ -75,7 +74,7 @@ export function BottomNav({
           className="bottom-nav-fab"
           aria-label="Add a transaction"
           onClick={(e) => {
-            setTriggerElement(e.currentTarget);
+            setTrigger(e.currentTarget);
             setQuickAddType("EXPENSE");
           }}
         >
@@ -98,7 +97,7 @@ export function BottomNav({
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
-          returnFocusTo={triggerElement}
+          {...sheetProps}
           onClose={() => setQuickAddType(null)}
         />
       )}

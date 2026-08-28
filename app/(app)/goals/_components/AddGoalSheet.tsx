@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sheet } from "../../_components/Sheet";
+import { useSheet } from "../../_components/useSheet";
 import { GoalForm } from "./GoalForm";
 
 /**
@@ -10,29 +11,15 @@ import { GoalForm } from "./GoalForm";
  * pattern as every other modal in the app.
  */
 export function AddGoalSheet({ categoryNames }: { categoryNames: string[] }) {
-  const [open, setOpen] = useState(false);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button
-        type="button"
-        className="button button--secondary button--small"
-        onClick={(e) => {
-          setTriggerElement(e.currentTarget);
-          setOpen(true);
-        }}
-      >
+      <button type="button" className="button button--secondary button--small" {...triggerProps}>
         + Add goal
       </button>
 
-      {open && (
-        <AddGoalSheetContent
-          categoryNames={categoryNames}
-          returnFocusTo={triggerElement}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      {open && <AddGoalSheetContent categoryNames={categoryNames} {...sheetProps} onClose={close} />}
     </>
   );
 }

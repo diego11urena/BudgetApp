@@ -107,6 +107,28 @@
   --radius-xl: 24px;
   --radius-pill: 9999px;
 
+  /* Elevation scale — 3 tiers instead of ad hoc box-shadow geometries
+     scattered across cards, floating elements, and overlays. */
+  --elev-1: 0 1px 3px var(--shadow-color);
+  --elev-2: 0 4px 16px var(--shadow-color);
+  --elev-3: 0 12px 32px var(--shadow-color);
+
+  /* z-index ladder — every stacking layer in the app references one of
+     these instead of a one-off magic number. */
+  --z-dropdown: 20;
+  --z-nav: 50;
+  --z-toast: 60;
+  --z-overlay: 100;
+
+  /* One scrim opacity for every full-screen dimming backdrop (sheet
+     backdrop, cycle-closed overlay) instead of two slightly different
+     ones for the same conceptual scrim. */
+  --color-scrim: rgba(0, 0, 0, 0.45);
+
+  /* Neutral, low-emphasis fill for a secondary surface (.button--secondary,
+     and anywhere else a "quiet" background is needed without a full card). */
+  --color-surface-subtle: rgba(148, 151, 169, 0.08);
+
   /* Spacing scale — an intentional 8-point rhythm (with a 4px half-step
      for small details: icon gaps, borders, tight label spacing) rather
      than arbitrary per-rule values. Not every dimension in the file uses
@@ -356,7 +378,7 @@ a {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  box-shadow: 0 1px 3px var(--shadow-color);
+  box-shadow: var(--elev-1);
 }
 
 .card--wide {
@@ -417,6 +439,22 @@ input[type="checkbox"]::before {
   color: var(--color-text-secondary);
 }
 
+/* EmptyState -- consistent spacing for the "nothing here yet" message every
+   list/panel shows on its own. */
+.empty-state {
+  padding: var(--space-3) 0;
+}
+
+.empty-state-action {
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-green);
+  cursor: pointer;
+  padding: 0;
+}
+
 .form-actions {
   display: flex;
   align-items: center;
@@ -465,7 +503,7 @@ input[type="checkbox"]::before {
 /* "Secondary Gray" — most .button--secondary uses (Cancel, Sign out) are
    neutral actions, not brand-colored ones. */
 .button--secondary {
-  background: rgba(148, 151, 169, 0.08);
+  background: var(--color-surface-subtle);
   color: var(--color-text-primary);
   border: none;
 }
@@ -748,7 +786,7 @@ button.line-item--link {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: 1.4rem;
-  box-shadow: 0 1px 3px var(--shadow-color);
+  box-shadow: var(--elev-1);
 }
 
 /* A section's own heading + one action button, side by side -- flex-wrap
@@ -873,7 +911,11 @@ button.line-item--link {
 
 .hero-value {
   font-family: var(--font-display);
-  font-size: 3.25rem;
+  /* clamp, not a flat 3.25rem -- a negative balance ("-$12,345.67") at the
+     flat size overflows .hero-card's own padding on a 320-390px viewport,
+     and html,body's overflow-x:hidden means those digits were silently
+     unscrollable, not just visually tight. */
+  font-size: clamp(2rem, 12vw, 3.25rem);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -930,12 +972,12 @@ button.line-item--link {
 .cycle-closed-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  z-index: 110;
+  z-index: var(--z-overlay);
 }
 
 .cycle-closed-card {
@@ -945,7 +987,7 @@ button.line-item--link {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: 2rem 1.5rem 1.5rem;
-  box-shadow: 0 12px 32px var(--shadow-color);
+  box-shadow: var(--elev-3);
   text-align: center;
   animation: cycle-closed-in 0.25s ease;
 }
@@ -1058,12 +1100,12 @@ button.line-item--link {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-overlay);
   transition: background 0.2s ease;
 }
 
 .sheet-backdrop.is-visible {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-scrim);
 }
 
 .sheet {
@@ -1084,7 +1126,10 @@ button.line-item--link {
   background: var(--color-card);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
-  box-shadow: 0 -4px 20px var(--shadow-color);
+  /* Same tier as --elev-3 (the overlay level this and .cycle-closed-card
+     both sit at) but with the Y offset negated -- a sheet is anchored to
+     the bottom of the screen, so its shadow has to fall upward, not down. */
+  box-shadow: 0 -12px 32px var(--shadow-color);
   transform: translateY(100%);
   transition: transform 0.22s ease;
 }
@@ -1111,6 +1156,13 @@ button.line-item--link {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.02em;
+  /* Explicit, not left to the browser's default h2 sizing (1.5em, which
+     just so happens to already resolve to this same 1.5rem here) --
+     .dashboard-section h2 sits right next to this rule at its own
+     explicit 1.05rem, and an unset size on this one made the two look
+     like an oversight rather than two deliberately different contexts
+     (a sheet's own single-purpose title vs. a card's section label). */
+  font-size: 1.5rem;
 }
 
 .type-toggle {
@@ -1220,7 +1272,7 @@ button.line-item--link {
   top: calc(100% + 0.25rem);
   left: 0;
   right: 0;
-  z-index: 20;
+  z-index: var(--z-dropdown);
   max-height: 12rem;
   overflow-y: auto;
   margin: 0;
@@ -1229,7 +1281,7 @@ button.line-item--link {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px var(--shadow-color);
+  box-shadow: var(--elev-2);
 }
 
 .category-name-input-dropdown li + li {
@@ -1916,7 +1968,7 @@ button.line-item--link {
   background: var(--color-card);
   border-top: 1px solid var(--color-border);
   padding-bottom: env(safe-area-inset-bottom);
-  z-index: 50;
+  z-index: var(--z-nav);
   /* Matches .app-content's own column width -- on desktop this keeps the
      nav under the content it controls instead of stretching edge-to-edge
      of a 1800px window with a 480px column floating in the middle of it. */
@@ -1974,7 +2026,7 @@ button.line-item--link {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px var(--shadow-color);
+  box-shadow: var(--elev-2);
   cursor: pointer;
   transition: transform 0.1s ease;
 }
@@ -2003,9 +2055,9 @@ button.line-item--link {
   border-radius: var(--radius-lg);
   background: var(--color-text-primary);
   color: var(--color-bg);
-  box-shadow: 0 4px 16px var(--shadow-color);
+  box-shadow: var(--elev-2);
   font-size: 0.875rem;
-  z-index: 60;
+  z-index: var(--z-toast);
   animation: toast-in 0.2s ease;
 }
 
@@ -2069,8 +2121,8 @@ button.line-item--link {
   font-size: 0.75rem;
   font-weight: 600;
   border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px var(--shadow-color);
-  z-index: 55;
+  box-shadow: var(--elev-2);
+  z-index: var(--z-toast);
   animation: toast-in 0.2s ease;
 }
 
@@ -2375,6 +2427,79 @@ button.line-item--link {
   height: 1.5rem;
   width: 45%;
   margin-bottom: 1.25rem;
+}
+
+/* Skeleton component's fixed height/width scale -- every route's own
+   loading.tsx previously reached for a one-off inline style={{height}}
+   object; these are the same values as shared classes instead (inline
+   styles are also what forces style-src 'unsafe-inline' in the CSP). */
+.skeleton-h-bar {
+  height: 4px;
+}
+.skeleton-h-xs {
+  height: 1.25rem;
+}
+.skeleton-h-sm {
+  height: 1.75rem;
+}
+.skeleton-h-md {
+  height: 2.5rem;
+}
+.skeleton-h-lg {
+  height: 3.5rem;
+}
+.skeleton-h-xl {
+  height: 4.5rem;
+}
+.skeleton-h-xl2 {
+  height: 5rem;
+}
+.skeleton-h-2xl {
+  height: 6rem;
+}
+.skeleton-h-3xl {
+  height: 9rem;
+}
+
+.skeleton-w-40 {
+  width: 40%;
+}
+.skeleton-w-50 {
+  width: 50%;
+}
+.skeleton-w-55 {
+  width: 55%;
+}
+.skeleton-w-60 {
+  width: 60%;
+}
+.skeleton-w-70 {
+  width: 70%;
+}
+.skeleton-w-75 {
+  width: 75%;
+}
+.skeleton-w-80 {
+  width: 80%;
+}
+.skeleton-w-85 {
+  width: 85%;
+}
+.skeleton-w-90 {
+  width: 90%;
+}
+.skeleton-w-100 {
+  width: 100%;
+}
+
+.skeleton-block--gap {
+  margin-bottom: 0.75rem;
+}
+.skeleton-block--gap-lg {
+  margin-bottom: 1.5rem;
+}
+.skeleton-block--mt {
+  margin-top: 1rem;
 }
 
 @keyframes skeleton-pulse {

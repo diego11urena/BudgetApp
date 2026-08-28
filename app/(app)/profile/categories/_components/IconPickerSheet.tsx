@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sheet } from "../../../_components/Sheet";
+import { EmptyState } from "../../../_components/EmptyState";
 import { getIconGroups, searchIcons, type IconEntry } from "@/lib/category-icon-library";
 
 const GROUPS = getIconGroups();
@@ -79,7 +80,7 @@ export function IconPickerSheet({
           searchResults.length > 0 ? (
             renderGrid(searchResults)
           ) : (
-            <p className="field-hint">No icons match &quot;{trimmed}&quot;.</p>
+            <EmptyState>No icons match &quot;{trimmed}&quot;.</EmptyState>
           )
         ) : (
           GROUPS.map(({ group, icons }) => (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IncomeCategoryRow } from "./IncomeCategoryRow";
+import { EmptyState } from "../../../../_components/EmptyState";
 import type { CategoryWithUsage } from "../../_components/types";
 
 /** Deliberately simpler than the Expense screen — flat list, search, Rename + Merge only. No icon picker, color, delete, add-category, or duplicate cleanup. */
@@ -25,9 +26,9 @@ export function IncomeCategoryManagerScreen({ categories }: { categories: Catego
       <div className="dashboard-section">
         <h2>Income categories</h2>
         {categories.length === 0 ? (
-          <p className="field-hint">No categories yet.</p>
+          <EmptyState>No categories yet.</EmptyState>
         ) : filtered.length === 0 ? (
-          <p className="field-hint">No categories match &quot;{query}&quot;.</p>
+          <EmptyState>No categories match &quot;{query}&quot;.</EmptyState>
         ) : (
           <div className="category-row-list">
             {filtered.map((category) => (

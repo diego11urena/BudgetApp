@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
+import { EmptyState } from "../../_components/EmptyState";
 
 export function TopCategoriesChart({
   categories,
@@ -19,7 +20,7 @@ export function TopCategoriesChart({
     return (
       <div>
         <h2>{title}</h2>
-        <p className="field-hint">No expenses logged yet this quincena.</p>
+        <EmptyState>No expenses logged yet this quincena.</EmptyState>
         {showBreakdownLink && (
           <Link href="/dashboard/breakdown" className="line-item line-item--link">
             <span>View breakdown</span>
