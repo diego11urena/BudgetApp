@@ -77,7 +77,7 @@ function makeRecurringCategory(
     categoryId: "cat-recurring",
     categoryName: "Subscriptions",
     categoryIcon: null,
-    targetAmount: built.reduce((sum, e) => sum + e.targetAmount, 0),
+    budgetTotal: built.reduce((sum, e) => sum + e.targetAmount, 0),
     actual: built.reduce((sum, e) => sum + e.actual, 0),
     expenses: built,
     ...overrides,

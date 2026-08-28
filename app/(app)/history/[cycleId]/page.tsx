@@ -126,7 +126,7 @@ export default async function CycleHistoryPage({
                 categoryName={category.categoryName}
                 categoryIcon={category.categoryIcon}
                 actual={category.actual}
-                targetAmount={category.targetAmount}
+                budgetTotal={category.budgetTotal}
                 expenses={category.expenses}
                 readOnly={closed}
               />

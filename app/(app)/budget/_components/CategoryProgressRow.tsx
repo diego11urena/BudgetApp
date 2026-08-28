@@ -18,7 +18,7 @@ export function CategoryProgressRow({
   categoryName,
   categoryIcon,
   actual,
-  targetAmount,
+  budgetTotal,
   expenses,
   categoryNames = [],
   readOnly = false,
@@ -26,14 +26,14 @@ export function CategoryProgressRow({
   categoryName: string;
   categoryIcon: string | null;
   actual: number;
-  targetAmount: number;
+  budgetTotal: number;
   expenses: RecurringExpenseRowData[];
   categoryNames?: string[];
   /** History reuses this component for a closed cycle's breakdown -- no add/edit/delete/record-payment/confirm-match affordances, just the read. */
   readOnly?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const usage = getBudgetUsage(actual, targetAmount);
+  const usage = getBudgetUsage(actual, budgetTotal);
 
   // A single recurring expense sharing the category's own name (e.g. a
   // "Utilities" category holding only a "Utilities" account) has nothing
@@ -49,9 +49,9 @@ export function CategoryProgressRow({
         </span>
         <span>{usage.percentage}%</span>
       </div>
-      <ProgressBar current={actual} target={targetAmount} colorState={usage.state} />
+      <ProgressBar current={actual} target={budgetTotal} colorState={usage.state} />
       <p className="field-hint" style={{ margin: "0.35rem 0 0" }}>
-        {formatCurrency(actual)} / {formatCurrency(targetAmount)}
+        {formatCurrency(actual)} / {formatCurrency(budgetTotal)}
         {usage.overBy > 0 && (
           <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
         )}

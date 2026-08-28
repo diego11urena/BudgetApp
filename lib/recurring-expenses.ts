@@ -18,8 +18,17 @@ export interface CategoryWithRecurringExpenses {
   categoryId: string;
   categoryName: string;
   categoryIcon: string | null;
-  /** The maintained CycleBudgetGoal aggregate -- always equal to the sum of expenses[].targetAmount, computed here directly rather than re-queried. */
-  targetAmount: number;
+  /**
+   * This category's EXPENSE budget for the cycle -- the sum of
+   * expenses[].targetAmount, computed here directly rather than re-queried.
+   * Named distinctly from CycleBudgetGoal.targetAmount, the same DB column
+   * a SAVINGS category's own goal contribution is stored in (see
+   * GoalWithProgress.currentCycleRecurringAmount in lib/goals.ts) -- the
+   * two are unrelated numbers that happen to share a column, and giving
+   * them different names in code is the whole fix (see the fix-list's
+   * vocabulary section).
+   */
+  budgetTotal: number;
   /**
    * Sum of expenses[].actual -- only spend actually linked to one of this
    * category's recurring expenses, NOT every transaction posted to the
@@ -168,14 +177,14 @@ export async function getRecurringExpensesForCycle(
         categoryId: category.id,
         categoryName: category.name,
         categoryIcon: category.icon,
-        targetAmount: 0,
+        budgetTotal: 0,
         actual: 0,
         expenses: [],
       });
     }
 
     const entry = categoriesMap.get(category.id)!;
-    entry.targetAmount += targetAmount;
+    entry.budgetTotal += targetAmount;
     entry.actual += actual;
     entry.expenses.push({
       id: recurringExpense.id,

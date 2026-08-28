@@ -70,7 +70,7 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
 
     expect(result).toHaveLength(1);
     expect(result[0].categoryName).toBe("Subscriptions");
-    expect(result[0].targetAmount).toBeCloseTo(25.98);
+    expect(result[0].budgetTotal).toBeCloseTo(25.98);
     expect(result[0].actual).toBeCloseTo(9.99);
     expect(result[0].expenses).toHaveLength(2);
   });
