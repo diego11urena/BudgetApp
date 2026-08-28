@@ -69,6 +69,12 @@ export async function openMoreDetails(page: Page): Promise<void> {
  * category with an exact name match, or typing directly into its always-
  * visible text input for a brand-new one (no separate "Other…" chip to
  * click first; CategoryNameInput's combobox accepts free text as-is).
+ *
+ * The free-text path leaves the "+ Create new" suggestion dropdown open
+ * (it only closes on an explicit selection or Escape) — dismiss it with
+ * Escape before returning so it doesn't visually cover whatever's
+ * immediately below the category field (e.g. QuickAddSheet's "More
+ * details" toggle sits right underneath it).
  */
 export async function fillCategory(page: Page, name: string): Promise<void> {
   const chip = page.locator(".category-chip", { hasText: new RegExp(`^${name}$`) });
@@ -76,5 +82,7 @@ export async function fillCategory(page: Page, name: string): Promise<void> {
     await chip.click();
     return;
   }
-  await page.fill('input[placeholder="Category name"]', name);
+  const input = page.locator('input[placeholder="Category name"]');
+  await input.fill(name);
+  await input.press("Escape");
 }

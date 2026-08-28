@@ -118,6 +118,9 @@ export function CategoryNameInput({
             onValueChange?.(e.target.value);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
         />
         {open && (suggestions.length > 0 || showCreateOption) && (
           <ul className="category-name-input-dropdown">
