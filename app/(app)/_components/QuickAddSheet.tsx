@@ -15,6 +15,7 @@ import { formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
 import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method";
 import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxType } from "@/lib/transaction-type";
+import type { RecentTransactionTemplate } from "@/lib/recent-transaction";
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
 import { CategoryNameInput } from "./CategoryNameInput";
@@ -48,6 +49,7 @@ export function QuickAddSheet({
   cycleStartDate,
   editingTransaction = null,
   targetCycleId,
+  prefill = null,
   returnFocusTo = null,
   onClose,
 }: {
@@ -64,6 +66,16 @@ export function QuickAddSheet({
   editingTransaction?: EditingTransaction | null;
   /** Present when creating from a specific (possibly past) quincena's own page rather than "wherever today's cycle is" — passed to addTransactionAction as a hint, and used to detect a cross-cycle move the same way editingTransaction.cycleId is for edits. */
   targetCycleId?: string;
+  /**
+   * Seeds a brand-new (not editingTransaction) sheet's initial type/name/
+   * category/amount/payment-method from a past transaction -- the "log
+   * again" shortcut (Home's own recent-activity chip). Date is deliberately
+   * NOT copied from it: a repeat entry happened today, not whenever the
+   * original one did, so occurredAt keeps its normal fresh-create default.
+   * Ignored when editingTransaction is set -- editing an existing row's
+   * own values always win.
+   */
+  prefill?: RecentTransactionTemplate | null;
   /** The button that opened this sheet — focus returns here on close. Needed because the amount field's own autoFocus would otherwise race the trigger-capture. */
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
@@ -95,7 +107,7 @@ export function QuickAddSheet({
   const pendingSubmitFormData = useRef<FormData | null>(null);
 
   const [visible, setVisible] = useState(false);
-  const [type, setType] = useState<TxType>(editingTransaction?.type ?? initialType);
+  const [type, setType] = useState<TxType>(editingTransaction?.type ?? prefill?.type ?? initialType);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
   const uid = useId();
@@ -131,6 +143,7 @@ export function QuickAddSheet({
   // to react to it here: displayName's live pre-fill and validate().
   const [categoryValue, setCategoryValue] = useState(() => {
     if (editingCategoryName !== null) return editingCategoryName;
+    if (prefill) return prefill.categoryName;
     return categoryNames[0] ?? "";
   });
   // Merchant/payee name, separate from category -- pre-filled with the
@@ -140,15 +153,20 @@ export function QuickAddSheet({
   // reads from typed-into `name` state once the user has actually typed
   // (nameTouched) or when editing (an existing transaction's name must
   // never silently follow a later category change) -- otherwise it just
-  // tracks categoryValue live, with no extra render/effect needed.
-  const [name, setName] = useState(editingTransaction?.name ?? "");
-  const [nameTouched, setNameTouched] = useState(false);
+  // tracks categoryValue live, with no extra render/effect needed. A
+  // prefilled name is treated the same as a typed one (nameTouched starts
+  // true) -- it came from a real past transaction, not a live category
+  // mirror, so it shouldn't get silently overwritten either.
+  const [name, setName] = useState(editingTransaction?.name ?? prefill?.name ?? "");
+  const [nameTouched, setNameTouched] = useState(Boolean(prefill));
   const displayName = isEditing || nameTouched ? name : categoryValue;
-  const [amount, setAmount] = useState(editingTransaction ? editingTransaction.amount.toFixed(2) : "");
+  const [amount, setAmount] = useState(
+    editingTransaction ? editingTransaction.amount.toFixed(2) : (prefill?.amount.toFixed(2) ?? ""),
+  );
   // Optional for EXPENSE/INCOME — left unset ("") is a valid choice, not
   // every purchase or deposit needs a recorded method.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(
-    editingTransaction?.paymentMethod ?? "",
+    editingTransaction?.paymentMethod ?? prefill?.paymentMethod ?? "",
   );
   // Creating into a specific past cycle defaults the date to that cycle's
   // own start — "today" would often fall well outside it, misfiring the
@@ -165,8 +183,11 @@ export function QuickAddSheet({
   // Amount + category cover the overwhelming majority of entries -- see the
   // "More details" disclosure in the form below. Starts expanded when
   // editing (an existing row's own merchant/date/payment/note are already
-  // meaningful, not blank defaults worth hiding).
-  const [showMore, setShowMore] = useState(isEditing);
+  // meaningful, not blank defaults worth hiding) or prefilling from a past
+  // transaction (same reasoning -- a prefilled merchant name/payment
+  // method that differs from what's visible above the fold shouldn't be
+  // silently submitted without the user ever seeing it).
+  const [showMore, setShowMore] = useState(isEditing || Boolean(prefill));
   // Panama time, not the device's own local clock — a transaction date is
   // validated server-side against nowInPanama() regardless of where the
   // user's device thinks it is (traveling, a misconfigured clock, or just
