@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { justGotPaidAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
@@ -17,8 +17,22 @@ import { useSheet } from "../../_components/useSheet";
  * props the page already fetched server-side, with no client-only API
  * involved, so there's no reason it (and the client JS it'd otherwise drag
  * along) has to ship to every visitor on every page load.
+ *
+ * variant="banner" (see PaydayOverdueBanner) renders the exact same flow
+ * behind a prominent .banner--action row instead of the small inline
+ * link -- a second, independent mount of this same component rather than
+ * a shared/lifted state, matching how QuickAddSheet already gets
+ * triggered from several independent entry points (BottomNav's FAB,
+ * AddToCycleButton, TransactionList's own row-tap) instead of one global
+ * instance. bannerLabel is only read when variant is "banner".
  */
-export function HeroCardActions() {
+export function HeroCardActions({
+  variant = "link",
+  bannerLabel,
+}: {
+  variant?: "link" | "banner";
+  bannerLabel?: string;
+}) {
   const router = useRouter();
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
@@ -67,23 +81,39 @@ export function HeroCardActions() {
 
   return (
     <>
-      <button
-        type="button"
-        className="hero-action-link"
-        onClick={(e) => {
-          setTrigger(e.currentTarget);
-          setConfirming(true);
-        }}
-        disabled={pending}
-      >
-        {pending ? (
-          "Closing quincena..."
-        ) : (
-          <>
-            I just got paid <ArrowRight size={16} aria-hidden="true" />
-          </>
-        )}
-      </button>
+      {variant === "banner" ? (
+        <button
+          type="button"
+          className="banner banner--action"
+          aria-live="polite"
+          onClick={(e) => {
+            setTrigger(e.currentTarget);
+            setConfirming(true);
+          }}
+          disabled={pending}
+        >
+          <span>{pending ? "Closing quincena..." : bannerLabel}</span>
+          <ChevronRight size={18} aria-hidden="true" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="hero-action-link"
+          onClick={(e) => {
+            setTrigger(e.currentTarget);
+            setConfirming(true);
+          }}
+          disabled={pending}
+        >
+          {pending ? (
+            "Closing quincena..."
+          ) : (
+            <>
+              I just got paid <ArrowRight size={16} aria-hidden="true" />
+            </>
+          )}
+        </button>
+      )}
 
       {confirming && (
         <ConfirmJustGotPaidSheet onConfirm={handleConfirmedJustGotPaid} onCancel={() => setConfirming(false)} {...sheetProps} />

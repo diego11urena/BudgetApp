@@ -10,6 +10,7 @@ import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
 import { getMostRecentTransaction } from "@/lib/recent-transaction";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
+import { computeQuincenaPace } from "@/lib/quincena-pace";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Header } from "./_components/Header";
@@ -18,6 +19,7 @@ import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { InsightsCard } from "./_components/InsightsCard";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
+import { PaydayOverdueBanner } from "./_components/PaydayOverdueBanner";
 import { LogAgainButton } from "./_components/LogAgainButton";
 import { TransactionList } from "../_components/TransactionList";
 
@@ -77,6 +79,20 @@ export default async function DashboardPage() {
 
   const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
 
+  // "ended" once the calendar-derived quincena end has passed without the
+  // user closing it yet -- getOrCreateDraftCycle keeps a cycle open
+  // indefinitely otherwise, silently going stale (fix-list batch 11.5,
+  // decision 2). amountLeft/totalExpenses only affect perDay/isOverPace
+  // here, neither of which this banner reads -- passed through anyway
+  // since they're already in hand and computeQuincenaPace requires them.
+  const pace = computeQuincenaPace({
+    periodStart: cycle.periodStart,
+    periodEnd: cycle.periodEnd,
+    now: new Date(),
+    amountLeft: financials.amountLeft,
+    totalExpenses: financials.totalExpenses,
+  });
+
   const insights = generateInsights(financials, previousClosedFinancials, {
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
@@ -108,6 +124,12 @@ export default async function DashboardPage() {
             incomeCategoryNames={incomeCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
           />
+        </div>
+      )}
+
+      {pace.phase === "ended" && (
+        <div className="dashboard-section dashboard-section--plain">
+          <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} />
         </div>
       )}
 
