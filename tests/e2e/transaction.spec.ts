@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
 
 test.describe("logging a transaction", () => {
   test("add, edit, and delete an expense", async ({ page }) => {
@@ -52,7 +52,6 @@ test.describe("logging a transaction", () => {
 
     await test.step("Name pre-fills live from the category field and is overridable", async () => {
       await openQuickAdd(page, "Expense");
-      await openMoreDetails(page);
       const nameField = page.getByLabel("Merchant / name");
       await expect(nameField).toHaveValue("");
       await fillCategory(page, "Transportation");
@@ -87,7 +86,6 @@ test.describe("logging a transaction", () => {
 
     await test.step("leaving the name field untouched still submits fine, falling back to the category", async () => {
       await openQuickAdd(page, "Expense");
-      await openMoreDetails(page);
       // "Transportation" now exists as a category -- exercises the chip
       // (not free-text) pre-fill path.
       await expect(page.getByLabel("Merchant / name")).toHaveValue("Transportation");
@@ -103,7 +101,6 @@ test.describe("logging a transaction", () => {
 
     await test.step("clearing the name field entirely blocks submit, same as Amount/Category/Date", async () => {
       await openQuickAdd(page, "Expense");
-      await openMoreDetails(page);
       await page.getByLabel("Amount (USD)").fill("8.00");
       const nameField = page.getByLabel("Merchant / name");
       await expect(nameField).toHaveValue("Transportation");

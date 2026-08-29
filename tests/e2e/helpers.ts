@@ -51,20 +51,6 @@ export async function openQuickAdd(
 }
 
 /**
- * Expands QuickAddSheet's "More details" disclosure (merchant name, date,
- * payment method, the bill toggle, note) -- collapsed by default on
- * create (amount + category alone cover most entries), already expanded
- * when editing an existing transaction. Safe to call either way: a no-op
- * if the fields are already visible.
- */
-export async function openMoreDetails(page: Page): Promise<void> {
-  const toggle = page.getByRole("button", { name: "More details" });
-  if (await toggle.count()) {
-    await toggle.click();
-  }
-}
-
-/**
  * Fills CategoryNameInput's category field — a chip for an existing
  * category with an exact name match, or typing directly into its always-
  * visible text input for a brand-new one (no separate "Other…" chip to
@@ -73,8 +59,8 @@ export async function openMoreDetails(page: Page): Promise<void> {
  * The free-text path leaves the "+ Create new" suggestion dropdown open
  * (it only closes on an explicit selection or Escape) — dismiss it with
  * Escape before returning so it doesn't visually cover whatever's
- * immediately below the category field (e.g. QuickAddSheet's "More
- * details" toggle sits right underneath it).
+ * immediately below the category field (QuickAddSheet's Merchant/name
+ * field sits right underneath it).
  */
 export async function fillCategory(page: Page, name: string): Promise<void> {
   const chip = page.locator(".category-chip", { hasText: new RegExp(`^${name}$`) });

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -177,7 +177,6 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
       await openQuickAdd(page, "Expense");
       await page.getByLabel("Amount (USD)").fill("20.00");
       await fillCategory(page, "Transportation");
-      await openMoreDetails(page);
       await page.getByLabel("This is a bill").check();
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -194,7 +193,6 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
       await openQuickAdd(page, "Expense");
       await page.getByLabel("Amount (USD)").fill("15.00");
       await fillCategory(page, "Transportation");
-      await openMoreDetails(page);
       // Name defaults to the category ("Transportation") on both -- an
       // exact, same-name repeat, exactly the dedup case the toggle guards.
       await page.getByLabel("This is a bill").check();
@@ -231,13 +229,11 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Income");
-    await openMoreDetails(page);
     await expect(page.getByLabel("This is a bill")).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await openQuickAdd(page, "Savings");
-    await openMoreDetails(page);
     await expect(page.getByLabel("This is a bill")).toHaveCount(0);
   });
 });
