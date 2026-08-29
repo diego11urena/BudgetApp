@@ -38,11 +38,11 @@ export default async function PlanPage() {
       <h1 className="page-title">Plan</h1>
 
       <div className="dashboard-section">
-        <BillsSection categories={billCategories} categoryNames={expenseCategoryNames} />
+        <GoalsSection goals={goals} savingsCategoryNames={savingsCategoryNames} />
       </div>
 
       <div className="dashboard-section">
-        <GoalsSection goals={goals} savingsCategoryNames={savingsCategoryNames} />
+        <BillsSection categories={billCategories} categoryNames={expenseCategoryNames} />
       </div>
     </div>
   );
