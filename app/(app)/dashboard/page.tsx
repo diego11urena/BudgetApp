@@ -8,7 +8,6 @@ import { generateInsights } from "@/lib/insights";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
-import { getMostRecentTransaction } from "@/lib/recent-transaction";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import Link from "next/link";
@@ -20,7 +19,6 @@ import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { InsightsCard } from "./_components/InsightsCard";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { PaydayOverdueBanner } from "./_components/PaydayOverdueBanner";
-import { LogAgainButton } from "./_components/LogAgainButton";
 import { TransactionList } from "../_components/TransactionList";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -52,7 +50,6 @@ export default async function DashboardPage() {
     recurringExpenseCategories,
     goals,
     needsAttentionTransactions,
-    recentTransactionTemplate,
   ] = await Promise.all([
     getCycleFinancials(cycle.id),
     getAdjacentCycles(userId, cycle),
@@ -63,7 +60,6 @@ export default async function DashboardPage() {
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
     getNeedsAttentionTransactions(cycle.id),
-    getMostRecentTransaction(userId),
   ]);
 
   // Exclusive neighbor boundary -> inclusive HTML date-input min, same
@@ -182,15 +178,6 @@ export default async function DashboardPage() {
 
       <div className="dashboard-section">
         <h2>Recent transactions</h2>
-        {recentTransactionTemplate && (
-          <LogAgainButton
-            template={recentTransactionTemplate}
-            expenseCategoryNames={expenseCategoryNames}
-            savingsCategoryNames={savingsCategoryNames}
-            incomeCategoryNames={incomeCategoryNames}
-            cycleStartDate={formatCycleLabel(cycle.periodStart)}
-          />
-        )}
         <TransactionList
           transactions={financials.transactions.slice(0, 3)}
           expenseCategoryNames={expenseCategoryNames}
