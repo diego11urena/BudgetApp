@@ -128,9 +128,14 @@ export default async function TransactionsPage({
         {/* Breakdown is a VIEW of this same activity (a pie chart instead
             of a list), not a separate concept -- see the Balboa fix list's
             batch 11.3, which moved it here from its old orphaned spot
-            behind a text link on Home. */}
-        <Link href="/transactions/breakdown" className="line-item line-item--link" style={{ minHeight: "auto" }}>
-          <PieChart size={16} aria-hidden="true" /> Breakdown
+            behind a text link on Home. Styled as a real secondary button
+            (same pair BillsSection's "+ New bill" uses), not
+            .line-item--link -- that class is a full-width list row style,
+            which read as an orphaned row rather than an action when sat
+            next to an <h1> in a section header. */}
+        <Link href="/transactions/breakdown" className="button button--secondary button--small">
+          <PieChart size={16} aria-hidden="true" />
+          Breakdown
         </Link>
       </div>
 

@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
@@ -8,25 +6,16 @@ import { EmptyState } from "../../_components/EmptyState";
 export function TopCategoriesChart({
   categories,
   title = "Top categories this quincena",
-  showBreakdownLink = true,
 }: {
   categories: CategoryTotal[];
   /** "This quincena" only reads correctly on Home — a past cycle's own page passes a plain "Top categories" instead. */
   title?: string;
-  /** /transactions/breakdown only ever compares "this cycle vs. last" — irrelevant (and pointing at the wrong cycle) when this chart is rendering a past cycle's own page. Defaults true so Home is unchanged. */
-  showBreakdownLink?: boolean;
 }) {
   if (categories.length === 0) {
     return (
       <div>
         <h2>{title}</h2>
         <EmptyState>No expenses logged yet this quincena.</EmptyState>
-        {showBreakdownLink && (
-          <Link href="/transactions/breakdown" className="line-item line-item--link">
-            <span>View breakdown</span>
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        )}
       </div>
     );
   }
@@ -59,12 +48,6 @@ export function TopCategoriesChart({
           </div>
         ))}
       </div>
-      {showBreakdownLink && (
-        <Link href="/transactions/breakdown" className="line-item line-item--link">
-          <span>View breakdown</span>
-          <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      )}
     </div>
   );
 }

@@ -136,11 +136,7 @@ export default async function CycleHistoryPage({
       )}
 
       <div className="dashboard-section">
-        <TopCategoriesChart
-          categories={financials.topCategories}
-          title="Top categories"
-          showBreakdownLink={false}
-        />
+        <TopCategoriesChart categories={financials.topCategories} title="Top categories" />
       </div>
 
       <div className="dashboard-section">
