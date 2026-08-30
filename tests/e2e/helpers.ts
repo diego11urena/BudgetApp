@@ -83,21 +83,11 @@ export async function openMoreDetails(page: Page): Promise<void> {
  * to drive this specific widget -- it's built to be typed into, not
  * pasted into. click() first so the field's own onFocus (select-all)
  * clears any pre-filled value before the new digits replace it.
- *
- * A small delay between keystrokes, not the zero-delay default: without
- * it, pressSequentially can fire the next keydown before CurrencyInput's
- * own effect has re-pinned the caret to the end of its just-reformatted
- * value (a real, if narrow, race between the browser's synchronous key
- * handling and React's next-tick effect flush) -- the following digit
- * then lands mid-string instead of appended, scrambling the result. A
- * real person typing never hits this (typing speed is nowhere near fast
- * enough to race a render), so this is purely a test-speed artifact, not
- * something the component itself needs to guard against.
  */
 export async function fillAmount(locator: Locator, dollars: string): Promise<void> {
   const cents = Math.round(Number(dollars) * 100);
   await locator.click();
-  await locator.pressSequentially(String(cents), { delay: 30 });
+  await locator.pressSequentially(String(cents));
 }
 
 /**
