@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useState } from "react";
 import type { ExpensesFormState } from "../actions";
+import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
 
 /**
  * Replaces the old open-ended "add as many fixed expenses as you like"
@@ -35,13 +36,11 @@ export function RentStepForm({
       <input type="hidden" name="itemsJson" value={itemsJson} readOnly />
       <div className="field">
         <label htmlFor={amountId}>Rent per quincena (USD)</label>
-        <input
+        <CurrencyInput
           id={amountId}
-          type="text"
-          inputMode="decimal"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          defaultValue={amount}
+          onValueChange={setAmount}
+          allowEmpty
           autoFocus
         />
         <span className="field-hint">Leave blank if you don&apos;t pay rent.</span>

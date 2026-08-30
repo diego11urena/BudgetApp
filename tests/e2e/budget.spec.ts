@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -14,7 +14,7 @@ async function createRecurringExpense(
   const nameField = page.getByLabel("Name");
   await nameField.waitFor();
   await nameField.fill(opts.name);
-  await page.getByLabel("Amount (USD)").fill(opts.amount);
+  await fillAmount(page.getByLabel("Amount (USD)"), opts.amount);
   await page.getByLabel("Category").fill(opts.category);
   await clickSheetButton(page, "Save");
   await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -72,7 +72,7 @@ test.describe("Plan screen (Bills)", () => {
     const editNameField = page.getByLabel("Name");
     await editNameField.waitFor();
     await expect(editNameField).toHaveValue("Spotify");
-    await page.getByLabel("Amount (USD)").fill("12.99");
+    await fillAmount(page.getByLabel("Amount (USD)"), "12.99");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -106,7 +106,7 @@ test.describe("Plan screen (Bills)", () => {
 
     await page.click('button:has-text("+ New bill")');
     await page.getByLabel("Name").fill("Car registration");
-    await page.getByLabel("Amount (USD)").fill("60.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "60.00");
     await page.getByLabel("Category").fill("Car");
     await page.getByLabel("Recurrence").selectOption("ONE_TIME");
     await expect(page.getByLabel("Due day (1–31)")).toHaveCount(0);
@@ -175,7 +175,7 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
 
     await test.step("logging an expense with the toggle on creates a new bill showing this transaction's amount as paid", async () => {
       await openQuickAdd(page, "Expense");
-      await page.getByLabel("Amount (USD)").fill("20.00");
+      await fillAmount(page.getByLabel("Amount (USD)"), "20.00");
       await fillCategory(page, "Transportation");
       await openMoreDetails(page);
       await page.getByLabel("This is a bill").check();
@@ -192,7 +192,7 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
 
     await test.step("a second same-named expense logged with the toggle on links to the SAME bill (summed actual), not a second row", async () => {
       await openQuickAdd(page, "Expense");
-      await page.getByLabel("Amount (USD)").fill("15.00");
+      await fillAmount(page.getByLabel("Amount (USD)"), "15.00");
       await fillCategory(page, "Transportation");
       // Name defaults to the category ("Transportation") on both -- an
       // exact, same-name repeat, exactly the dedup case the toggle guards.

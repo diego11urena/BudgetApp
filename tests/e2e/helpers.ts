@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 /**
  * Signs up a brand-new user (unique email so parallel test runs never
@@ -25,7 +25,7 @@ export async function signUpAndOnboard(
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/income/, { timeout: 60_000, waitUntil: "commit" });
 
-  await page.fill('input[name="netQuincenaAmount"]', opts.netQuincenaAmount ?? "1000");
+  await fillAmount(page.getByLabel("Net pay per quincena (USD)"), opts.netQuincenaAmount ?? "1000");
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/expenses/, { timeout: 60_000, waitUntil: "commit" });
 
@@ -62,6 +62,21 @@ export async function openMoreDetails(page: Page): Promise<void> {
   if (await toggle.count()) {
     await toggle.click();
   }
+}
+
+/**
+ * Fills any CurrencyInput-backed money field with a plain dollar amount --
+ * "50", "1000", "24.50" all mean exactly that many dollars. CurrencyInput
+ * treats the last two digits of whatever's typed as cents (see
+ * app/(app)/_components/CurrencyInput.tsx), so filling the dollar string
+ * directly would misfire for anything without an explicit ".XX" (a bare
+ * "50" would land as $0.50, not $50.00) -- converting to a plain cents
+ * digit string first and filling THAT sidesteps the whole implicit-decimal
+ * encoding, working the same regardless of how the caller wrote the amount.
+ */
+export async function fillAmount(locator: Locator, dollars: string): Promise<void> {
+  const cents = Math.round(Number(dollars) * 100);
+  await locator.fill(String(cents));
 }
 
 /**

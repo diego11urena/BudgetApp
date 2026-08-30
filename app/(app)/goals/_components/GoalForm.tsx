@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { upsertGoalAction, type GoalFormState } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 
 const initialState: GoalFormState = undefined;
 
@@ -44,24 +45,11 @@ export function GoalForm({
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
           <label htmlFor="goal-lifetime">Total goal (USD)</label>
-          <input
-            id="goal-lifetime"
-            name="lifetimeTargetAmount"
-            type="text"
-            inputMode="decimal"
-            placeholder="5000.00"
-            required
-          />
+          <CurrencyInput id="goal-lifetime" name="lifetimeTargetAmount" required />
         </div>
         <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
           <label htmlFor="goal-recurring">Per-cycle contribution (optional)</label>
-          <input
-            id="goal-recurring"
-            name="recurringAmount"
-            type="text"
-            inputMode="decimal"
-            placeholder="200.00"
-          />
+          <CurrencyInput id="goal-recurring" name="recurringAmount" allowEmpty placeholder="200.00" />
         </div>
       </div>
 
@@ -76,13 +64,7 @@ export function GoalForm({
       {hasAlreadySaved && (
         <div className="field">
           <label htmlFor="goal-already-saved">Already saved (USD)</label>
-          <input
-            id="goal-already-saved"
-            name="alreadySavedAmount"
-            type="text"
-            inputMode="decimal"
-            placeholder="450.00"
-          />
+          <CurrencyInput id="goal-already-saved" name="alreadySavedAmount" allowEmpty placeholder="450.00" />
         </div>
       )}
 

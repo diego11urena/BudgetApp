@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory, fillAmount } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text — every sheet in this app follows this convention, and several buttons across sheets share text ("Save", "Cancel"), so this scopes to whichever sheet is currently open. */
 async function clickSheetButton(page: import("@playwright/test").Page, text: string) {
@@ -14,13 +14,13 @@ test.describe("managing categories", () => {
 
     // Two categories that should have ended up as one (a typo'd duplicate).
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("15.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "15.00");
     await fillCategory(page, "Dining");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("22.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "22.00");
     await fillCategory(page, "Dinning"); // the typo being merged away
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -55,14 +55,14 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("50.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "50.00");
     await fillCategory(page, "Rent");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
     // Second entry, category typed lowercase.
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("5.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "5.00");
     await fillCategory(page, "rent");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -110,7 +110,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("42.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "42.00");
     await fillCategory(page, "Groceries");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -164,7 +164,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("18.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "18.00");
     await fillCategory(page, "Streaming");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -197,7 +197,7 @@ test.describe("managing categories", () => {
     const recurringNameField = page.getByLabel("Name");
     await recurringNameField.waitFor();
     await recurringNameField.fill("Spotify");
-    await page.getByLabel("Amount (USD)").fill("9.99");
+    await fillAmount(page.getByLabel("Amount (USD)"), "9.99");
     await page.getByLabel("Category").fill("Subscriptions");
     await page.click('.sheet button[type="submit"]');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -231,7 +231,7 @@ test.describe("managing categories", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("20.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "20.00");
     await fillCategory(page, "Gift");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });

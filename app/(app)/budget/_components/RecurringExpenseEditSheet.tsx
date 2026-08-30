@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
 import { useToast } from "../../_components/ToastProvider";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 import {
   createRecurringExpenseAction,
   deleteRecurringExpenseAction,
@@ -181,17 +182,14 @@ export function RecurringExpenseEditSheet({
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
             <label htmlFor={amountId}>Amount (USD)</label>
-            <input
+            <CurrencyInput
               id={amountId}
               name="amount"
-              type="text"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              defaultValue={amount}
+              onValueChange={setAmount}
               className={errorField === "amount" ? "is-invalid" : ""}
-              aria-invalid={errorField === "amount" || undefined}
-              aria-describedby={errorField === "amount" ? errorId : undefined}
+              invalid={errorField === "amount"}
+              describedBy={errorField === "amount" ? errorId : undefined}
             />
           </div>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>

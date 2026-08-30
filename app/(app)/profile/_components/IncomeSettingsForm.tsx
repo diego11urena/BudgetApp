@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { updateIncomeAction, type IncomeSettingsFormState } from "../actions";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 
 const initialState: IncomeSettingsFormState = undefined;
 
@@ -16,11 +17,9 @@ export function IncomeSettingsForm({ initial }: { initial: IncomeSettingsInitial
     <form action={formAction}>
       <div className="field">
         <label htmlFor="income-net">Net pay per quincena (USD)</label>
-        <input
+        <CurrencyInput
           id="income-net"
           name="netQuincenaAmount"
-          type="text"
-          inputMode="decimal"
           required
           defaultValue={initial.netQuincenaAmount}
         />

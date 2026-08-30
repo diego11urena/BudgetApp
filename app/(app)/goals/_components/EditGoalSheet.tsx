@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateGoalWithContributionAction } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 import { Sheet } from "../../_components/Sheet";
 import { formatCurrency } from "@/lib/format";
 import { INVALID_AMOUNT_FORMAT_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
@@ -163,41 +164,36 @@ export function EditGoalSheet({
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
             <label htmlFor={targetId}>Total goal (USD)</label>
-            <input
+            <CurrencyInput
               id={targetId}
-              type="text"
-              inputMode="decimal"
-              value={lifetimeTargetAmount}
-              onChange={(e) => setLifetimeTargetAmount(e.target.value)}
+              defaultValue={lifetimeTargetAmount}
+              onValueChange={setLifetimeTargetAmount}
               className={errorField === "target" ? "is-invalid" : ""}
-              aria-invalid={errorField === "target" || undefined}
-              aria-describedby={errorField === "target" ? errorId : undefined}
+              invalid={errorField === "target"}
+              describedBy={errorField === "target" ? errorId : undefined}
             />
           </div>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
             <label htmlFor={recurringId}>Per-cycle contribution</label>
-            <input
+            <CurrencyInput
               id={recurringId}
-              type="text"
-              inputMode="decimal"
+              defaultValue={recurringAmount}
+              onValueChange={setRecurringAmount}
+              allowEmpty
               placeholder="Optional"
-              value={recurringAmount}
-              onChange={(e) => setRecurringAmount(e.target.value)}
             />
           </div>
         </div>
 
         <div className="field">
           <label htmlFor={savedId}>Amount saved so far</label>
-          <input
+          <CurrencyInput
             id={savedId}
-            type="text"
-            inputMode="decimal"
-            value={savedSoFar}
-            onChange={(e) => setSavedSoFar(e.target.value)}
+            defaultValue={savedSoFar}
+            onValueChange={setSavedSoFar}
             className={errorField === "saved" ? "is-invalid" : ""}
-            aria-invalid={errorField === "saved" || undefined}
-            aria-describedby={errorField === "saved" ? errorId : undefined}
+            invalid={errorField === "saved"}
+            describedBy={errorField === "saved" ? errorId : undefined}
           />
         </div>
 

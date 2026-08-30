@@ -6,6 +6,7 @@ import { addTransactionAction, deleteTransactionAction } from "../../_actions/tr
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "../../_components/ToastProvider";
 import { Sheet } from "../../_components/Sheet";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 import { useSheet } from "../../_components/useSheet";
 
 export function ContributeButton({ categoryName }: { categoryName: string }) {
@@ -100,19 +101,14 @@ function ContributeSheet({
       <form onSubmit={handleSubmit}>
         <div className="field sheet-amount-field">
           <label htmlFor={amountId}>Amount (USD)</label>
-          <input
+          <CurrencyInput
             id={amountId}
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            defaultValue={amount}
+            onValueChange={setAmount}
             autoFocus
-            required
             className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
-            onFocus={(e) => e.target.select()}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
+            invalid={!!error}
+            describedBy={error ? errorId : undefined}
           />
         </div>
 

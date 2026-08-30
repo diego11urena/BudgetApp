@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction, previewPayDateChangeAction } from "../actions";
 import type { PayDateChangeResult } from "@/lib/cycles";
 import { Sheet } from "../../_components/Sheet";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
 
@@ -184,16 +185,13 @@ export function EditPayInfoSheet({
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
           <label htmlFor={amountId}>Net pay (USD)</label>
-          <input
+          <CurrencyInput
             id={amountId}
-            type="text"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            defaultValue={amount}
+            onValueChange={setAmount}
             className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
-            onFocus={(e) => e.target.select()}
-            aria-invalid={errorField === "amount" || undefined}
-            aria-describedby={errorField === "amount" ? errorId : undefined}
+            invalid={errorField === "amount"}
+            describedBy={errorField === "amount" ? errorId : undefined}
           />
         </div>
 

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory, fillAmount } from "./helpers";
 
 test.describe("logging a transaction", () => {
   test("add, edit, and delete an expense", async ({ page }) => {
@@ -7,7 +7,7 @@ test.describe("logging a transaction", () => {
 
     await test.step("add an expense", async () => {
       await openQuickAdd(page, "Expense");
-      await page.getByLabel("Amount (USD)").fill("24.50");
+      await fillAmount(page.getByLabel("Amount (USD)"), "24.50");
       await fillCategory(page, "Groceries");
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".transaction-row", { hasText: "Groceries" })).toBeVisible();
@@ -18,7 +18,7 @@ test.describe("logging a transaction", () => {
       await page.locator(".transaction-row", { hasText: "Groceries" }).click();
       const amountField = page.getByLabel("Amount (USD)");
       await amountField.waitFor();
-      await amountField.fill("30.00");
+      await fillAmount(amountField, "30.00");
       await page.click('button:has-text("Save changes")');
       await expect(page.locator(".transaction-row", { hasText: "-$30.00" })).toBeVisible();
     });
@@ -35,7 +35,7 @@ test.describe("logging a transaction", () => {
     await signUpAndOnboard(page);
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("10.00");
+    await fillAmount(page.getByLabel("Amount (USD)"), "10.00");
     await fillCategory(page, "Coffee");
     await page.click('button:has-text("Log it")');
 
@@ -59,7 +59,7 @@ test.describe("logging a transaction", () => {
       // untouched Name field tracks it live.
       await expect(nameField).toHaveValue("Transportation");
 
-      await page.getByLabel("Amount (USD)").fill("45.50");
+      await fillAmount(page.getByLabel("Amount (USD)"), "45.50");
       await nameField.fill("Panapass");
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -89,7 +89,7 @@ test.describe("logging a transaction", () => {
       // "Transportation" now exists as a category -- exercises the chip
       // (not free-text) pre-fill path.
       await expect(page.getByLabel("Merchant / name")).toHaveValue("Transportation");
-      await page.getByLabel("Amount (USD)").fill("12.00");
+      await fillAmount(page.getByLabel("Amount (USD)"), "12.00");
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -101,7 +101,7 @@ test.describe("logging a transaction", () => {
 
     await test.step("clearing the name field entirely blocks submit, same as Amount/Category/Date", async () => {
       await openQuickAdd(page, "Expense");
-      await page.getByLabel("Amount (USD)").fill("8.00");
+      await fillAmount(page.getByLabel("Amount (USD)"), "8.00");
       const nameField = page.getByLabel("Merchant / name");
       await expect(nameField).toHaveValue("Transportation");
       await nameField.fill("");

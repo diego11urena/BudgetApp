@@ -17,6 +17,7 @@ import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method
 import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxType } from "@/lib/transaction-type";
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
+import { CurrencyInput } from "./CurrencyInput";
 
 export interface EditingTransaction {
   id: string;
@@ -451,20 +452,15 @@ export function QuickAddSheet({
 
         <div className="field sheet-amount-field">
           <label htmlFor={amountId}>Amount (USD)</label>
-          <input
+          <CurrencyInput
             id={amountId}
             name="amount"
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            defaultValue={amount}
+            onValueChange={setAmount}
             autoFocus
-            required
             className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
-            onFocus={(e) => e.target.select()}
-            aria-invalid={errorField === "amount" || undefined}
-            aria-describedby={errorField === "amount" ? errorId : undefined}
+            invalid={errorField === "amount"}
+            describedBy={errorField === "amount" ? errorId : undefined}
           />
         </div>
 

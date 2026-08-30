@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { signUpAndOnboard, fillAmount } from "./helpers";
 
 test.describe("savings goals", () => {
   test("creating a goal and contributing to it updates saved-so-far and Safe to spend", async ({
@@ -11,7 +11,7 @@ test.describe("savings goals", () => {
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Emergency Fund");
-    await page.fill("#goal-lifetime", "3000");
+    await fillAmount(page.locator("#goal-lifetime"), "3000");
     await page.click('button:has-text("Save goal")');
 
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
@@ -22,7 +22,7 @@ test.describe("savings goals", () => {
     await goalRow.locator('button:has-text("Contribute")').click();
     const contributeAmount = page.getByLabel("Amount (USD)");
     await contributeAmount.waitFor();
-    await contributeAmount.fill("150.00");
+    await fillAmount(contributeAmount, "150.00");
     // Scoped to the open sheet specifically -- the goal row's own
     // "Contribute" trigger button is text-identical to the sheet's submit
     // button and would otherwise make this locator ambiguous.
@@ -52,9 +52,9 @@ test.describe("savings goals", () => {
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Vacation");
-    await page.fill("#goal-lifetime", "2000");
+    await fillAmount(page.locator("#goal-lifetime"), "2000");
     await page.click("text=Do you already have money saved toward this goal?");
-    await page.fill("#goal-already-saved", "450");
+    await fillAmount(page.locator("#goal-already-saved"), "450");
     await page.click('button:has-text("Save goal")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
@@ -79,7 +79,7 @@ test.describe("savings goals", () => {
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Emergency Fund");
-    await page.fill("#goal-lifetime", "3000");
+    await fillAmount(page.locator("#goal-lifetime"), "3000");
     await page.click('button:has-text("Save goal")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
@@ -87,7 +87,7 @@ test.describe("savings goals", () => {
     await goalRow.locator('button:has-text("Edit")').click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
-    await editGoalSaved.fill("200");
+    await fillAmount(editGoalSaved, "200");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText("You're increasing the amount saved toward this goal by $200.00")).toBeVisible();
@@ -116,7 +116,7 @@ test.describe("savings goals", () => {
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Pro Futuro");
-    await page.fill("#goal-lifetime", "3000");
+    await fillAmount(page.locator("#goal-lifetime"), "3000");
     await page.click('button:has-text("Save goal")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
@@ -124,7 +124,7 @@ test.describe("savings goals", () => {
     await goalRow.locator('button:has-text("Edit")').click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
-    await editGoalSaved.fill("300");
+    await fillAmount(editGoalSaved, "300");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText("You're increasing the amount saved toward this goal by $300.00")).toBeVisible();
@@ -148,9 +148,9 @@ test.describe("savings goals", () => {
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Rainy Day");
-    await page.fill("#goal-lifetime", "1000");
+    await fillAmount(page.locator("#goal-lifetime"), "1000");
     await page.click("text=Do you already have money saved toward this goal?");
-    await page.fill("#goal-already-saved", "500");
+    await fillAmount(page.locator("#goal-already-saved"), "500");
     await page.click('button:has-text("Save goal")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
@@ -158,7 +158,7 @@ test.describe("savings goals", () => {
     await goalRow.locator('button:has-text("Edit")').click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
-    await editGoalSaved.fill("300");
+    await fillAmount(editGoalSaved, "300");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(
@@ -192,7 +192,7 @@ test.describe("savings goals", () => {
     const editAmount = page.getByLabel("Amount (USD)");
     await editAmount.waitFor();
     await expect(editAmount).toHaveValue("200.00");
-    await editAmount.fill("250.00");
+    await fillAmount(editAmount, "250.00");
     await page.click('button:has-text("Save changes")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
@@ -227,9 +227,9 @@ test.describe("savings goals", () => {
     await page.click('button:has-text("+ Add goal")');
     await page.waitForSelector("#goal-name");
     await page.fill("#goal-name", "Sunny Day");
-    await page.fill("#goal-lifetime", "1000");
+    await fillAmount(page.locator("#goal-lifetime"), "1000");
     await page.click("text=Do you already have money saved toward this goal?");
-    await page.fill("#goal-already-saved", "500");
+    await fillAmount(page.locator("#goal-already-saved"), "500");
     await page.click('button:has-text("Save goal")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
@@ -237,7 +237,7 @@ test.describe("savings goals", () => {
     await goalRow.locator('button:has-text("Edit")').click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
-    await editGoalSaved.fill("300");
+    await fillAmount(editGoalSaved, "300");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(
@@ -262,7 +262,7 @@ test.describe("savings goals", () => {
       await page.click('button:has-text("+ Add goal")');
       await page.waitForSelector("#goal-name");
       await page.fill("#goal-name", name);
-      await page.fill("#goal-lifetime", "1000");
+      await fillAmount(page.locator("#goal-lifetime"), "1000");
       await page.click('button:has-text("Save goal")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
     }

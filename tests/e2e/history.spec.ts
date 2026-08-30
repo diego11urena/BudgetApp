@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount } from "./helpers";
 
 function daysAgoISO(n: number): string {
   const d = new Date();
@@ -14,7 +14,7 @@ test.describe("past quincenas", () => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("50");
+    await fillAmount(page.getByLabel("Amount (USD)"), "50");
     await fillCategory(page, "Groceries");
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
@@ -38,7 +38,7 @@ test.describe("past quincenas", () => {
     await page.click('button:has-text("Add to this quincena")');
     const amountField = page.getByLabel("Amount (USD)");
     await amountField.waitFor();
-    await amountField.fill("25");
+    await fillAmount(amountField, "25");
     await fillCategory(page, "Groceries");
     await page.click('.sheet button[type="submit"]');
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
@@ -75,7 +75,7 @@ test.describe("past quincenas", () => {
     await page.waitForSelector(".sheet-backdrop", { state: "detached" });
 
     await openQuickAdd(page, "Expense");
-    await page.getByLabel("Amount (USD)").fill("40");
+    await fillAmount(page.getByLabel("Amount (USD)"), "40");
     await fillCategory(page, "Coffee");
     await openMoreDetails(page);
     await page.getByLabel("Date").fill(daysAgoISO(8));

@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { confirmNewCycleIncomeAction } from "../actions";
 import { Sheet } from "../../_components/Sheet";
+import { CurrencyInput } from "../../_components/CurrencyInput";
 
 /**
  * Shown right after CycleClosedCard, on every "I just got paid" close —
@@ -74,18 +75,14 @@ export function NewCycleIncomeSheet({
       <form onSubmit={handleConfirm}>
         <div className="field">
           <label htmlFor={amountId}>Net pay (USD)</label>
-          <input
+          <CurrencyInput
             id={amountId}
-            type="text"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            defaultValue={amount}
+            onValueChange={setAmount}
             autoFocus
-            required
             className={`sheet-amount-input ${error ? "is-invalid" : ""}`}
-            onFocus={(e) => e.target.select()}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : undefined}
+            invalid={!!error}
+            describedBy={error ? errorId : undefined}
           />
         </div>
 
