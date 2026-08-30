@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Clock, CreditCard, Home, LayoutGrid, type LucideIcon } from "lucide-react";
+import { CreditCard, Home, LayoutGrid, User, type LucideIcon } from "lucide-react";
 import { useSheet } from "./useSheet";
 
 // BottomNav mounts in the app layout, on every page -- QuickAddSheet (its
@@ -24,21 +24,13 @@ interface Tab {
   icon: LucideIcon;
 }
 
-// Rendered either side of the center "+" — Profile isn't a tab here since
-// a persistent avatar link (see ProfileHeaderLink) opens it from every
-// page's own header instead. Plan (Bills + Goals merged) and History each
-// used to be their own tab, until Plan absorbed Goals and History was
-// promoted from a Profile sub-page -- see the Balboa fix list's batch 11
-// for why: two low-frequency screens (checked once or twice a month) were
-// costing two of only five nav slots, and History (the one place to see
-// quincena-over-quincena progress) used to be buried four taps deep.
 const TABS_BEFORE_FAB: Tab[] = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/transactions", label: "Activity", icon: CreditCard },
 ];
 const TABS_AFTER_FAB: Tab[] = [
   { href: "/plan", label: "Plan", icon: LayoutGrid },
-  { href: "/history", label: "History", icon: Clock },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export function BottomNav({
