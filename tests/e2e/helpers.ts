@@ -51,6 +51,20 @@ export async function openQuickAdd(
 }
 
 /**
+ * Expands QuickAddSheet's "More details" disclosure (date, the bill
+ * toggle, note) -- collapsed by default on create (amount, merchant,
+ * category, and payment method alone cover most entries), already
+ * expanded when editing an existing transaction. Safe to call either
+ * way: a no-op if the fields are already visible.
+ */
+export async function openMoreDetails(page: Page): Promise<void> {
+  const toggle = page.getByRole("button", { name: "More details" });
+  if (await toggle.count()) {
+    await toggle.click();
+  }
+}
+
+/**
  * Fills QuickAddSheet's category field — selects an existing category by
  * its exact name from the native <select>, or picks "+ New category…"
  * (revealing a free-text input) and types a brand-new one. An exact-string

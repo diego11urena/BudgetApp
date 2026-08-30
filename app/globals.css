@@ -455,6 +455,22 @@ input[type="checkbox"]::before {
   padding: 0;
 }
 
+/* A plain text-styled toggle/link button inline in a form -- e.g.
+   QuickAddSheet's "More details" disclosure. */
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-green);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.75rem;
+}
+
 .form-actions {
   display: flex;
   align-items: center;

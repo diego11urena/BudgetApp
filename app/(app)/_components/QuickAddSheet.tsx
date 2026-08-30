@@ -187,6 +187,15 @@ export function QuickAddSheet({
   // calendar date yet (e.g. late evening in a timezone ahead of Panama).
   const todayDate = formatCycleLabel(nowInPanama());
 
+  // Amount, Merchant, Category, and Payment method cover the overwhelming
+  // majority of entries -- Date, "This is a bill", and the Note are real
+  // but secondary, collapsed by default so logging a typical transaction
+  // is a 4-field job instead of 7. Editing starts expanded: an edit is
+  // often specifically to change one of the collapsed fields (the date,
+  // most commonly), and a still-collapsed sheet would hide the very field
+  // someone opened the sheet to fix.
+  const [showMore, setShowMore] = useState(isEditing);
+
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
     return () => cancelAnimationFrame(id);
@@ -433,6 +442,10 @@ export function QuickAddSheet({
 
       <form onSubmit={handleSubmit} noValidate>
         <input type="hidden" name="type" value={type} />
+        {/* Purely UI-controlled below (no name attribute on the visible
+            field) so collapsing it under "More details" never drops it
+            from submission -- see showMore. */}
+        <input type="hidden" name="occurredAt" value={occurredAt} />
         {isEditing && <input type="hidden" name="transactionId" value={editingTransaction.id} />}
         {!isEditing && targetCycleId && <input type="hidden" name="cycleId" value={targetCycleId} />}
 
@@ -452,6 +465,26 @@ export function QuickAddSheet({
             onFocus={(e) => e.target.select()}
             aria-invalid={errorField === "amount" || undefined}
             aria-describedby={errorField === "amount" ? errorId : undefined}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor={nameId}>Merchant / name</label>
+          <input
+            id={nameId}
+            name="name"
+            type="text"
+            placeholder="e.g. Panapass, Cafe Unido…"
+            value={displayName}
+            onChange={(e) => {
+              setName(e.target.value);
+              setNameTouched(true);
+            }}
+            required
+            maxLength={100}
+            className={errorField === "name" ? "is-invalid" : ""}
+            aria-invalid={errorField === "name" || undefined}
+            aria-describedby={errorField === "name" ? errorId : undefined}
           />
         </div>
 
@@ -502,50 +535,6 @@ export function QuickAddSheet({
           {!isCreatingCategory && <input type="hidden" name="category" value={categoryValue} />}
         </div>
 
-        <div className="field">
-          <label htmlFor={nameId}>Merchant / name</label>
-          <input
-            id={nameId}
-            name="name"
-            type="text"
-            placeholder="e.g. Panapass, Cafe Unido…"
-            value={displayName}
-            onChange={(e) => {
-              setName(e.target.value);
-              setNameTouched(true);
-            }}
-            required
-            maxLength={100}
-            className={errorField === "name" ? "is-invalid" : ""}
-            aria-invalid={errorField === "name" || undefined}
-            aria-describedby={errorField === "name" ? errorId : undefined}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor={dateId}>Date</label>
-          <input
-            id={dateId}
-            name="occurredAt"
-            type="date"
-            value={occurredAt}
-            // The cycle-start floor only applies to a plain create with no
-            // explicit target cycle — editing, and creating directly into
-            // a specific past quincena, both allow any past date (it
-            // resolves to whichever cycle that date actually belongs to;
-            // see updateTransactionAction / addTransactionAction). Form
-            // has noValidate, and validate() re-checks this explicitly
-            // either way, so this is just the picker widget's own hint,
-            // never a submit-blocker.
-            min={isEditing || targetCycleId ? undefined : cycleStartDate}
-            max={todayDate}
-            onChange={(e) => setOccurredAt(e.target.value)}
-            className={errorField === "date" ? "is-invalid" : ""}
-            aria-invalid={errorField === "date" || undefined}
-            aria-describedby={errorField === "date" ? errorId : undefined}
-          />
-        </div>
-
         {type !== "SAVINGS" && (
           <div className="field">
             <label htmlFor={paymentMethodId}>Payment method</label>
@@ -565,32 +554,68 @@ export function QuickAddSheet({
           </div>
         )}
 
-        {type === "EXPENSE" && (
-          <div className="field">
-            <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <input
-                type="checkbox"
-                checked={recurring}
-                onChange={(e) => setRecurring(e.target.checked)}
-              />
-              This is a bill
-            </label>
-          </div>
-        )}
+        <button
+          type="button"
+          className="button-link"
+          onClick={() => setShowMore((v) => !v)}
+          aria-expanded={showMore}
+        >
+          {showMore ? "Fewer details" : "More details"}
+        </button>
 
-        <div className="field">
-          <label htmlFor={descriptionId}>Note (optional)</label>
-          <input
-            id={descriptionId}
-            name="description"
-            type="text"
-            placeholder="What was this for?"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={200}
-          />
-        </div>
+        {showMore && (
+          <>
+            <div className="field">
+              <label htmlFor={dateId}>Date</label>
+              <input
+                id={dateId}
+                type="date"
+                value={occurredAt}
+                // The cycle-start floor only applies to a plain create with no
+                // explicit target cycle — editing, and creating directly into
+                // a specific past quincena, both allow any past date (it
+                // resolves to whichever cycle that date actually belongs to;
+                // see updateTransactionAction / addTransactionAction). Form
+                // has noValidate, and validate() re-checks this explicitly
+                // either way, so this is just the picker widget's own hint,
+                // never a submit-blocker.
+                min={isEditing || targetCycleId ? undefined : cycleStartDate}
+                max={todayDate}
+                onChange={(e) => setOccurredAt(e.target.value)}
+                className={errorField === "date" ? "is-invalid" : ""}
+                aria-invalid={errorField === "date" || undefined}
+                aria-describedby={errorField === "date" ? errorId : undefined}
+              />
+            </div>
+
+            {type === "EXPENSE" && (
+              <div className="field">
+                <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={recurring}
+                    onChange={(e) => setRecurring(e.target.checked)}
+                  />
+                  This is a bill
+                </label>
+              </div>
+            )}
+
+            <div className="field">
+              <label htmlFor={descriptionId}>Note (optional)</label>
+              <input
+                id={descriptionId}
+                name="description"
+                type="text"
+                placeholder="What was this for?"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+          </>
+        )}
 
           {error && (
             <p id={errorId} className="error-text" role="alert">
