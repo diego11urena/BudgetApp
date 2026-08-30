@@ -63,7 +63,7 @@ test.describe("managing categories", () => {
     // Second entry, category typed lowercase.
     await openQuickAdd(page, "Expense");
     await page.getByLabel("Amount (USD)").fill("5.00");
-    await page.fill('input[placeholder="Category name"]', "rent");
+    await fillCategory(page, "rent");
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 

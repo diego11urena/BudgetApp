@@ -11,9 +11,9 @@ import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method
  * the recurring expense's own target but editable for the quincena a bill
  * came in slightly different than usual. Same shape as Goals'
  * ContributeSheet: name/category/type are never in question here. Payment
- * method uses the same chip pattern as QuickAddSheet's own field, matching
- * every other transaction-creation flow in the app instead of silently
- * leaving it blank.
+ * method is the same native <select> QuickAddSheet's own field uses,
+ * matching every other transaction-creation flow in the app instead of
+ * silently leaving it blank.
  */
 export function RecordPaymentSheet({
   recurringExpenseId,
@@ -37,7 +37,7 @@ export function RecordPaymentSheet({
   const uid = useId();
   const amountId = `${uid}-amount`;
   const errorId = `${uid}-error`;
-  const paymentGroupLabelId = `${uid}-payment-group-label`;
+  const paymentMethodId = `${uid}-payment-method`;
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -99,19 +99,19 @@ export function RecordPaymentSheet({
         </div>
 
         <div className="field">
-          <label id={paymentGroupLabelId}>Payment method</label>
-          <div role="group" aria-labelledby={paymentGroupLabelId} className="category-chips">
+          <label htmlFor={paymentMethodId}>Payment method</label>
+          <select
+            id={paymentMethodId}
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")}
+          >
+            <option value="">No payment method</option>
             {PAYMENT_METHOD_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                className={`category-chip ${paymentMethod === opt.value ? "is-active" : ""}`}
-                onClick={() => setPaymentMethod((current) => (current === opt.value ? "" : opt.value))}
-              >
+              <option key={opt.value} value={opt.value}>
                 {opt.label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         {error && (

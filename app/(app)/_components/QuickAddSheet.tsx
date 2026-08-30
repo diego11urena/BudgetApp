@@ -17,7 +17,6 @@ import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method
 import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxType } from "@/lib/transaction-type";
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
-import { CategoryNameInput } from "./CategoryNameInput";
 
 export interface EditingTransaction {
   id: string;
@@ -105,7 +104,7 @@ export function QuickAddSheet({
   const descriptionId = `${uid}-description`;
   const errorId = `${uid}-error`;
   const categoryId = `${uid}-category`;
-  const paymentGroupLabelId = `${uid}-payment-group-label`;
+  const paymentMethodId = `${uid}-payment-method`;
 
   function categoryNamesForType(t: TxType): string[] {
     return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : incomeCategoryNames;
@@ -117,22 +116,34 @@ export function QuickAddSheet({
   // name — those differ for a Gmail-imported transaction (name is the raw
   // merchant string, category is "Bank Import"). A category that isn't in
   // the known list (renamed/deleted since, or exactly this imported case)
-  // still just becomes CategoryNameInput's defaultValue below -- it renders
-  // fine as free text even when it's not one of categoryNames' own chips/
-  // suggestions.
+  // still becomes categoryValue's initial value below -- isCreatingCategory
+  // notices it isn't a real pickable category and falls back to the
+  // free-text input so it renders/stays editable instead of being lost.
   const editingCategoryName = editingTransaction
     ? (editingTransaction.categoryName ?? editingTransaction.name)
     : null;
 
   // The list is already ordered most-used-first, so its head is the default
   // when creating; editing pre-selects the transaction's own category.
-  // CategoryNameInput (below) owns the actual picker UI -- this just
-  // mirrors its live value, via onValueChange, for the two things that need
-  // to react to it here: displayName's live pre-fill and validate().
   const [categoryValue, setCategoryValue] = useState(() => {
     if (editingCategoryName !== null) return editingCategoryName;
     return categoryNames[0] ?? "";
   });
+  // The category <select>'s "+ New category…" option switches to a free-
+  // text input instead -- creating a category while logging a transaction
+  // is a real, used flow (this is one of four places in the app that can
+  // create one on the fly), not just a picker. Starts true whenever the
+  // current categoryValue isn't actually one of this type's known
+  // categories: either there are none yet (a brand-new user, nothing to
+  // pick from), or -- when editing -- the transaction's own category was
+  // renamed/deleted since, or is a Gmail-import placeholder ("Bank
+  // Import") that was never a real pickable category to begin with. A
+  // plain <select> silently showing nothing selected in that case would
+  // read as "no category," not "an unusual one" -- the free-text fallback
+  // is what keeps the real value visible and editable instead of lost.
+  const [isCreatingCategory, setIsCreatingCategory] = useState(
+    () => categoryNames.length === 0 || (categoryValue !== "" && !categoryNames.includes(categoryValue)),
+  );
   // Merchant/payee name, separate from category -- pre-filled with the
   // category as a starting suggestion (so a user who doesn't care can
   // leave it as-is and lose zero speed) but freely editable, on both
@@ -359,12 +370,15 @@ export function QuickAddSheet({
 
   function handleTypeChange(next: TxType) {
     setType(next);
-    // CategoryNameInput below is keyed by `type`, so this remounts it fresh
-    // (its own internal value state only ever reads defaultValue once, on
-    // mount) -- setting categoryValue here, in the same batched update as
-    // setType, means the remounted instance's defaultValue is already
-    // correct for the new type by the time it renders.
-    setCategoryValue(categoryNamesForType(next)[0] ?? "");
+    const nextCategoryNames = categoryNamesForType(next);
+    setCategoryValue(nextCategoryNames[0] ?? "");
+    // The category <select> is keyed by `type` (forcing a fresh DOM node),
+    // but isCreatingCategory itself lives here, not in a remountable
+    // child, so it needs its own explicit reset -- otherwise switching
+    // from a type with no categories yet (create-mode forced on) to one
+    // that already has some would leave the free-text input showing for a
+    // type it was never true for.
+    setIsCreatingCategory(nextCategoryNames.length === 0);
   }
 
   function handleDragStart(e: React.TouchEvent) {
@@ -441,21 +455,51 @@ export function QuickAddSheet({
           />
         </div>
 
-        <div className="field">
+        <div className="field" key={type}>
           <label htmlFor={categoryId}>Category</label>
-          <CategoryNameInput
-            // Remounts on a type change -- its own value state only ever
-            // reads defaultValue once, at mount (see handleTypeChange).
-            key={type}
+          <select
             id={categoryId}
-            name="category"
-            categoryNames={categoryNames}
-            defaultValue={categoryValue}
-            placeholder="Category name"
-            onValueChange={setCategoryValue}
-            invalid={errorField === "category"}
-            describedBy={errorId}
-          />
+            value={isCreatingCategory ? "__new__" : categoryValue}
+            onChange={(e) => {
+              if (e.target.value === "__new__") {
+                setIsCreatingCategory(true);
+                setCategoryValue("");
+              } else {
+                setIsCreatingCategory(false);
+                setCategoryValue(e.target.value);
+              }
+            }}
+            required
+            className={errorField === "category" && !isCreatingCategory ? "is-invalid" : ""}
+            aria-invalid={errorField === "category" || undefined}
+            aria-describedby={errorField === "category" ? errorId : undefined}
+          >
+            <option value="" disabled>
+              Choose a category
+            </option>
+            {categoryNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+            <option value="__new__">+ New category…</option>
+          </select>
+
+          {isCreatingCategory && (
+            <input
+              type="text"
+              name="category"
+              autoFocus
+              required
+              placeholder="New category name"
+              value={categoryValue}
+              onChange={(e) => setCategoryValue(e.target.value)}
+              className={errorField === "category" ? "is-invalid" : ""}
+              aria-invalid={errorField === "category" || undefined}
+              aria-describedby={errorField === "category" ? errorId : undefined}
+            />
+          )}
+          {!isCreatingCategory && <input type="hidden" name="category" value={categoryValue} />}
         </div>
 
         <div className="field">
@@ -504,20 +548,20 @@ export function QuickAddSheet({
 
         {type !== "SAVINGS" && (
           <div className="field">
-            <label id={paymentGroupLabelId}>Payment method</label>
-            <input type="hidden" name="paymentMethod" value={paymentMethod} />
-            <div role="group" aria-labelledby={paymentGroupLabelId} className="category-chips">
+            <label htmlFor={paymentMethodId}>Payment method</label>
+            <select
+              id={paymentMethodId}
+              name="paymentMethod"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")}
+            >
+              <option value="">No payment method</option>
               {PAYMENT_METHOD_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`category-chip ${paymentMethod === opt.value ? "is-active" : ""}`}
-                  onClick={() => setPaymentMethod((current) => (current === opt.value ? "" : opt.value))}
-                >
+                <option key={opt.value} value={opt.value}>
                   {opt.label}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
           </div>
         )}
 

@@ -51,24 +51,22 @@ export async function openQuickAdd(
 }
 
 /**
- * Fills CategoryNameInput's category field — a chip for an existing
- * category with an exact name match, or typing directly into its always-
- * visible text input for a brand-new one (no separate "Other…" chip to
- * click first; CategoryNameInput's combobox accepts free text as-is).
- *
- * The free-text path leaves the "+ Create new" suggestion dropdown open
- * (it only closes on an explicit selection or Escape) — dismiss it with
- * Escape before returning so it doesn't visually cover whatever's
- * immediately below the category field (QuickAddSheet's Merchant/name
- * field sits right underneath it).
+ * Fills QuickAddSheet's category field — selects an existing category by
+ * its exact name from the native <select>, or picks "+ New category…"
+ * (revealing a free-text input) and types a brand-new one. An exact-string
+ * check against the dropdown's own option labels, not a fuzzy one: typing
+ * a different casing of a category that already exists (e.g. "rent" when
+ * "Rent" is already a real option) deliberately falls through to the
+ * free-text path too, since that's exactly how a categories.spec.ts test
+ * exercises the server's own case-insensitive dedup on submit.
  */
 export async function fillCategory(page: Page, name: string): Promise<void> {
-  const chip = page.locator(".category-chip", { hasText: new RegExp(`^${name}$`) });
-  if (await chip.count()) {
-    await chip.click();
+  const select = page.getByLabel("Category");
+  const optionLabels = await select.locator("option").allTextContents();
+  if (optionLabels.includes(name)) {
+    await select.selectOption({ label: name });
     return;
   }
-  const input = page.locator('input[placeholder="Category name"]');
-  await input.fill(name);
-  await input.press("Escape");
+  await select.selectOption({ label: "+ New category…" });
+  await page.fill('input[placeholder="New category name"]', name);
 }
