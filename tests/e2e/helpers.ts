@@ -71,12 +71,23 @@ export async function openMoreDetails(page: Page): Promise<void> {
  * app/(app)/_components/CurrencyInput.tsx), so filling the dollar string
  * directly would misfire for anything without an explicit ".XX" (a bare
  * "50" would land as $0.50, not $50.00) -- converting to a plain cents
- * digit string first and filling THAT sidesteps the whole implicit-decimal
- * encoding, working the same regardless of how the caller wrote the amount.
+ * digit string first sidesteps the whole implicit-decimal encoding,
+ * working the same regardless of how the caller wrote the amount.
+ *
+ * Types digit-by-digit via pressSequentially, not .fill() -- .fill() sets
+ * the whole value in one native-value-setter + single input-event shot,
+ * which CurrencyInput's own re-formatting on every keystroke (inserting
+ * commas, re-pinning the caret) fights: Playwright's fill() ends up
+ * retrying against a value that keeps changing shape underneath it and
+ * never resolves. Typing one key at a time is also just the correct way
+ * to drive this specific widget -- it's built to be typed into, not
+ * pasted into. click() first so the field's own onFocus (select-all)
+ * clears any pre-filled value before the new digits replace it.
  */
 export async function fillAmount(locator: Locator, dollars: string): Promise<void> {
   const cents = Math.round(Number(dollars) * 100);
-  await locator.fill(String(cents));
+  await locator.click();
+  await locator.pressSequentially(String(cents));
 }
 
 /**
