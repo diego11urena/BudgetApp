@@ -891,6 +891,7 @@ button.line-item--link {
   top: 50%;
   left: -8px;
   right: -8px;
+  min-width: 44px;
   height: 44px;
   transform: translateY(-50%);
 }
