@@ -121,26 +121,20 @@ export default async function TransactionsPage({
 
   return (
     <div className="home-page">
-      <div className="section-header-row">
-        <h1 className="page-title" style={{ marginBottom: 0 }}>
-          Activity
-        </h1>
-        {/* Breakdown is a VIEW of this same activity (a pie chart instead
-            of a list), not a separate concept -- see the Balboa fix list's
-            batch 11.3, which moved it here from its old orphaned spot
-            behind a text link on Home. Styled as a real secondary button
-            (same pair BillsSection's "+ New bill" uses), not
-            .line-item--link -- that class is a full-width list row style,
-            which read as an orphaned row rather than an action when sat
-            next to an <h1> in a section header. */}
-        <Link href="/transactions/breakdown" className="button button--secondary button--small">
-          <PieChart size={16} aria-hidden="true" />
-          Breakdown
-        </Link>
-      </div>
+      <h1 className="page-title">Activity</h1>
 
       <div className="dashboard-section">
         <TransactionFilters categories={allCategories} cycles={cycleOptions} />
+        {/* Breakdown is a VIEW of this same activity (a pie chart instead
+            of a list), not a separate concept -- see the Balboa fix list's
+            batch 11.3, which moved it here from its old orphaned spot
+            behind a text link on Home. A full-width primary button, not a
+            small secondary one tucked next to the heading -- Diego asked
+            for it to stop hiding. */}
+        <Link href="/transactions/breakdown" className="button breakdown-cta">
+          <PieChart size={18} aria-hidden="true" />
+          See where your money went
+        </Link>
         <TransactionList
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}

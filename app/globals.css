@@ -531,6 +531,11 @@ input[type="checkbox"]::before {
   white-space: nowrap;
 }
 
+.breakdown-cta {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
 /* For irreversible, high-consequence actions (e.g. erasing all cycle
    history) — visually distinct from .button--secondary's everyday actions
    like Sign out, so the two aren't mistakable for each other. */
