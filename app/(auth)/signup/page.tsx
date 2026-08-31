@@ -1,25 +1,46 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signupAction, type SignupFormState } from "./actions";
+import { AuthShell } from "../_components/AuthShell";
 
 const initialState: SignupFormState = undefined;
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
-    <div className="card">
-      <h1>Create your account</h1>
-      <form action={formAction}>
+    <AuthShell title="Start your first quincena." subtitle="Two minutes to set up.">
+      <form action={formAction} className="auth-form">
         <div className="field">
           <label htmlFor="name">Name</label>
-          <input id="name" name="name" type="text" required autoComplete="name" />
+          <input
+            id="name"
+            name="name"
+            type="text"
+            required
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="auth-input"
+          />
         </div>
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" required autoComplete="email" />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="auth-input"
+          />
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
@@ -30,23 +51,27 @@ export default function SignupPage() {
             required
             minLength={8}
             autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="auth-input"
           />
           <span className="field-hint">At least 8 characters.</span>
         </div>
+
         {state?.error && (
-          <p className="error-text" role="alert">
+          <p className="auth-error-block" role="alert">
             {state.error}
           </p>
         )}
-        <div className="form-actions">
-          <button type="submit" className="button" disabled={pending}>
-            {pending ? "Creating account..." : "Sign up"}
-          </button>
-        </div>
+
+        <button type="submit" className="button auth-submit" disabled={pending || !name || !email || !password}>
+          {pending ? "Creating account..." : "Create account"}
+        </button>
       </form>
-      <p className="muted-link">
+
+      <p className="auth-bottom-link">
         Already have an account? <Link href="/login">Log in</Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }
