@@ -39,7 +39,7 @@ export function RemoveGoalButton({ categoryId, name }: { categoryId: string; nam
   return (
     <button
       type="button"
-      className="icon-button"
+      className="button button--ghost"
       aria-label={`Remove goal: ${name}`}
       onClick={handleRemove}
       disabled={pending}

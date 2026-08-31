@@ -531,6 +531,26 @@ input[type="checkbox"]::before {
   white-space: nowrap;
 }
 
+/* Text/"ghost" role -- a real, tappable action that's genuinely lower
+   emphasis than .button--secondary (e.g. Remove goal next to Contribute
+   and Edit), not the same thing as .icon-button's own opacity: 0.6 dimming
+   meant for small low-priority icons. Full-contrast text, no pill fill. */
+.button--ghost {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+.button--ghost:hover {
+  color: var(--color-text-primary);
+}
+.button--ghost:disabled {
+  opacity: 0.5;
+}
+
 .breakdown-cta {
   width: 100%;
   margin-bottom: 1rem;
