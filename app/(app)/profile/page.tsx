@@ -8,7 +8,6 @@ import { DevResetButton } from "./_components/DevResetButton";
 import { GmailConnectionCard } from "./_components/GmailConnectionCard";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
-import { EditIncomeSheet } from "./_components/EditIncomeSheet";
 import { signOutAction, logOutEverywhereAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 
@@ -26,14 +25,10 @@ export default async function ProfilePage({
   const userId = session.user.id;
   const { gmail } = await searchParams;
 
-  const [user, incomeSource, gmailConnection] = await Promise.all([
+  const [user, gmailConnection] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true, createdAt: true },
-    }),
-    prisma.incomeSource.findFirst({
-      where: { userId, isActive: true },
-      orderBy: { createdAt: "asc" },
     }),
     prisma.gmailConnection.findUnique({
       where: { userId },
@@ -45,52 +40,16 @@ export default async function ProfilePage({
     <div className="home-page">
       <h1 className="page-title">Profile</h1>
 
-      <div className="dashboard-section">
+      <div className="profile-identity">
         <p className="profile-name">{user?.name}</p>
         <p className="field-hint">{user?.email}</p>
-        <p className="field-hint" style={{ marginTop: "0.5rem" }}>
+        <p className="field-hint">
           Member since{" "}
           {user?.createdAt.toLocaleDateString("en-US", {
             month: "long",
             year: "numeric",
           })}
         </p>
-      </div>
-
-      <div className="dashboard-section">
-        <ChangePasswordSheet />
-      </div>
-
-      {incomeSource && (
-        <div className="dashboard-section">
-          <EditIncomeSheet
-            initial={{
-              netQuincenaAmount: incomeSource.netQuincenaAmount.toString(),
-            }}
-          />
-        </div>
-      )}
-
-      <div className="dashboard-section">
-        <h2>Gmail import</h2>
-        {gmail === "error" && (
-          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
-            Couldn&apos;t connect Gmail — please try again.
-          </p>
-        )}
-        {gmail === "rate_limited" && (
-          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
-            Too many attempts — please wait a minute and try again.
-          </p>
-        )}
-        <GmailConnectionCard connection={gmailConnection} />
-      </div>
-
-      <div className="dashboard-section">
-        <Link href="/profile/categories" className="line-item line-item--link">
-          <span>Manage categories</span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </Link>
       </div>
 
       <div className="dashboard-section">
@@ -102,6 +61,45 @@ export default async function ProfilePage({
       </div>
 
       <div className="dashboard-section">
+        <h2>Your data</h2>
+        {gmail === "error" && (
+          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+            Couldn&apos;t connect Gmail — please try again.
+          </p>
+        )}
+        {gmail === "rate_limited" && (
+          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+            Too many attempts — please wait a minute and try again.
+          </p>
+        )}
+        <GmailConnectionCard connection={gmailConnection} />
+        <div className="card-divider">
+          <Link href="/profile/categories" className="line-item line-item--link">
+            <span>Manage categories</span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="dashboard-section">
+        <h2>Account</h2>
+        <ChangePasswordSheet />
+        <p className="field-hint" style={{ marginTop: "0.5rem" }}>
+          Changing your password also signs you out on all devices.
+        </p>
+        <div className="card-divider">
+          <form action={logOutEverywhereAction}>
+            <button type="submit" className="button button--secondary">
+              Sign out on all devices
+            </button>
+          </form>
+          <p className="field-hint" style={{ marginTop: "0.5rem" }}>
+            Use this if you think someone else has access to your account.
+          </p>
+        </div>
+      </div>
+
+      <div className="dashboard-section">
         <h2>Reset</h2>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
           Wipe your quincena history and start fresh — your categories and income setup stay
@@ -110,18 +108,11 @@ export default async function ProfilePage({
         <EraseCyclesButton />
       </div>
 
-      <div className="dashboard-section" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        <form action={signOutAction}>
-          <button type="submit" className="button button--secondary">
-            Sign out
-          </button>
-        </form>
-        <form action={logOutEverywhereAction}>
-          <button type="submit" className="button button--secondary">
-            Log out everywhere
-          </button>
-        </form>
-      </div>
+      <form action={signOutAction} className="profile-signout-footer">
+        <button type="submit" className="button button--secondary">
+          Sign out
+        </button>
+      </form>
 
       {process.env.NODE_ENV !== "production" && (
         <div className="dashboard-section">

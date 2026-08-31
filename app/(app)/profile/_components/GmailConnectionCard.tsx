@@ -10,6 +10,7 @@ export function GmailConnectionCard({ connection }: { connection: GmailConnectio
   if (!connection) {
     return (
       <div>
+        <h3>Gmail import</h3>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
           Connect your Gmail to automatically import purchase notifications from your bank — only
           emails from your bank&apos;s sender address are ever read.
@@ -28,6 +29,7 @@ export function GmailConnectionCard({ connection }: { connection: GmailConnectio
 
   return (
     <div>
+      <h3>Gmail import</h3>
       <p className="field-hint">Connected as {connection.googleEmail}</p>
       <p className="field-hint" style={{ marginTop: "0.25rem" }}>
         {connection.lastSyncedAt

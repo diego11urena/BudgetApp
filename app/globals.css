@@ -828,6 +828,13 @@ button.line-item--link {
   color: var(--color-text-primary);
 }
 
+.dashboard-section h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-primary);
+}
+
 /* Generic divider between two stacked sub-sections within one card. */
 .card-divider {
   margin-top: 1.25rem;
@@ -2407,6 +2414,18 @@ button.line-item--link {
   font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.profile-identity {
+  margin-bottom: 1.5rem;
+}
+
+.profile-signout-footer {
+  margin-top: 1.5rem;
+}
+
+.profile-signout-footer .button {
+  width: 100%;
 }
 
 /* Route-level loading skeleton */
