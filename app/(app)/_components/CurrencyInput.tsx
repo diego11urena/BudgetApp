@@ -91,7 +91,6 @@ export function CurrencyInput({
         id={id}
         type="text"
         inputMode="numeric"
-        pattern="[0-9]*"
         value={display}
         onChange={handleChange}
         onFocus={(e) => e.target.select()}
