@@ -452,6 +452,226 @@ a {
   max-width: 40rem;
 }
 
+/* Onboarding step shell -- kicker + a bigger question heading than the
+   generic .card h1 (shared with login/signup, which stay their existing
+   size). */
+.onboarding-shell h1 {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-kicker {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.form-actions--stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Bills step -- added rows */
+.bills-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.bills-step-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--color-card);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-row);
+}
+
+.bills-step-row-name {
+  flex-shrink: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bills-step-row-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--color-silver);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bills-step-row-amount {
+  flex-shrink: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.bills-step-row-remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.bills-step-row-remove:hover {
+  background: var(--color-bg-secondary-hover);
+}
+
+.bills-step-add {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.bills-step-add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bills-step-add-row input,
+.bills-step-add-row select {
+  flex: 1;
+  min-height: 52px;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.9375rem;
+}
+
+.bills-step-add-button {
+  flex-shrink: 0;
+  min-height: 52px;
+}
+
+.bills-step-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 0.75rem;
+}
+
+.chip-pill {
+  min-height: 32px;
+  padding: 0.4rem 0.85rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip-pill:hover {
+  background: var(--color-bg-secondary-hover);
+}
+
+.tip-block {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.tip-block strong {
+  color: var(--color-accent-green);
+  margin-right: 0.3rem;
+}
+
+/* Goal step -- live projection card */
+.goal-step-projection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-accent-bg);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--color-accent-green);
+}
+
+.goal-step-projection-ring {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 6px solid var(--color-savings);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.goal-step-projection p {
+  flex: 1;
+  margin: 0;
+}
+
+/* Onboarding completion handoff -- outside the onboarding/ layout guard
+   (see onboarding-complete/page.tsx's own comment), so it styles a
+   full-viewport navy screen itself rather than relying on .page-center. */
+.onboarding-complete {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
+}
+
+.onboarding-complete-logo {
+  border-radius: 24px;
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-complete h1 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-on-accent);
+}
+
+.onboarding-complete p {
+  font-size: 1rem;
+  color: #b9c6d6;
+}
+
 .card h1 {
   font-family: var(--font-display);
   font-size: 1.5rem;
@@ -740,17 +960,32 @@ input[type="checkbox"]::before {
 
 .step-progress {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
+}
+
+.step-progress-pills {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+}
+
+.step-progress-count {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
 }
 
 .step-progress span,
 .step-progress a {
   flex: 1;
   display: block;
-  height: 4px;
-  border-radius: var(--radius-xs);
-  background: var(--color-border);
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary-hover);
 }
 
 .step-progress a {
@@ -758,7 +993,7 @@ input[type="checkbox"]::before {
   cursor: pointer;
 }
 
-/* The bar itself stays a thin 4px indicator; this invisibly extends the
+/* The bar itself stays a thin 5px indicator; this invisibly extends the
    actual tap target to 44px so it's not a sliver to aim for on mobile. */
 .step-progress a::before {
   content: "";

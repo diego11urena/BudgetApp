@@ -4,10 +4,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
-import { RentStepForm } from "./_components/RentStepForm";
+import { BillsStepForm, BillsStepSkipButton } from "./_components/BillsStepForm";
 import { saveExpensesAction } from "./actions";
 
-export const metadata: Metadata = { title: "Expenses" };
+export const metadata: Metadata = { title: "Bills" };
 
 export default async function ExpensesStepPage() {
   const session = await auth();
@@ -15,32 +15,33 @@ export default async function ExpensesStepPage() {
     redirect("/login");
   }
 
-  const state = await requireOnboardingStep(session.user.id, "expenses");
+  await requireOnboardingStep(session.user.id, "expenses");
 
-  const existingGoals = await prisma.cycleBudgetGoal.findMany({
-    where: { cycleId: state.cycle.id, expenseCategory: { type: "EXPENSE" } },
-    include: { expenseCategory: true },
+  // Pre-fill from whatever's currently saved (a resubmission after going
+  // back), not the seeded example -- matches exactly what saveExpensesAction
+  // itself creates from this same items[] shape.
+  const existing = await prisma.recurringExpense.findMany({
+    where: { userId: session.user.id, category: { type: "EXPENSE" } },
     orderBy: { createdAt: "asc" },
   });
 
-  const existingRent = existingGoals.find((g) => g.expenseCategory.name.toLowerCase() === "rent");
+  const initialItems = existing.map((e) => ({
+    name: e.name,
+    amount: e.amount.toString(),
+    dueDay: e.dueDay !== null ? String(e.dueDay) : "",
+  }));
 
   return (
-    <div className="card card--wide">
+    <div className="card card--wide onboarding-shell">
       <StepProgress current="expenses" />
-      <h1>How much is your rent?</h1>
+      <p className="onboarding-kicker">Bills</p>
+      <h1>What do you pay regularly?</h1>
       <p className="field-hint">
-        Everything else — subscriptions, groceries, whatever else you pay regularly — builds up
-        on its own as you log it, or any time from Plan.
+        Rent, subscriptions, utilities — anything that repeats every quincena. Add as many as you
+        want, or none.
       </p>
-      <RentStepForm action={saveExpensesAction} initialAmount={existingRent?.targetAmount.toString()} />
-      {/* The single biggest labor-saving feature in the app previously went
-          unmentioned anywhere in onboarding, only discoverable by
-          stumbling into Profile -- see the Balboa fix list's batch 11.6. */}
-      <p className="field-hint" style={{ marginTop: "1rem" }}>
-        Tip: connect Gmail from Profile afterward to import transactions automatically instead of
-        typing each one in.
-      </p>
+      <BillsStepForm action={saveExpensesAction} initialItems={initialItems} />
+      <BillsStepSkipButton action={saveExpensesAction} />
     </div>
   );
 }

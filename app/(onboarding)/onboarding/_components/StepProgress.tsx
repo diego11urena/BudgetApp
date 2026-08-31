@@ -7,18 +7,23 @@ export function StepProgress({ current }: { current: OnboardingStep }) {
 
   return (
     <div className="step-progress">
-      {ONBOARDING_STEP_ORDER.map((step, index) => {
-        const className =
-          index < currentIndex ? "is-complete" : index === currentIndex ? "is-active" : "";
+      <div className="step-progress-pills">
+        {ONBOARDING_STEP_ORDER.map((step, index) => {
+          const className =
+            index < currentIndex ? "is-complete" : index === currentIndex ? "is-active" : "";
 
-        if (index <= currentIndex && step !== current) {
-          return (
-            <Link key={step} href={`/onboarding/${step}`} className={className} aria-label={`Go back to ${step}`} />
-          );
-        }
+          if (index <= currentIndex && step !== current) {
+            return (
+              <Link key={step} href={`/onboarding/${step}`} className={className} aria-label={`Go back to ${step}`} />
+            );
+          }
 
-        return <span key={step} className={className} />;
-      })}
+          return <span key={step} className={className} />;
+        })}
+      </div>
+      <span className="step-progress-count">
+        {currentIndex + 1} / {ONBOARDING_STEP_ORDER.length}
+      </span>
     </div>
   );
 }

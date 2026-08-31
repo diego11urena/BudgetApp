@@ -86,6 +86,7 @@ export async function saveExpensesAction(
           categoryId: category.id,
           name: item.name,
           amount: item.targetAmount,
+          dueDay: item.dueDay ?? null,
         },
       });
       await tx.cycleRecurringExpense.create({
@@ -104,12 +105,9 @@ export async function saveExpensesAction(
       where: { id: cycle.id },
       data: { expensesConfirmedAt: new Date(), status: "ACTIVE" },
     });
-
-    await tx.user.update({
-      where: { id: userId },
-      data: { onboardingCompletedAt: new Date() },
-    });
   });
 
-  redirect("/dashboard");
+  // onboardingCompletedAt is set at the END of the goal step now (the
+  // 3rd, final step) -- this step just moves on to it.
+  redirect("/onboarding/goal");
 }

@@ -29,7 +29,15 @@ export async function signUpAndOnboard(
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/expenses/, { timeout: 60_000, waitUntil: "commit" });
 
+  // BillsStepForm seeds one example row ("Rent · $450.00 · due day 1") --
+  // removed here so this default flow still lands on a clean, bill-free
+  // account, matching what every other spec in this suite (not
+  // specifically testing bills) already assumes.
+  await page.click(".bills-step-row-remove");
   await page.click('button:has-text("Continue")');
+  await page.waitForURL(/onboarding\/goal/, { timeout: 60_000, waitUntil: "commit" });
+
+  await page.click('button:has-text("Skip for now")');
   await page.waitForURL(/dashboard/, { timeout: 60_000, waitUntil: "commit" });
 
   return { email };

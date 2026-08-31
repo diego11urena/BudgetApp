@@ -3,28 +3,34 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import type { BudgetCycle } from "@/app/generated/prisma/client";
 
-export type OnboardingStep = "income" | "expenses";
+export type OnboardingStep = "income" | "expenses" | "goal";
 
-export const ONBOARDING_STEP_ORDER: OnboardingStep[] = ["income", "expenses"];
+export const ONBOARDING_STEP_ORDER: OnboardingStep[] = ["income", "expenses", "goal"];
 
 export interface OnboardingState {
   cycle: BudgetCycle;
   hasIncome: boolean;
   hasExpenses: boolean;
-  /** The first step not yet done, or null if both are done. */
+  hasGoalStep: boolean;
+  /** The first step not yet done, or null if all three are done. */
   nextStep: OnboardingStep | null;
 }
 
 /**
  * Resolves onboarding progress. Income still requires at least one row, so
- * row presence is a valid completion signal for it. Expenses allows zero
- * rows, so it's tracked via an explicit `expensesConfirmedAt` timestamp on
- * the cycle instead — otherwise "zero rows" would be indistinguishable from
- * "not visited yet". (A third step, Savings, used to live here too — it
- * asked for a lifetime target that nothing downstream ever read, a
- * write-only screen with no way to reach it. Removed rather than fixed:
- * AddGoalSheet on /goals is a strictly better place to capture that intent,
- * once there's an actual surplus to put toward it.)
+ * row presence is a valid completion signal for it. Expenses and the goal
+ * step both allow a blank/skipped answer, so each is tracked via its own
+ * explicit "step submitted" timestamp on the cycle instead — otherwise
+ * "nothing entered" would be indistinguishable from "not visited yet".
+ *
+ * The goal step reuses the cycle's existing `savingsConfirmedAt` column --
+ * a 3rd "Savings" onboarding step lived here once before (see git history:
+ * it asked for a lifetime target that nothing downstream ever read, a
+ * write-only screen with no way to reach it, removed in batch 11.6), and
+ * its own completion column was never cleaned up. The NEW goal step
+ * avoids repeating that mistake by routing through the real
+ * upsertGoalAction goal-creation path (same one AddGoalSheet uses), so a
+ * goal created here is immediately visible/editable on Plan afterward.
  */
 export async function getOnboardingState(userId: string): Promise<OnboardingState> {
   const cycle = await getOrCreateDraftCycle(userId);
@@ -33,12 +39,14 @@ export async function getOnboardingState(userId: string): Promise<OnboardingStat
 
   const hasIncome = incomeCount > 0;
   const hasExpenses = cycle.expensesConfirmedAt !== null;
+  const hasGoalStep = cycle.savingsConfirmedAt !== null;
 
   let nextStep: OnboardingStep | null = null;
   if (!hasIncome) nextStep = "income";
   else if (!hasExpenses) nextStep = "expenses";
+  else if (!hasGoalStep) nextStep = "goal";
 
-  return { cycle, hasIncome, hasExpenses, nextStep };
+  return { cycle, hasIncome, hasExpenses, hasGoalStep, nextStep };
 }
 
 /**

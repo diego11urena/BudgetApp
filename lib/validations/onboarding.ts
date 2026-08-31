@@ -33,6 +33,11 @@ export const incomeStepSchema = z.object({
 export const budgetLineItemSchema = z.object({
   name: z.string().trim().min(1).max(100),
   targetAmount: decimalString,
+  // Only meaningful for a MONTHLY recurring expense (see
+  // RecurringExpense.dueDay's own schema comment) -- onboarding's bills
+  // step collects it as plain display metadata regardless of frequency,
+  // same as every other dueDay call site already treats it.
+  dueDay: z.coerce.number().int().min(1).max(31).optional(),
 });
 
 export const budgetLineItemsSchema = z.object({

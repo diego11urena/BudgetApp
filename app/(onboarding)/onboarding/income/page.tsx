@@ -26,8 +26,9 @@ export default async function IncomeStepPage() {
     : undefined;
 
   return (
-    <div className="card card--wide">
+    <div className="card card--wide onboarding-shell">
       <StepProgress current="income" />
+      <p className="onboarding-kicker">Income</p>
       <h1>What&apos;s your income?</h1>
       <p className="field-hint">
         Your take-home pay for each 15-day quincena — whatever actually deposits, after any

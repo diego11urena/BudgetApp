@@ -26,6 +26,12 @@ export default auth((req) => {
 export const config = {
   matcher: [
     "/onboarding/:path*",
+    // Its own sibling path (not nested under /onboarding/), since it
+    // deliberately sits outside app/(onboarding)/onboarding/layout.tsx's
+    // guard -- see onboarding-complete/page.tsx's own comment. Matched
+    // separately since the wildcard above requires a path segment after
+    // "onboarding/".
+    "/onboarding-complete",
     "/dashboard/:path*",
     "/transactions/:path*",
     "/budget/:path*",
