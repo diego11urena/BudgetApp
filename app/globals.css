@@ -2467,10 +2467,6 @@ button.line-item--link {
   margin-top: 1.5rem;
 }
 
-.profile-signout-footer .button {
-  width: 100%;
-}
-
 /* Route-level loading skeleton */
 .skeleton-block {
   height: 1rem;
