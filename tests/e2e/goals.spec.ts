@@ -17,7 +17,7 @@ test.describe("savings goals", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
     const goalRow = page.locator(".goal-row", { hasText: "Emergency Fund" });
     await expect(goalRow).toBeVisible();
-    await expect(goalRow.getByText("$0.00 / $3,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$0.00 of $3,000.00")).toBeVisible();
 
     await goalRow.locator('button:has-text("Contribute")').click();
     const contributeAmount = page.getByLabel("Amount (USD)");
@@ -34,7 +34,7 @@ test.describe("savings goals", () => {
     // what it should have updated.
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
-    await expect(goalRow.getByText("$150.00 / $3,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$150.00 of $3,000.00")).toBeVisible();
 
     // A savings contribution reduces Safe to spend, same as an
     // expense would (it's money leaving this quincena's spendable
@@ -59,7 +59,7 @@ test.describe("savings goals", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
     const goalRow = page.locator(".goal-row", { hasText: "Vacation" });
-    await expect(goalRow.getByText("$450.00 / $2,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$450.00 of $2,000.00")).toBeVisible();
 
     // An opening balance is a starting point, not a transaction -- it must
     // not appear in the transaction list or affect this cycle's Available
@@ -94,7 +94,7 @@ test.describe("savings goals", () => {
     await page.click("text=Yes, record as transaction");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
-    await expect(goalRow.getByText("$200.00 / $3,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$200.00 of $3,000.00")).toBeVisible();
 
     // Recording as a transaction means it shows up like any other logged
     // contribution, and reduces Safe to spend the same way Contribute
@@ -131,7 +131,7 @@ test.describe("savings goals", () => {
     await page.click("text=No, just update the goal");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
-    await expect(goalRow.getByText("$300.00 / $3,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$300.00 of $3,000.00")).toBeVisible();
 
     await page.goto("/transactions");
     await expect(page.locator(".transaction-name", { hasText: "Pro Futuro" })).toHaveCount(0);
@@ -167,7 +167,7 @@ test.describe("savings goals", () => {
     await page.click("text=Yes, record as withdrawal");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
-    await expect(goalRow.getByText("$300.00 / $1,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$300.00 of $1,000.00")).toBeVisible();
 
     // A withdrawal shows up like any other transaction, but reads "+" (not
     // "-") -- money is moving back to spendable balance, the opposite
@@ -246,7 +246,7 @@ test.describe("savings goals", () => {
     await page.click("text=No, just update the goal");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 30_000 });
 
-    await expect(goalRow.getByText("$300.00 / $1,000.00")).toBeVisible();
+    await expect(goalRow.getByText("$300.00 of $1,000.00")).toBeVisible();
 
     await page.goto("/transactions");
     await expect(page.locator(".transaction-name", { hasText: "Sunny Day" })).toHaveCount(0);
