@@ -8,8 +8,10 @@ import { DevResetButton } from "./_components/DevResetButton";
 import { GmailRow } from "./_components/GmailRow";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
+import { ThemeRow } from "./_components/ThemeRow";
 import { signOutAction, logOutEverywhereAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
+import type { ThemePreferenceValue } from "@/lib/theme";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -28,7 +30,7 @@ export default async function ProfilePage({
   const [user, gmailConnection, pastCycleCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, email: true, createdAt: true },
+      select: { name: true, email: true, createdAt: true, theme: true },
     }),
     prisma.gmailConnection.findUnique({
       where: { userId },
@@ -38,6 +40,7 @@ export default async function ProfilePage({
   ]);
 
   const initial = user?.name?.trim().charAt(0).toUpperCase() || "?";
+  const initialTheme = (user?.theme.toLowerCase() ?? "system") as ThemePreferenceValue;
 
   return (
     <div className="home-page">
@@ -82,6 +85,7 @@ export default async function ProfilePage({
           <span>Manage categories</span>
           <ChevronRight size={18} aria-hidden="true" />
         </Link>
+        <ThemeRow initialTheme={initialTheme} />
       </div>
 
       <p className="profile-section-label">Account</p>

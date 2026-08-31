@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { signOut } from "@/lib/auth";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { changePasswordSchema } from "@/lib/validations/onboarding";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
+import { THEME_COOKIE, THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
 
 export const signOutAction = withActionErrorHandling(async function signOutAction() {
   await signOut({ redirectTo: "/login" });
@@ -67,6 +69,39 @@ export const changePasswordAction = withActionErrorHandling(async function chang
   });
 
   return { success: true };
+});
+
+/**
+ * DB is the source of truth (so the preference follows the user across
+ * devices); the cookie is a read-side cache the root layout uses to
+ * render the right [data-theme] attribute server-side without a DB
+ * round trip on every single request. Kept in sync on every write here.
+ */
+export const setThemeAction = withActionErrorHandling(async function setThemeAction(
+  formData: FormData,
+): Promise<ActionResult | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const raw = formData.get("theme");
+  if (typeof raw !== "string" || !THEME_VALUES.includes(raw as ThemePreferenceValue)) {
+    return { error: "Invalid theme" };
+  }
+  const theme = raw as ThemePreferenceValue;
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { theme: theme.toUpperCase() as "SYSTEM" | "LIGHT" | "DARK" },
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(THEME_COOKIE, theme, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
 });
 
 export const logOutEverywhereAction = withActionErrorHandling(async function logOutEverywhereAction() {

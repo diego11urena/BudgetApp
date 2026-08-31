@@ -116,6 +116,26 @@
      element. */
   --color-accent-bg: rgba(23, 57, 92, 0.12);
 
+  /* The hero card, onboarding-complete screen, and the landing page's navy
+     panels ("hero" surfaces -- a full-bleed opaque navy block, not a
+     tinted wash) share this trio rather than --color-button-bg directly:
+     in dark mode the hero stays "a distinct navy block" per the design
+     system while --color-button-bg (actual buttons/FAB) lightens toward
+     the accent blue -- so the two need to diverge, which they can't if
+     hero surfaces read off --color-button-bg. --color-hero-border is
+     transparent in light mode (no visible border there) and a subtle
+     navy-tinted line in dark mode, where flat elevation replaces shadow
+     as the depth cue on these surfaces. */
+  --color-hero-bg: #17395c;
+  --color-hero-border: transparent;
+  /* The hero card's small all-caps label + secondary copy lines (kicker/
+     subtitle) -- a muted, silver-tinted navy rather than full white so
+     they recede under the headline figure. Reused by every other navy
+     "hero" panel (onboarding-complete, landing CTA band, landing device
+     mock) for the same role. */
+  --color-hero-kicker: #9db1c8;
+  --color-hero-sub: #b9c6d6;
+
   /* Aliases so existing rules referencing page-level bg/fg stay in sync. */
   --background: var(--color-bg);
   --foreground: var(--color-text-primary);
@@ -226,102 +246,115 @@
   --chart-other: #7a6a5c;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0b1016;
-    --color-bg-secondary: #131a22;
-    --color-card: #131a22;
-    --color-nav-bg: rgba(19, 26, 34, 0.94);
-    --color-bg-secondary-hover: #1c2530;
-    --color-primary-green: #4f8cff;
-    /* Darkened for contrast as text (.toast-action) on the toast's light
-       surface in dark mode (background: var(--color-text-primary), which
-       flips light here) — same reasoning the values this replaced had
-       (see git history). Still used unmodified as a decorative hover fill
-       elsewhere, where text contrast doesn't apply. */
-    --color-secondary-green: #17395c;
-    --color-accent-green: #4f8cff;
-    --color-text-primary: #f0f3f5;
-    /* Spec's Silver — its own defined "secondary text, muted elements"
-       color, and light enough to read on this mode's dark bg. */
-    --color-text-secondary: #9aa3ac;
-    /* Darkened from #232c35 -- the original only cleared 1.24:1 against
-       --color-card (needs 3:1); this clears ~3.2:1. */
-    --color-border: #5e6a76;
-    /* A touch lighter than --color-bg-secondary so a divider is still
-       visible against this mode's secondary-surface cards, unlike light
-       mode where they're the same value (see the light-mode comment). */
-    --color-divider: #1f2932;
-    /* Same raw value as light mode -- already light enough to read as a
-       decorative/icon tone against this mode's dark surfaces. */
-    --color-silver: #8b93a0;
-    /* Dimmer than --color-text-secondary, mirroring light mode's
-       lighter-than-secondary relationship but inverted: on a dark
-       surface, "receding" means darker, not lighter. */
-    --color-text-faint: #5c6570;
-    --color-primary-hover: #1c3c5c;
-    --color-success: #3fbf8a;
-    --color-warning: #e0a83f;
-    --color-error: #ff6b6f;
-    /* --color-button-bg (the hero card's fill in this mode, #2f5f8f) is a
-       different, lighter navy than light mode's -- the base #ff6b6f only
-       clears 2.40:1 against it (needs 3:1 for this large/bold text).
-       Lightened until it clears 3:1; --color-error itself (used on the
-       page background, not a navy fill) is unaffected. */
-    --color-error-on-dark: #ffb3b5;
-    --color-savings: #7fa0ff;
-    --color-on-accent: #ffffff;
-    --color-success-bg: rgba(63, 191, 138, 0.18);
-    --color-warning-bg: rgba(224, 168, 63, 0.15);
-    --color-error-bg: rgba(255, 107, 111, 0.15);
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    /* --color-accent-green (#4f8cff) is light enough to read well as text
-       on this mode's dark surfaces (hero-action-link, active nav/tabs),
-       but a solid fill of it under white text reads a little flat next to
-       this mode's deep card/bg tones. A mid-dark navy between this mode's
-       lightened accent and light mode's own navy gives buttons more
-       presence without touching --color-accent-green, which would break
-       those other passing uses. */
-    --color-button-bg: #2f5f8f;
-    --gradient-brand: #4f8cff;
-    --color-accent-bg: rgba(79, 140, 255, 0.14);
+/* Full second theme, not a filter -- attribute-based (not
+   @media(prefers-color-scheme)) so both an explicit user override and the
+   resolved "system" preference land on the exact same selector. The
+   "system" case is resolved to a concrete data-theme value client-side
+   (see app/_components/ThemeScript.tsx) before first paint; the explicit
+   light/dark case is set server-side straight from the stored cookie (see
+   app/layout.tsx) so there's no flash either way. Values below are this
+   session's Personal Finance Design System dark-mode token table, mapped
+   onto the SAME --color-* names light mode uses (never renamed) --
+   consistent with how this whole file has been retinted from the start.
+   A few values intentionally deviate from the design doc's literal hex
+   where adopting it as-is would reopen a WCAG contrast failure this
+   codebase already fixed once for the light-mode equivalent (called out
+   inline below) -- accessibility wins over hex-for-hex fidelity. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0b1117;
+  --color-bg-secondary: #1c2836;
+  --color-card: #151f2b;
+  --color-nav-bg: rgba(11, 17, 23, 0.94);
+  --color-bg-secondary-hover: #243444;
+  --color-primary-green: #2f6cb0;
+  /* Darkened for contrast as text (.toast-action) on the toast's light
+     surface in dark mode (background: var(--color-text-primary), which
+     flips light here) — same reasoning the values this replaced had
+     (see git history). Still used unmodified as a decorative hover fill
+     elsewhere, where text contrast doesn't apply. */
+  --color-secondary-green: #17395c;
+  --color-accent-green: #7fb3e8;
+  --color-text-primary: #e8eef5;
+  --color-text-secondary: #96a3b4;
+  /* Deliberately NOT the design doc's literal #23303f -- that's the same
+     value as --color-divider, and while a divider can be barely-there by
+     design (see the light-mode comment on --color-divider), an INPUT
+     border is real UI structure that WCAG 1.4.11 holds to 3:1 against its
+     surface; #23303f only clears ~1.29:1 against --color-card. Kept at
+     this session's existing dark --color-border value instead, which
+     already clears ~3:1 against the new --color-card and was tuned for
+     exactly this failure mode once before (see git history). */
+  --color-border: #5e6a76;
+  --color-divider: #23303f;
+  /* Same raw value as light mode -- already light enough to read as a
+     decorative/icon tone against this mode's dark surfaces. */
+  --color-silver: #8b93a0;
+  --color-text-faint: #6b7889;
+  --color-primary-hover: #3b7cc4;
+  --color-success: #45b083;
+  --color-warning: #d59a3c;
+  --color-error: #e06a5c;
+  /* --color-error against --color-hero-bg (#14304f) clears 3:1+ for the
+     large/bold hero figure already, so unlike the light-derived value
+     this replaces, no separate lightened on-dark variant is needed here
+     -- kept anyway as a distinct token in case a future navy surface
+     needs more contrast than the base --color-error gives. */
+  --color-error-on-dark: #ffb3b5;
+  --color-savings: #6f9bf0;
+  --color-on-accent: #ffffff;
+  --color-success-bg: #12291f;
+  --color-warning-bg: #2b2113;
+  --color-error-bg: #2b1614;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --color-button-bg: #2f6cb0;
+  --gradient-brand: #2f6cb0;
+  --color-accent-bg: rgba(127, 179, 232, 0.16);
 
-    /* Same hue family as light mode, lightened for contrast against this
-       mode's dark card surface — same treatment as --color-accent-green
-       above. */
-    /* Same reorder as light mode's --chart-cat-1..6, each still the same
-       hex this mode already used pre-reorder -- only the slot assignment
-       changed to match the design system's fixed order. */
-    --chart-cat-1: #4f8cff;
-    --chart-cat-2: #4fb5af;
-    --chart-cat-3: #b8699b;
-    --chart-cat-4: #e0a83f;
-    --chart-cat-5: #8f7ecb;
-    --chart-cat-6: #9aa3ac;
-    --chart-cat-7: #e0895a;
-    --chart-cat-8: #7a9c80;
-    --chart-savings: var(--color-savings);
-    /* Was #3a4149 -- only 1.70:1 against --color-card, and its own stroke
-       (--color-border, formerly --color-card) used to be literally the
-       same color as the card underneath it. Lightened, and given the same
-       cool-vs-warm hue split as light mode's pair above. */
-    --chart-remaining: #6b7480;
-    /* Was #5f6975 -- effectively the same gray as --chart-remaining right
-       next to it. Now a warm taupe instead. */
-    --chart-other: #8a7a6a;
+  /* "The hero stays a distinct navy block" -- lighter than the page/card
+     surfaces around it (not the same near-black tone) and, since
+     elevation is color here rather than shadow, given its own 1px border
+     instead of relying on --shadow-hero to read against a dark page. */
+  --color-hero-bg: #14304f;
+  --color-hero-border: #1e4269;
+  --color-hero-kicker: #8fb2d6;
+  --color-hero-sub: #a9c2db;
 
-    /* Colored shadows barely read against a near-black surface -- shifted
-       to neutral black with higher alpha, the same treatment
-       --shadow-color itself already gets in this mode. */
-    --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
-    --shadow-row: 0 3px 14px rgba(0, 0, 0, 0.3);
-    --shadow-hero: 0 10px 28px rgba(0, 0, 0, 0.45);
-    --shadow-cta: 0 6px 16px rgba(0, 0, 0, 0.4);
-    --shadow-fab: 0 8px 20px rgba(0, 0, 0, 0.45);
+  /* design doc's dark chart series, slotted into the same fixed
+     categorical order light mode uses (see the light-mode comment on
+     --chart-cat-1). 7-8 stay this session's own overflow-slot hexes
+     (the design doc's table only defines 6) -- lightened just enough to
+     stay legible on the new, darker --color-card. */
+  --chart-cat-1: #7fb3e8;
+  --chart-cat-2: #4fb3ad;
+  --chart-cat-3: #b06693;
+  --chart-cat-4: #d59a3c;
+  --chart-cat-5: #8a79c8;
+  --chart-cat-6: #6b7889;
+  --chart-cat-7: #e0895a;
+  --chart-cat-8: #7a9c80;
+  --chart-savings: var(--color-savings);
+  /* Was #3a4149 -- only 1.70:1 against --color-card, and its own stroke
+     (--color-border, formerly --color-card) used to be literally the
+     same color as the card underneath it. Lightened, and given the same
+     cool-vs-warm hue split as light mode's pair above. */
+  --chart-remaining: #6b7480;
+  /* Was #5f6975 -- effectively the same gray as --chart-remaining right
+     next to it. Now a warm taupe instead. */
+  --chart-other: #8a7a6a;
 
-    --background: var(--color-bg);
-    --foreground: var(--color-text-primary);
-  }
+  /* Elevation is color, not shadow, in dark mode -- cards separate from
+     the page via --color-card/--color-divider rather than a visible drop
+     shadow, so these stay reserved for the surfaces the design doc
+     explicitly keeps shadow on (FAB, primary CTAs, the hero card). */
+  --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+  --shadow-row: 0 3px 14px rgba(0, 0, 0, 0.3);
+  --shadow-hero: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --shadow-cta: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --shadow-fab: 0 8px 20px rgba(0, 0, 0, 0.45);
+
+  --background: var(--color-bg);
+  --foreground: var(--color-text-primary);
 }
 
 html {
@@ -422,12 +455,6 @@ textarea:focus-visible {
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }
 
 .page-center {
@@ -651,7 +678,8 @@ a {
   gap: 0.75rem;
   padding: 2rem;
   text-align: center;
-  background: var(--color-button-bg);
+  background: var(--color-hero-bg);
+  border: 1px solid var(--color-hero-border);
   color: var(--color-on-accent);
 }
 
@@ -669,7 +697,7 @@ a {
 
 .onboarding-complete p {
   font-size: 1rem;
-  color: #b9c6d6;
+  color: var(--color-hero-sub);
 }
 
 .card h1 {
@@ -1073,6 +1101,46 @@ button.line-item--link {
   opacity: 0.6;
 }
 
+/* System/Light/Dark segmented control (Profile > Your data > Theme). Not
+   a .button--chip row since these three options are mutually exclusive
+   state, not independent actions -- a single pill-shaped track with one
+   active segment reads that way at a glance. */
+.profile-theme-row {
+  flex-wrap: wrap;
+}
+
+.theme-picker {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  gap: 2px;
+}
+
+.theme-picker-option {
+  min-height: 32px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-picker-option:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.theme-picker-option.is-active {
+  background: var(--color-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--elev-1);
+}
+
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -1365,14 +1433,14 @@ button.line-item--link {
    design system's sample screens (Personal Finance Design System.dc.html)
    render this as an opaque #17395c card, the one place the signal color
    fills a whole surface rather than accenting text/a button. Uses
-   --color-button-bg, which IS theme-aware -- verified AA (≥4.5:1 for
-   white text) in both modes. (An earlier version of this comment claimed
-   this surface "doesn't flip with light/dark page theme" via
-   --color-accent-green; that was false — --color-accent-green flips to
-   #4f8cff in dark mode, which only clears 3.22:1 for white text.) */
+   --color-hero-bg (not --color-button-bg) -- verified AA (≥4.5:1 for
+   white text) in both modes; dark mode lightens the hero surface toward
+   navy rather than toward the accent blue --color-button-bg lightens
+   into, per "the hero stays a distinct navy block" (see the token's own
+   comment). */
 .hero-card {
-  background: var(--color-button-bg);
-  border: none;
+  background: var(--color-hero-bg);
+  border: 1px solid var(--color-hero-border);
   border-radius: var(--radius-hero);
   padding: 22px;
   text-align: center;
@@ -1382,7 +1450,7 @@ button.line-item--link {
 
 .hero-label {
   font-size: 0.8125rem;
-  color: #9db1c8;
+  color: var(--color-hero-kicker);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -1412,7 +1480,7 @@ button.line-item--link {
 
 .hero-subtitle {
   font-size: 0.875rem;
-  color: #b9c6d6;
+  color: var(--color-hero-sub);
   margin-bottom: 1rem;
 }
 
@@ -1444,7 +1512,7 @@ button.line-item--link {
   flex-shrink: 0;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  color: #b9c6d6;
+  color: var(--color-hero-sub);
 }
 
 .hero-pace-row {
@@ -1459,7 +1527,7 @@ button.line-item--link {
 .hero-pace {
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
-  color: #b9c6d6;
+  color: var(--color-hero-sub);
 }
 
 /* A solid white pill, not a text link -- "I just got paid" is this card's
@@ -3626,7 +3694,7 @@ button.line-item--link {
   padding: 0 1.75rem;
   font-size: 1.0625rem;
   font-weight: 700;
-  box-shadow: 0 10px 26px rgba(23, 57, 92, 0.3);
+  box-shadow: var(--shadow-cta);
 }
 
 .landing-cta-secondary {
@@ -3766,7 +3834,8 @@ button.line-item--link {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  background: var(--color-button-bg);
+  background: var(--color-hero-bg);
+  border: 1px solid var(--color-hero-border);
   color: var(--color-on-accent);
   border-radius: var(--radius-xl);
   padding: 32px 24px;
@@ -3782,7 +3851,7 @@ button.line-item--link {
 
 .landing-cta-band p {
   font-size: 0.9375rem;
-  color: #b9c6d6;
+  color: var(--color-hero-sub);
 }
 
 .landing-cta-band-buttons {
@@ -3933,7 +4002,8 @@ button.line-item--link {
 
   .landing-device-mock {
     width: 340px;
-    background: var(--color-button-bg);
+    background: var(--color-hero-bg);
+    border: 1px solid var(--color-hero-border);
     border-radius: 44px;
     padding: 14px;
     box-shadow: var(--shadow-hero);
@@ -3954,7 +4024,7 @@ button.line-item--link {
 
   .landing-device-label {
     font-size: 0.8125rem;
-    color: #9db1c8;
+    color: var(--color-hero-kicker);
     margin-bottom: 0.4rem;
   }
 
@@ -3979,7 +4049,7 @@ button.line-item--link {
     flex-direction: column;
     gap: 0.3rem;
     font-size: 0.75rem;
-    color: #b9c6d6;
+    color: var(--color-hero-sub);
   }
 
   .landing-device-track {
@@ -3999,11 +4069,11 @@ button.line-item--link {
   }
 
   .landing-device-fill--silver {
-    background: #9db1c8;
+    background: var(--color-hero-kicker);
   }
 
   .landing-device-fill--savings {
-    background: #7ea1e8;
+    background: var(--chart-savings);
   }
 
   .landing-device-strip {
@@ -4136,7 +4206,7 @@ button.line-item--link {
 .auth-input:focus-visible {
   outline: none;
   border-color: var(--color-accent-green);
-  box-shadow: 0 0 0 4px rgba(23, 57, 92, 0.1);
+  box-shadow: 0 0 0 4px var(--color-accent-bg);
 }
 
 .auth-password-label-row {
@@ -4193,7 +4263,7 @@ button.line-item--link {
   margin-top: 0.25rem;
   font-size: 1.0625rem;
   font-weight: 700;
-  box-shadow: 0 8px 22px rgba(23, 57, 92, 0.26);
+  box-shadow: var(--shadow-cta);
 }
 
 .auth-divider {

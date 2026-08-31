@@ -21,6 +21,12 @@ model User {
   // token at sign-in, so every other still-signed-in session stops
   // passing the moment either happens, on its very next request.
   sessionVersion         Int       @default(0)
+  // Source of truth for the app's theme (Profile's own Theme row) --
+  // mirrored into a cookie on every change so the root layout can render
+  // the right [data-theme] attribute server-side without a DB round trip
+  // on every request. SYSTEM defers to prefers-color-scheme, resolved
+  // client-side (see app/_components/ThemeScript.tsx).
+  theme                  ThemePreference @default(SYSTEM)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -29,6 +35,12 @@ model User {
   budgetCycles      BudgetCycle[]
   gmailConnection   GmailConnection?
   recurringExpenses RecurringExpense[]
+}
+
+enum ThemePreference {
+  SYSTEM
+  LIGHT
+  DARK
 }
 
 model IncomeSource {
