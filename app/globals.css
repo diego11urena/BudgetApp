@@ -2368,6 +2368,14 @@ button.line-item--link {
   display: flex;
   align-items: center;
   gap: 1rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .goal-row-details {

@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { useToast } from "../../_components/ToastProvider";
 import { removeGoalAction, restoreGoalAction } from "../actions";
 
-export function RemoveGoalButton({ categoryId, name }: { categoryId: string; name: string }) {
+export function RemoveGoalButton({
+  categoryId,
+  name,
+  onRemoved,
+}: {
+  categoryId: string;
+  name: string;
+  /** Called right after a successful remove -- lets a caller that's showing this goal in an open sheet (EditGoalSheet) close it, since the goal it was editing no longer exists. */
+  onRemoved?: () => void;
+}) {
   const router = useRouter();
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
@@ -19,6 +28,7 @@ export function RemoveGoalButton({ categoryId, name }: { categoryId: string; nam
     router.refresh();
 
     if (result && "removed" in result) {
+      onRemoved?.();
       const r = result.removed;
       showToast("Deleted", {
         label: "Undo",
