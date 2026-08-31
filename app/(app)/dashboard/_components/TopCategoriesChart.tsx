@@ -6,10 +6,13 @@ import { EmptyState } from "../../_components/EmptyState";
 export function TopCategoriesChart({
   categories,
   title = "Top categories this quincena",
+  badge,
 }: {
   categories: CategoryTotal[];
   /** "This quincena" only reads correctly on Home — a past cycle's own page passes a plain "Top categories" instead. */
   title?: string;
+  /** Home passes "Top 6" -- a small trailing label next to the header, matching the design system's "Where it's going" spec. Omitted (History) renders no badge. */
+  badge?: string;
 }) {
   if (categories.length === 0) {
     return (
@@ -24,9 +27,12 @@ export function TopCategoriesChart({
 
   return (
     <div>
-      <h2>{title}</h2>
+      <div className="section-header-row">
+        <h2 style={{ marginBottom: 0 }}>{title}</h2>
+        {badge && <span className="chart-badge">{badge}</span>}
+      </div>
       <div className="bar-chart">
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <div className="bar-chart-row" key={category.categoryId}>
             <span className="bar-chart-label">
               <CategoryIcon
@@ -41,7 +47,14 @@ export function TopCategoriesChart({
             <div className="bar-chart-track">
               <div
                 className="bar-chart-fill"
-                style={{ width: `${(category.amount / maxAmount) * 100}%` }}
+                style={{
+                  width: `${(category.amount / maxAmount) * 100}%`,
+                  // Position-based, not a per-category identity color --
+                  // "Where it's going" is always the top 6 for THIS cycle,
+                  // so row 1 is always the categorical palette's first hue
+                  // regardless of which category happens to be biggest.
+                  background: `var(--chart-cat-${(index % 6) + 1})`,
+                }}
               />
             </div>
             <span className="bar-chart-value">{formatCurrency(category.amount)}</span>

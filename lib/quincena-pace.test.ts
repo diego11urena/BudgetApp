@@ -237,4 +237,32 @@ describe("computeQuincenaPace", () => {
     expect(afterEditingPayDateForward.daysRemaining).toBeGreaterThan(before.daysRemaining);
     expect(afterEditingPayDateForward.daysRemaining).toBe(15);
   });
+
+  it("elapsedFraction is 1/15 on day 1 of a 15-day cycle and 1 on the last day", () => {
+    const day1 = computeQuincenaPace({
+      periodStart: panama(2026, 8, 1),
+      now: panama(2026, 8, 1),
+      amountLeft: 750,
+      totalExpenses: 0,
+    });
+    expect(day1.elapsedFraction).toBeCloseTo(1 / 15, 4);
+
+    const lastDay = computeQuincenaPace({
+      periodStart: panama(2026, 8, 1),
+      now: panama(2026, 8, 15),
+      amountLeft: 0,
+      totalExpenses: 750,
+    });
+    expect(lastDay.elapsedFraction).toBe(1);
+  });
+
+  it("elapsedFraction stays clamped at 1 once a stale cycle runs past its nominal end", () => {
+    const stale = computeQuincenaPace({
+      periodStart: panama(2026, 8, 1),
+      now: panama(2026, 8, 20),
+      amountLeft: 0,
+      totalExpenses: 750,
+    });
+    expect(stale.elapsedFraction).toBe(1);
+  });
 });

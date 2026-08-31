@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
 import { NeedsAttentionSheet } from "./NeedsAttentionSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
@@ -21,11 +20,12 @@ export function NeedsAttentionBanner({
   return (
     <>
       <button type="button" className="banner banner--action" aria-live="polite" {...triggerProps}>
+        <span className="banner-dot" aria-hidden="true" />
         <span>
           {transactions.length} transaction{transactions.length === 1 ? "" : "s"} need
           {transactions.length === 1 ? "s" : ""} more info
         </span>
-        <ChevronRight size={18} aria-hidden="true" />
+        <span className="banner-action-label">Review</span>
       </button>
 
       {open && (

@@ -11,6 +11,8 @@ export interface Insight {
   text: string;
   /** Present when this insight has a natural destination (e.g. the Plan tab) -- absent for insights with nothing to link to, which InsightsCard renders as plain text. */
   href?: string;
+  /** Drives InsightsCard's severity dot -- "critical" for runway/over-budget concerns, "warning" for unpaid-bill concerns, absent (neutral dot) for everything else (on-track, streaks, anomalies, goal progress -- informational, not something gone wrong). */
+  severity?: "critical" | "warning";
 }
 
 /** A rule's raw output before the priority sort picks the final 3 -- never returned directly, see generateInsights. */
@@ -18,6 +20,7 @@ interface Candidate {
   text: string;
   priority: number;
   href?: string;
+  severity?: "critical" | "warning";
 }
 
 /**
@@ -122,7 +125,7 @@ export function generateInsights(
   return candidates
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 2)
-    .map(({ text, href }) => (href ? { text, href } : { text }));
+    .map(({ text, href, severity }) => ({ text, ...(href ? { href } : {}), ...(severity ? { severity } : {}) }));
 }
 
 interface CyclePhase {
@@ -197,6 +200,7 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
     text: `${best.name} (${formatCurrency(best.amount)}) ${dueText} and isn't marked paid.`,
     priority: PRIORITY.DUE_SOON,
     href: "/plan",
+    severity: "warning",
   };
 }
 
@@ -244,6 +248,7 @@ function unpaidRecurringCandidate(
     text: `${count} ${noun} been paid yet this cycle (${formatCurrency(remaining)} left).`,
     priority: PRIORITY.UNPAID_RECURRING,
     href: "/plan",
+    severity: "warning",
   };
 }
 
@@ -398,6 +403,7 @@ function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Da
     return {
       text: `You're ${formatCurrency(Math.abs(current.amountLeft))} over budget this cycle so far, with ${phase.daysRemaining} day${phase.daysRemaining === 1 ? "" : "s"} left.`,
       priority: PRIORITY.OVER_BUDGET,
+      severity: "critical",
     };
   }
 
@@ -411,6 +417,7 @@ function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Da
         text: `At your current pace you'll run out of cash around ${formatFriendlyDate(runOutDate)} — ${daysBeforePayday} day${daysBeforePayday === 1 ? "" : "s"} before your next payday.`,
         priority: PRIORITY.PACE_WARNING,
         href: "/dashboard/breakdown",
+        severity: "critical",
       };
     }
   }

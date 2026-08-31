@@ -26,6 +26,6 @@ test.describe("closing a quincena", () => {
     // "15" would make this test fail on whatever days it isn't 15.
     await expect(page.getByText("Quincena closed")).toHaveCount(0);
     await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
-    await expect(page.locator(".hero-pace")).toContainText(/\d+ days? left/);
+    await expect(page.locator(".hero-elapsed-label")).toContainText(/\d+ days? left/);
   });
 });

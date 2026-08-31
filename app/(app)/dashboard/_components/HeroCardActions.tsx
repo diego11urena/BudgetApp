@@ -114,6 +114,7 @@ export function HeroCardActions({
               }}
               disabled={pending}
             >
+              <span className="banner-dot" aria-hidden="true" />
               <span>{pending ? "Closing quincena..." : bannerLabel}</span>
               <ChevronRight size={18} aria-hidden="true" />
             </button>

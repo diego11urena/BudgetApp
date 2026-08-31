@@ -48,11 +48,24 @@ export function HeroCard({
       </p>
       {!closed && pendingBills > 0 && (
         <p className="hero-subtitle">
-          {formatCurrency(amountLeft)} available before {formatCurrency(pendingBills)} in unpaid bills
+          {formatCurrency(amountLeft)} available · {formatCurrency(pendingBills)} in unpaid bills
         </p>
       )}
-      {!closed && (
+      {!closed && pace && (
         <>
+          {/* Cycle-elapsed progress bar -- new: previously this same
+              "how far through the quincena am I" fact only existed as text
+              (the days-left half of hero-pace below), never a visual bar. */}
+          {pace.phase !== "ended" && (
+            <div className="hero-elapsed-row">
+              <div className="hero-elapsed-track">
+                <div className="hero-elapsed-fill" style={{ width: `${pace.elapsedFraction * 100}%` }} />
+              </div>
+              <span className="hero-elapsed-label">
+                {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left
+              </span>
+            </div>
+          )}
           {/* No separate subtitle line -- "Remaining this Quincena" used to
               sit here, restating exactly what the pace line below already
               says, with a number ("N days left"), better. Always the hero
@@ -63,16 +76,15 @@ export function HeroCard({
               signal was a deliberate design choice, but the user asked for
               this line to just always be white, so isOverPace is no
               longer read into the class list here. */}
-          {pace && (
+          <div className="hero-pace-row">
             <p className="hero-pace">
-              {pace.phase === "running" &&
-                `${pace.daysRemaining} days left · ~${formatCurrency(pace.perDay)}/day`}
+              {pace.phase === "running" && `Pace ~${formatCurrency(pace.perDay)}/day`}
               {pace.phase === "last-day" && `Last day · ${formatCurrency(safeToSpend)} to spend`}
               {pace.phase === "ended" &&
                 `Quincena ended ${formatFriendlyDate(pace.cycleEnd)} · tap "I just got paid"`}
             </p>
-          )}
-          <HeroCardActions />
+            <HeroCardActions />
+          </div>
         </>
       )}
     </div>

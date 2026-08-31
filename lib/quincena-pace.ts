@@ -76,6 +76,8 @@ export interface QuincenaPace {
   cycleEnd: Date;
   /** True when actual average daily spend so far is outpacing the sustainable per-day rate. */
   isOverPace: boolean;
+  /** 0 (cycle just started) to 1 (today is the last day) -- drives the Home hero card's cycle-elapsed progress bar. Clamped to 1 rather than growing past it once a cycle runs stale (getOrCreateDraftCycle keeps a cycle open past its nominal end until the user closes it). */
+  elapsedFraction: number;
 }
 
 /**
@@ -108,6 +110,9 @@ export function computeQuincenaPace(input: {
 
   const phase: PacePhase = daysRemaining === 0 ? "ended" : daysRemaining === 1 ? "last-day" : "running";
 
+  const totalDays = quincenaLengthDays(periodStart);
+  const elapsedFraction = Math.min(elapsedDays / totalDays, 1);
+
   return {
     daysRemaining,
     perDay,
@@ -115,5 +120,6 @@ export function computeQuincenaPace(input: {
     isLastDay: phase === "last-day",
     cycleEnd,
     isOverPace,
+    elapsedFraction,
   };
 }

@@ -13,6 +13,7 @@ export function Header({
   currentPayDate,
   cycleId,
   previousBoundDate,
+  dateRangeLabel,
 }: {
   name?: string | null;
   /** This cycle's already-recorded pay amount — prefills the "Edit" sheet. */
@@ -23,6 +24,8 @@ export function Header({
   cycleId: string;
   /** "YYYY-MM-DD", exclusive — the earliest valid pay date (the previous cycle's own periodStart), or null if this is the account's first-ever cycle. */
   previousBoundDate: string | null;
+  /** "Aug 16 – Aug 31" -- lib/format.ts's formatCycleRangeLabel, precomputed by the page since it needs both periodStart and periodEnd. */
+  dateRangeLabel: string;
 }) {
   const greeting = getGreeting(hourInPanama());
   const firstName = name?.trim().split(/\s+/)[0];
@@ -39,16 +42,15 @@ export function Header({
           {greeting}
           {firstName ? `, ${firstName}` : ""}
         </p>
-        <div className="home-month">
-          This Quincena&apos;s Budget
-          <EditPayInfoButton
-            currentAmount={currentPayAmount}
-            currentPayDate={currentPayDate}
-            cycleId={cycleId}
-            previousBoundDate={previousBoundDate}
-          />
-        </div>
+        <p className="home-month">{dateRangeLabel} · this quincena</p>
       </div>
+      <EditPayInfoButton
+        currentAmount={currentPayAmount}
+        currentPayDate={currentPayDate}
+        cycleId={cycleId}
+        previousBoundDate={previousBoundDate}
+        className="home-edit-pill"
+      />
     </div>
   );
 }

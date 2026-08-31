@@ -18,6 +18,11 @@
      just not fully opaque, so content scrolling underneath still shows
      through slightly. */
   --color-nav-bg: rgba(255, 255, 255, 0.94);
+  /* The design system's one standard hover step for every #eef0f3-filled
+     pill/chip/secondary-surface (Edit, Record, Contribute-row siblings,
+     ghost-pill hovers) -- a single named token instead of each call site
+     picking its own slightly-different darkened gray. */
+  --color-bg-secondary-hover: #e2e6eb;
   /* One step lighter than the main accent — used for chart fills. */
   --color-primary-green: #17395c;
   /* Lightest tier — decorative hover fills, and as text (.toast-action) on
@@ -227,6 +232,7 @@
     --color-bg-secondary: #131a22;
     --color-card: #131a22;
     --color-nav-bg: rgba(19, 26, 34, 0.94);
+    --color-bg-secondary-hover: #1c2530;
     --color-primary-green: #4f8cff;
     /* Darkened for contrast as text (.toast-action) on the toast's light
        surface in dark mode (background: var(--color-text-primary), which
@@ -784,8 +790,8 @@ button.line-item--link {
 }
 
 .banner {
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  padding: 12px 14px;
   font-size: 0.9rem;
   font-weight: 600;
   border-left: 3px solid;
@@ -803,21 +809,39 @@ button.line-item--link {
   border-left-color: var(--color-error);
 }
 
+/* No border-left accent -- .banner-dot carries the color signal instead,
+   matching the design system's attention-banner spec. */
 .banner--action {
   color: var(--color-warning);
   background: var(--color-warning-bg);
   border: none;
-  border-left: 3px solid var(--color-warning);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.6rem;
   width: 100%;
   font: inherit;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
   appearance: none;
+}
+
+.banner--action > span:not(.banner-dot) {
+  flex: 1;
+}
+
+.banner-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-warning);
+}
+
+.banner-action-label {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .categorize-imports-list {
@@ -882,13 +906,16 @@ button.line-item--link {
   flex-direction: column;
 }
 
+/* Soft shadow, no hairline border -- the design system's cards-not-borders
+   rule, applied here since .dashboard-section is the one shared card shell
+   every tab (Home, Activity, Plan, Profile, History) already builds on. */
 .dashboard-section {
   margin-top: 1.5rem;
   background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 1.4rem;
-  box-shadow: var(--elev-1);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
 }
 
 /* A section's own heading + one action button, side by side -- flex-wrap
@@ -907,11 +934,35 @@ button.line-item--link {
 
 .dashboard-section h2 {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin-bottom: 0.85rem;
   color: var(--color-text-primary);
+}
+
+/* Small trailing label next to a section header -- e.g. Home's "Where
+   it's going" + "Top 6". */
+.chart-badge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* A section header's own "See all"-style link, e.g. Home's Recent card --
+   same navy/700 treatment as .home-edit-pill's text, no pill fill. */
+.section-header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  color: var(--color-accent-green);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  min-height: 44px;
+  padding: 0.4rem 0;
 }
 
 .dashboard-section h3 {
@@ -945,9 +996,9 @@ button.line-item--link {
 
 .home-greeting {
   font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.625rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .home-month {
@@ -982,6 +1033,30 @@ button.line-item--link {
   transform: translateY(-50%);
 }
 
+/* Home's own standalone "Edit" pill, top-right of the header -- a
+   different treatment from .home-header-edit-link's plain inline text
+   (still used as-is by History's closed-cycle page, out of this design
+   system rework's scope). EditPayInfoButton's className prop lets each
+   call site opt into whichever it needs. */
+.home-edit-pill {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 1rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.home-edit-pill:hover {
+  background: var(--color-bg-secondary-hover);
+}
+
 /* Hero card — solid navy fill with white text, not a tinted wash: the
    design system's sample screens (Personal Finance Design System.dc.html)
    render this as an opaque #17395c card, the one place the signal color
@@ -994,17 +1069,19 @@ button.line-item--link {
 .hero-card {
   background: var(--color-button-bg);
   border: none;
-  border-radius: var(--radius-xl);
-  padding: 1.85rem 1.5rem;
+  border-radius: var(--radius-hero);
+  padding: 22px;
   text-align: center;
   color: var(--color-on-accent);
+  box-shadow: var(--shadow-hero);
 }
 
 .hero-label {
-  font-size: 0.9rem;
-  color: var(--color-on-accent);
-  opacity: 0.7;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #9db1c8;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
 }
 
 .hero-value {
@@ -1014,11 +1091,11 @@ button.line-item--link {
      and html,body's overflow-x:hidden means those digits were silently
      unscrollable, not just visually tight. */
   font-size: clamp(2rem, 12vw, 3.25rem);
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.035em;
   margin: 0.4rem 0;
-  font-variant-numeric: proportional-nums;
+  font-variant-numeric: tabular-nums;
 }
 
 .hero-value--good {
@@ -1031,34 +1108,79 @@ button.line-item--link {
 
 .hero-subtitle {
   font-size: 0.875rem;
-  color: var(--color-on-accent);
-  opacity: 0.8;
+  color: #b9c6d6;
   margin-bottom: 1rem;
+}
+
+/* Cycle-elapsed progress bar row -- the design's own addition over the
+   plain "N days left" text this used to be (see HeroCard's own comment). */
+.hero-elapsed-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.hero-elapsed-track {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.hero-elapsed-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  transition: width 0.2s ease;
+}
+
+.hero-elapsed-label {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: #b9c6d6;
+}
+
+.hero-pace-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 0.75rem;
 }
 
 .hero-pace {
   font-variant-numeric: tabular-nums;
   font-size: 0.8rem;
-  color: var(--color-on-accent);
-  opacity: 0.8;
-  margin: -0.4rem 0 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  padding-top: 0.6rem;
+  color: #b9c6d6;
 }
 
+/* A solid white pill, not a text link -- "I just got paid" is this card's
+   one secondary action, styled with the same weight the design system
+   gives every navy-surface CTA. */
 .hero-action-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  min-height: 44px;
-  background: none;
+  flex-shrink: 0;
+  min-height: 40px;
+  background: #ffffff;
   border: none;
-  color: var(--color-on-accent);
-  font-weight: 600;
-  font-size: 0.9rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-button-bg);
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
-  padding: 0.4rem 0.8rem;
+  padding: 0.5rem 1rem;
+  transition: opacity 0.15s ease;
+}
+
+.hero-action-link:hover {
+  opacity: 0.9;
 }
 
 .hero-action-link:disabled {
@@ -1188,6 +1310,56 @@ button.line-item--link {
 .summary-row--home .summary-value {
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+/* Home's 2x2 stat grid (StatGrid) -- replaces BudgetBreakdownCard's
+   stacked rows on Home only; BudgetBreakdownCard itself (and
+   .summary-row--home above) stays in place for History's closed-cycle
+   page. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.stat-tile-label {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.stat-tile-value {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.stat-tile-value--good {
+  color: var(--color-success);
+}
+
+.stat-tile-value--savings {
+  color: var(--color-savings);
+}
+
+.stat-tile-value--warning {
+  color: var(--color-warning);
+}
+
+.stat-tile-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
 }
 
 /* Quick-add bottom sheet */
@@ -1442,9 +1614,10 @@ button.line-item--link {
    (spec: reserve the gradient for hero surfaces and primary buttons only). */
 .insights-card {
   background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: 1.4rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
 }
 
 .insights-title {
@@ -1456,8 +1629,48 @@ button.line-item--link {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* Divider between rows -- last row gets none. */
+.insights-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.insights-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.insights-row:first-child {
+  padding-top: 0;
+}
+
+/* Severity dot -- red for a runway/over-budget concern, amber for an
+   unpaid-bill concern, silver for everything else (informational, not
+   something gone wrong). See lib/insights.ts's Insight.severity. */
+.insights-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-silver);
+}
+
+.insights-dot--critical {
+  background: var(--color-error);
+}
+
+.insights-dot--warning {
+  background: var(--color-warning);
+}
+
+.insights-text {
+  flex: 1;
 }
 
 /* An insight with a natural destination (unpaid recurring expenses ->
@@ -1466,6 +1679,7 @@ button.line-item--link {
    active-state convention as .line-item--link, just inline rather than a
    full row. */
 .insights-list-link {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;

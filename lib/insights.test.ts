@@ -118,7 +118,10 @@ describe("generateInsights", () => {
         makeExtras(),
       );
       expect(insights).toEqual([
-        { text: "You're $50.00 over budget this cycle so far, with 14 days left." },
+        {
+          text: "You're $50.00 over budget this cycle so far, with 14 days left.",
+          severity: "critical",
+        },
       ]);
     });
 

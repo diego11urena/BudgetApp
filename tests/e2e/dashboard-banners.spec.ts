@@ -41,7 +41,7 @@ test.describe("dashboard 'needs attention' banner", () => {
     // Exactly one banner -- not "needs a category" AND "needs a
     // description" as two separate rows.
     await expect(page.locator(".banner--action")).toHaveCount(1);
-    await expect(page.locator(".banner--action")).toHaveText("1 transaction needs more info");
+    await expect(page.locator(".banner--action")).toContainText("1 transaction needs more info");
 
     await page.click(".banner--action");
     await page.waitForSelector(".categorize-imports-row");

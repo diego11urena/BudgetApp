@@ -101,21 +101,22 @@ describe("summarizeCycleFinancials", () => {
     expect(result.categoryTotals).toEqual([]);
   });
 
-  it("caps topCategories at 5 even with more categories present", () => {
+  it("caps topCategories at 6 even with more categories present", () => {
     const categories = Array.from({ length: 8 }, (_, i) => ({ id: `cat-${i}`, name: `Cat ${i}` }));
     const transactions = categories.map((category, i) =>
       tx("EXPENSE", (i + 1) * 10, { category }),
     );
     const result = summarizeCycleFinancials([], transactions);
     expect(result.categoryTotals).toHaveLength(8);
-    expect(result.topCategories).toHaveLength(5);
-    // Highest amounts (cat-7..cat-3) should be the top 5.
+    expect(result.topCategories).toHaveLength(6);
+    // Highest amounts (cat-7..cat-2) should be the top 6.
     expect(result.topCategories.map((c) => c.categoryId)).toEqual([
       "cat-7",
       "cat-6",
       "cat-5",
       "cat-4",
       "cat-3",
+      "cat-2",
     ]);
   });
 

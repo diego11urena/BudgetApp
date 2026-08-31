@@ -14,14 +14,15 @@ export function InsightsCard({ insights }: { insights: Insight[] }) {
       </p>
       <ul className="insights-list">
         {insights.map((insight) => (
-          <li key={insight.text}>
+          <li key={insight.text} className="insights-row">
+            <span className={`insights-dot insights-dot--${insight.severity ?? "neutral"}`} aria-hidden="true" />
             {insight.href ? (
               <Link href={insight.href} className="insights-list-link">
                 <span>{insight.text}</span>
                 <ChevronRight size={16} aria-hidden="true" />
               </Link>
             ) : (
-              insight.text
+              <span className="insights-text">{insight.text}</span>
             )}
           </li>
         ))}

@@ -23,3 +23,13 @@ export function formatFriendlyDate(date: Date): string {
     timeZone: "America/Panama",
   });
 }
+
+/**
+ * Home's header subline -- "Aug 16 – Aug 31", a quincena's date range with
+ * no year (unlike formatFriendlyDate: a 2-week range is always read in the
+ * context of "this/last quincena," so the year would just be noise).
+ */
+export function formatCycleRangeLabel(start: Date, end: Date): string {
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", timeZone: "America/Panama" };
+  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
+}

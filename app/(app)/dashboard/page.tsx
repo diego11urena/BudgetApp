@@ -9,12 +9,13 @@ import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
+import { formatCycleRangeLabel } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
-import { BudgetBreakdownCard } from "./_components/BudgetBreakdownCard";
+import { StatGrid } from "./_components/StatGrid";
 import { TopCategoriesChart } from "./_components/TopCategoriesChart";
 import { InsightsCard } from "./_components/InsightsCard";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
@@ -95,6 +96,13 @@ export default async function DashboardPage() {
     goals,
   });
 
+  // A goal counts as "funded" once savedSoFar has reached its own target --
+  // StatGrid's Saved tile sub-line, and only meaningful for goals that
+  // actually have a target set (lifetimeTargetAmount > 0).
+  const fundedGoalsCount = goals.filter(
+    (g) => g.lifetimeTargetAmount > 0 && g.savedSoFar >= g.lifetimeTargetAmount,
+  ).length;
+
   return (
     <div className="home-page">
       <Header
@@ -103,6 +111,7 @@ export default async function DashboardPage() {
         currentPayDate={formatCycleLabel(cycle.periodStart)}
         cycleId={cycle.id}
         previousBoundDate={previousBoundDate}
+        dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd)}
       />
 
       {/* Action-required banners (missing category, missing description)
@@ -157,27 +166,39 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* InsightsCard itself renders null when there's nothing to say, so
-          this costs nothing for a user with no insights yet. */}
       <div className="dashboard-section dashboard-section--plain">
-        <InsightsCard insights={insights} />
-      </div>
-
-      <div className="dashboard-section">
-        <BudgetBreakdownCard
+        <StatGrid
           baseIncome={financials.baseIncome}
           extraIncome={financials.extraIncome}
+          spent={financials.totalExpenses}
           saved={financials.totalSavings}
+          fundedGoalsCount={fundedGoalsCount}
           recurringExpenses={recurringExpensesSummary}
         />
       </div>
 
       <div className="dashboard-section">
-        <TopCategoriesChart categories={financials.topCategories} />
+        <TopCategoriesChart categories={financials.topCategories} title="Where it's going" badge="Top 6" />
+      </div>
+
+      {/* InsightsCard itself renders null when there's nothing to say, so
+          this costs nothing for a user with no insights yet. Below the
+          chart now, not above it -- context on the numbers above, not a
+          substitute for them (see the design system handoff's Home spec). */}
+      <div className="dashboard-section dashboard-section--plain">
+        <InsightsCard insights={insights} />
       </div>
 
       <div className="dashboard-section">
-        <h2>Recent transactions</h2>
+        <div className="section-header-row">
+          <h2 style={{ marginBottom: 0 }}>Recent</h2>
+          {financials.transactions.length > 3 && (
+            <Link href="/transactions" className="section-header-link">
+              See all
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
+          )}
+        </div>
         <TransactionList
           transactions={financials.transactions.slice(0, 3)}
           expenseCategoryNames={expenseCategoryNames}
@@ -185,12 +206,6 @@ export default async function DashboardPage() {
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
-        {financials.transactions.length > 3 && (
-          <Link href="/transactions" className="line-item line-item--link">
-            <span>See all</span>
-            <ChevronRight size={18} aria-hidden="true" />
-          </Link>
-        )}
       </div>
     </div>
   );

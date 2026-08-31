@@ -17,6 +17,7 @@ export function EditPayInfoButton({
   closed = false,
   previousBoundDate = null,
   nextBoundDate = null,
+  className = "home-header-edit-link",
 }: {
   currentAmount: number;
   /** "YYYY-MM-DD" — the cycle's periodStart. */
@@ -29,12 +30,14 @@ export function EditPayInfoButton({
   previousBoundDate?: string | null;
   /** "YYYY-MM-DD", exclusive — the latest valid pay date (the next cycle's periodStart). Only meaningful when closed — the draft cycle has no next neighbor, so its ceiling is "today" instead (computed inside EditPayInfoSheet). */
   nextBoundDate?: string | null;
+  /** Defaults to the plain inline-text-link treatment (History's own closed-cycle usage) -- Home's own trigger passes "home-edit-pill" instead for the design system's standalone Edit pill. */
+  className?: string;
 }) {
   const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
-      <button type="button" className="home-header-edit-link" {...triggerProps}>
+      <button type="button" className={className} {...triggerProps}>
         Edit
       </button>
 

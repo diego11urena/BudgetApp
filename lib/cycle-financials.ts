@@ -172,7 +172,10 @@ export function summarizeCycleFinancials(
   const sortedCategoryTotals = Array.from(categoryTotals.values()).sort(
     (a, b) => b.amount - a.amount,
   );
-  const topCategories = sortedCategoryTotals.slice(0, 5);
+  // 6, matching the Balboa design system's "Where it's going" spec (Home's
+  // own categorical chart palette has exactly 6 slots -- see globals.css's
+  // --chart-cat-1..6).
+  const topCategories = sortedCategoryTotals.slice(0, 6);
 
   return {
     baseIncome,
