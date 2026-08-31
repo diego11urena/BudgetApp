@@ -598,6 +598,32 @@ input[type="checkbox"]::before {
   white-space: nowrap;
 }
 
+/* Small navy-on-secondary-surface pill -- "+ Add goal", "+ New bill",
+   "Record" (a bill row's own inline action). 32px visual height per the
+   design system spec, invisibly padded to the app's 44px tap-target
+   minimum the same way .type-toggle-btn is. */
+.button--chip {
+  position: relative;
+  min-height: 32px;
+  padding: 0 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.button--chip:hover {
+  background: var(--color-bg-secondary-hover);
+}
+
+.button--chip::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
 /* Text/"ghost" role -- a real, tappable action that's genuinely lower
    emphasis than .button--secondary (e.g. Remove goal next to Contribute
    and Edit), not the same thing as .icon-button's own opacity: 0.6 dimming
@@ -616,6 +642,18 @@ input[type="checkbox"]::before {
 }
 .button--ghost:disabled {
   opacity: 0.5;
+}
+
+/* Danger-colored ghost -- Goals' own Remove action. Combined with
+   .button--ghost (className="button button--ghost button--ghost-danger"),
+   not a replacement for it. */
+.button--ghost-danger {
+  color: var(--color-error);
+}
+.button--ghost-danger:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-radius: var(--radius-pill);
 }
 
 /* Solid navy pill CTA, e.g. Activity's header "Breakdown" button --
@@ -2582,6 +2620,52 @@ button.line-item--link {
   background: var(--color-error);
 }
 
+.progress-bar-fill--navy {
+  background: var(--color-button-bg);
+}
+
+/* Plan's Bills summary bar -- "N of M paid this quincena" + a progress
+   bar, with the remaining dollar amount on the right. New derived values
+   (see lib/recurring-expenses.ts's summarizeRecurringExpenses, already
+   computed for the dashboard's own StatGrid). */
+.bills-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  margin-bottom: 1rem;
+}
+
+.bills-summary-bar-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The generic .progress-bar-track's own fill color (--color-bg-secondary)
+   would be invisible against this bar's identical background -- a subtle
+   dark overlay instead, visible in both themes without a new token. */
+.bills-summary-bar .progress-bar-track {
+  background: rgba(16, 22, 28, 0.12);
+}
+
+.bills-summary-bar-count {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.bills-summary-bar-remaining {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-warning);
+}
+
 /* Recurring Expenses & Goals rows */
 .category-progress-list {
   display: flex;
@@ -2596,19 +2680,30 @@ button.line-item--link {
 .goal-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 12px;
 }
 
-.category-progress-row,
-.goal-row {
+.category-progress-row {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--color-border);
 }
 
-.category-progress-row:last-child,
-.goal-row:last-child {
+.category-progress-row:last-child {
   border-bottom: none;
   padding-bottom: 0;
+}
+
+/* Goal card -- its own elevated card, not a divided list row (see the
+   design system handoff's Plan spec). .goal-list (the parent) supplies
+   the 12px gap between cards. */
+.goal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-row);
 }
 
 /* A category is an expandable container, not a link -- tapping it
@@ -2759,6 +2854,78 @@ button.line-item--link {
   color: var(--color-error);
 }
 
+/* Plan's simplified bill row (RecurringExpenseRow's simplifiedStatus
+   prop) -- a dot/check + one meta line instead of History/CategoryProgress
+   Row's fuller not-started/partial/paid/paid-over/exceeded status chip. */
+.recurring-expense-row--simplified {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 14px 0;
+}
+
+.recurring-expense-row--simplified .recurring-expense-row-main {
+  flex: 1;
+  min-width: 0;
+  gap: 0.7rem;
+}
+
+.recurring-expense-row-indicator {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-warning);
+  color: var(--color-success);
+}
+
+/* The dot only shows for an unpaid bill (empty circle); a paid one swaps
+   to a check glyph and drops the dot's own fill -- the icon itself
+   (rendered conditionally in the component) carries the color instead. */
+.recurring-expense-row--simplified .recurring-expense-row-indicator:has(svg) {
+  width: auto;
+  height: auto;
+  background: none;
+}
+
+.recurring-expense-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.recurring-expense-row--simplified .recurring-expense-row-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recurring-expense-row-meta {
+  font-size: 0.75rem;
+  color: var(--color-silver);
+}
+
+.recurring-expense-row--simplified .recurring-expense-row-amount {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* Paid: name/meta/amount all recede to the faint tone, matching the
+   design system's "already handled" treatment. */
+.recurring-expense-row--paid .recurring-expense-row-name,
+.recurring-expense-row--paid .recurring-expense-row-meta,
+.recurring-expense-row--paid .recurring-expense-row-amount {
+  color: var(--color-text-faint);
+}
+
 .recurring-expense-suggestion {
   padding: var(--space-2);
   margin-bottom: var(--space-2);
@@ -2777,13 +2944,6 @@ button.line-item--link {
   align-items: center;
   gap: 1rem;
   width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  text-align: left;
-  color: inherit;
-  cursor: pointer;
-  font-family: inherit;
 }
 
 .goal-row-details {
@@ -2792,38 +2952,61 @@ button.line-item--link {
 }
 
 .goal-row-name {
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   margin-bottom: 0.2rem;
+}
+
+.goal-row-progress {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-row-of {
+  color: var(--color-text-faint);
+  font-weight: 400;
 }
 
 .goal-row-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 0.5rem;
+}
+
+.goal-row-actions .button--chip {
+  min-height: 40px;
+}
+
+/* Contribute is the one primary (navy) action in this row -- flex:1 so it
+   takes the lead visually over Edit/Remove beside it. */
+.goal-row-actions > .button:first-child {
+  flex: 1;
+  min-height: 40px;
 }
 
 .goal-projection {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-savings);
+  margin-top: 0.3rem;
 }
 
 .goal-projection--complete {
   color: var(--color-success);
-  font-weight: 600;
 }
 
 .goal-projection--muted {
-  font-style: italic;
+  font-weight: 400;
+  color: var(--color-text-secondary);
 }
 
 /* Goal ring — plain SVG, no charting library */
 .goal-ring-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 88px;
-  height: 88px;
+  width: 56px;
+  height: 56px;
 }
 
 .goal-ring {
@@ -2846,8 +3029,9 @@ button.line-item--link {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
 }
 

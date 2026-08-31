@@ -6,7 +6,6 @@ import { updateGoalWithContributionAction } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { Sheet } from "../../_components/Sheet";
-import { RemoveGoalButton } from "./RemoveGoalButton";
 import { formatCurrency } from "@/lib/format";
 import { INVALID_AMOUNT_FORMAT_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
 
@@ -247,17 +246,14 @@ export function EditGoalSheet({
       </form>
 
       {pendingChange === null && (
-        <>
-          <button
-            type="button"
-            className="button button--secondary sheet-submit"
-            onClick={handleClose}
-            disabled={pending}
-          >
-            Cancel
-          </button>
-          <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} onRemoved={handleClose} />
-        </>
+        <button
+          type="button"
+          className="button button--secondary sheet-submit"
+          onClick={handleClose}
+          disabled={pending}
+        >
+          Cancel
+        </button>
       )}
     </Sheet>
   );

@@ -1,8 +1,8 @@
 import { Check } from "lucide-react";
 
-const SIZE = 88;
-const STROKE = 8;
-const RADIUS = (SIZE - STROKE) / 2;
+const SIZE = 56;
+const STROKE = 7;
+const RADIUS = 24;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 /** A saved/target ring — plain SVG, no charting library. Percentage renders as HTML text centered over it (more reliable than SVG <text> for font metrics/weight). */
@@ -41,7 +41,7 @@ export function GoalRing({ percentage, complete }: { percentage: number; complet
         />
       </svg>
       <span className="goal-ring-label">
-        {complete ? <Check size={24} aria-hidden="true" /> : `${Math.round(percentage)}%`}
+        {complete ? <Check size={18} aria-hidden="true" /> : `${Math.round(percentage)}%`}
       </span>
     </div>
   );

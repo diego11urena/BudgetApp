@@ -84,7 +84,7 @@ test.describe("savings goals", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
     const goalRow = page.locator(".goal-row", { hasText: "Emergency Fund" });
-    await goalRow.locator(".goal-row-main").click();
+    await goalRow.getByRole("button", { name: "Edit" }).click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
     await fillAmount(editGoalSaved, "200");
@@ -121,7 +121,7 @@ test.describe("savings goals", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
     const goalRow = page.locator(".goal-row", { hasText: "Pro Futuro" });
-    await goalRow.locator(".goal-row-main").click();
+    await goalRow.getByRole("button", { name: "Edit" }).click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
     await fillAmount(editGoalSaved, "300");
@@ -155,7 +155,7 @@ test.describe("savings goals", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
     const goalRow = page.locator(".goal-row", { hasText: "Rainy Day" });
-    await goalRow.locator(".goal-row-main").click();
+    await goalRow.getByRole("button", { name: "Edit" }).click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
     await fillAmount(editGoalSaved, "300");
@@ -234,7 +234,7 @@ test.describe("savings goals", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 
     const goalRow = page.locator(".goal-row", { hasText: "Sunny Day" });
-    await goalRow.locator(".goal-row-main").click();
+    await goalRow.getByRole("button", { name: "Edit" }).click();
     const editGoalSaved = page.getByLabel("Amount saved so far");
     await editGoalSaved.waitFor();
     await fillAmount(editGoalSaved, "300");
@@ -268,7 +268,7 @@ test.describe("savings goals", () => {
     }
 
     const secondRow = page.locator(".goal-row", { hasText: "Second Goal" });
-    await secondRow.locator(".goal-row-main").click();
+    await secondRow.getByRole("button", { name: "Edit" }).click();
     const editGoalName = page.getByLabel("Goal name");
     await editGoalName.waitFor();
     await editGoalName.fill("");

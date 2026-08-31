@@ -8,7 +8,7 @@ export function GoalsSection({ goals, savingsCategoryNames }: { goals: GoalWithP
   return (
     <>
       <div className="section-header-row">
-        <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Your savings goals</h2>
+        <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Savings goals</h2>
         <AddGoalSheet categoryNames={savingsCategoryNames} />
       </div>
       {goals.length === 0 && <EmptyState>No goals yet — tap &quot;+ Add goal&quot; above.</EmptyState>}

@@ -14,7 +14,7 @@ export function ContributeButton({ categoryName }: { categoryName: string }) {
 
   return (
     <>
-      <button type="button" className="button button--secondary button--small" {...triggerProps}>
+      <button type="button" className="button" {...triggerProps}>
         Contribute
       </button>
 

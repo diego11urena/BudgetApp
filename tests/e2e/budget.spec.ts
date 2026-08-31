@@ -28,7 +28,7 @@ test.describe("Plan screen (Bills)", () => {
 
     await expect(page.locator("h1.page-title")).toHaveText("Plan");
     await expect(page.locator(".dashboard-section h2", { hasText: "Bills" })).toBeVisible();
-    await expect(page.locator(".dashboard-section h2", { hasText: "Your savings goals" })).toBeVisible();
+    await expect(page.locator(".dashboard-section h2", { hasText: "Savings goals" })).toBeVisible();
   });
 
   test("creating a category through its first bill, then adding a second under the same category, lists both flat with a category label, no folder to expand", async ({
@@ -39,8 +39,10 @@ test.describe("Plan screen (Bills)", () => {
 
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
     // Flat by default -- no category-folder wrapper, no expand needed.
+    // createRecurringExpense doesn't set a due day (BIWEEKLY default, no
+    // due-day field shown), so the meta line is just the category name.
     await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
-    await expect(page.locator(".recurring-expense-row-category")).toHaveText("· Subscriptions");
+    await expect(page.locator(".recurring-expense-row-meta")).toHaveText("Subscriptions");
 
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
@@ -52,15 +54,16 @@ test.describe("Plan screen (Bills)", () => {
     await page.goto("/plan");
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
 
-    await expect(page.locator(".recurring-expense-status--not-started")).toBeVisible();
+    await expect(page.locator(".recurring-expense-row--paid")).toHaveCount(0);
+    await expect(page.locator('button:has-text("Record")')).toBeVisible();
 
-    await page.click('button:has-text("Record payment")');
+    await page.click('button:has-text("Record")');
     await page.getByLabel("Amount (USD)").waitFor();
     await clickSheetButton(page, "Record payment");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-    await expect(page.locator(".recurring-expense-status--paid")).toBeVisible();
-    await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$9.99 / $9.99");
+    await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
+    await expect(page.locator('button:has-text("Record")')).toHaveCount(0);
   });
 
   test("editing a bill's amount is reflected on its own row", async ({ page }) => {
@@ -186,8 +189,7 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
       // Name defaulted to the category ("Transportation") -- untouched, per Feature 1's fallback.
       await expect(page.locator(".recurring-expense-row-name")).toContainText("Transportation");
-      await expect(page.locator(".recurring-expense-status--paid")).toBeVisible();
-      await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$20.00 / $20.00");
+      await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
     });
 
     await test.step("a second same-named expense logged with the toggle on links to the SAME bill (summed actual), not a second row", async () => {
@@ -201,9 +203,13 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
+      // Still one row (dedup worked, not a second row) and still paid --
+      // Plan's simplified row no longer surfaces the actual-vs-target
+      // dollar text itself (that detail lives in the edit sheet now), so
+      // the sum itself isn't independently visible here.
       await page.goto("/plan");
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
-      await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$35.00 / $20.00");
+      await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
     });
 
     await test.step("toggling it off on edit unlinks the payment but leaves the bill itself intact", async () => {
@@ -221,9 +227,10 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
 
       await page.goto("/plan");
       await page.waitForSelector(".recurring-expense-row");
-      // Still exists -- just missing that one payment now ($20 left of $35).
+      // Still exists -- just missing that one payment now ($20 left of $35),
+      // still exactly at target so still shows as paid.
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
-      await expect(page.locator(".recurring-expense-status-amount")).toHaveText("$20.00 / $20.00");
+      await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
     });
   });
 
@@ -265,7 +272,7 @@ test.describe("merging categories moves their bills", () => {
     await page.waitForSelector(".recurring-expense-row");
     // Both bills present, now both labeled under the surviving category.
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
-    await expect(page.locator(".recurring-expense-row-category", { hasText: "Subscriptions" })).toHaveCount(2);
+    await expect(page.locator(".recurring-expense-row-meta", { hasText: "Subscriptions" })).toHaveCount(2);
   });
 
   test("merging categories that both have a same-named bill consolidates it instead of duplicating", async ({

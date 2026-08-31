@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getOrCreateDraftCycle } from "@/lib/cycles";
 import { getOrderedCategoryNames } from "@/lib/category-order";
-import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
+import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { BillsSection } from "./_components/BillsSection";
 import { GoalsSection } from "./_components/GoalsSection";
@@ -42,7 +42,11 @@ export default async function PlanPage() {
       </div>
 
       <div className="dashboard-section">
-        <BillsSection categories={billCategories} categoryNames={expenseCategoryNames} />
+        <BillsSection
+          categories={billCategories}
+          categoryNames={expenseCategoryNames}
+          summary={summarizeRecurringExpenses(billCategories)}
+        />
       </div>
     </div>
   );

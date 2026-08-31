@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { getRecurringExpensePaymentStatus, type RecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 import { confirmRecurringExpenseMatchAction } from "../recurring-actions";
@@ -41,6 +42,7 @@ export function RecurringExpenseRow({
   categoryNames,
   readOnly = false,
   showCategoryLabel = false,
+  simplifiedStatus = false,
 }: {
   expense: RecurringExpenseRowData;
   categoryName: string;
@@ -49,6 +51,11 @@ export function RecurringExpenseRow({
   readOnly?: boolean;
   /** Plan's flat bills list has no category-folder parent anymore, so each row names its own category inline -- CategoryProgressRow's own grouped usage (History, and a category with 2+ bills) leaves this off since the parent already says it. */
   showCategoryLabel?: boolean;
+  /** Plan's own bill list (BillsSection) -- a dot/check indicator and a
+   * faint tone for paid rows instead of the full not-started/partial/
+   * paid/paid-over/exceeded status-chip row History and /budget's
+   * CategoryProgressRow still show. Design system handoff's Plan spec. */
+  simplifiedStatus?: boolean;
 }) {
   const router = useRouter();
   const editSheet = useSheet();
@@ -96,6 +103,54 @@ export function RecurringExpenseRow({
       <span className="recurring-expense-row-amount">{formatCurrency(expense.targetAmount)}</span>
     </>
   );
+
+  // "paid" here folds paid/paid-over/exceeded together -- Plan's simplified
+  // row is a binary paid/unpaid indicator, unlike the full 5-state status
+  // chip History and /budget's CategoryProgressRow still show.
+  const isPaid = status === "paid" || status === "paid-over" || status === "exceeded";
+
+  if (simplifiedStatus) {
+    const meta = [showCategoryLabel ? categoryName : null, expense.dueDay !== null ? `due day ${expense.dueDay}` : null]
+      .filter((part): part is string => part !== null)
+      .join(" · ");
+    return (
+      <div className={`recurring-expense-row recurring-expense-row--simplified ${isPaid ? "recurring-expense-row--paid" : ""}`}>
+        <button type="button" className="recurring-expense-row-main" {...editSheet.triggerProps}>
+          <span className="recurring-expense-row-indicator" aria-hidden="true">
+            {isPaid ? <Check size={16} /> : null}
+          </span>
+          <span className="recurring-expense-row-body">
+            <span className="recurring-expense-row-name">{expense.name}</span>
+            {meta && <span className="recurring-expense-row-meta">{meta}</span>}
+          </span>
+          <span className="recurring-expense-row-amount">{formatCurrency(expense.targetAmount)}</span>
+        </button>
+        {!isPaid && (
+          <button type="button" className="button button--chip" {...paymentSheet.triggerProps}>
+            Record
+          </button>
+        )}
+
+        {editSheet.open && (
+          <RecurringExpenseEditSheet
+            categoryNames={categoryNames}
+            existing={editable}
+            onDone={editSheet.close}
+            {...editSheet.sheetProps}
+          />
+        )}
+        {paymentSheet.open && (
+          <RecordPaymentSheet
+            recurringExpenseId={expense.id}
+            name={expense.name}
+            targetAmount={expense.targetAmount}
+            onDone={paymentSheet.close}
+            {...paymentSheet.sheetProps}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="recurring-expense-row">

@@ -15,7 +15,7 @@ export function AddGoalSheet({ categoryNames }: { categoryNames: string[] }) {
 
   return (
     <>
-      <button type="button" className="button button--secondary button--small" {...triggerProps}>
+      <button type="button" className="button button--chip" {...triggerProps}>
         + Add goal
       </button>
 

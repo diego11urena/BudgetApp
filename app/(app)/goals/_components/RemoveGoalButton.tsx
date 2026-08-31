@@ -49,12 +49,12 @@ export function RemoveGoalButton({
   return (
     <button
       type="button"
-      className="button button--ghost"
+      className="button button--ghost button--ghost-danger"
       aria-label={`Remove goal: ${name}`}
       onClick={handleRemove}
       disabled={pending}
     >
-      {pending ? "Removing..." : "Remove goal"}
+      {pending ? "Removing..." : "Remove"}
     </button>
   );
 }

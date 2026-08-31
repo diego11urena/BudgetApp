@@ -6,19 +6,19 @@ import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
 import { GoalRing } from "./GoalRing";
 import { ContributeButton } from "./ContributeButton";
+import { RemoveGoalButton } from "./RemoveGoalButton";
 import { EditGoalSheet, type EditableGoal } from "./EditGoalSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { GoalWithProgress } from "@/lib/goals";
 
 /**
- * One row in Plan's Goals list -- same interaction model as
- * RecurringExpenseRow (Bills): tapping the row's main content opens the
- * edit sheet, and Contribute is the one action that stays persistently
- * visible, this list's own equivalent of Bills' "Record payment". Remove
- * now lives inside the edit sheet instead of competing as a third
- * always-visible button. Its own component (not inlined in GoalsSection's
- * map) because each row needs its own useSheet() call, and hooks can't
- * live inside a loop.
+ * One row in Plan's Goals list. The design system handoff's action row is
+ * Contribute/Edit/Remove, all three persistently visible -- a reversal of
+ * this same session's earlier "match Bills' tap-the-row model" decision,
+ * made deliberately by the new design spec (Bills itself keeps the
+ * tap-to-edit model; Goals doesn't). Its own component (not inlined in
+ * GoalsSection's map) because each row needs its own useSheet() call, and
+ * hooks can't live inside a loop.
  */
 export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categoryNames: string[] }) {
   const editSheet = useSheet();
@@ -33,14 +33,14 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
 
   return (
     <div className="goal-row">
-      <button type="button" className="goal-row-main" {...editSheet.triggerProps}>
+      <div className="goal-row-main">
         <GoalRing percentage={projection.percentage} complete={projection.isComplete} />
         <div className="goal-row-details">
           <p className="goal-row-name">
             <CategoryIcon name={goal.name} icon={goal.icon} size={16} aria-hidden="true" /> {goal.name}
           </p>
-          <p className="field-hint">
-            {formatCurrency(goal.savedSoFar)} / {formatCurrency(goal.lifetimeTargetAmount)}
+          <p className="goal-row-progress">
+            {formatCurrency(goal.savedSoFar)} <span className="goal-row-of">of {formatCurrency(goal.lifetimeTargetAmount)}</span>
           </p>
           {projection.isComplete ? (
             <p className="goal-projection goal-projection--complete">
@@ -58,10 +58,14 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
             </p>
           )}
         </div>
-      </button>
+      </div>
 
       <div className="goal-row-actions">
         <ContributeButton categoryName={goal.name} />
+        <button type="button" className="button button--chip" {...editSheet.triggerProps}>
+          Edit
+        </button>
+        <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} />
       </div>
 
       {editSheet.open && (
