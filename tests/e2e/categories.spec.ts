@@ -183,7 +183,7 @@ test.describe("managing categories", () => {
     // The transaction itself was never deleted -- it just lost its category.
     await page.goto("/transactions");
     await expect(page.locator(".transaction-row", { hasText: "-$18.00" })).toBeVisible();
-    await expect(page.locator(".transaction-row", { hasText: "Uncategorized" })).toBeVisible();
+    await expect(page.locator(".transaction-row", { hasText: "Needs a category" })).toBeVisible();
   });
 
   test("deleting a category with closed-cycle recurring-expense history is blocked, not silently destroyed", async ({

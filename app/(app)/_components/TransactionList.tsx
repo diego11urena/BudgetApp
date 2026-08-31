@@ -2,12 +2,13 @@
 
 import { Fragment, useState } from "react";
 import dynamic from "next/dynamic";
-import { Lock } from "lucide-react";
+import { HelpCircle, Lock, Wallet } from "lucide-react";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { groupTransactionsByDate } from "@/lib/transaction-grouping";
 import { PAYMENT_METHOD_LABEL } from "@/lib/payment-method";
+import { CategoryIcon } from "@/lib/category-icons";
 import { useSheet } from "./useSheet";
 import { EmptyState } from "./EmptyState";
 import type { EditingTransaction } from "./QuickAddSheet";
@@ -55,14 +56,29 @@ function TransactionRowContent({
     .filter((part): part is string => part !== null)
     .join(" · ");
   const isClosed = tx.isEditable === false;
+  const isUncategorized = tx.categoryName === null;
 
   return (
     <>
+      {/* Uncategorized -> HelpCircle in amber; income -> Wallet in green;
+          everything else -> the category's own icon, navy -- see the
+          design system handoff's Assets section. Chip fill stays the
+          standard #eef0f3 in every case; only the icon's color/glyph
+          changes. */}
+      <span className={`transaction-icon-chip ${isUncategorized ? "transaction-icon-chip--uncategorized" : ""}`}>
+        {isUncategorized ? (
+          <HelpCircle size={18} aria-hidden="true" />
+        ) : tx.type === "INCOME" ? (
+          <Wallet size={18} aria-hidden="true" className="transaction-icon-chip-income" />
+        ) : (
+          <CategoryIcon name={tx.categoryName ?? tx.name} size={18} aria-hidden="true" />
+        )}
+      </span>
       <div className="transaction-meta">
         <span className="transaction-name">{tx.name}</span>
         {(subline || isClosed) && (
-          <span className="transaction-sub">
-            {subline}
+          <span className={`transaction-sub ${isUncategorized ? "transaction-sub--uncategorized" : ""}`}>
+            {isUncategorized ? "Needs a category" : subline}
             {isClosed && (
               <>
                 {subline && " · "}
@@ -169,14 +185,30 @@ export function TransactionList({
   return (
     <div>
       {groupByDate ? (
-        groupTransactionsByDate(transactions).map((group) => (
-          <Fragment key={group.label + group.items[0].id}>
-            <h3 className="transaction-date-group">{group.label}</h3>
-            {group.items.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />
-            ))}
-          </Fragment>
-        ))
+        groupTransactionsByDate(transactions).map((group) => {
+          // A savings contribution counts toward "out," same convention
+          // the Activity summary line and HeroCard's safeToSpend use --
+          // it's still money leaving spendable balance, even though it
+          // isn't spending.
+          const net = group.items.reduce(
+            (sum, tx) => sum + (tx.type === "INCOME" ? tx.amount : -tx.amount),
+            0,
+          );
+          return (
+            <Fragment key={group.label + group.items[0].id}>
+              <div className="transaction-date-group">
+                <h3>{group.label}</h3>
+                <span className={`transaction-date-net ${net >= 0 ? "transaction-date-net--good" : ""}`}>
+                  {net >= 0 ? "+" : "−"}
+                  {formatCurrency(Math.abs(net))}
+                </span>
+              </div>
+              {group.items.map((tx) => (
+                <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />
+              ))}
+            </Fragment>
+          );
+        })
       ) : (
         transactions.map((tx) => (
           <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />

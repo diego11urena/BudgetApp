@@ -8,6 +8,7 @@ import type { Prisma } from "@/app/generated/prisma/client";
 import { formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary, TRANSACTION_SELECT } from "@/lib/cycle-financials";
+import { formatCurrency } from "@/lib/format";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { TRANSACTION_TYPES } from "@/lib/transaction-type";
@@ -119,22 +120,49 @@ export default async function TransactionsPage({
     ...recentCycles.filter((c) => c.id !== cycle.id),
   ].map((c) => ({ id: c.id, label: formatCycleRangeText(c, { includeYear: false }) }));
 
+  // The summary line's "out"/"in" split -- over whatever's currently
+  // filtered/listed, not the whole cycle's financials (a search/category/
+  // type/quincena filter can narrow `transactions` below the full cycle).
+  // A savings contribution counts as "out" here too -- it's still money
+  // leaving this quincena's spendable balance, same convention HeroCard's
+  // own safeToSpend uses (see its comment).
+  let outTotal = 0;
+  let inTotal = 0;
+  for (const tx of transactions) {
+    if (tx.type === "INCOME") inTotal += tx.amount;
+    else outTotal += tx.amount;
+  }
+
   return (
     <div className="home-page">
-      <h1 className="page-title">Activity</h1>
-
-      <div className="dashboard-section">
-        <TransactionFilters categories={allCategories} cycles={cycleOptions} />
+      <div className="section-header-row">
+        <h1 className="page-title" style={{ marginBottom: 0 }}>
+          Activity
+        </h1>
         {/* Breakdown is a VIEW of this same activity (a pie chart instead
             of a list), not a separate concept -- see the Balboa fix list's
             batch 11.3, which moved it here from its old orphaned spot
-            behind a text link on Home. A full-width primary button, not a
-            small secondary one tucked next to the heading -- Diego asked
-            for it to stop hiding. */}
-        <Link href="/transactions/breakdown" className="button breakdown-cta">
-          <PieChart size={18} aria-hidden="true" />
-          See where your money went
+            behind a text link on Home. */}
+        <Link href="/transactions/breakdown" className="button button--pill-cta">
+          <PieChart size={16} aria-hidden="true" />
+          Breakdown
         </Link>
+      </div>
+
+      <div className="dashboard-section">
+        <TransactionFilters categories={allCategories} cycles={cycleOptions} />
+        {transactions.length > 0 && (
+          <div className="transaction-summary-line">
+            <span>
+              {transactions.length} transaction{transactions.length === 1 ? "" : "s"}
+            </span>
+            <span className="transaction-summary-totals">
+              {outTotal > 0 && <span className="transaction-summary-out">−{formatCurrency(outTotal)}</span>}
+              {outTotal > 0 && inTotal > 0 && " · "}
+              {inTotal > 0 && <span className="transaction-summary-in">+{formatCurrency(inTotal)}</span>}
+            </span>
+          </div>
+        )}
         <TransactionList
           transactions={transactions}
           expenseCategoryNames={expenseCategoryNames}

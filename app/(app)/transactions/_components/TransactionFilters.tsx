@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search } from "lucide-react";
 import { TRANSACTION_TYPE_OPTIONS } from "@/lib/transaction-type";
 
 // "" ("any type") prepended onto the shared canonical list, for the "All"
-// segment.
-const TYPE_OPTIONS = [{ value: "", label: "All" }, ...TRANSACTION_TYPE_OPTIONS];
+// segment. INCOME's label is shortened to "Income" here only -- as a
+// four-way filter chip row, "Extra income" was the one label long enough
+// to wrap onto two lines; QuickAddSheet's own add-flow toggle (a different
+// context, distinguishing a real extra-income entry from ordinary income)
+// keeps the fuller wording from the shared constant.
+const TYPE_OPTIONS = [{ value: "", label: "All" }, ...TRANSACTION_TYPE_OPTIONS].map((opt) =>
+  opt.value === "INCOME" ? { ...opt, label: "Income" } : opt,
+);
 
 export function TransactionFilters({
   categories,
@@ -50,14 +57,17 @@ export function TransactionFilters({
 
   return (
     <div className="transaction-filters">
-      <input
-        type="text"
-        className="transaction-filters-search"
-        placeholder="Search by name…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        aria-label="Search transactions"
-      />
+      <div className="transaction-filters-search-wrap">
+        <Search size={17} className="transaction-filters-search-icon" aria-hidden="true" />
+        <input
+          type="text"
+          className="transaction-filters-search"
+          placeholder="Search name or category"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Search transactions"
+        />
+      </div>
       {/* Type as a segmented control, same visual pattern QuickAddSheet's
           own type toggle uses -- one fewer dropdown, and it's the filter
           reached for most often. Payment method and the 4-way sort order

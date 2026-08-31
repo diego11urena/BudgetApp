@@ -618,9 +618,39 @@ input[type="checkbox"]::before {
   opacity: 0.5;
 }
 
-.breakdown-cta {
-  width: 100%;
-  margin-bottom: 1rem;
+/* Solid navy pill CTA, e.g. Activity's header "Breakdown" button --
+   smaller/inline, not full-width like .button's default. */
+.button--pill-cta {
+  min-height: 40px;
+  padding: 0 1.1rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-cta);
+}
+
+.transaction-summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  margin-bottom: 0.75rem;
+}
+
+.transaction-summary-totals {
+  font-variant-numeric: tabular-nums;
+}
+
+.transaction-summary-out {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.transaction-summary-in {
+  font-weight: 700;
+  color: var(--color-success);
 }
 
 /* For irreversible, high-consequence actions (e.g. erasing all cycle
@@ -1435,39 +1465,51 @@ button.line-item--link {
   font-size: 1.5rem;
 }
 
+/* Four equal, independent pills (not a shared-track segmented control) --
+   All/Expense/Income/Savings, per the design system's Activity spec. */
 .type-toggle {
   display: flex;
   gap: 0.4rem;
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  padding: 0.25rem;
   margin-bottom: 1.25rem;
 }
 
 .type-toggle-btn {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: 34px;
   border: none;
-  background: transparent;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
   font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
   padding: 0.5rem 0.3rem;
-  border-radius: var(--radius-md);
   cursor: pointer;
   transition:
     background 0.15s ease,
     color 0.15s ease;
 }
 
+/* 34px is the design's visual height -- this invisibly pads the real hit
+   target up to the app's 44px minimum without growing the pill itself,
+   same pattern as .home-header-edit-link::before. */
+.type-toggle-btn::before {
+  content: "";
+  position: absolute;
+  inset: -5px 0;
+}
+
+.type-toggle-btn:hover {
+  background: var(--color-bg-secondary-hover);
+}
+
 .type-toggle-btn.is-active {
-  background: var(--color-card);
-  color: var(--color-accent-green);
-  box-shadow: 0 1px 3px var(--shadow-color);
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
 }
 
 .type-toggle-btn:disabled {
@@ -1894,57 +1936,116 @@ button.line-item--link {
   white-space: nowrap;
 }
 
-/* Date section header above a group of same-day transaction rows. */
+/* Date section header above a group of same-day transaction rows -- the
+   day's own net total sits on the right (new -- see TransactionList's own
+   comment on why it's computed there rather than inside the generic
+   groupTransactionsByDate). */
 .transaction-date-group {
-  font-size: 0.8rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1rem 0 0.4rem;
+}
+
+.transaction-date-group h3 {
+  font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--color-text-secondary);
-  margin: 1rem 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-silver);
+  margin: 0;
+}
+
+.transaction-date-net {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.transaction-date-net--good {
+  color: var(--color-success);
 }
 
 .transaction-date-group:first-child {
   margin-top: 0;
 }
 
-/* Transaction list — each row is a button that opens the edit sheet */
+/* Transaction list — each row is its own white card (button, opens the
+   edit sheet), stacked with a small gap instead of one bordered list with
+   row dividers. */
 .transaction-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.7rem;
   width: 100%;
-  padding: 0.6rem 0;
+  padding: 10px 12px;
   border: none;
-  border-bottom: 1px solid var(--color-border);
-  background: none;
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  box-shadow: var(--shadow-row);
   color: inherit;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
   min-height: 44px;
+  margin-bottom: 6px;
   transition: opacity 0.1s ease;
 }
 
 .transaction-row:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .transaction-row:active {
   opacity: 0.6;
 }
 
+.transaction-icon-chip {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
+}
+
+.transaction-icon-chip--uncategorized {
+  color: var(--color-warning);
+}
+
+.transaction-icon-chip-income {
+  color: var(--color-success);
+}
+
 .transaction-meta {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .transaction-meta .transaction-name {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transaction-meta .transaction-sub {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  color: var(--color-silver);
+}
+
+.transaction-meta .transaction-sub.transaction-sub--uncategorized {
+  color: var(--color-warning);
+  font-weight: 600;
 }
 
 /* Small lucide-react icons dropped inline into running text (a subline, a
@@ -1957,7 +2058,10 @@ button.line-item--link {
 }
 
 .transaction-amount {
-  font-weight: 600;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -1976,19 +2080,28 @@ button.line-item--link {
   margin-bottom: 0.75rem;
 }
 
-.transaction-filters-search,
-.transaction-filters-row select {
-  padding: 0.55rem 0.7rem;
-  min-height: 44px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-card);
-  color: var(--foreground);
-  font-family: inherit;
+.transaction-filters-search-wrap {
+  position: relative;
+}
+
+.transaction-filters-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-silver);
+  pointer-events: none;
 }
 
 .transaction-filters-search {
   width: 100%;
+  padding: 0.6rem 0.9rem 0.6rem 2.5rem;
+  min-height: 44px;
+  border-radius: 14px;
+  border: none;
+  background: var(--color-bg-secondary);
+  color: var(--foreground);
+  font-family: inherit;
 }
 
 .transaction-filters-row {
@@ -2002,6 +2115,13 @@ button.line-item--link {
      a narrow screen wrap to two rows of two rather than every label
      clipping mid-word to fit one cramped row. */
   flex: 1 1 8rem;
+  min-height: 40px;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--foreground);
+  font-family: inherit;
 }
 
 .icon-button {
@@ -2251,9 +2371,9 @@ button.line-item--link {
 .page-content h1,
 .page-title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.625rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   margin-bottom: 1rem;
 }
 
