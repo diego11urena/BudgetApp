@@ -83,11 +83,21 @@ export async function openMoreDetails(page: Page): Promise<void> {
  * to drive this specific widget -- it's built to be typed into, not
  * pasted into. click() first so the field's own onFocus (select-all)
  * clears any pre-filled value before the new digits replace it.
+ *
+ * A small delay between keystrokes: at the default zero delay, a second
+ * fill on the same field within one test (a real scenario here -- several
+ * specs log two transactions in a row) can land on a scrambled value even
+ * though the exact text handed to pressSequentially is correct -- verified
+ * by comparing two CI runs that swapped CurrencyInput's own caret-fixing
+ * strategy (a synchronous DOM write vs. a useEffect) and got the identical
+ * wrong number either way, which rules out the component's own code and
+ * points at Chromium's own key-dispatch pipeline needing a moment to
+ * settle between characters when the field re-formats on every keystroke.
  */
 export async function fillAmount(locator: Locator, dollars: string): Promise<void> {
   const cents = Math.round(Number(dollars) * 100);
   await locator.click();
-  await locator.pressSequentially(String(cents));
+  await locator.pressSequentially(String(cents), { delay: 30 });
 }
 
 /**
