@@ -13,6 +13,11 @@
   --color-bg: #ffffff;
   --color-bg-secondary: #eef0f3;
   --color-card: #ffffff;
+  /* Translucent card tone for the bottom nav's frosted-glass bar
+     (background + backdrop-filter: blur) -- same hue as --color-card,
+     just not fully opaque, so content scrolling underneath still shows
+     through slightly. */
+  --color-nav-bg: rgba(255, 255, 255, 0.94);
   /* One step lighter than the main accent — used for chart fills. */
   --color-primary-green: #17395c;
   /* Lightest tier — decorative hover fills, and as text (.toast-action) on
@@ -28,6 +33,30 @@
      --color-bg (WCAG 1.4.11 non-text contrast, e.g. form field borders,
      requires 3:1); this clears ~3.4:1. */
   --color-border: #838d99;
+  /* 1px row dividers -- same value as --color-bg-secondary by design (a
+     divider is meant to be barely-there, not a hairline border), kept as
+     its own named token so call sites read as "divider" not "secondary
+     surface fill". */
+  --color-divider: var(--color-bg-secondary);
+  /* Raw brand silver, for NON-text uses only: inactive nav icons (large
+     enough to only need 3:1), progress-track fills, decorative accents.
+     At ~3.1:1 on white it fails AA's 4.5:1 for actual small text (12-13px
+     meta/captions) -- --color-text-secondary already covers that role
+     (see its dark-mode comment: it IS the spec's Silver there) and stays
+     the one to use for silver-colored TEXT. */
+  --color-silver: #8b93a0;
+  /* Deliberately below AA contrast (~2.2:1 on white) -- for genuinely
+     tertiary, redundant text only (e.g. "of $1,000.00" beside a
+     already-legible bold figure, "member since ..."), never the sole
+     carrier of information. Kept at the design's literal value rather
+     than darkened like the tokens above, since darkening it would just
+     make it read as --color-text-secondary again and lose the third
+     hierarchy tier the design calls for. */
+  --color-text-faint: #a8b0ba;
+  /* Hover/pressed on a navy fill where a literal color swap is wanted
+     (e.g. outlined buttons on a navy surface) rather than the opacity
+     trick .button:hover uses. */
+  --color-primary-hover: #0f2740;
   /* success/warning/error below are all darkened from their original
      values for the same reason: measured (WCAG relative-luminance
      formula) against both plain white AND each color's own tinted
@@ -106,12 +135,23 @@
   --radius-button: var(--radius-pill);
   --radius-xl: 24px;
   --radius-pill: 9999px;
+  /* Hero card only -- one step past --radius-xl, not a general-purpose
+     step in the scale. */
+  --radius-hero: 22px;
 
   /* Elevation scale — 3 tiers instead of ad hoc box-shadow geometries
      scattered across cards, floating elements, and overlays. */
   --elev-1: 0 1px 3px var(--shadow-color);
   --elev-2: 0 4px 16px var(--shadow-color);
   --elev-3: 0 12px 32px var(--shadow-color);
+  /* Named shadow roles for the Balboa rework -- each geometry/alpha pair
+     below is a specific design-spec value, not a step in --elev-*'s
+     generic scale, so they're kept separate rather than mapped onto it. */
+  --shadow-card: 0 4px 18px rgba(16, 22, 28, 0.07);
+  --shadow-row: 0 3px 14px rgba(16, 22, 28, 0.06);
+  --shadow-hero: 0 10px 28px rgba(23, 57, 92, 0.24);
+  --shadow-cta: 0 6px 16px rgba(23, 57, 92, 0.28);
+  --shadow-fab: 0 8px 20px rgba(23, 57, 92, 0.35);
 
   /* z-index ladder — every stacking layer in the app references one of
      these instead of a one-off magic number. */
@@ -154,22 +194,20 @@
      --color-savings, not this categorical set — a real status match
      ("this went somewhere good"), consistent with --color-savings's role
      everywhere else (see the comment on that var above). */
+  /* 1-6 now match the Balboa design system's fixed "Where it's going"
+     categorical order exactly (navy, teal, plum, amber, purple, silver);
+     7-8 are carried over from the previous palette (still distinct from
+     1-6 and from --color-error) purely as overflow slots for a
+     category-grouped pie with more than 6 categories -- see
+     lib/paycheck-breakdown.ts's assignCategoryColorIndexes. */
   --chart-cat-1: #17395c;
-  /* Was a gray (#8b93a0) -- indistinguishable at a glance from --chart-cat-8
-     and --chart-other, both also gray. Gray is reserved for exactly one
-     slot (--chart-other) now; every category slot below it is a clearly
-     distinct, non-gray hue. */
-  --chart-cat-2: #c9612a;
-  --chart-cat-3: #b3781a;
-  --chart-cat-4: #7c3f66;
-  --chart-cat-5: #4a6b4f;
-  --chart-cat-6: #2f8f8a;
-  /* 7-8 added so a category-grouped pie with more than 6 categories has
-     more room before two chart slices are forced to share a color (see
-     lib/paycheck-breakdown.ts's assignCategoryColorIndexes). */
-  --chart-cat-7: #5b4a8f;
-  /* Was a second gray (#5f6975) -- same fix as --chart-cat-2 above. */
-  --chart-cat-8: #b23a3a;
+  --chart-cat-2: #2f8f8a;
+  --chart-cat-3: #7c3f66;
+  --chart-cat-4: #b3781a;
+  --chart-cat-5: #5b4a8f;
+  --chart-cat-6: #8b93a0;
+  --chart-cat-7: #c9612a;
+  --chart-cat-8: #4a6b4f;
   --chart-savings: var(--color-savings);
   /* Was #d8dce0 -- only 1.38:1 against white (needs 3:1). Also a cool
      gray, same hue family as --chart-other below; the two are now
@@ -188,6 +226,7 @@
     --color-bg: #0b1016;
     --color-bg-secondary: #131a22;
     --color-card: #131a22;
+    --color-nav-bg: rgba(19, 26, 34, 0.94);
     --color-primary-green: #4f8cff;
     /* Darkened for contrast as text (.toast-action) on the toast's light
        surface in dark mode (background: var(--color-text-primary), which
@@ -203,6 +242,18 @@
     /* Darkened from #232c35 -- the original only cleared 1.24:1 against
        --color-card (needs 3:1); this clears ~3.2:1. */
     --color-border: #5e6a76;
+    /* A touch lighter than --color-bg-secondary so a divider is still
+       visible against this mode's secondary-surface cards, unlike light
+       mode where they're the same value (see the light-mode comment). */
+    --color-divider: #1f2932;
+    /* Same raw value as light mode -- already light enough to read as a
+       decorative/icon tone against this mode's dark surfaces. */
+    --color-silver: #8b93a0;
+    /* Dimmer than --color-text-secondary, mirroring light mode's
+       lighter-than-secondary relationship but inverted: on a dark
+       surface, "receding" means darker, not lighter. */
+    --color-text-faint: #5c6570;
+    --color-primary-hover: #1c3c5c;
     --color-success: #3fbf8a;
     --color-warning: #e0a83f;
     --color-error: #ff6b6f;
@@ -232,16 +283,17 @@
     /* Same hue family as light mode, lightened for contrast against this
        mode's dark card surface — same treatment as --color-accent-green
        above. */
+    /* Same reorder as light mode's --chart-cat-1..6, each still the same
+       hex this mode already used pre-reorder -- only the slot assignment
+       changed to match the design system's fixed order. */
     --chart-cat-1: #4f8cff;
-    /* Was a gray (#aab3bd) -- same fix as light mode's --chart-cat-2. */
-    --chart-cat-2: #e0895a;
-    --chart-cat-3: #e0a83f;
-    --chart-cat-4: #b8699b;
-    --chart-cat-5: #7a9c80;
-    --chart-cat-6: #4fb5af;
-    --chart-cat-7: #8f7ecb;
-    /* Was a second gray (#8992a0) -- same fix as light mode's --chart-cat-8. Kept distinct from --color-error (#ff6b6f) so a red category slice never reads as an error state. */
-    --chart-cat-8: #c96a6a;
+    --chart-cat-2: #4fb5af;
+    --chart-cat-3: #b8699b;
+    --chart-cat-4: #e0a83f;
+    --chart-cat-5: #8f7ecb;
+    --chart-cat-6: #9aa3ac;
+    --chart-cat-7: #e0895a;
+    --chart-cat-8: #7a9c80;
     --chart-savings: var(--color-savings);
     /* Was #3a4149 -- only 1.70:1 against --color-card, and its own stroke
        (--color-border, formerly --color-card) used to be literally the
@@ -251,6 +303,15 @@
     /* Was #5f6975 -- effectively the same gray as --chart-remaining right
        next to it. Now a warm taupe instead. */
     --chart-other: #8a7a6a;
+
+    /* Colored shadows barely read against a near-black surface -- shifted
+       to neutral black with higher alpha, the same treatment
+       --shadow-color itself already gets in this mode. */
+    --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
+    --shadow-row: 0 3px 14px rgba(0, 0, 0, 0.3);
+    --shadow-hero: 0 10px 28px rgba(0, 0, 0, 0.45);
+    --shadow-cta: 0 6px 16px rgba(0, 0, 0, 0.4);
+    --shadow-fab: 0 8px 20px rgba(0, 0, 0, 0.45);
 
     --background: var(--color-bg);
     --foreground: var(--color-text-primary);
@@ -1987,10 +2048,13 @@ button.line-item--link {
   bottom: 0;
   left: 0;
   right: 0;
+  min-height: 76px;
   display: flex;
   justify-content: space-around;
-  background: var(--color-card);
-  border-top: 1px solid var(--color-border);
+  background: var(--color-nav-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--color-divider);
   padding-bottom: env(safe-area-inset-bottom);
   z-index: var(--z-nav);
   /* Matches .app-content's own column width -- on desktop this keeps the
@@ -2007,24 +2071,25 @@ button.line-item--link {
   align-items: center;
   gap: 0.15rem;
   padding: 0.6rem 0.25rem;
-  font-size: 0.7rem;
-  color: var(--foreground);
-  /* Raised from 0.55 -- that only cleared 4.03:1 against --color-card
-     (WCAG AA text requires 4.5:1 at this size). 0.6 clears ~4.75:1. */
-  opacity: 0.6;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  /* --color-text-secondary, not the raw --color-silver token -- this is
+     small (11px) TEXT, and --color-text-secondary is the one already
+     tuned to clear AA against --color-card (see its own comment; dark
+     mode's version is explicitly the spec's Silver already). */
+  color: var(--color-text-secondary);
   transition:
-    opacity 0.15s ease,
+    color 0.15s ease,
     transform 0.15s ease;
 }
 
 .bottom-nav-item.is-active {
-  opacity: 1;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-accent-green);
 }
 
 .bottom-nav-icon {
-  font-size: 1.35rem;
+  font-size: 1.375rem;
   transition: transform 0.15s ease;
 }
 
@@ -2040,9 +2105,9 @@ button.line-item--link {
 .bottom-nav-fab {
   flex: 0 0 auto;
   align-self: flex-start;
-  width: 3.25rem;
-  height: 3.25rem;
-  margin-top: -1.5rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-top: -22px;
   border-radius: 50%;
   border: 3px solid var(--color-card);
   background: var(--color-button-bg);
@@ -2050,7 +2115,7 @@ button.line-item--link {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--elev-2);
+  box-shadow: var(--shadow-fab);
   cursor: pointer;
   transition: transform 0.1s ease;
 }
