@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -17,6 +18,14 @@ const HOW_IT_WORKS = [
     title: "Import from Gmail",
     body: "Connect your inbox and purchase notifications from your bank import themselves, so you barely have to type anything in by hand.",
   },
+];
+
+// Mobile's own compact stand-in for the three how-it-works cards -- "too
+// heavy for a phone screen" per the design handoff's own mobile spec.
+const MOBILE_CHECKLIST = [
+  "Set up in three questions",
+  "Bills and goals build themselves",
+  "Import receipts from Gmail",
 ];
 
 export default async function Home() {
@@ -53,12 +62,22 @@ export default async function Home() {
 
       <section className="landing-hero">
         <div className="landing-hero-copy">
+          {/* Desktop only -- mobile drops the eyebrow pill entirely (see
+              the handoff's own mobile spec). */}
           <span className="landing-eyebrow">Built for quincena pay</span>
           <h1>Your money, planned two weeks at a time.</h1>
-          <p className="landing-hero-sub">
+          {/* Two sub-copy variants, toggled by breakpoint (not just resized)
+              -- mobile's is shorter/more casual per the handoff's own
+              literal copy, not a paraphrase. */}
+          <p className="landing-hero-sub landing-hero-sub--desktop">
             Balboa splits your budget the way you actually get paid. Set your income, the bills
             you already pay and what you&apos;re saving for — the rest builds up as you log it.
           </p>
+          <p className="landing-hero-sub landing-hero-sub--mobile">
+            Balboa budgets the way you actually get paid — by quincena.
+          </p>
+
+          {/* Desktop: two buttons side by side. */}
           <div className="landing-hero-buttons">
             <Link href="/signup" className="button landing-cta-primary">
               Get started
@@ -67,17 +86,41 @@ export default async function Home() {
               Log in
             </Link>
           </div>
-          <p className="landing-trust-line">
+          <p className="landing-trust-line landing-trust-line--desktop">
             <span className="landing-trust-dot" aria-hidden="true" />
             Free to start · Three questions to set up · No card required
           </p>
+
+          {/* Mobile: one full-width button + a plain text link -- "the link
+              is the only other auth entry; do not add a second Log in
+              button" per the handoff. */}
+          <div className="landing-hero-mobile-cta">
+            <Link href="/signup" className="button landing-cta-primary">
+              Get started
+            </Link>
+            <p className="landing-mobile-login-link">
+              Already have an account? <Link href="/login">Log in</Link>
+            </p>
+          </div>
+
+          {/* Mobile-only checklist, replacing the numbered how-it-works
+              cards -- "too heavy for a phone screen." */}
+          <ul className="landing-checklist">
+            {MOBILE_CHECKLIST.map((label) => (
+              <li key={label}>
+                <Check size={18} strokeWidth={2.4} aria-hidden="true" />
+                {label}
+              </li>
+            ))}
+          </ul>
+          <p className="landing-trust-line landing-trust-line--mobile">Free to start · No card required</p>
         </div>
 
-        <div className="landing-hero-visual">
-          {/* Desktop: a device-frame mock of the app. Mobile: replaced below
-              ~900px by the flatter navy preview card (see the design
-              handoff's own mobile breakpoint guidance). */}
-          <div className="landing-device-mock" aria-hidden="true">
+        {/* Desktop only -- mobile drops the whole preview visual (no
+            "Safe to spend" card, no device mock; see the handoff's own
+            "removed on purpose" note). */}
+        <div className="landing-hero-visual" aria-hidden="true">
+          <div className="landing-device-mock">
             <div className="landing-device-screen">
               <p className="landing-device-label">Left this quincena</p>
               <p className="landing-device-figure">$412.60</p>
@@ -104,30 +147,10 @@ export default async function Home() {
               <div className="landing-device-strip">Next quincena +$1,250</div>
             </div>
           </div>
-
-          <div className="landing-preview-card" aria-hidden="true">
-            <span className="landing-preview-kicker">SAFE TO SPEND</span>
-            <p className="landing-preview-figure">$207.22</p>
-            <div className="landing-preview-track">
-              <div className="landing-preview-fill" style={{ width: "68%" }} />
-            </div>
-            <span className="landing-preview-days">11 days left</span>
-          </div>
         </div>
       </section>
 
-      <section className="landing-mobile-cta">
-        <Link href="/signup" className="button landing-cta-primary">
-          Get started
-        </Link>
-        <Link href="/login" className="button button--chip landing-cta-secondary">
-          Log in
-        </Link>
-        <p className="landing-trust-line landing-trust-line--center">
-          Free to start · No card required
-        </p>
-      </section>
-
+      {/* Desktop only -- mobile's stand-in is the checklist above. */}
       <section id="how-it-works" className="landing-how">
         {HOW_IT_WORKS.map((item, index) => (
           <div key={item.title} className="landing-how-card">

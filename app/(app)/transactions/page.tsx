@@ -135,22 +135,18 @@ export default async function TransactionsPage({
 
   return (
     <div className="home-page">
-      <div className="section-header-row">
-        <h1 className="page-title" style={{ marginBottom: 0 }}>
-          Activity
-        </h1>
-        {/* Breakdown is a VIEW of this same activity (a pie chart instead
-            of a list), not a separate concept -- see the Balboa fix list's
-            batch 11.3, which moved it here from its old orphaned spot
-            behind a text link on Home. */}
-        <Link href="/transactions/breakdown" className="button button--pill-cta">
-          <PieChart size={16} aria-hidden="true" />
-          Breakdown
-        </Link>
-      </div>
+      <h1 className="page-title">Activity</h1>
 
       <div className="dashboard-section">
         <TransactionFilters categories={allCategories} cycles={cycleOptions} />
+        {/* Breakdown is a VIEW of this same activity (a pie chart instead
+            of a list), not a separate concept -- see the Balboa fix list's
+            batch 11.3. Sits below the filters (not in the header) since it
+            visualizes whatever they currently select. */}
+        <Link href="/transactions/breakdown" className="button transaction-breakdown-cta">
+          <PieChart size={17} aria-hidden="true" />
+          See where it went
+        </Link>
         {transactions.length > 0 && (
           <div className="transaction-summary-line">
             <span>
