@@ -3037,17 +3037,114 @@ button.line-item--link {
 
 .profile-name {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.125rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
+.profile-member-since {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  margin-top: 0.15rem;
+}
+
 .profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
   margin-bottom: 1.5rem;
+}
+
+.profile-avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 800;
+}
+
+/* Uppercase kicker above each grouped-list card -- "YOUR DATA",
+   "ACCOUNT", "DANGER ZONE". */
+.profile-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  padding-left: 4px;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.profile-section-label--danger {
+  color: var(--color-error);
+}
+
+.profile-row-trailing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Shared by every two-line settings row (Gmail import, Sign out
+   everywhere, Erase all cycles) -- the title needs to be its own block so
+   the .field-hint caption below it wraps onto a second line instead of
+   both rendering inline side by side. */
+.line-item-title {
+  display: block;
+}
+
+.profile-gmail-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.profile-gmail-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.profile-danger-row-title {
+  color: var(--color-error);
+  font-weight: 700;
 }
 
 .profile-signout-footer {
   margin-top: 1.5rem;
+}
+
+/* The one full-width button on the page -- a quiet #eef0f3 pill, not the
+   generic .button--secondary look (which is used elsewhere for a lot of
+   less-final actions). */
+.profile-signout-button {
+  width: 100%;
+  min-height: 50px;
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.profile-signout-button:hover {
+  background: var(--color-bg-secondary-hover);
+  opacity: 1;
 }
 
 /* Route-level loading skeleton */

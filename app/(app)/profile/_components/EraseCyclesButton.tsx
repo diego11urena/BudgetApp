@@ -32,8 +32,11 @@ export function EraseCyclesButton() {
 
   return (
     <>
-      <button type="button" className="button button--danger" {...triggerProps}>
-        Erase all cycles
+      <button type="button" className="line-item line-item--link profile-danger-row" {...triggerProps}>
+        <span>
+          <span className="line-item-title profile-danger-row-title">Erase all cycles</span>
+          <span className="field-hint">Permanent. Cannot be undone.</span>
+        </span>
       </button>
 
       {confirming && (

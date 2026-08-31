@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DevResetButton } from "./_components/DevResetButton";
-import { GmailConnectionCard } from "./_components/GmailConnectionCard";
+import { GmailRow } from "./_components/GmailRow";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { signOutAction, logOutEverywhereAction } from "./actions";
@@ -25,7 +25,7 @@ export default async function ProfilePage({
   const userId = session.user.id;
   const { gmail } = await searchParams;
 
-  const [user, gmailConnection] = await Promise.all([
+  const [user, gmailConnection, pastCycleCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { name: true, email: true, createdAt: true },
@@ -34,82 +34,76 @@ export default async function ProfilePage({
       where: { userId },
       select: { googleEmail: true, lastSyncedAt: true, lastSyncError: true },
     }),
+    prisma.budgetCycle.count({ where: { userId, status: "CLOSED" } }),
   ]);
+
+  const initial = user?.name?.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <div className="home-page">
       <h1 className="page-title">Profile</h1>
 
       <div className="profile-identity">
-        <p className="profile-name">{user?.name}</p>
-        <p className="field-hint">{user?.email}</p>
-        <p className="field-hint">
-          Member since{" "}
-          {user?.createdAt.toLocaleDateString("en-US", {
-            month: "long",
-            year: "numeric",
-          })}
-        </p>
+        <span className="profile-avatar" aria-hidden="true">
+          {initial}
+        </span>
+        <div>
+          <p className="profile-name">{user?.name}</p>
+          <p className="field-hint">{user?.email}</p>
+          <p className="profile-member-since">
+            Member since{" "}
+            {user?.createdAt.toLocaleDateString("en-US", {
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
       </div>
 
+      {(gmail === "error" || gmail === "rate_limited") && (
+        <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+          {gmail === "error"
+            ? "Couldn't connect Gmail — please try again."
+            : "Too many attempts — please wait a minute and try again."}
+        </p>
+      )}
+
+      <p className="profile-section-label">Your data</p>
       <div className="dashboard-section">
-        <h2>History</h2>
         <Link href="/history" className="line-item line-item--link">
           <span>Past quincenas</span>
+          <span className="profile-row-trailing">
+            {pastCycleCount > 0 && <span className="status-badge">{pastCycleCount}</span>}
+            <ChevronRight size={18} aria-hidden="true" />
+          </span>
+        </Link>
+        <GmailRow connection={gmailConnection} />
+        <Link href="/profile/categories" className="line-item line-item--link">
+          <span>Manage categories</span>
           <ChevronRight size={18} aria-hidden="true" />
         </Link>
       </div>
 
+      <p className="profile-section-label">Account</p>
       <div className="dashboard-section">
-        <h2>Your data</h2>
-        {gmail === "error" && (
-          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
-            Couldn&apos;t connect Gmail — please try again.
-          </p>
-        )}
-        {gmail === "rate_limited" && (
-          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
-            Too many attempts — please wait a minute and try again.
-          </p>
-        )}
-        <GmailConnectionCard connection={gmailConnection} />
-        <div className="card-divider">
-          <Link href="/profile/categories" className="line-item line-item--link">
-            <span>Manage categories</span>
-            <ChevronRight size={18} aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-
-      <div className="dashboard-section">
-        <h2>Account</h2>
         <ChangePasswordSheet />
-        <p className="field-hint" style={{ marginTop: "0.5rem" }}>
-          Changing your password also signs you out on all devices.
-        </p>
-        <div className="card-divider">
-          <form action={logOutEverywhereAction}>
-            <button type="submit" className="button button--secondary">
-              Sign out on all devices
-            </button>
-          </form>
-          <p className="field-hint" style={{ marginTop: "0.5rem" }}>
-            Use this if you think someone else has access to your account.
-          </p>
-        </div>
+        <form action={logOutEverywhereAction}>
+          <button type="submit" className="line-item line-item--link">
+            <span>
+              <span className="line-item-title">Sign out everywhere</span>
+              <span className="field-hint">Use this if someone else may have access</span>
+            </span>
+          </button>
+        </form>
       </div>
 
+      <p className="profile-section-label profile-section-label--danger">Danger zone</p>
       <div className="dashboard-section">
-        <h2>Reset</h2>
-        <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Wipe your quincena history and start fresh — your categories and income setup stay
-          the same.
-        </p>
         <EraseCyclesButton />
       </div>
 
       <form action={signOutAction} className="profile-signout-footer">
-        <button type="submit" className="button button--secondary">
+        <button type="submit" className="button profile-signout-button">
           Sign out
         </button>
       </form>
