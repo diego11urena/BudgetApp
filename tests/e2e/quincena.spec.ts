@@ -13,9 +13,12 @@ test.describe("closing a quincena", () => {
     await page.waitForSelector('button:has-text("Yes, I got paid")');
     await page.click('button:has-text("Yes, I got paid")');
 
-    // The closed-cycle summary overlay.
+    // The closed-cycle summary overlay -- scoped to .cycle-closed-card,
+    // not a bare page.getByText("Spent"): Home's own StatGrid has a
+    // "Spent" stat tile label too, and the overlay still sits in the DOM
+    // on top of it at this point.
     await expect(page.getByText("Quincena closed")).toBeVisible();
-    await expect(page.getByText("Spent")).toBeVisible();
+    await expect(page.locator(".cycle-closed-card").getByText("Spent")).toBeVisible();
     await page.click('button:has-text("Continue")');
 
     // Back on Home, in a fresh cycle with the same recurring income
