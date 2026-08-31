@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { centsToDecimalString, centsToDisplay, decimalStringToCents, digitsFromRawInput } from "@/lib/currency-input";
 
 /**
@@ -11,14 +11,9 @@ import { centsToDecimalString, centsToDisplay, decimalStringToCents, digitsFromR
  * removes the last digit the same way ("1,250.50" -> "125.05" -> ...).
  * There's deliberately no cursor-position handling: this widget's whole
  * model is "always append/remove at the end," enforced by selecting the
- * full value on focus and re-pinning the caret to the end synchronously
- * inside handleChange (so tapping anywhere in the field still behaves the
- * same as tapping at the end) -- done imperatively on the DOM node itself,
- * in the same tick as the input event, rather than in an effect: an effect
- * only runs after React's next render commits, and a fast typist (or an
- * automated one -- Playwright's pressSequentially can fire the next
- * keydown well inside that gap) can get their next keystroke in before
- * the caret's been corrected, landing it mid-string instead of at the end.
+ * full value on focus and re-pinning the caret to the end after every
+ * change (see the effect below) -- so tapping anywhere in the field still
+ * behaves the same as tapping at the end.
  *
  * Self-managed like CategoryNameInput (defaultValue + onValueChange, not a
  * value/onChange controlled component): none of this app's money fields
@@ -69,18 +64,25 @@ export function CurrencyInput({
     if (!defaultValue || !defaultValue.trim()) return allowEmpty ? null : 0;
     return decimalStringToCents(defaultValue);
   });
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const display = cents === null ? "" : centsToDisplay(cents);
   const decimalValue = cents === null ? "" : centsToDecimalString(cents);
 
+  // Keeps the caret pinned to the end after every render -- without this,
+  // a controlled value that grows/shrinks by more than the browser expects
+  // (e.g. a comma appearing where there wasn't one) can leave the caret
+  // stranded mid-string, breaking the "keep typing to keep appending" model.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (el && document.activeElement === el) {
+      el.setSelectionRange(display.length, display.length);
+    }
+  }, [display]);
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const digits = digitsFromRawInput(e.target.value);
     const newCents = digits === "" ? (allowEmpty ? null : 0) : Number(digits);
-    const newDisplay = newCents === null ? "" : centsToDisplay(newCents);
-    // Imperative, synchronous DOM write -- see the component doc comment
-    // above for why this can't wait for React's own re-render.
-    e.target.value = newDisplay;
-    e.target.setSelectionRange(newDisplay.length, newDisplay.length);
     setCents(newCents);
     onValueChange?.(newCents === null ? "" : centsToDecimalString(newCents));
   }
@@ -88,6 +90,7 @@ export function CurrencyInput({
   return (
     <>
       <input
+        ref={inputRef}
         id={id}
         type="text"
         inputMode="numeric"
