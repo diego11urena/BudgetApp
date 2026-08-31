@@ -86,8 +86,11 @@ test.describe("logging a transaction", () => {
 
     await test.step("leaving the name field untouched still submits fine, falling back to the category", async () => {
       await openQuickAdd(page, "Expense");
-      // "Transportation" now exists as a category -- exercises the chip
-      // (not free-text) pre-fill path.
+      // Category starts genuinely empty now (no more implicit
+      // most-used default) -- pick "Transportation" explicitly, which
+      // already exists as a real category from the earlier step, to
+      // exercise the select's own (not free-text) pre-fill path.
+      await fillCategory(page, "Transportation");
       await expect(page.getByLabel("Merchant / name")).toHaveValue("Transportation");
       await fillAmount(page.getByLabel("Amount (USD)"), "12.00");
       await page.click('button:has-text("Log it")');
@@ -101,6 +104,7 @@ test.describe("logging a transaction", () => {
 
     await test.step("clearing the name field entirely blocks submit, same as Amount/Category/Date", async () => {
       await openQuickAdd(page, "Expense");
+      await fillCategory(page, "Transportation");
       await fillAmount(page.getByLabel("Amount (USD)"), "8.00");
       const nameField = page.getByLabel("Merchant / name");
       await expect(nameField).toHaveValue("Transportation");

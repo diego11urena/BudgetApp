@@ -64,7 +64,7 @@ export function QuickAddSheet({
   editingTransaction?: EditingTransaction | null;
   /** Present when creating from a specific (possibly past) quincena's own page rather than "wherever today's cycle is" — passed to addTransactionAction as a hint, and used to detect a cross-cycle move the same way editingTransaction.cycleId is for edits. */
   targetCycleId?: string;
-  /** The button that opened this sheet — focus returns here on close. Needed because the amount field's own autoFocus would otherwise race the trigger-capture. */
+  /** The button that opened this sheet — focus returns here on close. Captured synchronously by the caller's onClick, before this sheet mounts, since this sheet's own autoFocus is off (see the <Sheet> call below) and document.activeElement at mount time can't be trusted to still be the trigger by then. */
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
@@ -124,11 +124,14 @@ export function QuickAddSheet({
     ? (editingTransaction.categoryName ?? editingTransaction.name)
     : null;
 
-  // The list is already ordered most-used-first, so its head is the default
-  // when creating; editing pre-selects the transaction's own category.
+  // Editing pre-selects the transaction's own category; creating starts
+  // genuinely empty (not the most-used category) so the field's own
+  // placeholder shows and a user has to make a real choice, rather than
+  // silently inheriting whatever they logged most recently without
+  // noticing.
   const [categoryValue, setCategoryValue] = useState(() => {
     if (editingCategoryName !== null) return editingCategoryName;
-    return categoryNames[0] ?? "";
+    return "";
   });
   // The category <select>'s "+ New category…" option switches to a free-
   // text input instead -- creating a category while logging a transaction
@@ -381,7 +384,7 @@ export function QuickAddSheet({
   function handleTypeChange(next: TxType) {
     setType(next);
     const nextCategoryNames = categoryNamesForType(next);
-    setCategoryValue(nextCategoryNames[0] ?? "");
+    setCategoryValue("");
     // The category <select> is keyed by `type` (forcing a fresh DOM node),
     // but isCreatingCategory itself lives here, not in a remountable
     // child, so it needs its own explicit reset -- otherwise switching
@@ -422,6 +425,14 @@ export function QuickAddSheet({
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
       panelRef={sheetRef}
+      // autoFocus off: this sheet should open passively, with no field
+      // grabbing the keyboard/cursor until the user deliberately taps one
+      // -- same reasoning as NeedsAttentionSheet (see useModalFocus's own
+      // doc comment). Amount used to have its own native autoFocus, which
+      // meant it always won this race regardless of what useModalFocus's
+      // own default would have done; now that it doesn't, this needs to
+      // be explicit.
+      autoFocus={false}
       // Swipe-to-dismiss listens on the handle only, matching
       // .sheet-handle's own touch-action: none in globals.css -- attached
       // to the whole sheet, these would fight finger-scrolling through the
@@ -457,7 +468,6 @@ export function QuickAddSheet({
             name="amount"
             defaultValue={amount}
             onValueChange={setAmount}
-            autoFocus
             className={`sheet-amount-input ${errorField === "amount" ? "is-invalid" : ""}`}
             invalid={errorField === "amount"}
             describedBy={errorField === "amount" ? errorId : undefined}
