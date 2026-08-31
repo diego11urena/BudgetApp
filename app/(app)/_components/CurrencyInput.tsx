@@ -33,7 +33,7 @@ import { centsToDecimalString, centsToDisplay, decimalStringToCents, digitsFromR
 export function CurrencyInput({
   id,
   name,
-  defaultValue = "0.00",
+  defaultValue = "",
   allowEmpty = false,
   onValueChange,
   placeholder,
@@ -46,7 +46,7 @@ export function CurrencyInput({
   id?: string;
   /** When set, a hidden input with this name mirrors the clean decimal value for form submission. */
   name?: string;
-  /** A decimal string like "45.50", matching this app's existing amount representation. Parsed once at mount. */
+  /** A decimal string like "45.50", matching this app's existing amount representation. Parsed once at mount. Omitting it entirely (not even ""), the common case for a brand-new value, floors at "0.00" -- unless allowEmpty is set, in which case it's the same as passing "": genuinely blank. */
   defaultValue?: string;
   /** Set true for a genuinely optional amount (e.g. an unset per-cycle goal contribution) where blank must stay distinct from "$0.00" -- decimalString's own server-side schema rejects an explicit 0 for these fields. Blank starts empty (placeholder shows through) instead of at "0.00", and backspacing below one digit returns to blank rather than floor at "0.00". */
   allowEmpty?: boolean;
