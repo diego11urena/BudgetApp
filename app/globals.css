@@ -888,18 +888,6 @@ button.line-item--link {
   transform: translateY(-50%);
 }
 
-.home-profile-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  font-size: 1.5rem;
-  line-height: 1;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-secondary);
-}
-
 /* Hero card — solid navy fill with white text, not a tinted wash: the
    design system's sample screens (Personal Finance Design System.dc.html)
    render this as an opaque #17395c card, the one place the signal color
@@ -1950,17 +1938,6 @@ button.line-item--link {
   max-width: 30rem;
   width: 100%;
   margin: 0 auto;
-}
-
-/* ProfileHeaderLink's persistent avatar -- matches .app-content's own
-   width/centering so the icon sits above the same column on every page. */
-.app-topbar {
-  display: flex;
-  justify-content: flex-end;
-  max-width: 30rem;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0.75rem 1rem 0;
 }
 
 .page-content h1,

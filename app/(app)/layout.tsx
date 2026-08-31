@@ -7,7 +7,6 @@ import { formatCycleLabel } from "@/lib/pay-date";
 import { BottomNav } from "./_components/BottomNav";
 import { ToastProvider } from "./_components/ToastProvider";
 import { GmailSyncTrigger } from "./_components/GmailSyncTrigger";
-import { ProfileHeaderLink } from "./_components/ProfileHeaderLink";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -47,7 +46,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <ToastProvider>
       <div className="app-shell">
         {gmailConnection && <GmailSyncTrigger />}
-        <ProfileHeaderLink />
         <main className="app-content">{children}</main>
         <BottomNav
           expenseCategoryNames={expenseCategoryNames}
