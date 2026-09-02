@@ -87,8 +87,8 @@ test.describe("managing categories", () => {
     await page.click('button[aria-label="Choose an icon"]');
     await page.waitForSelector('input[aria-label="Search icons"]');
     await page.fill('input[aria-label="Search icons"]', "dog");
-    await page.waitForSelector('.icon-picker-item[aria-label="Dog"]');
-    await page.click('.icon-picker-item[aria-label="Dog"]');
+    await page.waitForSelector('.icon-picker-item[aria-label="Pet"]');
+    await page.click('.icon-picker-item[aria-label="Pet"]');
 
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -356,8 +356,8 @@ test.describe("managing categories", () => {
     await page.click('button[aria-label="Choose an icon"]');
     await page.waitForSelector('input[aria-label="Search icons"]');
     await page.fill('input[aria-label="Search icons"]', "dog");
-    await page.waitForSelector('.icon-picker-item[aria-label="Dog"]');
-    await page.click('.icon-picker-item[aria-label="Dog"]');
+    await page.waitForSelector('.icon-picker-item[aria-label="Pet"]');
+    await page.click('.icon-picker-item[aria-label="Pet"]');
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
