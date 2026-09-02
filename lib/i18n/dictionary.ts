@@ -7,7 +7,41 @@
  * compiler the same as any other call site, so a translation that drops
  * or misuses a variable is a type error, not a silent runtime bug.
  */
+/**
+ * The pay-cadence-aware vocabulary every "quincena"-containing dictionary
+ * key will be parameterized with (see Dictionary.periodVocab below and the
+ * Phase 11.5 copy sweep) -- rather than quadrupling the whole dictionary
+ * (2 languages x 2 cadences), just this small slice of period-specific
+ * words gets duplicated per cadence, and every other string interpolates
+ * from it. English needs no grammatical care ("this quincena"/"this month"
+ * takes no gender agreement); Spanish does -- "esta quincena" (feminine) vs
+ * "este mes" (masculine) changes the article on every adjacent phrase, not
+ * just the noun, so each Spanish field is written whole, not assembled
+ * from noun + a shared article.
+ */
+export type PeriodVocab = {
+  /** "quincena" | "month" / "mes" */
+  noun: string;
+  /** "quincenas" | "months" / "meses" */
+  nounPlural: string;
+  /** "this quincena" / "esta quincena" | "this month" / "este mes" */
+  thisPeriod: string;
+  /** "next quincena" / "próxima quincena" | "next month" / "próximo mes" */
+  nextPeriod: string;
+  /** "last quincena" / "quincena pasada" | "last month" / "mes pasado" */
+  lastPeriod: string;
+  /** "current quincena" / "quincena actual" | "current month" / "mes actual" */
+  currentPeriodAdj: string;
+  /** "quincenal" | "monthly" / "mensual" */
+  adjective: string;
+  /** "every quincena" / "cada quincena" | "every month" / "cada mes" */
+  everyPeriod: string;
+};
+
 export type Dictionary = {
+  /** Keyed by the account's own payFrequency (lowercased) -- see lib/quincena-pace.ts's PayFrequency for the source enum this mirrors. */
+  periodVocab: { quincenal: PeriodVocab; monthly: PeriodVocab };
+
   common: {
     save: string;
     saving: string;

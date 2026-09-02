@@ -23,11 +23,20 @@ type Db = PrismaClient | Prisma.TransactionClient;
 // without pulling this file's server-only dependencies into the browser.
 export { formatCycleLabel, parsePayDate };
 
-/** The user's own pay-cadence setting -- source of truth for every cadence-aware cycle/carry-forward/pace calculation below. */
-export async function getUserPayFrequency(userId: string): Promise<PayFrequency> {
+/**
+ * The user's own pay-cadence setting -- source of truth for every
+ * cadence-aware cycle/carry-forward/pace calculation below. Wrapped in
+ * cache() so app/layout.tsx (which resolves it for LocaleProvider's vocab)
+ * and whichever page also needs it in the same request (dashboard, history,
+ * transactions) share one Prisma round-trip instead of two -- same
+ * per-request-dedupe pattern getOrCreateDraftCycle already uses, and
+ * without getOrCreateDraftCycle's own staleness trap, since this value is
+ * never mutated mid-request the way a cycle can be.
+ */
+export const getUserPayFrequency = cache(async (userId: string): Promise<PayFrequency> => {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { payFrequency: true } });
   return user.payFrequency;
-}
+});
 
 /**
  * Whether a recurring category's most recent budget target should carry

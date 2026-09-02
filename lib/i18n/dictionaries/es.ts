@@ -3,6 +3,31 @@ import type { Dictionary } from "../dictionary";
 const plural = (n: number, singular: string, plural: string) => (n === 1 ? singular : plural);
 
 export const es: Dictionary = {
+  periodVocab: {
+    // "la quincena" -- feminine, so próxima/pasada agree with it.
+    quincenal: {
+      noun: "quincena",
+      nounPlural: "quincenas",
+      thisPeriod: "esta quincena",
+      nextPeriod: "próxima quincena",
+      lastPeriod: "quincena pasada",
+      currentPeriodAdj: "quincena actual",
+      adjective: "quincenal",
+      everyPeriod: "cada quincena",
+    },
+    // "el mes" -- masculine, so próximo/pasado agree with it instead.
+    monthly: {
+      noun: "mes",
+      nounPlural: "meses",
+      thisPeriod: "este mes",
+      nextPeriod: "próximo mes",
+      lastPeriod: "mes pasado",
+      currentPeriodAdj: "mes actual",
+      adjective: "mensual",
+      everyPeriod: "cada mes",
+    },
+  },
+
   common: {
     save: "Guardar",
     saving: "Guardando...",
