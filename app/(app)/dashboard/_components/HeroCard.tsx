@@ -1,5 +1,5 @@
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
-import { computeQuincenaPace } from "@/lib/quincena-pace";
+import { computeCyclePace, type PayFrequency } from "@/lib/quincena-pace";
 import { HeroCardActions } from "./HeroCardActions";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
@@ -18,16 +18,19 @@ export async function HeroCard({
   totalExpenses,
   closed = false,
   pendingBills = 0,
+  payFrequency,
 }: {
   amountLeft: number;
   periodStart: Date;
-  /** Only ever set once a cycle is closed -- null for the active cycle, in which case computeQuincenaPace derives the nominal end from the calendar instead. Passed through so an edited pay date (which sets this) can't disagree with the days-remaining/pace line below it. */
+  /** Only ever set once a cycle is closed -- null for the active cycle, in which case computeCyclePace derives the nominal end from the calendar instead. Passed through so an edited pay date (which sets this) can't disagree with the days-remaining/pace line below it. */
   periodEnd?: Date | null;
   totalExpenses: number;
   /** True for a past/closed cycle being viewed historically — swaps the label to "Final available," drops the days-left/per-day pace line (meaningless for a period that's already over), and hides "I just got paid" (that flow only ever closes *the* current open cycle). Defaults false so every active-cycle caller is unchanged. */
   closed?: boolean;
   /** Sum of (targetAmount - actual), floored at 0, across this cycle's still-unpaid bills -- e.g. RecurringExpensesSummary.pendingAmount. Subtracted from amountLeft for the headline number (see below); defaults 0 (no adjustment) for callers that don't have it, e.g. History's closed-cycle view, where "safety margin" isn't a meaningful concept for a period that's already over. */
   pendingBills?: number;
+  /** The user's own pay-cadence setting -- only matters when periodEnd is null (an open cycle), where it decides whether the nominal end is derived via the ~15-day quincena formula or the ~30-day month one. A closed cycle's real periodEnd makes this irrelevant, but every caller passes it regardless so this component never has to guess. */
+  payFrequency: PayFrequency;
 }) {
   const t = getDictionary(await getRequestLocale()).dashboard;
   // The hero number used to be raw amountLeft -- money that still includes
@@ -41,7 +44,14 @@ export async function HeroCard({
   const isPositive = safeToSpend >= 0;
   const pace = closed
     ? null
-    : computeQuincenaPace({ periodStart, periodEnd, now: new Date(), amountLeft: safeToSpend, totalExpenses });
+    : computeCyclePace({
+        periodStart,
+        periodEnd,
+        now: new Date(),
+        amountLeft: safeToSpend,
+        totalExpenses,
+        frequency: payFrequency,
+      });
 
   return (
     <div className="hero-card">

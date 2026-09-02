@@ -6,6 +6,7 @@ import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "
 import type { GoalWithProgress } from "./goals";
 import type { Dictionary } from "./i18n/dictionary";
 import { en } from "./i18n/dictionaries/en";
+import type { PayFrequency } from "./quincena-pace";
 
 let nextTransactionId = 0;
 function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
@@ -48,6 +49,7 @@ function makeExtras(
     cycle: { periodStart: Date; periodEnd: Date | null };
     recurringExpenseCategories: CategoryWithRecurringExpenses[];
     goals: GoalWithProgress[];
+    payFrequency: PayFrequency;
     now: Date;
     t: Dictionary["insights"];
   }> = {},
@@ -57,6 +59,10 @@ function makeExtras(
     cycle: { periodStart, periodEnd: null },
     recurringExpenseCategories: [],
     goals: [],
+    // QUINCENAL fixed here rather than parameterized, for the same reason
+    // `t` below is -- every test's expected daysRemaining/percentElapsed
+    // math is written against a 15-day quincena.
+    payFrequency: "QUINCENAL" as PayFrequency,
     now: periodStart,
     // English fixed here rather than parameterized -- these tests assert on
     // exact rendered strings (see every `expect(insights).toEqual([{ text:

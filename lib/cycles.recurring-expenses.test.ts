@@ -95,7 +95,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       });
       const newCycle = await makeCycle(new Date(2026, 7, 20));
 
-      await carryForwardRecurringExpenses(prisma, userId, newCycle.id, newCycle.periodStart);
+      await carryForwardRecurringExpenses(prisma, userId, newCycle.id, newCycle.periodStart, "QUINCENAL");
 
       const snapshot = await prisma.cycleRecurringExpense.findUnique({
         where: { cycleId_recurringExpenseId: { cycleId: newCycle.id, recurringExpenseId: panapass.id } },
@@ -122,7 +122,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       });
 
       const firstQuincenaCycle = await makeCycle(new Date(2026, 7, 3));
-      await carryForwardRecurringExpenses(prisma, userId, firstQuincenaCycle.id, firstQuincenaCycle.periodStart);
+      await carryForwardRecurringExpenses(prisma, userId, firstQuincenaCycle.id, firstQuincenaCycle.periodStart, "QUINCENAL");
       const goalInFirst = await prisma.cycleBudgetGoal.findUnique({
         where: { cycleId_expenseCategoryId: { cycleId: firstQuincenaCycle.id, expenseCategoryId: category.id } },
       });
@@ -134,7 +134,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       await prisma.budgetCycle.update({ where: { id: firstQuincenaCycle.id }, data: { status: "CLOSED" } });
 
       const secondQuincenaCycle = await makeCycle(new Date(2026, 7, 20));
-      await carryForwardRecurringExpenses(prisma, userId, secondQuincenaCycle.id, secondQuincenaCycle.periodStart);
+      await carryForwardRecurringExpenses(prisma, userId, secondQuincenaCycle.id, secondQuincenaCycle.periodStart, "QUINCENAL");
       const goalInSecond = await prisma.cycleBudgetGoal.findUnique({
         where: { cycleId_expenseCategoryId: { cycleId: secondQuincenaCycle.id, expenseCategoryId: category.id } },
       });
@@ -148,7 +148,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       });
       const newCycle = await makeCycle(new Date(2026, 7, 3));
 
-      await carryForwardRecurringExpenses(prisma, userId, newCycle.id, newCycle.periodStart);
+      await carryForwardRecurringExpenses(prisma, userId, newCycle.id, newCycle.periodStart, "QUINCENAL");
 
       const goal = await prisma.cycleBudgetGoal.findUnique({
         where: { cycleId_expenseCategoryId: { cycleId: newCycle.id, expenseCategoryId: category.id } },

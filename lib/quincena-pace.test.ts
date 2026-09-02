@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { computeQuincenaPace, quincenaLengthDays } from "./quincena-pace";
+import {
+  computeCyclePace,
+  cycleEnd,
+  cycleLengthDays,
+  dueDayFallsWithinCycle,
+  monthEnd,
+  monthLengthDays,
+  nextCycleStart,
+  quincenaLengthDays,
+} from "./quincena-pace";
 
 // Mirrors pay-date.ts's own panamaMidnight anchor (Panama midnight = 05:00
 // UTC, since Panama is UTC-5 year-round) so every date in this file is
@@ -37,9 +46,10 @@ describe("quincenaLengthDays", () => {
   });
 });
 
-describe("computeQuincenaPace", () => {
+describe("computeCyclePace", () => {
   it("counts today as one of the 15 days on day 1 of the cycle, phase running", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 1),
       amountLeft: 750,
@@ -52,7 +62,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("is still 'running' with exactly 2 days left, not yet 'last-day'", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 14),
       amountLeft: 100,
@@ -63,7 +74,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("gives a second-half cycle in a 31-day month its real 16-day length, not a hardcoded 15", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 7, 16), // Jul 16
       now: panama(2026, 7, 16),
       amountLeft: 800,
@@ -74,7 +86,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("flags the last day of the quincena as phase 'last-day', never daysRemaining 0", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 15),
       amountLeft: 40,
@@ -92,7 +105,8 @@ describe("computeQuincenaPace", () => {
   // last day. "ended" is now a distinct third phase, and cycleEnd
   // surfaces the actual date that already passed.
   it("clamps to zero and reports 'ended', not 'last-day', once the cycle has run past its nominal 15 days", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 20),
       amountLeft: 40,
@@ -105,7 +119,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("one day after the end is still 'ended', not some fourth state", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 16),
       amountLeft: 40,
@@ -119,7 +134,8 @@ describe("computeQuincenaPace", () => {
   // quincenaLengthDays above) should end on the 28th, not a hardcoded
   // "start + 15" that would overshoot into March.
   it("ends a February second-half quincena on the 28th, not the 30th", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 2, 16),
       now: panama(2026, 2, 16),
       amountLeft: 100,
@@ -135,7 +151,8 @@ describe("computeQuincenaPace", () => {
   // the date range the header shows for that same cycle.
   it("prefers an explicit periodEnd over the calendar-derived one when both exist and disagree", () => {
     const editedPeriodEnd = panama(2026, 8, 20); // 5 days later than the calendar default (Aug 15)
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       periodEnd: editedPeriodEnd,
       now: panama(2026, 8, 16),
@@ -149,7 +166,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("falls back to the calendar-derived end when periodEnd is null", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       periodEnd: null,
       now: panama(2026, 8, 1),
@@ -160,7 +178,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("is not over pace when spending so far is under the sustainable rate", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 5),
       amountLeft: 660,
@@ -171,7 +190,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("flags over pace when spending so far exceeds the sustainable rate", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 5),
       amountLeft: 200,
@@ -182,7 +202,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("is over pace whenever the balance has already gone negative", () => {
-    const pace = computeQuincenaPace({
+    const pace = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 5),
       amountLeft: -50,
@@ -200,13 +221,15 @@ describe("computeQuincenaPace", () => {
   // (revalidation/refresh) can't hide behind "well, the math might be
   // wrong too."
   it("editing the pay date backward shortens daysRemaining accordingly (matches the reported repro)", () => {
-    const before = computeQuincenaPace({
+    const before = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 12), // Aug 12
       now: panama(2026, 8, 13), // Aug 13
       amountLeft: 226.39,
       totalExpenses: 0,
     });
-    const afterEditingPayDateBack = computeQuincenaPace({
+    const afterEditingPayDateBack = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 7, 31), // Jul 31 (moved 13 days earlier)
       now: panama(2026, 8, 13), // same "today"
       amountLeft: 226.39,
@@ -222,13 +245,15 @@ describe("computeQuincenaPace", () => {
   });
 
   it("editing the pay date forward lengthens daysRemaining accordingly", () => {
-    const before = computeQuincenaPace({
+    const before = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 5),
       amountLeft: 500,
       totalExpenses: 0,
     });
-    const afterEditingPayDateForward = computeQuincenaPace({
+    const afterEditingPayDateForward = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 5), // moved to today
       now: panama(2026, 8, 5),
       amountLeft: 500,
@@ -239,7 +264,8 @@ describe("computeQuincenaPace", () => {
   });
 
   it("elapsedFraction is 1/15 on day 1 of a 15-day cycle and 1 on the last day", () => {
-    const day1 = computeQuincenaPace({
+    const day1 = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 1),
       amountLeft: 750,
@@ -247,7 +273,8 @@ describe("computeQuincenaPace", () => {
     });
     expect(day1.elapsedFraction).toBeCloseTo(1 / 15, 4);
 
-    const lastDay = computeQuincenaPace({
+    const lastDay = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 15),
       amountLeft: 0,
@@ -257,12 +284,141 @@ describe("computeQuincenaPace", () => {
   });
 
   it("elapsedFraction stays clamped at 1 once a stale cycle runs past its nominal end", () => {
-    const stale = computeQuincenaPace({
+    const stale = computeCyclePace({
+      frequency: "QUINCENAL",
       periodStart: panama(2026, 8, 1),
       now: panama(2026, 8, 20),
       amountLeft: 0,
       totalExpenses: 750,
     });
     expect(stale.elapsedFraction).toBe(1);
+  });
+
+  // MONTHLY regression coverage -- same shapes as the QUINCENAL cases
+  // above, so a future change can't silently regress one cadence while
+  // fixing the other.
+  it("MONTHLY: a full calendar month's pace, day 1", () => {
+    const pace = computeCyclePace({
+      frequency: "MONTHLY",
+      periodStart: panama(2026, 8, 16), // -> ends Sep 15 (31 days)
+      now: panama(2026, 8, 16),
+      amountLeft: 3100,
+      totalExpenses: 0,
+    });
+    expect(pace.daysRemaining).toBe(31);
+    expect(pace.perDay).toBeCloseTo(100, 2);
+    expect(pace.phase).toBe("running");
+    expect(pace.cycleEnd).toEqual(panama(2026, 9, 15));
+  });
+
+  it("MONTHLY: elapsedFraction derives from the real ~31-day month, not a hardcoded 15", () => {
+    const pace = computeCyclePace({
+      frequency: "MONTHLY",
+      periodStart: panama(2026, 8, 16),
+      now: panama(2026, 8, 16),
+      amountLeft: 3100,
+      totalExpenses: 0,
+    });
+    expect(pace.elapsedFraction).toBeCloseTo(1 / 31, 4);
+  });
+
+  it("MONTHLY: clamps a Jan 31 start to Feb 28's real last day, not overflowing into March", () => {
+    const pace = computeCyclePace({
+      frequency: "MONTHLY",
+      periodStart: panama(2026, 1, 31),
+      now: panama(2026, 1, 31),
+      amountLeft: 100,
+      totalExpenses: 0,
+    });
+    expect(pace.cycleEnd).toEqual(panama(2026, 2, 27));
+  });
+});
+
+describe("monthEnd / monthLengthDays", () => {
+  it("a mid-month start ends the day before the same day next month", () => {
+    expect(monthEnd(panama(2026, 8, 16))).toEqual(panama(2026, 9, 15));
+    expect(monthLengthDays(panama(2026, 8, 16))).toBe(31);
+  });
+
+  it("clamps a 31st start to the following month's real last day", () => {
+    expect(monthEnd(panama(2026, 1, 31))).toEqual(panama(2026, 2, 27));
+    expect(monthLengthDays(panama(2026, 1, 31))).toBe(28);
+  });
+
+  it("clamps a leap-February start of the 29th correctly for a non-leap next February", () => {
+    // 2027 isn't a leap year -- Jan 29, 2027 -> Feb 28, 2027 (last real day), inclusive end Feb 27.
+    expect(monthEnd(panama(2027, 1, 29))).toEqual(panama(2027, 2, 27));
+  });
+});
+
+describe("cycleEnd / cycleLengthDays dispatchers", () => {
+  it("QUINCENAL dispatches to quincenaEnd/quincenaLengthDays", () => {
+    expect(cycleEnd(panama(2026, 8, 1), "QUINCENAL")).toEqual(panama(2026, 8, 15));
+    expect(cycleLengthDays(panama(2026, 8, 1), "QUINCENAL")).toBe(15);
+  });
+
+  it("MONTHLY dispatches to monthEnd/monthLengthDays", () => {
+    expect(cycleEnd(panama(2026, 8, 1), "MONTHLY")).toEqual(panama(2026, 8, 31));
+    expect(cycleLengthDays(panama(2026, 8, 1), "MONTHLY")).toBe(31);
+  });
+});
+
+describe("nextCycleStart", () => {
+  it("QUINCENAL: the day after quincenaEnd", () => {
+    expect(nextCycleStart(panama(2026, 8, 1), "QUINCENAL")).toEqual(panama(2026, 8, 16));
+  });
+
+  it("MONTHLY: the day after monthEnd", () => {
+    expect(nextCycleStart(panama(2026, 8, 16), "MONTHLY")).toEqual(panama(2026, 9, 16));
+  });
+});
+
+describe("dueDayFallsWithinCycle", () => {
+  // QUINCENAL regression safety: reproduces the old quincenaForDay bucket
+  // behavior exactly (day <= 15 -> first half, else second half).
+  it("QUINCENAL: a first-half dueDay falls within a first-half cycle", () => {
+    expect(dueDayFallsWithinCycle(5, panama(2026, 8, 1), "QUINCENAL")).toBe(true);
+  });
+
+  it("QUINCENAL: a first-half dueDay does NOT fall within a second-half cycle", () => {
+    expect(dueDayFallsWithinCycle(5, panama(2026, 8, 16), "QUINCENAL")).toBe(false);
+  });
+
+  it("QUINCENAL: a second-half dueDay falls within a second-half cycle", () => {
+    expect(dueDayFallsWithinCycle(20, panama(2026, 8, 16), "QUINCENAL")).toBe(true);
+  });
+
+  it("QUINCENAL: a second-half dueDay does NOT fall within a first-half cycle", () => {
+    expect(dueDayFallsWithinCycle(20, panama(2026, 8, 1), "QUINCENAL")).toBe(false);
+  });
+
+  it("QUINCENAL: dueDay 31 falls within the second half of a 31-day month", () => {
+    expect(dueDayFallsWithinCycle(31, panama(2026, 7, 16), "QUINCENAL")).toBe(true);
+  });
+
+  // MONTHLY: every day 1-31 falls inside a single whole-month cycle --
+  // the behavior that actually motivated this rewrite (a MONTHLY-frequency
+  // bill must now carry into every monthly cycle, not just one bucket).
+  it("MONTHLY: an early-month dueDay falls within the cycle", () => {
+    expect(dueDayFallsWithinCycle(3, panama(2026, 8, 16), "MONTHLY")).toBe(true);
+  });
+
+  it("MONTHLY: a late-month dueDay falls within the cycle", () => {
+    expect(dueDayFallsWithinCycle(28, panama(2026, 8, 16), "MONTHLY")).toBe(true);
+  });
+
+  it("MONTHLY: dueDay 31 falls within a cycle spanning a 31-day stretch", () => {
+    expect(dueDayFallsWithinCycle(31, panama(2026, 8, 16), "MONTHLY")).toBe(true);
+  });
+
+  it("MONTHLY: a dueDay before periodStart's own day-of-month still falls within the next month's occurrence", () => {
+    // periodStart Aug 20 -> cycle runs Aug 20-Sep 19; dueDay 5 has no
+    // occurrence in that range in August (Aug 5 is before periodStart) but
+    // does in September (Sep 5).
+    expect(dueDayFallsWithinCycle(5, panama(2026, 8, 20), "MONTHLY")).toBe(true);
+  });
+
+  it("MONTHLY: a dueDay whose only occurrence in range is exactly periodStart's own day", () => {
+    expect(dueDayFallsWithinCycle(20, panama(2026, 8, 20), "MONTHLY")).toBe(true);
   });
 });

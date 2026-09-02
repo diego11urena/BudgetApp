@@ -1,7 +1,7 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { addDays, nowInPanama, panamaDateParts, parseDateOnly } from "@/lib/pay-date";
-import { calendarDaysBetween, quincenaEnd } from "@/lib/quincena-pace";
+import { calendarDaysBetween, cycleEnd, type PayFrequency } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 import type { GoalWithProgress } from "@/lib/goals";
@@ -86,12 +86,14 @@ export function generateInsights(
   current: CycleFinancials,
   previousClosedFinancials: CycleFinancials[],
   extras: {
-    /** The current cycle's own date range -- periodEnd is only ever set once a cycle is closed, so an open cycle's nominal end is derived from periodStart via quincenaEnd, same convention formatCycleRangeText already uses. */
+    /** The current cycle's own date range -- periodEnd is only ever set once a cycle is closed, so an open cycle's nominal end is derived from periodStart via cycleEnd, same convention formatCycleRangeText already uses. */
     cycle: { periodStart: Date; periodEnd: Date | null };
     /** This cycle's Recurring Expenses breakdown, e.g. from getRecurringExpensesForCycle -- drives the unpaid-recurring-expenses rule. */
     recurringExpenseCategories: CategoryWithRecurringExpenses[];
     /** The user's savings goals with progress, e.g. from getGoalsWithProgress -- drives the savings-goal-proximity rule. */
     goals: GoalWithProgress[];
+    /** The user's own pay-cadence setting -- only matters for deriving a still-open cycle's nominal end (see cyclePhase) and a goal's projected ETA; every rule that just compares dollar amounts is unaffected. */
+    payFrequency: PayFrequency;
     /** Defaults to nowInPanama() -- overridable for tests. */
     now?: Date;
     /** This is a plain function (no useT()), so the caller threads the resolved dictionary's `insights` slice through here instead. */
@@ -99,7 +101,7 @@ export function generateInsights(
   },
 ): Insight[] {
   const now = extras.now ?? nowInPanama();
-  const phase = cyclePhase(extras.cycle, now);
+  const phase = cyclePhase(extras.cycle, extras.payFrequency, now);
   const t = extras.t;
   const candidates: Candidate[] = [];
 
@@ -120,7 +122,7 @@ export function generateInsights(
   const goalContribution = goalContributionCandidate(extras.goals, current, phase, t);
   if (goalContribution) candidates.push(goalContribution);
 
-  const savingsGoal = savingsGoalCandidate(extras.goals, now, t);
+  const savingsGoal = savingsGoalCandidate(extras.goals, now, extras.payFrequency, t);
   if (savingsGoal) candidates.push(savingsGoal);
 
   // Capped at 2, not 3 -- with the fuller rule set above, most cycles now
@@ -143,9 +145,13 @@ interface CyclePhase {
 }
 
 /** Shared by every rule that needs to know how far into the cycle `now` is -- previously computed inline, only inside paceAwareCandidate. */
-function cyclePhase(cycle: { periodStart: Date; periodEnd: Date | null }, now: Date): CyclePhase {
-  const cycleEnd = cycle.periodEnd ?? quincenaEnd(cycle.periodStart);
-  const totalDays = calendarDaysBetween(cycle.periodStart, cycleEnd) + 1;
+function cyclePhase(
+  cycle: { periodStart: Date; periodEnd: Date | null },
+  payFrequency: PayFrequency,
+  now: Date,
+): CyclePhase {
+  const resolvedCycleEnd = cycle.periodEnd ?? cycleEnd(cycle.periodStart, payFrequency);
+  const totalDays = calendarDaysBetween(cycle.periodStart, resolvedCycleEnd) + 1;
   const elapsedDays = Math.min(Math.max(calendarDaysBetween(cycle.periodStart, now) + 1, 1), totalDays);
   const daysRemaining = Math.max(totalDays - elapsedDays, 0);
   return { totalDays, elapsedDays, daysRemaining, percentElapsed: elapsedDays / totalDays };
@@ -461,7 +467,12 @@ export function computeStreak(previousClosedFinancials: CycleFinancials[]): numb
  * anything already complete or still far off -- announcing "you're 90%
  * short" as if it were exciting news isn't the point of this rule.
  */
-function savingsGoalCandidate(goals: GoalWithProgress[], now: Date, t: InsightsDictionary): Candidate | null {
+function savingsGoalCandidate(
+  goals: GoalWithProgress[],
+  now: Date,
+  payFrequency: PayFrequency,
+  t: InsightsDictionary,
+): Candidate | null {
   let best: { name: string; remaining: number; percentage: number } | null = null;
 
   for (const goal of goals) {
@@ -470,6 +481,7 @@ function savingsGoalCandidate(goals: GoalWithProgress[], now: Date, t: InsightsD
       lifetimeTargetAmount: goal.lifetimeTargetAmount,
       currentCycleRecurringAmount: goal.currentCycleRecurringAmount,
       now,
+      frequency: payFrequency,
     });
     if (projection.isComplete) continue;
     if (projection.percentage < SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT) continue;

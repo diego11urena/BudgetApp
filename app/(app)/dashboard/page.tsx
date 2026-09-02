@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles } from "@/lib/cycles";
+import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles, getUserPayFrequency } from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { generateInsights } from "@/lib/insights";
@@ -10,7 +10,7 @@ import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { formatCycleRangeLabel } from "@/lib/format";
-import { computeQuincenaPace } from "@/lib/quincena-pace";
+import { computeCyclePace } from "@/lib/quincena-pace";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Header } from "./_components/Header";
@@ -57,6 +57,7 @@ export default async function DashboardPage() {
     recurringExpenseCategories,
     goals,
     needsAttentionTransactions,
+    payFrequency,
   ] = await Promise.all([
     getCycleFinancials(cycle.id),
     getAdjacentCycles(userId, cycle),
@@ -67,6 +68,7 @@ export default async function DashboardPage() {
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
     getNeedsAttentionTransactions(cycle.id),
+    getUserPayFrequency(userId),
   ]);
 
   // Exclusive neighbor boundary -> inclusive HTML date-input min, same
@@ -88,18 +90,20 @@ export default async function DashboardPage() {
   // decision 2). amountLeft/totalExpenses only affect perDay/isOverPace
   // here, neither of which this banner reads -- passed through anyway
   // since they're already in hand and computeQuincenaPace requires them.
-  const pace = computeQuincenaPace({
+  const pace = computeCyclePace({
     periodStart: cycle.periodStart,
     periodEnd: cycle.periodEnd,
     now: new Date(),
     amountLeft: financials.amountLeft,
     totalExpenses: financials.totalExpenses,
+    frequency: payFrequency,
   });
 
   const insights = generateInsights(financials, previousClosedFinancials, {
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
     goals,
+    payFrequency,
     t: t.insights,
   });
 
@@ -170,6 +174,7 @@ export default async function DashboardPage() {
           periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
           pendingBills={recurringExpensesSummary.pendingAmount}
+          payFrequency={payFrequency}
         />
       </div>
 

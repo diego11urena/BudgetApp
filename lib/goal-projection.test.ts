@@ -17,7 +17,7 @@ describe("computeGoalProjection", () => {
     expect(result.remaining).toBe(800);
     expect(result.percentage).toBe(20);
     expect(result.isComplete).toBe(false);
-    expect(result.quincenasNeeded).toBe(4);
+    expect(result.cyclesNeeded).toBe(4);
     expect(result.etaDate).toEqual(parseDateOnly("2026-10-02"));
   });
 
@@ -29,7 +29,7 @@ describe("computeGoalProjection", () => {
       now: parseDateOnly("2026-08-02")!,
     });
     // 250/100 = 2.5 -> 3 quincenas.
-    expect(result.quincenasNeeded).toBe(3);
+    expect(result.cyclesNeeded).toBe(3);
   });
 
   it("has no projection without a per-cycle contribution", () => {
@@ -38,7 +38,7 @@ describe("computeGoalProjection", () => {
       lifetimeTargetAmount: 1000,
       currentCycleRecurringAmount: null,
     });
-    expect(result.quincenasNeeded).toBeNull();
+    expect(result.cyclesNeeded).toBeNull();
     expect(result.etaDate).toBeNull();
   });
 
@@ -51,7 +51,7 @@ describe("computeGoalProjection", () => {
     expect(result.isComplete).toBe(true);
     expect(result.remaining).toBe(0);
     expect(result.percentage).toBe(100);
-    expect(result.quincenasNeeded).toBeNull();
+    expect(result.cyclesNeeded).toBeNull();
     expect(result.etaDate).toBeNull();
   });
 

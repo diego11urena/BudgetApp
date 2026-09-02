@@ -7,6 +7,7 @@ import {
   findCycleForDate,
   formatCycleRangeText,
   getOrCreateDraftCycle,
+  getUserPayFrequency,
   linkOrCreateRecurringExpenseForTransaction,
   unlinkTransactionFromRecurringExpense,
 } from "@/lib/cycles";
@@ -654,5 +655,6 @@ export const resolveCycleForDateAction = withActionErrorHandling(async function 
   const cycle = await findCycleForDate(userId, date);
   if (!cycle) return null;
 
-  return { cycleId: cycle.id, label: cycle.label, rangeText: formatCycleRangeText(cycle) };
+  const payFrequency = await getUserPayFrequency(userId);
+  return { cycleId: cycle.id, label: cycle.label, rangeText: formatCycleRangeText(cycle, {}, payFrequency) };
 });

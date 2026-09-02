@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAdjacentCycles, formatCycleRangeText, getOrCreateDraftCycle } from "@/lib/cycles";
+import { getAdjacentCycles, formatCycleRangeText, getOrCreateDraftCycle, getUserPayFrequency } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -54,13 +54,14 @@ export default async function CycleHistoryPage({
   // reorder chips slightly differently for a past cycle.
   const currentCycle = await getOrCreateDraftCycle(userId);
 
-  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }] =
+  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }, payFrequency] =
     await Promise.all([
       getCycleFinancials(cycle.id),
       getOrderedCategoryNames(userId, currentCycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, currentCycle.id, "SAVINGS"),
       getOrderedCategoryNames(userId, currentCycle.id, "INCOME"),
       getAdjacentCycles(userId, cycle),
+      getUserPayFrequency(userId),
     ]);
 
   // Historical category -> recurring-expense breakdown for this specific
@@ -87,7 +88,7 @@ export default async function CycleHistoryPage({
 
       <div className="home-header">
         <div>
-          <p className="home-greeting">{formatCycleRangeText(cycle)}</p>
+          <p className="home-greeting">{formatCycleRangeText(cycle, {}, payFrequency)}</p>
           <div className="home-month">
             {closed ? t.history.closed : t.history.active}
             {closed && (
@@ -110,6 +111,7 @@ export default async function CycleHistoryPage({
           periodStart={cycle.periodStart}
           totalExpenses={financials.totalExpenses}
           closed={closed}
+          payFrequency={payFrequency}
         />
       </div>
 

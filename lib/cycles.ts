@@ -11,7 +11,7 @@ import {
   parsePayDate,
 } from "@/lib/pay-date";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
-import { quincenaEnd } from "@/lib/quincena-pace";
+import { cycleEnd, dueDayFallsWithinCycle, type PayFrequency } from "@/lib/quincena-pace";
 import { formatFriendlyDate } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 
@@ -23,33 +23,30 @@ type Db = PrismaClient | Prisma.TransactionClient;
 // without pulling this file's server-only dependencies into the browser.
 export { formatCycleLabel, parsePayDate };
 
-export type Quincena = "FIRST" | "SECOND";
-
-/** On/before the 15th of the month -> the first quincena; after -> the second. */
-export function quincenaForDay(day: number): Quincena {
-  return day <= 15 ? "FIRST" : "SECOND";
+/** The user's own pay-cadence setting -- source of truth for every cadence-aware cycle/carry-forward/pace calculation below. */
+export async function getUserPayFrequency(userId: string): Promise<PayFrequency> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { payFrequency: true } });
+  return user.payFrequency;
 }
 
 /**
  * Whether a recurring category's most recent budget target should carry
  * forward into a newly-created cycle. BIWEEKLY carries into every cycle —
- * once per quincena, by definition. MONTHLY carries into exactly one
- * quincena per month: whichever one dueDay falls in, matched against which
- * quincena the new cycle itself is (by its own periodStart's day-of-month).
+ * once per cycle, by definition. MONTHLY carries into exactly the cycle(s)
+ * whose date range actually contains an occurrence of dueDay -- for a
+ * QUINCENAL cycle that's exactly one of the month's two cycles (matching
+ * the old "which half of the month" behavior exactly); for a MONTHLY cycle
+ * (spanning the whole month) it's every cycle, since any day 1-31 falls
+ * inside a one-month span.
  */
 export function shouldCarryForwardToCycle(
   rule: { frequency: "BIWEEKLY" | "MONTHLY"; dueDay: number | null },
   newCyclePeriodStart: Date,
+  payFrequency: PayFrequency,
 ): boolean {
   if (rule.frequency === "BIWEEKLY") return true;
   if (rule.dueDay === null) return false;
-  // panamaDateParts, not .getDate() -- the latter reads the calling
-  // machine's local timezone, which only agreed with Panama's calendar day
-  // by coincidence. A wrong answer here silently drops a MONTHLY recurring
-  // expense out of the budget for the quincena it was actually due in, or
-  // carries it into the wrong one -- the most consequential of this
-  // module's latent timezone bugs (fix-list T5), not just a display glitch.
-  return quincenaForDay(rule.dueDay) === quincenaForDay(panamaDateParts(newCyclePeriodStart).day);
+  return dueDayFallsWithinCycle(rule.dueDay, newCyclePeriodStart, payFrequency);
 }
 
 /**
@@ -119,12 +116,13 @@ export async function carryForwardRecurringExpenses(
   userId: string,
   newCycleId: string,
   newCyclePeriodStart: Date,
+  payFrequency: PayFrequency,
 ): Promise<void> {
   const recurringExpenses = await db.recurringExpense.findMany({ where: { userId, recurring: true } });
   const affectedCategoryIds = new Set<string>();
 
   for (const recurringExpense of recurringExpenses) {
-    if (!shouldCarryForwardToCycle(recurringExpense, newCyclePeriodStart)) continue;
+    if (!shouldCarryForwardToCycle(recurringExpense, newCyclePeriodStart, payFrequency)) continue;
 
     // upsert, not create: makes this idempotent against a retry, so a
     // recurring expense can never end up with two snapshots for the same
@@ -567,9 +565,13 @@ export async function assessPayDateChange(
 export function formatCycleRangeText(
   cycle: Pick<BudgetCycle, "periodStart" | "periodEnd">,
   options: { includeYear?: boolean } = {},
+  // Defaults to QUINCENAL (today's only cadence) so every not-yet-updated
+  // caller keeps its current behavior -- only matters for a still-open
+  // cycle (periodEnd null); a closed cycle always uses its real periodEnd.
+  payFrequency: PayFrequency = "QUINCENAL",
 ): string {
   const { includeYear = true } = options;
-  const end = cycle.periodEnd ?? quincenaEnd(cycle.periodStart);
+  const end = cycle.periodEnd ?? cycleEnd(cycle.periodStart, payFrequency);
   const startParts = panamaDateParts(cycle.periodStart);
   const endParts = panamaDateParts(end);
   const dateOpts: Intl.DateTimeFormatOptions = includeYear
@@ -662,6 +664,12 @@ export async function closeCycleAndStartNext(
   let newCycle: BudgetCycle;
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // Read once, up front, so the savings-goal carry-forward loop below
+      // and carryForwardRecurringExpenses agree on the same cadence for
+      // this one close -- a mid-transaction cadence change isn't a real
+      // scenario, but reading it twice would leave that possibility open.
+      const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { payFrequency: true } });
+
       const closed = await tx.budgetCycle.update({
         where: { id: currentCycle.id },
         data: { status: "CLOSED", periodEnd: payDate },
@@ -696,7 +704,7 @@ export async function closeCycleAndStartNext(
       });
 
       for (const goal of previousSavingsGoals) {
-        if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart)) continue;
+        if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart, user.payFrequency)) continue;
 
         // upsert, not create: makes this idempotent against a retry of this
         // transaction, so a rule can never end up with two CycleBudgetGoal
@@ -714,7 +722,7 @@ export async function closeCycleAndStartNext(
         });
       }
 
-      await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart);
+      await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart, user.payFrequency);
 
       return { closed, created };
     });

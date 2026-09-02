@@ -8,9 +8,18 @@
 // lib/pay-date.ts documents and fixes this exact class of bug already;
 // this file used to reimplement its own (broken) local version instead of
 // importing that fix.
-import { addDays, panamaDateParts, startOfDay } from "./pay-date";
+import { addDays, panamaDateParts, panamaMidnight, startOfDay } from "./pay-date";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Mirrors the Prisma PayFrequency enum's own string values exactly (no
+// lowercase mapping the way lib/theme.ts's ThemePreferenceValue does --
+// that one's lowercase for cookie-friendliness; this type never touches
+// a cookie, so there's no reason to diverge from the DB's own casing).
+// Defined locally rather than imported from the generated Prisma client
+// so this file -- pure calendar arithmetic -- stays decoupled from
+// Prisma, the same discipline lib/pay-date.ts documents at its own top.
+export type PayFrequency = "QUINCENAL" | "MONTHLY";
 
 export function calendarDaysBetween(from: Date, to: Date): number {
   return Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / MS_PER_DAY);
@@ -53,6 +62,85 @@ export function nextQuincenaStart(periodStart: Date): Date {
 }
 
 /**
+ * The real calendar end of the one-month cycle periodStart belongs to
+ * (inclusive) — one calendar month out from periodStart's own day, e.g.
+ * a periodStart of Aug 16 ends Sep 15 (the day before Sep 16), the same
+ * "anchored to the actual pay date, not the 1st" convention
+ * closeCycleAndStartNext already uses for periodStart itself. When
+ * periodStart's day-of-month doesn't exist in the following month (e.g.
+ * Jan 31 has no Feb 31), clamps to that month's real last day rather
+ * than overflowing into the month after — the same "same day next
+ * month" resolution every calendar app uses for the 29th–31st.
+ */
+export function monthEnd(periodStart: Date): Date {
+  const { year, month, day } = panamaDateParts(periodStart);
+  const nextMonth1 = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const clampedDay = Math.min(day, daysInMonth(nextYear, nextMonth1 - 1));
+  const nextOccurrence = panamaMidnight(nextYear, nextMonth1, clampedDay);
+  return addDays(nextOccurrence, -1);
+}
+
+/** A monthly cycle's real length in days — derived from monthEnd, mirroring how quincenaEnd is derived FROM quincenaLengthDays (the reverse direction), since walking the calendar month-by-month is the more natural way to land on a correct end date here, including the 29th–31st clamping case. */
+export function monthLengthDays(periodStart: Date): number {
+  return calendarDaysBetween(periodStart, monthEnd(periodStart)) + 1;
+}
+
+/**
+ * The one place every caller should go through instead of calling
+ * quincenaEnd/monthEnd directly — dispatches on the account's own
+ * payFrequency so cycle-boundary/pace/carry-forward logic never has to
+ * branch on cadence itself, just call these.
+ */
+export function cycleEnd(periodStart: Date, frequency: PayFrequency): Date {
+  return frequency === "MONTHLY" ? monthEnd(periodStart) : quincenaEnd(periodStart);
+}
+
+export function cycleLengthDays(periodStart: Date, frequency: PayFrequency): number {
+  return frequency === "MONTHLY" ? monthLengthDays(periodStart) : quincenaLengthDays(periodStart);
+}
+
+/** The day after cycleEnd — used to walk forward through consecutive real cycles (see lib/goal-projection.ts). Generalizes nextQuincenaStart to either cadence. */
+export function nextCycleStart(periodStart: Date, frequency: PayFrequency): Date {
+  return addDays(cycleEnd(periodStart, frequency), 1);
+}
+
+/**
+ * Whether a given day-of-month (a recurring bill's dueDay) has an
+ * occurrence falling within [periodStart, cycleEnd(periodStart, frequency)]
+ * (inclusive both ends). Checks the day's occurrence in periodStart's own
+ * month and the following month -- the only two months a cycle of at most
+ * ~31 days can ever span -- clamping each to that month's real last day the
+ * same way monthEnd does (so a dueDay of 31 still matches a 30-day month's
+ * last day instead of never matching).
+ *
+ * Replaces the old "which half of the month" bucket comparison
+ * (quincenaForDay(dueDay) === quincenaForDay(newCycle's day)), which only
+ * ever worked because a quincena cycle happens to roughly line up with the
+ * calendar's 1-15/16-31 halves. This checks real date containment instead:
+ * for a QUINCENAL cycle (~15 days) a given day-of-month still falls inside
+ * exactly one of the month's two cycles, reproducing the old behavior
+ * exactly; for a MONTHLY cycle (spanning the whole month) every day 1-31
+ * falls inside it, so a MONTHLY-frequency bill now correctly carries into
+ * every cycle -- the only sane behavior once a cycle IS the month.
+ */
+export function dueDayFallsWithinCycle(dueDay: number, periodStart: Date, frequency: PayFrequency): boolean {
+  const rangeStart = startOfDay(periodStart).getTime();
+  const rangeEnd = startOfDay(cycleEnd(periodStart, frequency)).getTime();
+
+  const { year, month } = panamaDateParts(periodStart);
+  const nextMonth1 = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+
+  const occurrences = [
+    panamaMidnight(year, month, Math.min(dueDay, daysInMonth(year, month - 1))),
+    panamaMidnight(nextYear, nextMonth1, Math.min(dueDay, daysInMonth(nextYear, nextMonth1 - 1))),
+  ];
+
+  return occurrences.some((d) => d.getTime() >= rangeStart && d.getTime() <= rangeEnd);
+}
+
+/**
  * Where a quincena's pace actually stands right now — "running" for any
  * day with more than one left, "last-day" for exactly one day left (a
  * per-day rate would just repeat the hero number, so the UI shows a
@@ -90,18 +178,19 @@ export interface QuincenaPace {
  * editing a pay date would make Home's own "N days remaining" disagree
  * with the date range the header shows for the very same cycle.
  */
-export function computeQuincenaPace(input: {
+export function computeCyclePace(input: {
   periodStart: Date;
   periodEnd?: Date | null;
   now: Date;
   amountLeft: number;
   totalExpenses: number;
+  frequency: PayFrequency;
 }): QuincenaPace {
-  const { periodStart, periodEnd, now, amountLeft, totalExpenses } = input;
+  const { periodStart, periodEnd, now, amountLeft, totalExpenses, frequency } = input;
 
-  const cycleEnd = periodEnd ?? quincenaEnd(periodStart);
+  const resolvedCycleEnd = periodEnd ?? cycleEnd(periodStart, frequency);
 
-  const daysRemaining = Math.max(calendarDaysBetween(now, cycleEnd) + 1, 0);
+  const daysRemaining = Math.max(calendarDaysBetween(now, resolvedCycleEnd) + 1, 0);
   const perDay = amountLeft / Math.max(daysRemaining, 1);
 
   const elapsedDays = Math.max(calendarDaysBetween(periodStart, now) + 1, 1);
@@ -110,7 +199,11 @@ export function computeQuincenaPace(input: {
 
   const phase: PacePhase = daysRemaining === 0 ? "ended" : daysRemaining === 1 ? "last-day" : "running";
 
-  const totalDays = quincenaLengthDays(periodStart);
+  // Derived from the SAME resolvedCycleEnd used above (rather than a fresh
+  // quincenaLengthDays(periodStart) call) so this stays consistent once a
+  // payday edit gives a cycle a real periodEnd that diverges from the
+  // calendar formula -- see cycleEnd/daysRemaining's own doc comment.
+  const totalDays = calendarDaysBetween(periodStart, resolvedCycleEnd) + 1;
   const elapsedFraction = Math.min(elapsedDays / totalDays, 1);
 
   return {
@@ -118,7 +211,7 @@ export function computeQuincenaPace(input: {
     perDay,
     phase,
     isLastDay: phase === "last-day",
-    cycleEnd,
+    cycleEnd: resolvedCycleEnd,
     isOverPace,
     elapsedFraction,
   };

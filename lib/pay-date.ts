@@ -27,7 +27,7 @@ function pad(n: number): string {
  * correct everywhere, unconditionally — not just for the two environments
  * this app has happened to run on so far.
  */
-function panamaMidnight(year: number, month: number, day: number): Date {
+export function panamaMidnight(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month - 1, day, 5, 0, 0));
 }
 
