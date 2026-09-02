@@ -1,4 +1,5 @@
 import { disconnectGmailAction } from "../gmail-actions";
+import { useT } from "../../../_components/LocaleProvider";
 
 export interface GmailConnectionInfo {
   googleEmail: string;
@@ -7,21 +8,20 @@ export interface GmailConnectionInfo {
 }
 
 export function GmailConnectionCard({ connection }: { connection: GmailConnectionInfo | null }) {
+  const t = useT();
+
   if (!connection) {
     return (
       <div>
-        <h3>Gmail import</h3>
+        <h3>{t.profile.gmail.title}</h3>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Connect your Gmail to automatically import purchase notifications from your bank — only
-          emails from your bank&apos;s sender address are ever read.
+          {t.profile.gmail.body}
         </p>
         <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-          Google&apos;s permission screen will show read access to your whole inbox — that&apos;s
-          the scope Google requires for this kind of import, not something Balboa asks for beyond
-          it. Balboa&apos;s own code only ever looks at messages from your bank.
+          {t.profile.gmail.scopeNote}
         </p>
         <a href="/api/gmail/connect" className="button button--secondary">
-          Connect Gmail
+          {t.profile.gmail.connect}
         </a>
       </div>
     );
@@ -29,12 +29,12 @@ export function GmailConnectionCard({ connection }: { connection: GmailConnectio
 
   return (
     <div>
-      <h3>Gmail import</h3>
-      <p className="field-hint">Connected as {connection.googleEmail}</p>
+      <h3>{t.profile.gmail.title}</h3>
+      <p className="field-hint">{t.profile.gmail.connectedAs(connection.googleEmail)}</p>
       <p className="field-hint" style={{ marginTop: "0.25rem" }}>
         {connection.lastSyncedAt
-          ? `Last synced: ${connection.lastSyncedAt.toLocaleString()}`
-          : "Not synced yet"}
+          ? t.profile.gmail.lastSynced(connection.lastSyncedAt.toLocaleString())
+          : t.profile.gmail.notSynced}
       </p>
       {connection.lastSyncError && (
         <p className="error-text" style={{ marginTop: "0.25rem" }}>
@@ -50,12 +50,12 @@ export function GmailConnectionCard({ connection }: { connection: GmailConnectio
           // Previously there was no way to do this without disconnecting
           // first, even though the error message told users to reconnect.
           <a href="/api/gmail/connect" className="button button--secondary button--small">
-            Reconnect Gmail
+            {t.profile.gmail.reconnect}
           </a>
         )}
         <form action={disconnectGmailAction}>
           <button type="submit" className="button button--secondary button--small">
-            Disconnect
+            {t.profile.gmail.disconnect}
           </button>
         </form>
       </div>

@@ -14,6 +14,7 @@ import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { EmptyState } from "../../../_components/EmptyState";
 import { PieChart } from "./PieChart";
+import { useT } from "@/app/_components/LocaleProvider";
 
 export interface BreakdownCycleData {
   baseIncome: number;
@@ -26,11 +27,6 @@ export interface BreakdownCycleData {
 
 type Period = "current" | "last";
 
-const SCOPE_OPTIONS: { value: BreakdownScope; label: string }[] = [
-  { value: "full", label: "Full paycheck" },
-  { value: "spending", label: "Spending only" },
-];
-
 export function BreakdownScreen({
   currentCycle,
   lastCycle,
@@ -38,6 +34,11 @@ export function BreakdownScreen({
   currentCycle: BreakdownCycleData;
   lastCycle: BreakdownCycleData | null;
 }) {
+  const t = useT();
+  const SCOPE_OPTIONS: { value: BreakdownScope; label: string }[] = [
+    { value: "full", label: t.transactions.breakdown.fullPaycheck },
+    { value: "spending", label: t.transactions.breakdown.spendingOnly },
+  ];
   const [scope, setScope] = useState<BreakdownScope>("full");
   const [period, setPeriod] = useState<Period>("current");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -105,7 +106,7 @@ export function BreakdownScreen({
             className={`type-toggle-btn ${period === "current" ? "is-active" : ""}`}
             onClick={() => handlePeriodChange("current")}
           >
-            This quincena
+            {t.transactions.breakdown.thisQuincena}
           </button>
           <button
             type="button"
@@ -113,15 +114,15 @@ export function BreakdownScreen({
             onClick={() => handlePeriodChange("last")}
             disabled={!lastCycle}
           >
-            Last quincena
+            {t.transactions.breakdown.lastQuincena}
           </button>
         </div>
       </div>
 
-      {!activeCycle && <EmptyState>No previous quincena yet — close this one first.</EmptyState>}
+      {!activeCycle && <EmptyState>{t.transactions.breakdown.noPreviousQuincena}</EmptyState>}
 
       {activeCycle && breakdown.pieTotal <= 0 && (
-        <EmptyState>Nothing to show for this combination yet.</EmptyState>
+        <EmptyState>{t.transactions.breakdown.nothingToShow}</EmptyState>
       )}
 
       {activeCycle && breakdown.pieTotal > 0 && (
@@ -152,7 +153,7 @@ export function BreakdownScreen({
                     {slice.kind === "other" && slice.members && (
                       <span className="breakdown-legend-sublabel">
                         {" "}
-                        ({slice.members.length} {slice.members.length === 1 ? "category" : "categories"})
+                        {t.transactions.breakdown.categoryCount(slice.members.length)}
                       </span>
                     )}
                   </span>
@@ -185,6 +186,7 @@ function SliceDetailPanel({
   recentTransactions: CycleTransactionSummary[];
   onSelectMember: (key: string) => void;
 }) {
+  const t = useT();
   // "Uncategorized" doesn't map to a real Transactions filter -- a q= search
   // for that literal text wouldn't match transactions that have no category
   // name at all. The recent-transactions preview above still shows what's in it.
@@ -204,12 +206,12 @@ function SliceDetailPanel({
         </span>
       </div>
 
-      {slice.kind === "remaining" && <EmptyState>Not yet spent or saved this quincena.</EmptyState>}
+      {slice.kind === "remaining" && <EmptyState>{t.transactions.breakdown.notYetSpent}</EmptyState>}
 
       {slice.kind === "other" && slice.members && (
         <div className="breakdown-detail-members">
           <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
-            Made up of {slice.members.length} smaller group{slice.members.length === 1 ? "" : "s"}:
+            {t.transactions.breakdown.groupCount(slice.members.length)}
           </p>
           {slice.members.map((member) => (
             <button
@@ -239,11 +241,11 @@ function SliceDetailPanel({
               ))}
             </div>
           ) : (
-            <EmptyState>No transactions logged yet.</EmptyState>
+            <EmptyState>{t.transactions.breakdown.noTransactions}</EmptyState>
           )}
           {!hasNoRealFilter && (
             <Link href={seeAllHref} className="line-item line-item--link">
-              <span>See all</span>
+              <span>{t.transactions.breakdown.seeAll}</span>
               <ChevronRight size={18} aria-hidden="true" />
             </Link>
           )}

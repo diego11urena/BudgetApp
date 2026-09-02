@@ -3,6 +3,7 @@
 import { NeedsAttentionSheet } from "./NeedsAttentionSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
+import { useT } from "@/app/_components/LocaleProvider";
 
 export function NeedsAttentionBanner({
   transactions,
@@ -15,17 +16,15 @@ export function NeedsAttentionBanner({
   incomeCategoryNames: string[];
   savingsCategoryNames: string[];
 }) {
+  const t = useT().dashboard;
   const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
       <button type="button" className="banner banner--action" aria-live="polite" {...triggerProps}>
         <span className="banner-dot" aria-hidden="true" />
-        <span>
-          {transactions.length} transaction{transactions.length === 1 ? "" : "s"} need
-          {transactions.length === 1 ? "s" : ""} more info
-        </span>
-        <span className="banner-action-label">Review</span>
+        <span>{t.needsAttention(transactions.length)}</span>
+        <span className="banner-action-label">{t.review}</span>
       </button>
 
       {open && (

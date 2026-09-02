@@ -10,6 +10,9 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { changePasswordSchema } from "@/lib/validations/onboarding";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { THEME_COOKIE, THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
+import { LOCALE_COOKIE, isLocaleValue, getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 export const signOutAction = withActionErrorHandling(async function signOutAction() {
   await signOut({ redirectTo: "/login" });
@@ -28,12 +31,13 @@ export const changePasswordAction = withActionErrorHandling(async function chang
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const rateLimit = await checkRateLimit(`changepw:${userId}`, CHANGE_PASSWORD_RATE_LIMIT, {
     failClosed: true,
   });
   if (!rateLimit.allowed) {
-    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+    return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
   }
 
   const parsed = changePasswordSchema.safeParse({
@@ -41,7 +45,7 @@ export const changePasswordAction = withActionErrorHandling(async function chang
     newPassword: formData.get("newPassword"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
   const { currentPassword, newPassword } = parsed.data;
 
@@ -50,12 +54,12 @@ export const changePasswordAction = withActionErrorHandling(async function chang
     select: { hashedPassword: true },
   });
   if (!user) {
-    return { error: "Account not found" };
+    return { error: t.profile.changePassword.accountNotFound };
   }
 
   const isValid = await verifyPassword(currentPassword, user.hashedPassword);
   if (!isValid) {
-    return { error: "Current password is incorrect" };
+    return { error: t.profile.changePassword.currentPasswordIncorrect };
   }
 
   const hashedPassword = await hashPassword(newPassword);
@@ -98,6 +102,37 @@ export const setThemeAction = withActionErrorHandling(async function setThemeAct
 
   const cookieStore = await cookies();
   cookieStore.set(THEME_COOKIE, theme, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+});
+
+/**
+ * Same DB-is-source-of-truth / cookie-is-read-cache split as
+ * setThemeAction above. Unlike theme there's no "system" option to defer
+ * to -- just an explicit en/es choice.
+ */
+export const setLocaleAction = withActionErrorHandling(async function setLocaleAction(
+  formData: FormData,
+): Promise<ActionResult | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const raw = formData.get("locale");
+  if (!isLocaleValue(raw)) {
+    return { error: "Invalid language" };
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { locale: raw.toUpperCase() as "EN" | "ES" },
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set(LOCALE_COOKIE, raw, {
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",

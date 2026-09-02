@@ -18,6 +18,18 @@ export async function signUpAndOnboard(
 ): Promise<{ email: string }> {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
 
+  // The app defaults anonymous visitors AND brand-new signups to Spanish
+  // (built for the Panama market -- see lib/i18n/locale.ts's
+  // DEFAULT_LOCALE) unless a balboa-locale cookie already says otherwise.
+  // Every selector in this suite matches English copy, so pre-seed the
+  // cookie before the very first navigation -- signupAction reads it and
+  // carries it onto the new account, same as a real visitor who'd already
+  // switched language before signing up. url (not domain/path separately)
+  // needed here since no navigation has happened yet for the context to
+  // infer a domain from.
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+  await page.context().addCookies([{ name: "balboa-locale", value: "en", url: baseURL }]);
+
   await page.goto("/signup");
   await page.fill('input[name="name"]', "E2E Tester");
   await page.fill('input[name="email"]', email);

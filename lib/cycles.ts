@@ -13,6 +13,7 @@ import {
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 import { quincenaEnd } from "@/lib/quincena-pace";
 import { formatFriendlyDate } from "@/lib/format";
+import type { Dictionary } from "@/lib/i18n/dictionary";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -461,23 +462,25 @@ export async function assessPayDateChange(
   userId: string,
   cycle: Pick<BudgetCycle, "id" | "periodStart">,
   newPeriodStart: Date,
+  t: Dictionary["dashboard"]["editPayInfo"],
 ): Promise<PayDateChangeResult> {
   const { previous, next } = await getAdjacentCycles(userId, cycle);
 
   if (previous && newPeriodStart.getTime() <= previous.periodStart.getTime()) {
     return {
       ok: false,
-      error: `Pay date must be after ${formatFriendlyDate(previous.periodStart)}${
-        next ? ` and before ${formatFriendlyDate(next.periodStart)}` : ""
-      }.`,
+      error: next
+        ? t.payDateAfterAndBefore(formatFriendlyDate(previous.periodStart), formatFriendlyDate(next.periodStart))
+        : t.payDateAfter(formatFriendlyDate(previous.periodStart)),
     };
   }
   if (next && newPeriodStart.getTime() >= next.periodStart.getTime()) {
     return {
       ok: false,
-      error: `Pay date must be after ${
-        previous ? formatFriendlyDate(previous.periodStart) : "the start of your history"
-      } and before ${formatFriendlyDate(next.periodStart)}.`,
+      error: t.payDateAfterAndBefore(
+        previous ? formatFriendlyDate(previous.periodStart) : t.startOfHistory,
+        formatFriendlyDate(next.periodStart),
+      ),
     };
   }
 

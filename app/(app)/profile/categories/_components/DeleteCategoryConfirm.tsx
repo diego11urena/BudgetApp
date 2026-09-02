@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "../../../_components/Sheet";
 import { deleteCategoryAction } from "../../category-actions";
 import type { CategoryWithUsage } from "./types";
+import { useT } from "../../../../_components/LocaleProvider";
 
 /**
  * Delete is allowed regardless of usage (a confirmed product decision) —
@@ -28,6 +29,7 @@ export function DeleteCategoryConfirm({
   const [visible, setVisible] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -60,7 +62,7 @@ export function DeleteCategoryConfirm({
   return (
     <Sheet
       visible={visible}
-      title={`Delete ${category.name}?`}
+      title={t.profile.categories.deleteConfirm.title(category.name)}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleClose}
       closeOnBackdropClick={!pending}
@@ -70,12 +72,12 @@ export function DeleteCategoryConfirm({
         {hasUsage ? (
           <>
             {category.transactionCount > 0 &&
-              `${category.transactionCount} transaction${category.transactionCount === 1 ? "" : "s"} will become Uncategorized. `}
-            {category.hasBudgetGoal && "Its budget history will be permanently deleted. "}
-            This can&apos;t be undone.
+              t.profile.categories.deleteConfirm.willBecomeUncategorized(category.transactionCount)}
+            {category.hasBudgetGoal && t.profile.categories.deleteConfirm.budgetHistoryDeleted}
+            {t.profile.categories.deleteConfirm.cannotBeUndone}
           </>
         ) : (
-          `It has no transactions or budget history — this can't be undone.`
+          t.profile.categories.deleteConfirm.noHistoryNoUndo
         )}
       </p>
       {error && <p className="error-text">{error}</p>}
@@ -85,7 +87,7 @@ export function DeleteCategoryConfirm({
         onClick={handleDelete}
         disabled={pending}
       >
-        {pending ? "Deleting..." : "Delete category"}
+        {pending ? t.profile.categories.deleteConfirm.deleting : t.profile.categories.deleteConfirm.delete}
       </button>
       <button
         type="button"
@@ -93,7 +95,7 @@ export function DeleteCategoryConfirm({
         onClick={handleClose}
         disabled={pending}
       >
-        Cancel
+        {t.profile.categories.deleteConfirm.cancel}
       </button>
     </Sheet>
   );

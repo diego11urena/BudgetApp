@@ -4,20 +4,22 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signupAction, type SignupFormState } from "./actions";
 import { AuthShell } from "../_components/AuthShell";
+import { useT } from "@/app/_components/LocaleProvider";
 
 const initialState: SignupFormState = undefined;
 
 export default function SignupPage() {
+  const t = useT();
   const [state, formAction, pending] = useActionState(signupAction, initialState);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   return (
-    <AuthShell title="Start your first quincena." subtitle="Two minutes to set up.">
+    <AuthShell title={t.auth.signup.title} subtitle={t.auth.signup.subtitle}>
       <form action={formAction} className="auth-form">
         <div className="field">
-          <label htmlFor="name">Name</label>
+          <label htmlFor="name">{t.auth.signup.nameLabel}</label>
           <input
             id="name"
             name="name"
@@ -30,7 +32,7 @@ export default function SignupPage() {
           />
         </div>
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t.auth.signup.emailLabel}</label>
           <input
             id="email"
             name="email"
@@ -43,7 +45,7 @@ export default function SignupPage() {
           />
         </div>
         <div className="field">
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">{t.auth.signup.passwordLabel}</label>
           <input
             id="password"
             name="password"
@@ -55,7 +57,7 @@ export default function SignupPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="auth-input"
           />
-          <span className="field-hint">At least 8 characters.</span>
+          <span className="field-hint">{t.auth.signup.passwordHint}</span>
         </div>
 
         {state?.error && (
@@ -65,12 +67,13 @@ export default function SignupPage() {
         )}
 
         <button type="submit" className="button auth-submit" disabled={pending || !name || !email || !password}>
-          {pending ? "Creating account..." : "Create account"}
+          {pending ? t.auth.signup.submitting : t.auth.signup.submit}
         </button>
       </form>
 
       <p className="auth-bottom-link">
-        Already have an account? <Link href="/login">Log in</Link>
+        {t.auth.signup.alreadyHaveAccount}
+        <Link href="/login">{t.auth.signup.logIn}</Link>
       </p>
     </AuthShell>
   );

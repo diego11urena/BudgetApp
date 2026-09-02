@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { upsertGoalAction, type GoalFormState } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import { CurrencyInput } from "../../_components/CurrencyInput";
+import { useT } from "@/app/_components/LocaleProvider";
 
 const initialState: GoalFormState = undefined;
 
@@ -15,6 +16,7 @@ export function GoalForm({
   /** Called once, right after a submit completes with no error — lets a caller close the sheet this form lives in. */
   onSuccess?: () => void;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(upsertGoalAction, initialState);
   const wasPending = useRef(false);
   // Progressive disclosure, same reasoning as QuickAddSheet's custom-
@@ -33,23 +35,23 @@ export function GoalForm({
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="goal-name">Goal name</label>
+        <label htmlFor="goal-name">{t.goals.goalNameLabel}</label>
         <CategoryNameInput
           id="goal-name"
           name="name"
           categoryNames={categoryNames}
-          placeholder="Search or add a goal…"
+          placeholder={t.goals.goalNamePlaceholder}
           showChips={false}
         />
       </div>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-          <label htmlFor="goal-lifetime">Total goal (USD)</label>
+          <label htmlFor="goal-lifetime">{t.goals.totalGoalLabel}</label>
           <CurrencyInput id="goal-lifetime" name="lifetimeTargetAmount" required />
         </div>
         <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-          <label htmlFor="goal-recurring">Per-cycle contribution (optional)</label>
-          <CurrencyInput id="goal-recurring" name="recurringAmount" allowEmpty placeholder="200.00" />
+          <label htmlFor="goal-recurring">{t.goals.perCycleLabel}</label>
+          <CurrencyInput id="goal-recurring" name="recurringAmount" allowEmpty placeholder={t.goals.perCyclePlaceholder} />
         </div>
       </div>
 
@@ -59,18 +61,18 @@ export function GoalForm({
           checked={hasAlreadySaved}
           onChange={(e) => setHasAlreadySaved(e.target.checked)}
         />
-        Do you already have money saved toward this goal?
+        {t.goals.alreadySavedQuestion}
       </label>
       {hasAlreadySaved && (
         <div className="field">
-          <label htmlFor="goal-already-saved">Already saved (USD)</label>
-          <CurrencyInput id="goal-already-saved" name="alreadySavedAmount" allowEmpty placeholder="450.00" />
+          <label htmlFor="goal-already-saved">{t.goals.alreadySavedLabel}</label>
+          <CurrencyInput id="goal-already-saved" name="alreadySavedAmount" allowEmpty placeholder={t.goals.alreadySavedPlaceholder} />
         </div>
       )}
 
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending}>
-          {pending ? "Saving..." : "Save goal"}
+          {pending ? t.goals.saving : t.goals.saveGoal}
         </button>
       </div>
       {state?.error && (

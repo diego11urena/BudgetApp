@@ -1,13 +1,16 @@
 import { hourInPanama } from "@/lib/pay-date";
 import { EditPayInfoButton } from "./EditPayInfoButton";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import type { Dictionary } from "@/lib/i18n/dictionary";
 
-function getGreeting(hour: number): string {
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+function getGreeting(hour: number, t: Dictionary["dashboard"]): string {
+  if (hour < 12) return t.greetingMorning;
+  if (hour < 18) return t.greetingAfternoon;
+  return t.greetingEvening;
 }
 
-export function Header({
+export async function Header({
   name,
   currentPayAmount,
   currentPayDate,
@@ -27,7 +30,9 @@ export function Header({
   /** "Aug 16 – Aug 31" -- lib/format.ts's formatCycleRangeLabel, precomputed by the page since it needs both periodStart and periodEnd. */
   dateRangeLabel: string;
 }) {
-  const greeting = getGreeting(hourInPanama());
+  const dict = getDictionary(await getRequestLocale());
+  const t = dict.dashboard;
+  const greeting = getGreeting(hourInPanama(), t);
   const firstName = name?.trim().split(/\s+/)[0];
 
   return (
@@ -37,12 +42,9 @@ export function Header({
             visible page title (the greeting fills that role visually) --
             a real, if visually-hidden, <h1> is still required so it isn't
             the one route in the app with zero level-1 headings. */}
-        <h1 className="sr-only">Dashboard</h1>
-        <p className="home-greeting">
-          {greeting}
-          {firstName ? `, ${firstName}` : ""}
-        </p>
-        <p className="home-month">{dateRangeLabel} · this quincena</p>
+        <h1 className="sr-only">{dict.nav.home}</h1>
+        <p className="home-greeting">{firstName ? t.greeting(greeting, firstName) : greeting}</p>
+        <p className="home-month">{t.dateRange(dateRangeLabel)}</p>
       </div>
       <EditPayInfoButton
         currentAmount={currentPayAmount}

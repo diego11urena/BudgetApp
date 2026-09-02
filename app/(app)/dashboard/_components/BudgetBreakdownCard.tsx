@@ -1,5 +1,7 @@
 import { formatCurrency } from "@/lib/format";
 import type { RecurringExpensesSummary } from "@/lib/recurring-expenses";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 /**
  * Merges what used to be two adjacent cards (Income/Saved, and the fixed
@@ -15,7 +17,7 @@ import type { RecurringExpensesSummary } from "@/lib/recurring-expenses";
  * RecurringExpensesSummary /budget itself is built from, can't disagree
  * with it the way two independent dollar totals could.
  */
-export function BudgetBreakdownCard({
+export async function BudgetBreakdownCard({
   baseIncome,
   extraIncome,
   saved,
@@ -26,22 +28,21 @@ export function BudgetBreakdownCard({
   saved: number;
   recurringExpenses: RecurringExpensesSummary;
 }) {
+  const t = getDictionary(await getRequestLocale()).dashboard;
   return (
     <div>
       <div className="summary-row summary-row--home">
         <div className="summary-item">
-          <span className="summary-label">Income</span>
+          <span className="summary-label">{t.statIncome}</span>
           <span className="summary-value summary-value--good">
             {formatCurrency(baseIncome + extraIncome)}
           </span>
           {extraIncome > 0 && (
-            <span className="summary-sub">
-              {formatCurrency(baseIncome)} base + {formatCurrency(extraIncome)} extra
-            </span>
+            <span className="summary-sub">{t.baseExtra(formatCurrency(baseIncome), formatCurrency(extraIncome))}</span>
           )}
         </div>
         <div className="summary-item">
-          <span className="summary-label">Saved</span>
+          <span className="summary-label">{t.statSaved}</span>
           <span className="summary-value summary-value--good">{formatCurrency(saved)}</span>
         </div>
       </div>
@@ -49,14 +50,12 @@ export function BudgetBreakdownCard({
       {recurringExpenses.totalCount > 0 && (
         <div className="card-divider">
           <div className="progress-bar-label">
-            <span>Bills</span>
-            <span>
-              {recurringExpenses.paidCount} of {recurringExpenses.totalCount} paid
-            </span>
+            <span>{t.bills}</span>
+            <span>{t.billsPaidOfTotal(recurringExpenses.paidCount, recurringExpenses.totalCount)}</span>
           </div>
           {recurringExpenses.pendingAmount > 0 && (
             <p className="field-hint" style={{ marginTop: "0.5rem" }}>
-              {formatCurrency(recurringExpenses.pendingAmount)} pending
+              {t.pendingAmount(formatCurrency(recurringExpenses.pendingAmount))}
             </p>
           )}
         </div>

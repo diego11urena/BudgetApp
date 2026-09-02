@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { saveIncomeAction, type IncomeFormState } from "./actions";
 import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
+import { useT } from "@/app/_components/LocaleProvider";
 
 const initialState: IncomeFormState = undefined;
 
@@ -11,12 +12,13 @@ export interface IncomeFormInitial {
 }
 
 export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(saveIncomeAction, initialState);
 
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="netQuincenaAmount">Net pay per quincena (USD)</label>
+        <label htmlFor="netQuincenaAmount">{t.onboarding.income.label}</label>
         <CurrencyInput
           id="netQuincenaAmount"
           name="netQuincenaAmount"
@@ -26,10 +28,7 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
           invalid={!!state?.error}
           describedBy={state?.error ? "income-amount-error" : undefined}
         />
-        <span className="field-hint">
-          What actually lands in your account each quincena — after any taxes or deductions
-          are already taken out elsewhere.
-        </span>
+        <span className="field-hint">{t.onboarding.income.hint}</span>
       </div>
 
       {state?.error && (
@@ -40,7 +39,7 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
 
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending}>
-          {pending ? "Saving..." : "Continue"}
+          {pending ? t.onboarding.income.saving : t.onboarding.income.continue}
         </button>
       </div>
     </form>

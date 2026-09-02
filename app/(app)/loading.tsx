@@ -1,4 +1,6 @@
 import { Skeleton } from "../_components/Skeleton";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 /**
  * The shared (app) layout's own fallback — shown while its own data
@@ -10,10 +12,11 @@ import { Skeleton } from "../_components/Skeleton";
  * shape to match. Real Postgres queries are fast enough that any of these
  * skeletons rarely show for more than a flash.
  */
-export default function Loading() {
+export default async function Loading() {
+  const t = getDictionary(await getRequestLocale());
   return (
     <div className="home-page" role="status">
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{t.common.loading}</span>
       <Skeleton title />
       <div className="dashboard-section dashboard-section--plain">
         <Skeleton h="2xl" />

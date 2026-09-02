@@ -1,6 +1,8 @@
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { computeQuincenaPace } from "@/lib/quincena-pace";
 import { HeroCardActions } from "./HeroCardActions";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 /**
  * Server component -- the label/value/pace text below is pure display over
@@ -9,7 +11,7 @@ import { HeroCardActions } from "./HeroCardActions";
  * its own doc comment for why that split is worth it here specifically
  * (this card renders on every Home/History-detail load).
  */
-export function HeroCard({
+export async function HeroCard({
   amountLeft,
   periodStart,
   periodEnd = null,
@@ -27,6 +29,7 @@ export function HeroCard({
   /** Sum of (targetAmount - actual), floored at 0, across this cycle's still-unpaid bills -- e.g. RecurringExpensesSummary.pendingAmount. Subtracted from amountLeft for the headline number (see below); defaults 0 (no adjustment) for callers that don't have it, e.g. History's closed-cycle view, where "safety margin" isn't a meaningful concept for a period that's already over. */
   pendingBills?: number;
 }) {
+  const t = getDictionary(await getRequestLocale()).dashboard;
   // The hero number used to be raw amountLeft -- money that still includes
   // whatever's sitting in unpaid bills (e.g. rent not paid yet). That reads
   // as more spendable than it really is, and worst in the first half of
@@ -42,13 +45,13 @@ export function HeroCard({
 
   return (
     <div className="hero-card">
-      <p className="hero-label">{closed ? "Final available" : "Safe to spend"}</p>
+      <p className="hero-label">{closed ? t.heroFinalAvailable : t.heroSafeToSpend}</p>
       <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
         {formatCurrency(safeToSpend)}
       </p>
       {!closed && pendingBills > 0 && (
         <p className="hero-subtitle">
-          {formatCurrency(amountLeft)} available · {formatCurrency(pendingBills)} in unpaid bills
+          {t.heroAvailableSummary(formatCurrency(amountLeft), formatCurrency(pendingBills))}
         </p>
       )}
       {!closed && pace && (
@@ -61,9 +64,7 @@ export function HeroCard({
               <div className="hero-elapsed-track">
                 <div className="hero-elapsed-fill" style={{ width: `${pace.elapsedFraction * 100}%` }} />
               </div>
-              <span className="hero-elapsed-label">
-                {pace.daysRemaining} day{pace.daysRemaining === 1 ? "" : "s"} left
-              </span>
+              <span className="hero-elapsed-label">{t.heroDaysLeft(pace.daysRemaining)}</span>
             </div>
           )}
           {/* No separate subtitle line -- "Remaining this Quincena" used to
@@ -78,10 +79,9 @@ export function HeroCard({
               longer read into the class list here. */}
           <div className="hero-pace-row">
             <p className="hero-pace">
-              {pace.phase === "running" && `Pace ~${formatCurrency(pace.perDay)}/day`}
-              {pace.phase === "last-day" && `Last day · ${formatCurrency(safeToSpend)} to spend`}
-              {pace.phase === "ended" &&
-                `Quincena ended ${formatFriendlyDate(pace.cycleEnd)} · tap "I just got paid"`}
+              {pace.phase === "running" && t.heroPacePerDay(formatCurrency(pace.perDay))}
+              {pace.phase === "last-day" && t.heroLastDay(formatCurrency(safeToSpend))}
+              {pace.phase === "ended" && t.heroCycleEnded(formatFriendlyDate(pace.cycleEnd))}
             </p>
             <HeroCardActions />
           </div>

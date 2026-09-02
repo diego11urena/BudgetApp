@@ -15,6 +15,8 @@ import { recurringExpenseSchema } from "@/lib/validations/budget";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { paymentMethodSchema } from "@/lib/validations/transactions";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 export type RecurringExpenseFormState = ActionResult | undefined;
 
@@ -28,6 +30,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const parsed = recurringExpenseSchema.safeParse({
     name: formData.get("name"),
@@ -40,7 +43,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     return {
-      error: issue?.message ?? "Invalid input",
+      error: issue?.message ?? t.common.invalidInput,
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
@@ -84,17 +87,18 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) {
-    return { error: "Missing recurring expense" };
+    return { error: t.budget.errors.missingRecurringExpense };
   }
 
   // Ownership-scoped: a plain update({ where: { id } }) would let a user
   // edit another user's row by guessing an id.
   const existing = await prisma.recurringExpense.findFirst({ where: { id, userId } });
   if (!existing) {
-    return { error: "Recurring expense not found" };
+    return { error: t.budget.errors.recurringExpenseNotFound };
   }
 
   const parsed = recurringExpenseSchema.safeParse({
@@ -107,7 +111,7 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     return {
-      error: issue?.message ?? "Invalid input",
+      error: issue?.message ?? t.common.invalidInput,
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
@@ -186,15 +190,16 @@ export const deleteRecurringExpenseAction = withActionErrorHandling(async functi
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const id = formData.get("id");
   if (typeof id !== "string" || !id) {
-    return { error: "Missing recurring expense" };
+    return { error: t.budget.errors.missingRecurringExpense };
   }
 
   const existing = await prisma.recurringExpense.findFirst({ where: { id, userId } });
   if (!existing) {
-    return { error: "Recurring expense not found" };
+    return { error: t.budget.errors.recurringExpenseNotFound };
   }
 
   const cycle = await getOrCreateDraftCycle(userId);
@@ -238,6 +243,7 @@ export const restoreRecurringExpenseAction = withActionErrorHandling(async funct
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const recurringExpenseId = formData.get("recurringExpenseId");
   const cycleId = formData.get("cycleId");
@@ -250,7 +256,7 @@ export const restoreRecurringExpenseAction = withActionErrorHandling(async funct
     typeof targetAmount !== "string" ||
     !targetAmount
   ) {
-    return { error: "Invalid undo payload" };
+    return { error: t.budget.errors.invalidUndoPayload };
   }
   // A toast's client-held snapshot resubmitted verbatim -- same untrusted-
   // input boundary create/update already validate through, so undo can't
@@ -263,11 +269,11 @@ export const restoreRecurringExpenseAction = withActionErrorHandling(async funct
   // Ownership-scoped, same reasoning as every other action here.
   const existing = await prisma.recurringExpense.findFirst({ where: { id: recurringExpenseId, userId } });
   if (!existing) {
-    return { error: "Recurring expense not found" };
+    return { error: t.budget.errors.recurringExpenseNotFound };
   }
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
   if (!cycle) {
-    return { error: "Cycle not found" };
+    return { error: t.budget.errors.cycleNotFound };
   }
 
   await prisma.$transaction(async (tx) => {
@@ -295,15 +301,16 @@ export const recordRecurringExpensePaymentAction = withActionErrorHandling(async
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const recurringExpenseId = formData.get("recurringExpenseId");
   if (typeof recurringExpenseId !== "string" || !recurringExpenseId) {
-    return { error: "Missing recurring expense" };
+    return { error: t.budget.errors.missingRecurringExpense };
   }
 
   const existing = await prisma.recurringExpense.findFirst({ where: { id: recurringExpenseId, userId } });
   if (!existing) {
-    return { error: "Recurring expense not found" };
+    return { error: t.budget.errors.recurringExpenseNotFound };
   }
 
   const amountRaw = formData.get("amount");
@@ -311,7 +318,7 @@ export const recordRecurringExpensePaymentAction = withActionErrorHandling(async
     typeof amountRaw === "string" && amountRaw ? amountRaw : existing.amount.toString(),
   );
   if (!parsedAmount.success) {
-    return { error: parsedAmount.error.issues[0]?.message ?? "Invalid amount" };
+    return { error: parsedAmount.error.issues[0]?.message ?? t.budget.errors.invalidAmount };
   }
 
   const paymentMethodParsed = paymentMethodSchema.safeParse(formData.get("paymentMethod"));
@@ -352,14 +359,15 @@ export const confirmRecurringExpenseMatchAction = withActionErrorHandling(async 
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const transactionId = formData.get("transactionId");
   const recurringExpenseId = formData.get("recurringExpenseId");
   if (typeof transactionId !== "string" || !transactionId) {
-    return { error: "Missing transaction" };
+    return { error: t.budget.errors.missingTransaction };
   }
   if (typeof recurringExpenseId !== "string" || !recurringExpenseId) {
-    return { error: "Missing recurring expense" };
+    return { error: t.budget.errors.missingRecurringExpense };
   }
 
   // Ownership- and cycle-scoped: both rows must belong to this user, and
@@ -370,13 +378,13 @@ export const confirmRecurringExpenseMatchAction = withActionErrorHandling(async 
     prisma.recurringExpense.findFirst({ where: { id: recurringExpenseId, userId } }),
   ]);
   if (!transaction) {
-    return { error: "Transaction not found" };
+    return { error: t.budget.errors.transactionNotFound };
   }
   if (!recurringExpense) {
-    return { error: "Recurring expense not found" };
+    return { error: t.budget.errors.recurringExpenseNotFound };
   }
   if (transaction.expenseCategoryId !== recurringExpense.categoryId) {
-    return { error: "That transaction isn't in this recurring expense's category" };
+    return { error: t.budget.errors.categoryMismatch };
   }
 
   await prisma.cycleTransaction.update({

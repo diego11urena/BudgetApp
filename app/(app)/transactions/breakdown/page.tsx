@@ -7,6 +7,8 @@ import { getMostRecentClosedCycle, getOrCreateDraftCycle } from "@/lib/cycles";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import { withUncategorizedBucket, type GroupTotal } from "@/lib/paycheck-breakdown";
 import { BreakdownScreen, type BreakdownCycleData } from "./_components/BreakdownScreen";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
   const categoryTotals: GroupTotal[] = financials.categoryTotals.map((c) => ({
@@ -25,7 +27,10 @@ function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
   };
 }
 
-export const metadata: Metadata = { title: "Paycheck Breakdown" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.transactions.breakdown.metaTitle };
+}
 
 export default async function PaycheckBreakdownPage() {
   const session = await auth();
@@ -33,6 +38,7 @@ export default async function PaycheckBreakdownPage() {
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const cycle = await getOrCreateDraftCycle(userId);
   const lastClosedCycle = await getMostRecentClosedCycle(userId);
@@ -48,11 +54,11 @@ export default async function PaycheckBreakdownPage() {
   return (
     <div className="home-page">
       <Link href="/transactions" className="back-link">
-        <ChevronLeft size={16} aria-hidden="true" /> Back to Activity
+        <ChevronLeft size={16} aria-hidden="true" /> {t.transactions.breakdown.backToActivity}
       </Link>
-      <h1 className="page-title">Paycheck Breakdown</h1>
+      <h1 className="page-title">{t.transactions.breakdown.title}</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        Where this quincena&apos;s income went, and what&apos;s left.
+        {t.transactions.breakdown.subtitle}
       </p>
 
       <div className="dashboard-section">

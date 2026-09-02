@@ -19,9 +19,9 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 }
 
 /** "Today" / "Yesterday" / "Aug 1, 2026" — lib/format.ts's formatFriendlyDate for anything older. */
-export function formatGroupDateLabel(date: Date, now: Date = new Date()): string {
-  if (isSameCalendarDay(date, now)) return "Today";
-  if (isSameCalendarDay(date, addDays(now, -1))) return "Yesterday";
+export function formatGroupDateLabel(date: Date, labels: { today: string; yesterday: string }, now: Date = new Date()): string {
+  if (isSameCalendarDay(date, now)) return labels.today;
+  if (isSameCalendarDay(date, addDays(now, -1))) return labels.yesterday;
   return formatFriendlyDate(date);
 }
 
@@ -33,11 +33,12 @@ export function formatGroupDateLabel(date: Date, now: Date = new Date()): string
  */
 export function groupTransactionsByDate<T extends { occurredAt: Date }>(
   items: T[],
+  labels: { today: string; yesterday: string },
   now: Date = new Date(),
 ): TransactionDateGroup<T>[] {
   const groups: TransactionDateGroup<T>[] = [];
   for (const item of items) {
-    const label = formatGroupDateLabel(item.occurredAt, now);
+    const label = formatGroupDateLabel(item.occurredAt, labels, now);
     const lastGroup = groups[groups.length - 1];
     if (lastGroup && lastGroup.label === label) {
       lastGroup.items.push(item);

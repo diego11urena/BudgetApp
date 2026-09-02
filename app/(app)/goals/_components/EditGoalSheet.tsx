@@ -7,7 +7,8 @@ import { CategoryNameInput } from "../../_components/CategoryNameInput";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { Sheet } from "../../_components/Sheet";
 import { formatCurrency } from "@/lib/format";
-import { INVALID_AMOUNT_FORMAT_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
+import { validateAmountFormat } from "@/lib/validations/shared";
+import { useT } from "@/app/_components/LocaleProvider";
 
 export interface EditableGoal {
   categoryId: string;
@@ -41,6 +42,7 @@ export function EditGoalSheet({
   returnFocusTo?: HTMLElement | null;
   onDone: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [lifetimeTargetAmount, setLifetimeTargetAmount] = useState(goal.lifetimeTargetAmount.toFixed(2));
@@ -93,7 +95,7 @@ export function EditGoalSheet({
       router.refresh();
       handleClose();
     } catch {
-      setError("Something went wrong. Your changes weren't saved — please try again.");
+      setError(t.goals.savedError);
     } finally {
       setPending(false);
     }
@@ -109,12 +111,12 @@ export function EditGoalSheet({
     // Explicit checks instead of relying on native input validation — same
     // pattern as every other sheet form in this app (noValidate below).
     if (!name) {
-      setError("Give it a name");
+      setError(t.goals.nameRequired);
       setErrorField("name");
       return;
     }
     if (validateAmountFormat(lifetimeTargetAmount) || Number(lifetimeTargetAmount) <= 0) {
-      setError(INVALID_AMOUNT_FORMAT_MESSAGE);
+      setError(t.validations.invalidAmount);
       setErrorField("target");
       return;
     }
@@ -122,7 +124,7 @@ export function EditGoalSheet({
     // sign, so anything that passes is already non-negative (savedSoFar,
     // unlike lifetimeTargetAmount, is allowed to be exactly 0).
     if (validateAmountFormat(savedSoFar)) {
-      setError(INVALID_AMOUNT_FORMAT_MESSAGE);
+      setError(t.validations.invalidAmount);
       setErrorField("saved");
       return;
     }
@@ -146,10 +148,10 @@ export function EditGoalSheet({
   const errorId = `${uid}-error`;
 
   return (
-    <Sheet visible={visible} title="Edit goal" onClose={handleClose} returnFocusTo={returnFocusTo}>
+    <Sheet visible={visible} title={t.goals.editTitle} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor={nameId}>Goal name</label>
+          <label htmlFor={nameId}>{t.goals.goalNameLabel}</label>
           <CategoryNameInput
             id={nameId}
             name="name"
@@ -163,7 +165,7 @@ export function EditGoalSheet({
 
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label htmlFor={targetId}>Total goal (USD)</label>
+            <label htmlFor={targetId}>{t.goals.totalGoalLabel}</label>
             <CurrencyInput
               id={targetId}
               defaultValue={lifetimeTargetAmount}
@@ -174,19 +176,19 @@ export function EditGoalSheet({
             />
           </div>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label htmlFor={recurringId}>Per-cycle contribution</label>
+            <label htmlFor={recurringId}>{t.goals.perCycleLabel}</label>
             <CurrencyInput
               id={recurringId}
               defaultValue={recurringAmount}
               onValueChange={setRecurringAmount}
               allowEmpty
-              placeholder="Optional"
+              placeholder={t.goals.optionalPlaceholder}
             />
           </div>
         </div>
 
         <div className="field">
-          <label htmlFor={savedId}>Amount saved so far</label>
+          <label htmlFor={savedId}>{t.goals.alreadySavedLabel}</label>
           <CurrencyInput
             id={savedId}
             defaultValue={savedSoFar}
@@ -206,8 +208,8 @@ export function EditGoalSheet({
         {pendingChange !== null && (
           <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
             {isIncrease
-              ? `You're increasing the amount saved toward this goal by ${formatCurrency(pendingChange.delta)}. Would you like to record this as a transaction?`
-              : `You're decreasing the amount saved toward this goal by ${formatCurrency(Math.abs(pendingChange.delta))}. Would you like to record this as a withdrawal?`}
+              ? t.goals.increaseConfirm(formatCurrency(pendingChange.delta))
+              : t.goals.decreaseConfirm(formatCurrency(Math.abs(pendingChange.delta)))}
           </p>
         )}
 
@@ -219,7 +221,7 @@ export function EditGoalSheet({
               disabled={pending}
               onClick={() => submitGoal(pendingChange.name, pendingChange.delta, true)}
             >
-              {pending ? "Saving..." : isIncrease ? "Yes, record as transaction" : "Yes, record as withdrawal"}
+              {pending ? t.goals.saving : isIncrease ? t.goals.recordAsTransaction : t.goals.recordAsWithdrawal}
             </button>
             <button
               type="button"
@@ -227,7 +229,7 @@ export function EditGoalSheet({
               disabled={pending}
               onClick={() => submitGoal(pendingChange.name, pendingChange.delta, false)}
             >
-              {pending ? "Saving..." : "No, just update the goal"}
+              {pending ? t.goals.saving : t.goals.justUpdate}
             </button>
             <button
               type="button"
@@ -235,12 +237,12 @@ export function EditGoalSheet({
               disabled={pending}
               onClick={() => setPendingChange(null)}
             >
-              Cancel
+              {t.goals.cancel}
             </button>
           </>
         ) : (
           <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? "Saving..." : "Save"}
+            {pending ? t.goals.saving : t.goals.save}
           </button>
         )}
       </form>
@@ -252,7 +254,7 @@ export function EditGoalSheet({
           onClick={handleClose}
           disabled={pending}
         >
-          Cancel
+          {t.goals.cancel}
         </button>
       )}
     </Sheet>

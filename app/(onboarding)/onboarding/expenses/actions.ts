@@ -7,6 +7,9 @@ import { getOrCreateDraftCycle, recomputeCategoryBudgetGoal } from "@/lib/cycles
 import { getOrCreateCategory } from "@/lib/categories";
 import { budgetLineItemsSchema } from "@/lib/validations/onboarding";
 import type { ActionResult } from "@/lib/action-error";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 export type ExpensesFormState = ActionResult | undefined;
 
@@ -14,6 +17,8 @@ export async function saveExpensesAction(
   _prevState: ExpensesFormState,
   formData: FormData,
 ): Promise<ExpensesFormState> {
+  const t = getDictionary(await getRequestLocale());
+
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -25,12 +30,12 @@ export async function saveExpensesAction(
   try {
     rawItems = JSON.parse(typeof raw === "string" ? raw : "[]");
   } catch {
-    return { error: "Invalid submission" };
+    return { error: t.common.invalidInput };
   }
 
   const parsed = budgetLineItemsSchema.safeParse({ items: rawItems });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
 
   const cycle = await getOrCreateDraftCycle(userId);

@@ -4,6 +4,8 @@ import { parseDateOnly } from "./pay-date";
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
 import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "./recurring-expenses";
 import type { GoalWithProgress } from "./goals";
+import type { Dictionary } from "./i18n/dictionary";
+import { en } from "./i18n/dictionaries/en";
 
 let nextTransactionId = 0;
 function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
@@ -47,6 +49,7 @@ function makeExtras(
     recurringExpenseCategories: CategoryWithRecurringExpenses[];
     goals: GoalWithProgress[];
     now: Date;
+    t: Dictionary["insights"];
   }> = {},
 ) {
   const periodStart = parseDateOnly("2026-08-03")!;
@@ -55,6 +58,11 @@ function makeExtras(
     recurringExpenseCategories: [],
     goals: [],
     now: periodStart,
+    // English fixed here rather than parameterized -- these tests assert on
+    // exact rendered strings (see every `expect(insights).toEqual([{ text:
+    // "..." }])` below), so the dictionary itself is what's under test for
+    // wiring correctness, not a thing that should vary per test run.
+    t: en.insights,
     ...overrides,
   };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/app/_components/LocaleProvider";
 
 const TOP_CHIP_COUNT = 6;
 const MAX_SUGGESTIONS = 8;
@@ -52,6 +53,7 @@ export function CategoryNameInput({
    */
   onValueChange?: (value: string) => void;
 }) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState(defaultValue ?? "");
   const [open, setOpen] = useState(false);
@@ -161,7 +163,7 @@ export function CategoryNameInput({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => select(value.trim())}
                 >
-                  + Create new: &quot;{value.trim()}&quot;
+                  {t.quickAdd.createNew(value.trim())}
                 </button>
               </li>
             )}

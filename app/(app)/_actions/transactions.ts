@@ -17,6 +17,10 @@ import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/
 import { nowInPanama, panamaDateParts, parseDateOnly, parseTransactionDate } from "@/lib/pay-date";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import type { PaymentMethod } from "@/lib/payment-method";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
+import type { Dictionary } from "@/lib/i18n/dictionary";
 
 /**
  * Success carries the row's id — used by a "Logged · Undo" toast to delete
@@ -50,7 +54,7 @@ export type DeleteTransactionResult = ActionResult<{ deleted: DeletedTransaction
  * resolution, date validation, the recurring-link transition) genuinely
  * diverges between the two and stays separate.
  */
-function parseTransactionFields(formData: FormData): { error: string } | AddTransactionInput {
+function parseTransactionFields(formData: FormData, t: Dictionary): { error: string } | AddTransactionInput {
   const parsed = addTransactionSchema.safeParse({
     type: formData.get("type"),
     name: formData.get("name"),
@@ -61,7 +65,7 @@ function parseTransactionFields(formData: FormData): { error: string } | AddTran
     description: formData.get("description") ?? undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
   return parsed.data;
 }
@@ -75,8 +79,9 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
-  const parsed = parseTransactionFields(formData);
+  const parsed = parseTransactionFields(formData, t);
   if ("error" in parsed) {
     return { error: parsed.error };
   }
@@ -94,7 +99,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
       ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
       : await getOrCreateDraftCycle(userId);
   if (!cycle) {
-    return { error: "Quincena not found" };
+    return { error: t.dashboard.quincenaNotFound };
   }
 
   let occurredAtDate = nowInPanama();
@@ -106,16 +111,16 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
       // the source of truth for where this transaction actually belongs.
       const parsedDate = parseDateOnly(occurredAt);
       if (!parsedDate) {
-        return { error: "Invalid date" };
+        return { error: t.dashboard.editPayInfo.invalidDate };
       }
       if (parsedDate.getTime() > nowInPanama().getTime()) {
-        return { error: "Date can't be in the future" };
+        return { error: t.quickAdd.dateNotFuture };
       }
       occurredAtDate = parsedDate;
     } else {
       const parsedDate = parseTransactionDate(occurredAt, cycle.periodStart);
       if (!parsedDate) {
-        return { error: "Date must be within this quincena and not in the future" };
+        return { error: t.quickAdd.dateWithinQuincenaNotFuture };
       }
       occurredAtDate = parsedDate;
     }
@@ -186,13 +191,14 @@ export const updateTransactionAction = withActionErrorHandling(async function up
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const transactionId = formData.get("transactionId");
   if (typeof transactionId !== "string" || !transactionId) {
-    return { error: "Missing transaction" };
+    return { error: t.quickAdd.missingTransaction };
   }
 
-  const parsed = parseTransactionFields(formData);
+  const parsed = parseTransactionFields(formData, t);
   if ("error" in parsed) {
     return { error: parsed.error };
   }
@@ -206,7 +212,7 @@ export const updateTransactionAction = withActionErrorHandling(async function up
     include: { cycle: true, recurringExpense: true },
   });
   if (!existing) {
-    return { error: "Transaction not found" };
+    return { error: t.quickAdd.transactionNotFound };
   }
   // Editing (unlike deleting) is always allowed, including on a closed
   // cycle's history — backfilling a payment method or fixing a category on
@@ -232,11 +238,11 @@ export const updateTransactionAction = withActionErrorHandling(async function up
   if (occurredAt) {
     const parsedDate = parseDateOnly(occurredAt);
     if (!parsedDate) {
-      return { error: "Invalid date" };
+      return { error: t.dashboard.editPayInfo.invalidDate };
     }
     const todayStart = nowInPanama();
     if (parsedDate.getTime() > todayStart.getTime()) {
-      return { error: "Date can't be in the future" };
+      return { error: t.quickAdd.dateNotFuture };
     }
     // The date input has no time-of-day concept, so it always resubmits
     // the row's current day even when the user never touched this field
@@ -331,9 +337,7 @@ export const updateTransactionAction = withActionErrorHandling(async function up
 
   return {
     transactionId,
-    message: linkedToWrongCategory
-      ? "Removed the link to the recurring expense because you changed categories."
-      : undefined,
+    message: linkedToWrongCategory ? t.quickAdd.recurringLinkRemoved : undefined,
   };
 });
 
@@ -351,14 +355,15 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const transactionId = formData.get("transactionId");
   const categoryName = formData.get("category");
   if (typeof transactionId !== "string" || !transactionId) {
-    return { error: "Missing transaction" };
+    return { error: t.quickAdd.missingTransaction };
   }
   if (typeof categoryName !== "string" || !categoryName.trim()) {
-    return { error: "Category is required" };
+    return { error: t.quickAdd.categoryIsRequired };
   }
 
   // Ownership-scoped — see updateTransactionAction for why.
@@ -367,10 +372,10 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
     include: { cycle: true },
   });
   if (!existing) {
-    return { error: "Transaction not found" };
+    return { error: t.quickAdd.transactionNotFound };
   }
   if (existing.cycle.status === "CLOSED") {
-    return { error: "This quincena is closed and can't be edited" };
+    return { error: t.quickAdd.quincenaClosedCantEdit };
   }
 
   const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), existing.type);
@@ -428,14 +433,15 @@ export const describeTransactionAction = withActionErrorHandling(async function 
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const transactionId = formData.get("transactionId");
   const description = formData.get("description");
   if (typeof transactionId !== "string" || !transactionId) {
-    return { error: "Missing transaction" };
+    return { error: t.quickAdd.missingTransaction };
   }
   if (typeof description !== "string" || !description.trim()) {
-    return { error: "Tell us what it was for" };
+    return { error: t.dashboard.tellUsWhatItWasForError };
   }
 
   // Ownership-scoped — see updateTransactionAction for why.
@@ -443,7 +449,7 @@ export const describeTransactionAction = withActionErrorHandling(async function 
     where: { id: transactionId, cycle: { userId } },
   });
   if (!existing) {
-    return { error: "Transaction not found" };
+    return { error: t.quickAdd.transactionNotFound };
   }
 
   await prisma.cycleTransaction.update({
@@ -465,10 +471,11 @@ export const deleteTransactionAction = withActionErrorHandling(async function de
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const transactionId = formData.get("transactionId");
   if (typeof transactionId !== "string" || !transactionId) {
-    return { error: "Missing transaction" };
+    return { error: t.quickAdd.missingTransaction };
   }
 
   // Ownership-scoped: a plain delete({ where: { id } }) would let a user
@@ -477,7 +484,7 @@ export const deleteTransactionAction = withActionErrorHandling(async function de
     where: { id: transactionId, cycle: { userId } },
   });
   if (!existing) {
-    return { error: "Transaction not found" };
+    return { error: t.quickAdd.transactionNotFound };
   }
   // Deleting from a closed cycle is allowed, same as editing (see
   // updateTransactionAction) — a past quincena's transactions must stay
@@ -519,6 +526,7 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const cycleId = formData.get("cycleId");
   const type = formData.get("type");
@@ -543,7 +551,7 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
     !occurredAt ||
     (type !== "EXPENSE" && type !== "INCOME" && type !== "SAVINGS")
   ) {
-    return { error: "Invalid undo payload" };
+    return { error: t.quickAdd.invalidUndoPayload };
   }
   // The rest of this action's inputs are trusted (validated at delete
   // time, ownership-checked below), but amount/occurredAt are a toast's
@@ -566,12 +574,17 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   const isNegative = amount.startsWith("-");
   const parsedAmount = decimalString.safeParse(isNegative ? amount.slice(1) : amount);
   if (!parsedAmount.success) {
-    return { error: parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+    return {
+      error: translateValidationMessage(
+        parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE,
+        t,
+      ),
+    };
   }
   const signedAmount = isNegative ? `-${parsedAmount.data}` : parsedAmount.data;
   const parsedOccurredAt = new Date(occurredAt);
   if (Number.isNaN(parsedOccurredAt.getTime())) {
-    return { error: "Invalid date" };
+    return { error: t.dashboard.editPayInfo.invalidDate };
   }
   const paymentMethodParsed = paymentMethodSchema.safeParse(rawPaymentMethod);
   const paymentMethod = paymentMethodParsed.success ? paymentMethodParsed.data : null;
@@ -583,7 +596,7 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   // Ownership-scoped: only restore into a cycle that belongs to this user.
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
   if (!cycle) {
-    return { error: "Cycle not found" };
+    return { error: t.quickAdd.restoreCycleNotFound };
   }
 
   // Restores the exact category/recurring-expense link the deleted row had

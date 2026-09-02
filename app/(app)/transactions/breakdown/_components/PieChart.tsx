@@ -1,5 +1,6 @@
 import type { BreakdownSlice } from "@/lib/paycheck-breakdown";
 import { formatCurrency } from "@/lib/format";
+import { useT } from "@/app/_components/LocaleProvider";
 
 const SIZE = 200;
 const CENTER = SIZE / 2;
@@ -34,12 +35,13 @@ export function PieChart({
   selectedKey: string | null;
   onSelect: (key: string) => void;
 }) {
+  const t = useT();
   // A single 100% slice can't form a valid wedge path (start === end point
   // once the sweep is a full circle) — render a plain circle instead.
   if (slices.length === 1) {
     const slice = slices[0];
     return (
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="group" aria-label="Paycheck breakdown chart">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="group" aria-label={t.transactions.breakdown.chartAria}>
         <circle
           cx={CENTER}
           cy={CENTER}
@@ -47,7 +49,7 @@ export function PieChart({
           fill={`var(${slice.colorVar})`}
           role="button"
           tabIndex={0}
-          aria-label={`${slice.label}, ${formatCurrency(slice.amount)}, ${Math.round(slice.percentage)}%`}
+          aria-label={t.transactions.breakdown.sliceAria(slice.label, formatCurrency(slice.amount), Math.round(slice.percentage))}
           aria-pressed={selectedKey === slice.key}
           onClick={() => onSelect(slice.key)}
           onKeyDown={(e) => {
@@ -72,7 +74,7 @@ export function PieChart({
   );
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="group" aria-label="Paycheck breakdown chart">
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pie-chart" role="group" aria-label={t.transactions.breakdown.chartAria}>
       {wedges.map(({ slice, startAngle, endAngle }) => {
         const isSelected = selectedKey === slice.key;
         const offset = isSelected ? popOutOffset(startAngle, endAngle) : { x: 0, y: 0 };
@@ -85,7 +87,7 @@ export function PieChart({
             style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
             role="button"
             tabIndex={0}
-            aria-label={`${slice.label}, ${formatCurrency(slice.amount)}, ${Math.round(slice.percentage)}%`}
+            aria-label={t.transactions.breakdown.sliceAria(slice.label, formatCurrency(slice.amount), Math.round(slice.percentage))}
             aria-pressed={isSelected}
             onClick={() => onSelect(slice.key)}
             onKeyDown={(e) => {

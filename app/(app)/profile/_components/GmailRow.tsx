@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
 import { useSheet } from "../../_components/useSheet";
 import { GmailConnectionCard, type GmailConnectionInfo } from "./GmailConnectionCard";
+import { useT, useLocale } from "../../../_components/LocaleProvider";
 
 /**
  * Gmail's own full connect/reconnect/disconnect panel (GmailConnectionCard,
@@ -14,23 +15,31 @@ import { GmailConnectionCard, type GmailConnectionInfo } from "./GmailConnection
  */
 export function GmailRow({ connection }: { connection: GmailConnectionInfo | null }) {
   const { open, triggerProps, sheetProps, close } = useSheet();
+  const t = useT();
+  const locale = useLocale();
 
   return (
     <>
       <button type="button" className="line-item line-item--link profile-gmail-row" {...triggerProps}>
         <span>
-          <span className="line-item-title">Gmail import</span>
+          <span className="line-item-title">{t.profile.gmail.title}</span>
           {connection && (
             <span className="field-hint">
               {connection.lastSyncedAt
-                ? `Synced ${connection.lastSyncedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · ${connection.googleEmail}`
+                ? t.profile.gmail.synced(
+                    connection.lastSyncedAt.toLocaleTimeString(locale === "es" ? "es-PA" : "en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }),
+                    connection.googleEmail,
+                  )
                 : connection.googleEmail}
             </span>
           )}
         </span>
         {connection ? (
           <span className="profile-gmail-status">
-            <span className="profile-gmail-status-dot" aria-hidden="true" /> On
+            <span className="profile-gmail-status-dot" aria-hidden="true" /> {t.profile.gmail.on}
           </span>
         ) : (
           <ChevronRight size={18} aria-hidden="true" />
@@ -52,6 +61,7 @@ function GmailSheetContent({
   onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -64,7 +74,7 @@ function GmailSheetContent({
   }
 
   return (
-    <Sheet visible={visible} title="Gmail import" onClose={handleClose} returnFocusTo={returnFocusTo}>
+    <Sheet visible={visible} title={t.profile.gmail.title} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <GmailConnectionCard connection={connection} />
     </Sheet>
   );

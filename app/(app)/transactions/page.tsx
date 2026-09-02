@@ -14,8 +14,13 @@ import { formatCycleLabel } from "@/lib/pay-date";
 import { TRANSACTION_TYPES } from "@/lib/transaction-type";
 import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "Activity" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.transactions.metaTitle };
+}
 
 export default async function TransactionsPage({
   searchParams,
@@ -33,6 +38,7 @@ export default async function TransactionsPage({
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const cycle = await getOrCreateDraftCycle(userId);
   const { q, type, category, cycleId } = await searchParams;
@@ -135,7 +141,7 @@ export default async function TransactionsPage({
 
   return (
     <div className="home-page">
-      <h1 className="page-title">Activity</h1>
+      <h1 className="page-title">{t.transactions.title}</h1>
 
       <div className="dashboard-section">
         <TransactionFilters categories={allCategories} cycles={cycleOptions} />
@@ -145,13 +151,11 @@ export default async function TransactionsPage({
             visualizes whatever they currently select. */}
         <Link href="/transactions/breakdown" className="button transaction-breakdown-cta">
           <PieChart size={17} aria-hidden="true" />
-          See where it went
+          {t.transactions.seeWhereItWent}
         </Link>
         {transactions.length > 0 && (
           <div className="transaction-summary-line">
-            <span>
-              {transactions.length} transaction{transactions.length === 1 ? "" : "s"}
-            </span>
+            <span>{t.transactions.count(transactions.length)}</span>
             <span className="transaction-summary-totals">
               {outTotal > 0 && <span className="transaction-summary-out">−{formatCurrency(outTotal)}</span>}
               {outTotal > 0 && inTotal > 0 && " · "}
@@ -167,8 +171,8 @@ export default async function TransactionsPage({
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
             q || type || category || cycleId
-              ? "No transactions match your search."
-              : "No transactions logged yet."
+              ? t.transactions.noMatch
+              : t.transactions.noneYet
           }
           groupByDate
         />

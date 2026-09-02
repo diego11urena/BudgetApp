@@ -1,5 +1,7 @@
 import { formatFriendlyDate } from "@/lib/format";
 import { HeroCardActions } from "./HeroCardActions";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 /**
  * Auto-detects a stale cycle by expected date (fix-list batch 11.5,
@@ -22,12 +24,13 @@ import { HeroCardActions } from "./HeroCardActions";
  * visibility) would wipe its in-flight confirm/closed-summary state the
  * instant justGotPaidAction succeeds.
  */
-export function PaydayOverdueBanner({ cycleEndDate, isOverdue }: { cycleEndDate: Date; isOverdue: boolean }) {
+export async function PaydayOverdueBanner({ cycleEndDate, isOverdue }: { cycleEndDate: Date; isOverdue: boolean }) {
+  const t = getDictionary(await getRequestLocale()).dashboard;
   return (
     <HeroCardActions
       variant="banner"
       showBanner={isOverdue}
-      bannerLabel={`Your quincena ended ${formatFriendlyDate(cycleEndDate)} — did you get paid?`}
+      bannerLabel={t.paydayOverdue(formatFriendlyDate(cycleEndDate))}
     />
   );
 }

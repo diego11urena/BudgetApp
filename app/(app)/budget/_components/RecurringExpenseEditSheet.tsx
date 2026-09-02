@@ -12,6 +12,7 @@ import {
   restoreRecurringExpenseAction,
   updateRecurringExpenseAction,
 } from "../recurring-actions";
+import { useT } from "@/app/_components/LocaleProvider";
 
 type Frequency = "BIWEEKLY" | "MONTHLY";
 /**
@@ -61,6 +62,7 @@ export function RecurringExpenseEditSheet({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [name, setName] = useState(existing?.name ?? "");
   const [amount, setAmount] = useState(existing ? existing.targetAmount.toFixed(2) : "");
@@ -142,8 +144,8 @@ export function RecurringExpenseEditSheet({
 
     if (result && "deleted" in result) {
       const d = result.deleted;
-      showToast("Deleted", {
-        label: "Undo",
+      showToast(t.budget.recurringEdit.deleted, {
+        label: t.budget.recurringEdit.undo,
         onClick: () => {
           const restoreFd = new FormData();
           restoreFd.set("recurringExpenseId", d.recurringExpenseId);
@@ -158,18 +160,18 @@ export function RecurringExpenseEditSheet({
   return (
     <Sheet
       visible={visible}
-      title={existing ? "Edit bill" : "New bill"}
+      title={existing ? t.budget.recurringEdit.titleEdit : t.budget.recurringEdit.titleNew}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
     >
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor={nameId}>Name</label>
+          <label htmlFor={nameId}>{t.budget.recurringEdit.nameLabel}</label>
           <input
             id={nameId}
             name="name"
             type="text"
-            placeholder="Spotify, Netflix, Rent…"
+            placeholder={t.budget.recurringEdit.namePlaceholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={errorField === "name" ? "is-invalid" : ""}
@@ -181,7 +183,7 @@ export function RecurringExpenseEditSheet({
 
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label htmlFor={amountId}>Amount (USD)</label>
+            <label htmlFor={amountId}>{t.budget.recurringEdit.amountLabel}</label>
             <CurrencyInput
               id={amountId}
               name="amount"
@@ -193,13 +195,13 @@ export function RecurringExpenseEditSheet({
             />
           </div>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label htmlFor={categoryId}>Category</label>
+            <label htmlFor={categoryId}>{t.budget.recurringEdit.categoryLabel}</label>
             <CategoryNameInput
               id={categoryId}
               name="categoryName"
               categoryNames={categoryNames}
               defaultValue={existing?.categoryName}
-              placeholder="Search or add a category…"
+              placeholder={t.budget.recurringEdit.categoryPlaceholder}
               showChips={false}
               invalid={errorField === "categoryName"}
               describedBy={errorId}
@@ -209,7 +211,7 @@ export function RecurringExpenseEditSheet({
 
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label htmlFor={recurrenceId}>Recurrence</label>
+            <label htmlFor={recurrenceId}>{t.budget.recurringEdit.recurrenceLabel}</label>
             {/* No name attribute -- "ONE_TIME" isn't a real `frequency`
                 value the server understands (it's recurring=false;
                 frequency itself is moot then). handleSubmit sets both
@@ -219,14 +221,14 @@ export function RecurringExpenseEditSheet({
               value={recurrenceChoice}
               onChange={(e) => setRecurrenceChoice(e.target.value as RecurrenceChoice)}
             >
-              <option value="BIWEEKLY">Every quincena</option>
-              <option value="MONTHLY">Monthly</option>
-              <option value="ONE_TIME">One-time</option>
+              <option value="BIWEEKLY">{t.budget.recurringEdit.everyQuincena}</option>
+              <option value="MONTHLY">{t.budget.recurringEdit.monthly}</option>
+              <option value="ONE_TIME">{t.budget.recurringEdit.oneTime}</option>
             </select>
           </div>
           {recurrenceChoice === "MONTHLY" && (
             <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor={dueDayId}>Due day (1–31)</label>
+              <label htmlFor={dueDayId}>{t.budget.recurringEdit.dueDayLabel}</label>
               <input
                 id={dueDayId}
                 name="dueDay"
@@ -251,7 +253,7 @@ export function RecurringExpenseEditSheet({
         )}
 
         <button type="submit" className="button sheet-submit" disabled={pending}>
-          {pending ? "Saving..." : "Save"}
+          {pending ? t.budget.recurringEdit.saving : t.budget.recurringEdit.save}
         </button>
       </form>
 
@@ -262,11 +264,11 @@ export function RecurringExpenseEditSheet({
           onClick={handleDelete}
           disabled={pending}
         >
-          Delete
+          {t.budget.recurringEdit.delete}
         </button>
       )}
       <button type="button" className="button button--secondary sheet-submit" onClick={handleClose} disabled={pending}>
-        Cancel
+        {t.budget.recurringEdit.cancel}
       </button>
     </Sheet>
   );

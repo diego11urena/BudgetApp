@@ -1,16 +1,20 @@
 import Link from "next/link";
 import { ChevronRight, Sparkles } from "lucide-react";
 import type { Insight } from "@/lib/insights";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export function InsightsCard({ insights }: { insights: Insight[] }) {
+export async function InsightsCard({ insights }: { insights: Insight[] }) {
   if (insights.length === 0) {
     return null;
   }
 
+  const t = getDictionary(await getRequestLocale()).dashboard;
+
   return (
     <div className="insights-card">
       <p className="insights-title">
-        <Sparkles size={16} aria-hidden="true" className="inline-arrow" /> Insights
+        <Sparkles size={16} aria-hidden="true" className="inline-arrow" /> {t.insightsTitle}
       </p>
       <ul className="insights-list">
         {insights.map((insight) => (

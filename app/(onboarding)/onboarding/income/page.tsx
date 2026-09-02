@@ -5,14 +5,20 @@ import { prisma } from "@/lib/prisma";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { IncomeForm } from "./IncomeForm";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "Income" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.onboarding.income.metaTitle };
+}
 
 export default async function IncomeStepPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const t = getDictionary(await getRequestLocale());
 
   const state = await requireOnboardingStep(session.user.id, "income");
 
@@ -28,12 +34,9 @@ export default async function IncomeStepPage() {
   return (
     <div className="card card--wide onboarding-shell">
       <StepProgress current="income" />
-      <p className="onboarding-kicker">Income</p>
-      <h1>What&apos;s your income?</h1>
-      <p className="field-hint">
-        Your take-home pay for each 15-day quincena — whatever actually deposits, after any
-        deductions are already handled.
-      </p>
+      <p className="onboarding-kicker">{t.onboarding.income.kicker}</p>
+      <h1>{t.onboarding.income.question}</h1>
+      <p className="field-hint">{t.onboarding.income.explainer}</p>
       <IncomeForm initial={initial} />
     </div>
   );

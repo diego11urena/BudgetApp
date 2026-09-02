@@ -6,14 +6,20 @@ import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { BillsStepForm, BillsStepSkipButton } from "./_components/BillsStepForm";
 import { saveExpensesAction } from "./actions";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "Bills" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.onboarding.expenses.metaTitle };
+}
 
 export default async function ExpensesStepPage() {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const t = getDictionary(await getRequestLocale());
 
   await requireOnboardingStep(session.user.id, "expenses");
 
@@ -34,12 +40,9 @@ export default async function ExpensesStepPage() {
   return (
     <div className="card card--wide onboarding-shell">
       <StepProgress current="expenses" />
-      <p className="onboarding-kicker">Bills</p>
-      <h1>What do you pay regularly?</h1>
-      <p className="field-hint">
-        Rent, subscriptions, utilities — anything that repeats every quincena. Add as many as you
-        want, or none.
-      </p>
+      <p className="onboarding-kicker">{t.onboarding.expenses.kicker}</p>
+      <h1>{t.onboarding.expenses.question}</h1>
+      <p className="field-hint">{t.onboarding.expenses.explainer}</p>
       <BillsStepForm action={saveExpensesAction} initialItems={initialItems} />
       <BillsStepSkipButton action={saveExpensesAction} />
     </div>

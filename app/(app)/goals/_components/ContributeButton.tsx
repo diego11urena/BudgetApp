@@ -8,14 +8,16 @@ import { useToast } from "../../_components/ToastProvider";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { useSheet } from "../../_components/useSheet";
+import { useT } from "@/app/_components/LocaleProvider";
 
 export function ContributeButton({ categoryName }: { categoryName: string }) {
+  const t = useT();
   const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
       <button type="button" className="button" {...triggerProps}>
-        Contribute
+        {t.goals.contribute}
       </button>
 
       {open && <ContributeSheet categoryName={categoryName} {...sheetProps} onClose={close} />}
@@ -41,6 +43,7 @@ function ContributeSheet({
   returnFocusTo: HTMLElement | null;
   onClose: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const { showToast } = useToast();
   const [visible, setVisible] = useState(false);
@@ -81,8 +84,8 @@ function ContributeSheet({
     if (result && "transactionId" in result) {
       const amountNumber = Number(amount);
       const newTransactionId = result.transactionId;
-      showToast(`Logged ${formatCurrency(amountNumber)} for ${categoryName}`, {
-        label: "Undo",
+      showToast(t.goals.logged(formatCurrency(amountNumber), categoryName), {
+        label: t.goals.undo,
         onClick: () => {
           const delFd = new FormData();
           delFd.set("transactionId", newTransactionId);
@@ -97,10 +100,10 @@ function ContributeSheet({
   }
 
   return (
-    <Sheet visible={visible} title={`Contributing to ${categoryName}`} onClose={handleClose} returnFocusTo={returnFocusTo}>
+    <Sheet visible={visible} title={t.goals.contributingTo(categoryName)} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <form onSubmit={handleSubmit}>
         <div className="field sheet-amount-field">
-          <label htmlFor={amountId}>Amount (USD)</label>
+          <label htmlFor={amountId}>{t.goals.amountLabel}</label>
           <CurrencyInput
             id={amountId}
             defaultValue={amount}
@@ -119,7 +122,7 @@ function ContributeSheet({
         )}
 
         <button type="submit" className="button sheet-submit" disabled={pending}>
-          {pending ? "Logging..." : "Contribute"}
+          {pending ? t.goals.logging : t.goals.contribute}
         </button>
       </form>
     </Sheet>

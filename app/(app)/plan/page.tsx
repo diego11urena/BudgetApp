@@ -7,8 +7,13 @@ import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/
 import { getGoalsWithProgress } from "@/lib/goals";
 import { BillsSection } from "./_components/BillsSection";
 import { GoalsSection } from "./_components/GoalsSection";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "Plan" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.plan.metaTitle };
+}
 
 /**
  * Bills (was /budget, "Recurring Expenses") and Goals (was /goals) merged
@@ -24,6 +29,7 @@ export default async function PlanPage() {
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const cycle = await getOrCreateDraftCycle(userId);
   const [billCategories, expenseCategoryNames, goals, savingsCategoryNames] = await Promise.all([
@@ -35,7 +41,7 @@ export default async function PlanPage() {
 
   return (
     <div className="home-page">
-      <h1 className="page-title">Plan</h1>
+      <h1 className="page-title">{t.plan.title}</h1>
 
       <div className="dashboard-section">
         <GoalsSection goals={goals} savingsCategoryNames={savingsCategoryNames} />

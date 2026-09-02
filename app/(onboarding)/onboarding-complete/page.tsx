@@ -3,8 +3,13 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import { auth } from "@/lib/auth";
 import { CompleteRedirect } from "./_components/CompleteRedirect";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "You're set" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.onboarding.complete.metaTitle };
+}
 
 /**
  * Outside app/(onboarding)/onboarding/layout.tsx on purpose -- that layout
@@ -18,12 +23,13 @@ export default async function OnboardingCompletePage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const t = getDictionary(await getRequestLocale());
 
   return (
     <div className="onboarding-complete">
       <Image src="/balboa-logo.png" alt="" width={88} height={88} className="onboarding-complete-logo" priority />
-      <h1>You&apos;re set.</h1>
-      <p>Redirecting to /dashboard for this quincena.</p>
+      <h1>{t.onboarding.complete.title}</h1>
+      <p>{t.onboarding.complete.redirecting}</p>
       <CompleteRedirect />
     </div>
   );

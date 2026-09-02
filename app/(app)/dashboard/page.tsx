@@ -21,8 +21,13 @@ import { InsightsCard } from "./_components/InsightsCard";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { PaydayOverdueBanner } from "./_components/PaydayOverdueBanner";
 import { TransactionList } from "../_components/TransactionList";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.dashboard.metaTitle };
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -30,6 +35,7 @@ export default async function DashboardPage() {
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const cycle = await getOrCreateDraftCycle(userId);
 
@@ -94,6 +100,7 @@ export default async function DashboardPage() {
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
     goals,
+    t: t.insights,
   });
 
   // A goal counts as "funded" once savedSoFar has reached its own target --
@@ -151,7 +158,7 @@ export default async function DashboardPage() {
       {financials.transactions.length === 0 && recurringExpensesSummary.totalCount === 0 && goals.length === 0 && (
         <div className="dashboard-section dashboard-section--plain">
           <p className="banner banner--good" role="status">
-            Tap the + button below to log your first transaction.
+            {t.dashboard.tapToLogFirst}
           </p>
         </div>
       )}
@@ -178,7 +185,11 @@ export default async function DashboardPage() {
       </div>
 
       <div className="dashboard-section">
-        <TopCategoriesChart categories={financials.topCategories} title="Where it's going" badge="Top 6" />
+        <TopCategoriesChart
+          categories={financials.topCategories}
+          title={t.dashboard.whereItsGoing}
+          badge={t.dashboard.top6Badge}
+        />
       </div>
 
       {/* InsightsCard itself renders null when there's nothing to say, so
@@ -191,10 +202,10 @@ export default async function DashboardPage() {
 
       <div className="dashboard-section">
         <div className="section-header-row">
-          <h2 style={{ marginBottom: 0 }}>Recent</h2>
+          <h2 style={{ marginBottom: 0 }}>{t.dashboard.recent}</h2>
           {financials.transactions.length > 3 && (
             <Link href="/transactions" className="section-header-link">
-              See all
+              {t.dashboard.seeAll}
               <ChevronRight size={16} aria-hidden="true" />
             </Link>
           )}

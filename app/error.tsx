@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useT } from "./_components/LocaleProvider";
 
 /**
  * Root-level fallback — catches anything not already handled by a nested
@@ -19,6 +20,7 @@ export default function Error({
   useEffect(() => {
     console.error(error);
   }, [error]);
+  const t = useT();
 
   return (
     <div className="page-center">
@@ -26,10 +28,10 @@ export default function Error({
         <p className="error-boundary-emoji">
           <AlertTriangle size={40} aria-hidden="true" />
         </p>
-        <h1>Something went wrong</h1>
-        <p className="field-hint">We hit a snag. Try again.</p>
+        <h1>{t.onboarding.error.title}</h1>
+        <p className="field-hint">{t.common.error.rootBody}</p>
         <button type="button" className="button" onClick={() => reset()}>
-          Try again
+          {t.onboarding.error.retry}
         </button>
       </div>
     </div>

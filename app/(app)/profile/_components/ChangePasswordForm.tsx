@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { changePasswordAction, type ChangePasswordFormState } from "../actions";
+import { useT } from "../../../_components/LocaleProvider";
 
 const initialState: ChangePasswordFormState = undefined;
 
@@ -10,11 +11,12 @@ export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const mismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const t = useT();
 
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="current-password">Current password</label>
+        <label htmlFor="current-password">{t.profile.changePassword.currentLabel}</label>
         <input
           id="current-password"
           name="currentPassword"
@@ -24,7 +26,7 @@ export function ChangePasswordForm() {
         />
       </div>
       <div className="field">
-        <label htmlFor="new-password">New password</label>
+        <label htmlFor="new-password">{t.profile.changePassword.newLabel}</label>
         <input
           id="new-password"
           name="newPassword"
@@ -37,7 +39,7 @@ export function ChangePasswordForm() {
         />
       </div>
       <div className="field">
-        <label htmlFor="confirm-password">Confirm new password</label>
+        <label htmlFor="confirm-password">{t.profile.changePassword.confirmLabel}</label>
         <input
           id="confirm-password"
           type="password"
@@ -51,7 +53,7 @@ export function ChangePasswordForm() {
         />
         {mismatch && (
           <span id="confirm-password-error" className="error-text" role="alert">
-            Passwords don&apos;t match
+            {t.profile.changePassword.mismatch}
           </span>
         )}
       </div>
@@ -63,13 +65,13 @@ export function ChangePasswordForm() {
       )}
       {!!state && "success" in state && (
         <p className="field-hint" style={{ marginTop: "0.5rem" }}>
-          Password updated.
+          {t.profile.changePassword.updated}
         </p>
       )}
 
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending || mismatch}>
-          {pending ? "Saving..." : "Change password"}
+          {pending ? t.profile.changePassword.saving : t.profile.changePassword.submit}
         </button>
       </div>
     </form>

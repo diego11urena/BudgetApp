@@ -2,6 +2,7 @@
 
 import { EditPayInfoSheet } from "./EditPayInfoSheet";
 import { useSheet } from "../../_components/useSheet";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * Plain-text "Edit" trigger for correcting a quincena's already-recorded
@@ -33,12 +34,13 @@ export function EditPayInfoButton({
   /** Defaults to the plain inline-text-link treatment (History's own closed-cycle usage) -- Home's own trigger passes "home-edit-pill" instead for the design system's standalone Edit pill. */
   className?: string;
 }) {
+  const t = useT().dashboard;
   const { open, triggerProps, sheetProps, close } = useSheet();
 
   return (
     <>
       <button type="button" className={className} {...triggerProps}>
-        Edit
+        {t.editPayInfo.edit}
       </button>
 
       {open && (

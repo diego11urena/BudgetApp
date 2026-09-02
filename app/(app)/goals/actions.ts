@@ -10,6 +10,9 @@ import { revalidateAppPages } from "@/lib/revalidate";
 import { goalContributionDeltaSchema, goalSchema, updateGoalSchema } from "@/lib/validations/goals";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 export type GoalFormState = ActionResult | undefined;
 
@@ -30,6 +33,7 @@ export const upsertGoalAction = withActionErrorHandling(async function upsertGoa
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const parsed = goalSchema.safeParse({
     name: formData.get("name"),
@@ -39,7 +43,7 @@ export const upsertGoalAction = withActionErrorHandling(async function upsertGoa
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
 
   const { name, lifetimeTargetAmount, recurringAmount, alreadySavedAmount } = parsed.data;
@@ -106,6 +110,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const parsed = updateGoalSchema.safeParse({
     categoryId: formData.get("categoryId"),
@@ -114,7 +119,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
     recurringAmount: formData.get("recurringAmount") || undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
   const { categoryId, name, lifetimeTargetAmount, recurringAmount } = parsed.data;
 
@@ -123,7 +128,12 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
     typeof rawDelta === "string" && rawDelta ? Number(rawDelta) : 0,
   );
   if (!deltaParsed.success) {
-    return { error: deltaParsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+    return {
+      error: translateValidationMessage(
+        deltaParsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE,
+        t,
+      ),
+    };
   }
   const delta = deltaParsed.data;
   const recordAsTransaction = formData.get("recordAsTransaction") === "true";
@@ -135,7 +145,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
   // only display code that assumed SAVINGS amounts are always positive
   // needed a matching fix (see TransactionList's AMOUNT_CLASS/sign logic).
   if (recordAsTransaction && delta === 0) {
-    return { error: "Invalid amount" };
+    return { error: t.common.invalidInput };
   }
 
   // Ownership-scoped: only this user's own SAVINGS category, matching the
@@ -145,7 +155,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
     include: { transactions: { where: { type: "SAVINGS" } } },
   });
   if (!existing) {
-    return { error: "Goal not found" };
+    return { error: t.goals.notFound };
   }
 
   // A rename that collides with a DIFFERENT existing category (by the same
@@ -158,7 +168,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
       where: { userId, type: "SAVINGS", name: { equals: name, mode: "insensitive" }, id: { not: categoryId } },
     });
     if (collision) {
-      return { error: `A goal named "${collision.name}" already exists` };
+      return { error: t.goals.nameTaken(collision.name) };
     }
   }
 
@@ -234,7 +244,7 @@ export const updateGoalWithContributionAction = withActionErrorHandling(async fu
     });
   } catch (error) {
     if (error instanceof ContributionConcurrencyLostError) {
-      return { error: "This goal changed elsewhere just now — please try again." };
+      return { error: t.goals.concurrentEdit };
     }
     throw error;
   }
@@ -260,10 +270,11 @@ export const removeGoalAction = withActionErrorHandling(async function removeGoa
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const categoryId = formData.get("categoryId");
   if (typeof categoryId !== "string" || !categoryId) {
-    return { error: "Missing goal" };
+    return { error: t.goals.missingGoal };
   }
 
   // Clears the goal target and stops it recurring, doesn't delete the
@@ -276,7 +287,7 @@ export const removeGoalAction = withActionErrorHandling(async function removeGoa
     },
   });
   if (!category || category.lifetimeTargetAmount === null) {
-    return { error: "Goal not found" };
+    return { error: t.goals.notFound };
   }
 
   const currentContribution = category.budgetGoals[0] ?? null;
@@ -320,6 +331,7 @@ export const restoreGoalAction = withActionErrorHandling(async function restoreG
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const categoryId = formData.get("categoryId");
   const lifetimeTargetAmount = formData.get("lifetimeTargetAmount");
@@ -332,20 +344,27 @@ export const restoreGoalAction = withActionErrorHandling(async function restoreG
     typeof lifetimeTargetAmount !== "string" ||
     !lifetimeTargetAmount
   ) {
-    return { error: "Invalid undo payload" };
+    return { error: t.goals.invalidUndoPayload };
   }
   // A toast's client-held snapshot resubmitted verbatim -- same untrusted-
   // input boundary the create/update forms already validate through, so
   // undo can't hand Decimal a value that overflows the column.
   const parsedLifetimeTarget = decimalString.safeParse(lifetimeTargetAmount);
   if (!parsedLifetimeTarget.success) {
-    return { error: parsedLifetimeTarget.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+    return {
+      error: translateValidationMessage(
+        parsedLifetimeTarget.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE,
+        t,
+      ),
+    };
   }
   let parsedTargetAmount: string | undefined;
   if (typeof targetAmount === "string" && targetAmount) {
     const result = decimalString.safeParse(targetAmount);
     if (!result.success) {
-      return { error: result.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+      return {
+        error: translateValidationMessage(result.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t),
+      };
     }
     parsedTargetAmount = result.data;
   }
@@ -355,7 +374,7 @@ export const restoreGoalAction = withActionErrorHandling(async function restoreG
     where: { id: categoryId, userId, type: "SAVINGS" },
   });
   if (!category) {
-    return { error: "Goal not found" };
+    return { error: t.goals.notFound };
   }
 
   await prisma.$transaction(async (tx) => {

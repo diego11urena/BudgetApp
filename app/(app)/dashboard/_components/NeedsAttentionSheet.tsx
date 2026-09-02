@@ -7,6 +7,7 @@ import { categorizeTransactionAction, describeTransactionAction } from "../../_a
 import { formatCurrency } from "@/lib/format";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * Replaces what used to be two separate banners/sheets (Categorize
@@ -40,6 +41,7 @@ export function NeedsAttentionSheet({
         ? savingsCategoryNames
         : incomeCategoryNames;
   }
+  const t = useT().dashboard;
   const [visible, setVisible] = useState(false);
   const [transactions, setTransactions] = useState(initialTransactions);
 
@@ -69,7 +71,7 @@ export function NeedsAttentionSheet({
   return (
     <Sheet
       visible={visible}
-      title="Finish these transactions"
+      title={t.finishTransactionsTitle}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
@@ -80,8 +82,7 @@ export function NeedsAttentionSheet({
       autoFocus={false}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "1rem" }}>
-        Add whatever&apos;s missing — category, description, or both — so your totals and history
-        stay accurate.
+        {t.finishTransactionsBody}
       </p>
 
       <div className="categorize-imports-list">
@@ -96,7 +97,7 @@ export function NeedsAttentionSheet({
       </div>
 
       <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-        Done for now
+        {t.doneForNow}
       </button>
     </Sheet>
   );
@@ -111,6 +112,7 @@ function NeedsAttentionRow({
   categoryNames: string[];
   onDone: () => void;
 }) {
+  const t = useT().dashboard;
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +122,7 @@ function NeedsAttentionRow({
 
   const label =
     transaction.needsDescription
-      ? `${transaction.direction === "sent" ? "Sent to" : "Received from"} ${transaction.name}`
+      ? (transaction.direction === "sent" ? t.sentTo(transaction.name) : t.receivedFrom(transaction.name))
       : transaction.name;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -128,11 +130,11 @@ function NeedsAttentionRow({
     setError(null);
 
     if (transaction.needsCategory && !categoryValue.trim()) {
-      setError("Choose or enter a category");
+      setError(t.chooseCategoryError);
       return;
     }
     if (transaction.needsDescription && !description.trim()) {
-      setError("Tell us what it was for");
+      setError(t.tellUsWhatItWasForError);
       return;
     }
 
@@ -186,7 +188,7 @@ function NeedsAttentionRow({
               id={`needs-attention-category-${transaction.id}`}
               name="category"
               categoryNames={categoryNames}
-              placeholder="Choose or enter a category"
+              placeholder={t.chooseCategoryPlaceholder}
               showChips={false}
               onValueChange={setCategoryValue}
             />
@@ -198,7 +200,7 @@ function NeedsAttentionRow({
                 checked={recurring}
                 onChange={(e) => setRecurring(e.target.checked)}
               />
-              This is a bill
+              {t.thisIsABill}
             </label>
           )}
         </>
@@ -208,7 +210,7 @@ function NeedsAttentionRow({
         <div className="categorize-imports-row-input">
           <input
             type="text"
-            placeholder="Rent, lunch, gift…"
+            placeholder={t.whatWasThisForPlaceholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={200}
@@ -219,7 +221,7 @@ function NeedsAttentionRow({
 
       {error && <p className="error-text">{error}</p>}
       <button type="submit" className="button button--small" disabled={pending}>
-        {pending ? "Saving..." : "Save"}
+        {pending ? t.saving : t.save}
       </button>
     </form>
   );

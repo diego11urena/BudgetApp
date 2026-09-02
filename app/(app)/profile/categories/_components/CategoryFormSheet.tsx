@@ -8,6 +8,7 @@ import { createCategoryAction, updateCategoryAction } from "../../category-actio
 import type { ActionResult } from "@/lib/action-error";
 import { IconPickerSheet } from "./IconPickerSheet";
 import type { CategoryWithUsage } from "./types";
+import { useT } from "../../../../_components/LocaleProvider";
 
 /**
  * Create + edit share one form (optional existingCategory prop pre-fills
@@ -44,6 +45,7 @@ export function CategoryFormSheet({
   const uid = useId();
   const nameId = `${uid}-name`;
   const errorId = `${uid}-error`;
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -59,7 +61,7 @@ export function CategoryFormSheet({
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("Give it a name");
+      setError(t.profile.categories.form.nameRequired);
       return;
     }
     setPending(true);
@@ -91,7 +93,7 @@ export function CategoryFormSheet({
     <>
       <Sheet
         visible={visible && !pickingIcon}
-        title={existingCategory ? "Edit category" : "Add category"}
+        title={existingCategory ? t.profile.categories.form.titleEdit : t.profile.categories.form.titleAdd}
         onClose={handleClose}
         closeOnBackdropClick={!pickingIcon}
         returnFocusTo={returnFocusTo}
@@ -102,12 +104,17 @@ export function CategoryFormSheet({
               type="button"
               className="category-form-icon-preview"
               onClick={() => setPickingIcon(true)}
-              aria-label="Choose an icon"
+              aria-label={t.profile.categories.form.iconAria}
             >
-              <CategoryIcon name={name || "Category"} icon={icon} size={28} aria-hidden="true" />
+              <CategoryIcon
+                name={name || t.profile.categories.form.defaultIconName}
+                icon={icon}
+                size={28}
+                aria-hidden="true"
+              />
             </button>
             <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-              <label htmlFor={nameId}>Category name</label>
+              <label htmlFor={nameId}>{t.profile.categories.form.nameLabel}</label>
               <input
                 id={nameId}
                 type="text"
@@ -128,7 +135,7 @@ export function CategoryFormSheet({
           )}
 
           <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? "Saving..." : "Save"}
+            {pending ? t.profile.categories.form.saving : t.profile.categories.form.save}
           </button>
         </form>
         <button
@@ -137,7 +144,7 @@ export function CategoryFormSheet({
           onClick={handleClose}
           disabled={pending}
         >
-          Cancel
+          {t.profile.categories.form.cancel}
         </button>
       </Sheet>
 

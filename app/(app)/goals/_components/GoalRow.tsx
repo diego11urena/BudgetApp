@@ -10,6 +10,7 @@ import { RemoveGoalButton } from "./RemoveGoalButton";
 import { EditGoalSheet, type EditableGoal } from "./EditGoalSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { GoalWithProgress } from "@/lib/goals";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * One row in Plan's Goals list. The design system handoff's action row is
@@ -21,6 +22,7 @@ import type { GoalWithProgress } from "@/lib/goals";
  * hooks can't live inside a loop.
  */
 export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categoryNames: string[] }) {
+  const t = useT();
   const editSheet = useSheet();
   const projection = computeGoalProjection(goal);
   const editable: EditableGoal = {
@@ -40,21 +42,20 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
             <CategoryIcon name={goal.name} icon={goal.icon} size={16} aria-hidden="true" /> {goal.name}
           </p>
           <p className="goal-row-progress">
-            {formatCurrency(goal.savedSoFar)} <span className="goal-row-of">of {formatCurrency(goal.lifetimeTargetAmount)}</span>
+            {t.goals.savedOf(formatCurrency(goal.savedSoFar), formatCurrency(goal.lifetimeTargetAmount))}
           </p>
           {projection.isComplete ? (
             <p className="goal-projection goal-projection--complete">
-              <PartyPopper size={16} aria-hidden="true" /> Goal reached!
+              <PartyPopper size={16} aria-hidden="true" /> {t.goals.reached}
             </p>
           ) : goal.currentCycleRecurringAmount !== null && projection.etaDate ? (
             <p className="goal-projection">
-              Per-cycle contribution: {formatCurrency(goal.currentCycleRecurringAmount)}{" "}
-              <ArrowRight size={14} aria-hidden="true" className="inline-arrow" /> on track
-              to hit goal by {formatFriendlyDate(projection.etaDate)}
+              {t.goals.onTrack(formatCurrency(goal.currentCycleRecurringAmount), formatFriendlyDate(projection.etaDate))}{" "}
+              <ArrowRight size={14} aria-hidden="true" className="inline-arrow" />
             </p>
           ) : (
             <p className="goal-projection goal-projection--muted">
-              Set a per-cycle contribution to project a completion date.
+              {t.goals.setContribution}
             </p>
           )}
         </div>
@@ -63,7 +64,7 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
       <div className="goal-row-actions">
         <ContributeButton categoryName={goal.name} />
         <button type="button" className="button button--chip" {...editSheet.triggerProps}>
-          Edit
+          {t.goals.edit}
         </button>
         <RemoveGoalButton categoryId={goal.categoryId} name={goal.name} />
       </div>

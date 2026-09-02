@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /** Shared shell for /login and /signup -- same layout, swapped copy, per the design system handoff's Auth screens section. */
 export function AuthShell({
@@ -12,9 +15,10 @@ export function AuthShell({
   subtitle?: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="auth-shell">
-      <Link href="/" className="auth-back" aria-label="Back to home">
+      <Link href="/" className="auth-back" aria-label={t.auth.backToHome}>
         <ChevronLeft size={22} aria-hidden="true" />
       </Link>
       <div className="auth-shell-header">

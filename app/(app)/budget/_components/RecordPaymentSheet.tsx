@@ -6,6 +6,7 @@ import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { recordRecurringExpensePaymentAction } from "../recurring-actions";
 import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * A deliberately minimal sheet — amount and payment method, pre-filled from
@@ -30,6 +31,7 @@ export function RecordPaymentSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const router = useRouter();
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [amount, setAmount] = useState(targetAmount.toFixed(2));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
@@ -73,17 +75,17 @@ export function RecordPaymentSheet({
       router.refresh();
       handleClose();
     } catch {
-      setError("Something went wrong. Your changes weren't saved — please try again.");
+      setError(t.budget.recordPayment.savedError);
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <Sheet visible={visible} title={`Paid ${name}`} onClose={handleClose} returnFocusTo={returnFocusTo}>
+    <Sheet visible={visible} title={t.budget.recordPayment.title(name)} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <form onSubmit={handleSubmit}>
         <div className="field sheet-amount-field">
-          <label htmlFor={amountId}>Amount (USD)</label>
+          <label htmlFor={amountId}>{t.budget.recordPayment.amountLabel}</label>
           <CurrencyInput
             id={amountId}
             defaultValue={amount}
@@ -96,13 +98,13 @@ export function RecordPaymentSheet({
         </div>
 
         <div className="field">
-          <label htmlFor={paymentMethodId}>Payment method</label>
+          <label htmlFor={paymentMethodId}>{t.budget.recordPayment.paymentMethodLabel}</label>
           <select
             id={paymentMethodId}
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")}
           >
-            <option value="">No payment method</option>
+            <option value="">{t.budget.recordPayment.noPaymentMethod}</option>
             {PAYMENT_METHOD_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -118,11 +120,11 @@ export function RecordPaymentSheet({
         )}
 
         <button type="submit" className="button sheet-submit" disabled={pending}>
-          {pending ? "Logging..." : "Record payment"}
+          {pending ? t.budget.recordPayment.logging : t.budget.recordPayment.record}
         </button>
       </form>
       <button type="button" className="button button--secondary sheet-submit" onClick={handleClose} disabled={pending}>
-        Cancel
+        {t.budget.recordPayment.cancel}
       </button>
     </Sheet>
   );

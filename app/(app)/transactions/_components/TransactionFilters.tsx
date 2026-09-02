@@ -4,16 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { TRANSACTION_TYPE_OPTIONS } from "@/lib/transaction-type";
-
-// "" ("any type") prepended onto the shared canonical list, for the "All"
-// segment. INCOME's label is shortened to "Income" here only -- as a
-// four-way filter chip row, "Extra income" was the one label long enough
-// to wrap onto two lines; QuickAddSheet's own add-flow toggle (a different
-// context, distinguishing a real extra-income entry from ordinary income)
-// keeps the fuller wording from the shared constant.
-const TYPE_OPTIONS = [{ value: "", label: "All" }, ...TRANSACTION_TYPE_OPTIONS].map((opt) =>
-  opt.value === "INCOME" ? { ...opt, label: "Income" } : opt,
-);
+import { useT } from "@/app/_components/LocaleProvider";
 
 export function TransactionFilters({
   categories,
@@ -28,6 +19,17 @@ export function TransactionFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
+  const t = useT();
+
+  // "" ("any type") prepended onto the shared canonical list, for the "All"
+  // segment. INCOME's label is shortened to "Income" here only -- as a
+  // four-way filter chip row, "Extra income" was the one label long enough
+  // to wrap onto two lines; QuickAddSheet's own add-flow toggle (a different
+  // context, distinguishing a real extra-income entry from ordinary income)
+  // keeps the fuller wording from the shared constant.
+  const TYPE_OPTIONS = [{ value: "", label: t.transactions.filters.all }, ...TRANSACTION_TYPE_OPTIONS].map((opt) =>
+    opt.value === "INCOME" ? { ...opt, label: t.dashboard.statIncome } : opt,
+  );
 
   const [q, setQ] = useState(searchParams.get("q") ?? "");
 
@@ -62,10 +64,10 @@ export function TransactionFilters({
         <input
           type="text"
           className="transaction-filters-search"
-          placeholder="Search name or category"
+          placeholder={t.transactions.filters.searchPlaceholder}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          aria-label="Search transactions"
+          aria-label={t.transactions.filters.searchAria}
         />
       </div>
       {/* Type as a segmented control, same visual pattern QuickAddSheet's
@@ -75,7 +77,7 @@ export function TransactionFilters({
           method never drove any downstream decision here besides itself,
           and a fixed newest-first order is simpler than a rarely-touched
           sort control. */}
-      <div className="type-toggle" role="group" aria-label="Filter by type">
+      <div className="type-toggle" role="group" aria-label={t.transactions.filters.typeAria}>
         {TYPE_OPTIONS.map((opt) => {
           const isActive = (searchParams.get("type") ?? "") === opt.value;
           return (
@@ -94,9 +96,9 @@ export function TransactionFilters({
         <select
           value={searchParams.get("cycleId") ?? ""}
           onChange={(e) => updateParam("cycleId", e.target.value)}
-          aria-label="Filter by quincena"
+          aria-label={t.transactions.filters.quincenaAria}
         >
-          <option value="">Current quincena</option>
+          <option value="">{t.transactions.filters.currentQuincena}</option>
           {cycles.slice(1).map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
@@ -106,10 +108,10 @@ export function TransactionFilters({
         <select
           value={searchParams.get("category") ?? ""}
           onChange={(e) => updateParam("category", e.target.value)}
-          aria-label="Filter by category"
+          aria-label={t.transactions.filters.categoryAria}
         >
-          <option value="">Category</option>
-          <option value="uncategorized">Uncategorized</option>
+          <option value="">{t.transactions.filters.category}</option>
+          <option value="uncategorized">{t.transactions.filters.uncategorized}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}

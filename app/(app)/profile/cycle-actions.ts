@@ -15,6 +15,8 @@ import { nowInPanama } from "@/lib/pay-date";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 const ERASE_CYCLES_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
@@ -40,12 +42,13 @@ export const eraseAllCyclesAction = withActionErrorHandling(async function erase
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   // Deletes + fully recreates every cycle per call -- the most expensive
   // and destructive action in the app, worth throttling on its own.
   const rateLimit = await checkRateLimit(`erase-cycles:${userId}`, ERASE_CYCLES_RATE_LIMIT);
   if (!rateLimit.allowed) {
-    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+    return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
   }
 
   // Most recent target amount per recurring SAVINGS category, captured

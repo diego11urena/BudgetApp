@@ -6,6 +6,7 @@ import { CategoryFormSheet } from "../../_components/CategoryFormSheet";
 import { MergeCategorySheet } from "../../_components/MergeCategorySheet";
 import { DeleteCategoryConfirm } from "../../_components/DeleteCategoryConfirm";
 import type { CategoryWithUsage } from "../../_components/types";
+import { useT } from "../../../../../_components/LocaleProvider";
 
 /** Income's "•••" menu — Edit, Merge, and Delete, identical in shape and behavior to Expense's CategoryActionsSheet (Savings stays on the Goals page; only the underlying `type` differs). */
 export function IncomeCategoryActionsSheet({
@@ -21,6 +22,7 @@ export function IncomeCategoryActionsSheet({
 }) {
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState<"menu" | "edit" | "merge" | "delete">("menu");
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -56,16 +58,16 @@ export function IncomeCategoryActionsSheet({
   return (
     <Sheet visible={visible} title={category.name} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("edit")}>
-        Edit
+        {t.profile.categories.actions.edit}
       </button>
       <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("merge")}>
-        Merge into…
+        {t.profile.categories.actions.mergeInto}
       </button>
       <button type="button" className="button button--danger sheet-submit" onClick={() => setMode("delete")}>
-        Delete
+        {t.profile.categories.actions.delete}
       </button>
       <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-        Cancel
+        {t.profile.categories.actions.cancel}
       </button>
     </Sheet>
   );

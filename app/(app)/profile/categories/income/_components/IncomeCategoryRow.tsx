@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { IncomeCategoryActionsSheet } from "./IncomeCategoryActionsSheet";
 import { useSheet } from "../../../../_components/useSheet";
 import type { CategoryWithUsage } from "../../_components/types";
+import { useT } from "../../../../../_components/LocaleProvider";
 
 export function IncomeCategoryRow({
   category,
@@ -15,6 +16,7 @@ export function IncomeCategoryRow({
   otherCategories: CategoryWithUsage[];
 }) {
   const { open, triggerProps, sheetProps, close } = useSheet();
+  const t = useT();
 
   return (
     <div className="category-row">
@@ -25,14 +27,14 @@ export function IncomeCategoryRow({
         <p className="category-row-name">{category.name}</p>
         <p className="field-hint category-row-usage">
           {category.transactionCount === 0
-            ? "No transactions yet"
-            : `${category.transactionCount} transaction${category.transactionCount === 1 ? "" : "s"} · ${formatCurrency(category.totalAmount)}`}
+            ? t.profile.categories.noTx
+            : t.profile.categories.txCount(category.transactionCount, formatCurrency(category.totalAmount))}
         </p>
       </div>
       <button
         type="button"
         className="category-row-kebab"
-        aria-label={`Actions for ${category.name}`}
+        aria-label={t.profile.categories.actionsAria(category.name)}
         {...triggerProps}
       >
         <MoreHorizontal size={20} aria-hidden="true" />

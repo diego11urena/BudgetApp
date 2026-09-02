@@ -7,6 +7,9 @@ import { getActiveIncomeSource, getOrCreateDraftCycle, upsertCycleIncomeEntry } 
 import { incomeStepSchema } from "@/lib/validations/onboarding";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 import type { ActionResult } from "@/lib/action-error";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 export type IncomeFormState = ActionResult | undefined;
 
@@ -14,6 +17,8 @@ export async function saveIncomeAction(
   _prevState: IncomeFormState,
   formData: FormData,
 ): Promise<IncomeFormState> {
+  const t = getDictionary(await getRequestLocale());
+
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -25,7 +30,7 @@ export async function saveIncomeAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
 
   const { netQuincenaAmount } = parsed.data;

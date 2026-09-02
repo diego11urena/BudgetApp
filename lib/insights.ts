@@ -6,6 +6,9 @@ import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 import type { GoalWithProgress } from "@/lib/goals";
 import { computeGoalProjection } from "@/lib/goal-projection";
+import type { Dictionary } from "@/lib/i18n/dictionary";
+
+type InsightsDictionary = Dictionary["insights"];
 
 export interface Insight {
   text: string;
@@ -91,30 +94,33 @@ export function generateInsights(
     goals: GoalWithProgress[];
     /** Defaults to nowInPanama() -- overridable for tests. */
     now?: Date;
+    /** This is a plain function (no useT()), so the caller threads the resolved dictionary's `insights` slice through here instead. */
+    t: InsightsDictionary;
   },
 ): Insight[] {
   const now = extras.now ?? nowInPanama();
   const phase = cyclePhase(extras.cycle, now);
+  const t = extras.t;
   const candidates: Candidate[] = [];
 
-  const dueSoon = dueSoonCandidate(now, extras.recurringExpenseCategories);
+  const dueSoon = dueSoonCandidate(now, extras.recurringExpenseCategories, t);
   if (dueSoon) candidates.push(dueSoon);
 
-  const unpaidRecurring = unpaidRecurringCandidate(extras.recurringExpenseCategories, now, phase);
+  const unpaidRecurring = unpaidRecurringCandidate(extras.recurringExpenseCategories, now, phase, t);
   if (unpaidRecurring) candidates.push(unpaidRecurring);
 
-  const duplicateCharge = duplicateChargeCandidate(current);
+  const duplicateCharge = duplicateChargeCandidate(current, t);
   if (duplicateCharge) candidates.push(duplicateCharge);
 
-  const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase);
+  const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase, t);
   if (categoryAnomaly) candidates.push(categoryAnomaly);
 
-  candidates.push(paceAwareCandidate(current, phase, now));
+  candidates.push(paceAwareCandidate(current, phase, now, t));
 
-  const goalContribution = goalContributionCandidate(extras.goals, current, phase);
+  const goalContribution = goalContributionCandidate(extras.goals, current, phase, t);
   if (goalContribution) candidates.push(goalContribution);
 
-  const savingsGoal = savingsGoalCandidate(extras.goals, now);
+  const savingsGoal = savingsGoalCandidate(extras.goals, now, t);
   if (savingsGoal) candidates.push(savingsGoal);
 
   // Capped at 2, not 3 -- with the fuller rule set above, most cycles now
@@ -165,7 +171,7 @@ function daysUntilMonthlyDue(now: Date, dueDay: number): number | null {
  * point. BIWEEKLY expenses have no fixed calendar day to compare against,
  * so they're not eligible here.
  */
-function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]): Candidate | null {
+function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[], t: InsightsDictionary): Candidate | null {
   let best: { name: string; amount: number; daysUntilDue: number } | null = null;
 
   for (const category of categories) {
@@ -187,17 +193,17 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
   if (!best) return null;
   const dueText =
     best.daysUntilDue === 0
-      ? "due today"
+      ? t.dueToday
       : best.daysUntilDue === 1
-        ? "due tomorrow"
+        ? t.dueTomorrow
         : best.daysUntilDue > 1
-          ? `due in ${best.daysUntilDue} days`
+          ? t.dueInDays(best.daysUntilDue)
           : best.daysUntilDue === -1
-            ? "was due yesterday"
-            : `was due ${Math.abs(best.daysUntilDue)} days ago`;
+            ? t.wasDueYesterday
+            : t.wasDueDaysAgo(Math.abs(best.daysUntilDue));
 
   return {
-    text: `${best.name} (${formatCurrency(best.amount)}) ${dueText} and isn't marked paid.`,
+    text: t.billDueSoon(best.name, formatCurrency(best.amount), dueText),
     priority: PRIORITY.DUE_SOON,
     href: "/plan",
     severity: "warning",
@@ -223,6 +229,7 @@ function unpaidRecurringCandidate(
   categories: CategoryWithRecurringExpenses[],
   now: Date,
   phase: CyclePhase,
+  t: InsightsDictionary,
 ): Candidate | null {
   let count = 0;
   let remaining = 0;
@@ -243,9 +250,8 @@ function unpaidRecurringCandidate(
   if (count === 0) return null;
   if (phase.percentElapsed < UNPAID_RECURRING_MIN_PERCENT_ELAPSED && !hasOverdue) return null;
 
-  const noun = count === 1 ? "recurring expense hasn't" : "recurring expenses haven't";
   return {
-    text: `${count} ${noun} been paid yet this cycle (${formatCurrency(remaining)} left).`,
+    text: t.unpaidRecurring(count, formatCurrency(remaining)),
     priority: PRIORITY.UNPAID_RECURRING,
     href: "/plan",
     severity: "warning",
@@ -263,7 +269,7 @@ function unpaidRecurringCandidate(
  * qualifying pair found -- "is there a duplicate at all" is the question,
  * not an exhaustive audit.
  */
-function duplicateChargeCandidate(current: CycleFinancials): Candidate | null {
+function duplicateChargeCandidate(current: CycleFinancials, t: InsightsDictionary): Candidate | null {
   const gmailTransactions = current.transactions.filter(
     (tx) => tx.importSource === "GMAIL" && tx.type === "EXPENSE",
   );
@@ -280,7 +286,7 @@ function duplicateChargeCandidate(current: CycleFinancials): Candidate | null {
 
       const later = a.occurredAt > b.occurredAt ? a : b;
       return {
-        text: `Two charges of ${formatCurrency(a.amount)} from ${a.name} on ${formatFriendlyDate(later.occurredAt)} — duplicate?`,
+        text: t.duplicateCharge(formatCurrency(a.amount), a.name, formatFriendlyDate(later.occurredAt)),
         priority: PRIORITY.DUPLICATE_CHARGE,
         href: `/transactions?q=${encodeURIComponent(a.name)}`,
       };
@@ -309,9 +315,10 @@ function categoryAnomalyCandidate(
   current: CycleFinancials,
   previousClosedFinancials: CycleFinancials[],
   phase: CyclePhase,
+  t: InsightsDictionary,
 ): Candidate | null {
   if (previousClosedFinancials.length < ANOMALY_MIN_HISTORY) {
-    return categoryDeltaFallback(current, previousClosedFinancials);
+    return categoryDeltaFallback(current, previousClosedFinancials, t);
   }
 
   const window = previousClosedFinancials.slice(0, ANOMALY_WINDOW_SIZE);
@@ -351,7 +358,7 @@ function categoryAnomalyCandidate(
 
   if (!best) return null;
   return {
-    text: `${best.categoryName} spending is up ${formatCurrency(best.amount - best.expected)} vs your recent average.`,
+    text: t.categoryAnomaly(best.categoryName, formatCurrency(best.amount - best.expected)),
     priority: PRIORITY.CATEGORY_ANOMALY,
     href: `/transactions?category=${best.categoryId}`,
   };
@@ -361,6 +368,7 @@ function categoryAnomalyCandidate(
 function categoryDeltaFallback(
   current: CycleFinancials,
   previousClosedFinancials: CycleFinancials[],
+  t: InsightsDictionary,
 ): Candidate | null {
   if (previousClosedFinancials.length === 0) return null;
   const mostRecent = previousClosedFinancials[0];
@@ -375,7 +383,7 @@ function categoryDeltaFallback(
   if (delta < 1) return null;
 
   return {
-    text: `${topCategory.categoryName} spending is up ${formatCurrency(delta)} vs last cycle.`,
+    text: t.categoryDelta(topCategory.categoryName, formatCurrency(delta)),
     priority: PRIORITY.CATEGORY_ANOMALY,
     href: `/transactions?category=${topCategory.categoryId}`,
   };
@@ -398,10 +406,10 @@ function categoryDeltaFallback(
  * slot; with more rules producing candidates, a cycle with more urgent
  * things going on can simply not mention pace at all.
  */
-function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Date): Candidate {
+function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Date, t: InsightsDictionary): Candidate {
   if (current.amountLeft < 0) {
     return {
-      text: `You're ${formatCurrency(Math.abs(current.amountLeft))} over budget this cycle so far, with ${phase.daysRemaining} day${phase.daysRemaining === 1 ? "" : "s"} left.`,
+      text: t.overBudget(formatCurrency(Math.abs(current.amountLeft)), phase.daysRemaining),
       priority: PRIORITY.OVER_BUDGET,
       severity: "critical",
     };
@@ -414,7 +422,7 @@ function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Da
       const runOutDate = addDays(now, Math.floor(daysUntilExhausted));
       const daysBeforePayday = phase.daysRemaining - Math.floor(daysUntilExhausted);
       return {
-        text: `At your current pace you'll run out of cash around ${formatFriendlyDate(runOutDate)} — ${daysBeforePayday} day${daysBeforePayday === 1 ? "" : "s"} before your next payday.`,
+        text: t.runOutOfCash(formatFriendlyDate(runOutDate), daysBeforePayday),
         priority: PRIORITY.PACE_WARNING,
         href: "/dashboard/breakdown",
         severity: "critical",
@@ -423,7 +431,7 @@ function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Da
   }
 
   return {
-    text: "You're spending at a sustainable pace to make it to your next payday.",
+    text: t.onTrackPace,
     priority: PRIORITY.ON_TRACK,
   };
 }
@@ -453,7 +461,7 @@ export function computeStreak(previousClosedFinancials: CycleFinancials[]): numb
  * anything already complete or still far off -- announcing "you're 90%
  * short" as if it were exciting news isn't the point of this rule.
  */
-function savingsGoalCandidate(goals: GoalWithProgress[], now: Date): Candidate | null {
+function savingsGoalCandidate(goals: GoalWithProgress[], now: Date, t: InsightsDictionary): Candidate | null {
   let best: { name: string; remaining: number; percentage: number } | null = null;
 
   for (const goal of goals) {
@@ -472,7 +480,7 @@ function savingsGoalCandidate(goals: GoalWithProgress[], now: Date): Candidate |
 
   if (!best) return null;
   return {
-    text: `You're ${formatCurrency(best.remaining)} away from hitting your ${best.name} target.`,
+    text: t.savingsGoalClose(formatCurrency(best.remaining), best.name),
     priority: PRIORITY.SAVINGS_GOAL,
     href: "/plan",
   };
@@ -497,6 +505,7 @@ function goalContributionCandidate(
   goals: GoalWithProgress[],
   current: CycleFinancials,
   phase: CyclePhase,
+  t: InsightsDictionary,
 ): Candidate | null {
   if (phase.percentElapsed < GOAL_CONTRIBUTION_MIN_PERCENT_ELAPSED) return null;
 
@@ -518,7 +527,7 @@ function goalContributionCandidate(
 
   if (!best) return null;
   return {
-    text: `You planned ${formatCurrency(best.planned)} for ${best.name} this quincena — only ${formatCurrency(best.actual)} logged so far, with ${phase.daysRemaining} day${phase.daysRemaining === 1 ? "" : "s"} left.`,
+    text: t.goalContributionBehind(formatCurrency(best.planned), formatCurrency(best.actual), best.name, phase.daysRemaining),
     priority: PRIORITY.GOAL_CONTRIBUTION,
     href: "/plan",
   };

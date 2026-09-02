@@ -27,6 +27,13 @@ model User {
   // on every request. SYSTEM defers to prefers-color-scheme, resolved
   // client-side (see app/_components/ThemeScript.tsx).
   theme                  ThemePreference @default(SYSTEM)
+  // Defaults EN at the column level so this migration doesn't change any
+  // EXISTING account's language -- new signups get ES explicitly in
+  // signupAction instead (the app is built for Panama, but a brand-new
+  // column shouldn't silently flip everyone who signed up before this
+  // feature existed). Mirrored into a cookie the same way theme is; see
+  // lib/i18n/locale.ts.
+  locale                 Locale    @default(EN)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -41,6 +48,11 @@ enum ThemePreference {
   SYSTEM
   LIGHT
   DARK
+}
+
+enum Locale {
+  EN
+  ES
 }
 
 model IncomeSource {

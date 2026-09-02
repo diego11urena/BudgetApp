@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/app/_components/LocaleProvider";
 
 // Once per browser session/tab, not once per navigation -- see the Balboa
 // fix list's batch 11.7. This layout (and this component) doesn't remount
@@ -21,6 +22,7 @@ const SESSION_FLAG = "balboa:gmail-synced-this-session";
  */
 export function GmailSyncTrigger() {
   const router = useRouter();
+  const t = useT();
   const [syncing, setSyncing] = useState(
     () => typeof window !== "undefined" && sessionStorage.getItem(SESSION_FLAG) !== "true",
   );
@@ -53,7 +55,7 @@ export function GmailSyncTrigger() {
   if (!syncing) return null;
   return (
     <div className="gmail-sync-indicator" role="status" aria-live="polite">
-      Syncing…
+      {t.profile.gmail.syncing}
     </div>
   );
 }

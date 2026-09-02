@@ -2,10 +2,12 @@ import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
 import { EmptyState } from "../../_components/EmptyState";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export function TopCategoriesChart({
+export async function TopCategoriesChart({
   categories,
-  title = "Top categories this quincena",
+  title,
   badge,
 }: {
   categories: CategoryTotal[];
@@ -14,11 +16,14 @@ export function TopCategoriesChart({
   /** Home passes "Top 6" -- a small trailing label next to the header, matching the design system's "Where it's going" spec. Omitted (History) renders no badge. */
   badge?: string;
 }) {
+  const t = getDictionary(await getRequestLocale()).dashboard;
+  const resolvedTitle = title ?? t.topCategoriesTitle;
+
   if (categories.length === 0) {
     return (
       <div>
-        <h2>{title}</h2>
-        <EmptyState>No expenses logged yet this quincena.</EmptyState>
+        <h2>{resolvedTitle}</h2>
+        <EmptyState>{t.noExpensesYet}</EmptyState>
       </div>
     );
   }
@@ -28,7 +33,7 @@ export function TopCategoriesChart({
   return (
     <div>
       <div className="section-header-row">
-        <h2 style={{ marginBottom: 0 }}>{title}</h2>
+        <h2 style={{ marginBottom: 0 }}>{resolvedTitle}</h2>
         {badge && <span className="chart-badge">{badge}</span>}
       </div>
       <div className="bar-chart">

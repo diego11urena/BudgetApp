@@ -10,6 +10,8 @@ import { RecordPaymentSheet } from "./RecordPaymentSheet";
 import { RecurringExpenseEditSheet, type EditableRecurringExpense } from "./RecurringExpenseEditSheet";
 import { useSheet } from "../../_components/useSheet";
 import { dismissMatch, isMatchDismissed } from "@/lib/dismissed-matches";
+import { useT } from "@/app/_components/LocaleProvider";
+import type { Dictionary } from "@/lib/i18n/dictionary";
 
 export interface RecurringExpenseRowData {
   id: string;
@@ -22,13 +24,16 @@ export interface RecurringExpenseRowData {
   suggestedMatch: { transactionId: string; name: string; amount: number } | null;
 }
 
-const STATUS_LABEL: Record<RecurringExpensePaymentStatus, string> = {
-  "not-started": "Not paid yet",
-  partial: "Partially paid",
-  paid: "Paid",
-  "paid-over": "Paid — over target",
-  exceeded: "Exceeded",
-};
+function statusLabel(status: RecurringExpensePaymentStatus, t: Dictionary): string {
+  const STATUS_LABEL: Record<RecurringExpensePaymentStatus, string> = {
+    "not-started": t.budget.status.notPaid,
+    partial: t.budget.status.partiallyPaid,
+    paid: t.budget.status.paid,
+    "paid-over": t.budget.status.paidOverTarget,
+    exceeded: t.budget.status.exceeded,
+  };
+  return STATUS_LABEL[status];
+}
 
 /**
  * One line item inside an expanded CategoryProgressRow. Tapping the
@@ -58,6 +63,7 @@ export function RecurringExpenseRow({
   simplifiedStatus?: boolean;
 }) {
   const router = useRouter();
+  const t = useT();
   const editSheet = useSheet();
   const paymentSheet = useSheet();
   const [dismissedMatch, setDismissedMatch] = useState(
@@ -97,7 +103,7 @@ export function RecurringExpenseRow({
           <span className="recurring-expense-row-category"> · {categoryName}</span>
         )}
         {expense.frequency === "MONTHLY" && expense.dueDay !== null && (
-          <span className="recurring-expense-row-due"> · Due day {expense.dueDay}</span>
+          <span className="recurring-expense-row-due">{t.budget.dueDay(expense.dueDay)}</span>
         )}
       </span>
       <span className="recurring-expense-row-amount">{formatCurrency(expense.targetAmount)}</span>
@@ -110,7 +116,11 @@ export function RecurringExpenseRow({
   const isPaid = status === "paid" || status === "paid-over" || status === "exceeded";
 
   if (simplifiedStatus) {
-    const meta = [showCategoryLabel ? categoryName : null, expense.dueDay !== null ? `due day ${expense.dueDay}` : null]
+    // t.budget.dueDay() carries its own leading " · " separator (meant for
+    // appending directly after a name) -- stripped here since this meta
+    // line joins its parts with " · " itself, same as before wiring.
+    const dueDayMeta = expense.dueDay !== null ? t.budget.dueDay(expense.dueDay).replace(/^\s*·\s*/, "") : null;
+    const meta = [showCategoryLabel ? categoryName : null, dueDayMeta]
       .filter((part): part is string => part !== null)
       .join(" · ");
     return (
@@ -127,7 +137,7 @@ export function RecurringExpenseRow({
         </button>
         {!isPaid && (
           <button type="button" className="button button--chip" {...paymentSheet.triggerProps}>
-            Record
+            {t.budget.record}
           </button>
         )}
 
@@ -165,7 +175,7 @@ export function RecurringExpenseRow({
       {showSuggestion ? (
         <div className="recurring-expense-suggestion">
           <p className="field-hint">
-            Possible match: {expense.suggestedMatch!.name} · {formatCurrency(expense.suggestedMatch!.amount)}
+            {t.budget.possibleMatch(expense.suggestedMatch!.name, formatCurrency(expense.suggestedMatch!.amount))}
           </p>
           <div className="recurring-expense-suggestion-actions">
             <button
@@ -174,7 +184,7 @@ export function RecurringExpenseRow({
               onClick={handleConfirmMatch}
               disabled={confirmingMatch}
             >
-              {confirmingMatch ? "Confirming..." : "Confirm"}
+              {confirmingMatch ? t.budget.confirming : t.budget.confirmMatch}
             </button>
             <button
               type="button"
@@ -184,13 +194,13 @@ export function RecurringExpenseRow({
                 if (expense.suggestedMatch) dismissMatch(expense.id, expense.suggestedMatch.transactionId);
               }}
             >
-              Not this one
+              {t.budget.notThisOne}
             </button>
           </div>
         </div>
       ) : (
         <div className={`recurring-expense-status recurring-expense-status--${status}`}>
-          <span className="recurring-expense-status-label">{STATUS_LABEL[status]}</span>
+          <span className="recurring-expense-status-label">{statusLabel(status, t)}</span>
           {status !== "not-started" && (
             <span className="recurring-expense-status-amount">
               {formatCurrency(expense.actual)} / {formatCurrency(expense.targetAmount)}
@@ -198,7 +208,7 @@ export function RecurringExpenseRow({
           )}
           {!readOnly && (status === "not-started" || status === "partial") && (
             <button type="button" className="button button--secondary button--small" {...paymentSheet.triggerProps}>
-              Record payment
+              {t.budget.recordPaymentButton}
             </button>
           )}
         </div>

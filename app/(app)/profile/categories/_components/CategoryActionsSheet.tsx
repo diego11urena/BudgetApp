@@ -6,6 +6,7 @@ import { CategoryFormSheet } from "./CategoryFormSheet";
 import { MergeCategorySheet } from "./MergeCategorySheet";
 import { DeleteCategoryConfirm } from "./DeleteCategoryConfirm";
 import type { CategoryWithUsage } from "./types";
+import { useT } from "../../../../_components/LocaleProvider";
 
 /**
  * The first "•••"/overflow-menu in this app (no prior pattern to match) —
@@ -26,6 +27,7 @@ export function CategoryActionsSheet({
 }) {
   const [visible, setVisible] = useState(false);
   const [mode, setMode] = useState<"menu" | "edit" | "merge" | "delete">("menu");
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -61,16 +63,16 @@ export function CategoryActionsSheet({
   return (
     <Sheet visible={visible} title={category.name} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("edit")}>
-        Edit
+        {t.profile.categories.actions.edit}
       </button>
       <button type="button" className="button button--secondary sheet-submit" onClick={() => setMode("merge")}>
-        Merge into…
+        {t.profile.categories.actions.mergeInto}
       </button>
       <button type="button" className="button button--danger sheet-submit" onClick={() => setMode("delete")}>
-        Delete
+        {t.profile.categories.actions.delete}
       </button>
       <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-        Cancel
+        {t.profile.categories.actions.cancel}
       </button>
     </Sheet>
   );

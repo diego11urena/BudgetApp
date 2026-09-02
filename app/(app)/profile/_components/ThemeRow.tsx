@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { THEME_LABEL, THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
+import { THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
 import { setThemeAction } from "../actions";
+import { useT } from "../../../_components/LocaleProvider";
 
 /**
  * Applies immediately on click (optimistic -- setThemeAction's cookie/DB
@@ -25,6 +26,7 @@ function applyThemeClientSide(value: ThemePreferenceValue) {
 export function ThemeRow({ initialTheme }: { initialTheme: ThemePreferenceValue }) {
   const [theme, setTheme] = useState(initialTheme);
   const [pending, startTransition] = useTransition();
+  const t = useT();
 
   function handleSelect(value: ThemePreferenceValue) {
     if (value === theme) return;
@@ -39,8 +41,8 @@ export function ThemeRow({ initialTheme }: { initialTheme: ThemePreferenceValue 
 
   return (
     <div className="line-item profile-theme-row">
-      <span className="line-item-title">Theme</span>
-      <div className="theme-picker" role="group" aria-label="Theme">
+      <span className="line-item-title">{t.profile.theme}</span>
+      <div className="theme-picker" role="group" aria-label={t.profile.theme}>
         {THEME_VALUES.map((value) => (
           <button
             key={value}
@@ -50,7 +52,7 @@ export function ThemeRow({ initialTheme }: { initialTheme: ThemePreferenceValue 
             disabled={pending}
             onClick={() => handleSelect(value)}
           >
-            {THEME_LABEL[value]}
+            {t.profile.themeLabels[value]}
           </button>
         ))}
       </div>

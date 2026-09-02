@@ -6,8 +6,10 @@ import { CategoryNameInput } from "@/app/(app)/_components/CategoryNameInput";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { saveGoalStepAction, skipGoalStepAction, type GoalStepFormState } from "../actions";
+import { useT } from "@/app/_components/LocaleProvider";
 
 export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: string[] }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState<GoalStepFormState, FormData>(saveGoalStepAction, undefined);
   const [skipping, setSkipping] = useState(false);
   const [name, setName] = useState("");
@@ -34,12 +36,12 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
     <>
       <form action={formAction}>
         <div className="field">
-          <label htmlFor={`${uid}-name`}>Goal</label>
+          <label htmlFor={`${uid}-name`}>{t.onboarding.goal.nameLabel}</label>
           <CategoryNameInput
             id={`${uid}-name`}
             name="name"
             categoryNames={savingsCategoryNames}
-            placeholder="Emergency fund"
+            placeholder={t.onboarding.goal.namePlaceholder}
             showChips={false}
             required={false}
             onValueChange={setName}
@@ -48,7 +50,7 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
 
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <div className="field" style={{ flex: 1 }}>
-            <label htmlFor={`${uid}-saved`}>Already saved</label>
+            <label htmlFor={`${uid}-saved`}>{t.onboarding.goal.alreadySavedLabel}</label>
             <CurrencyInput
               id={`${uid}-saved`}
               name="alreadySavedAmount"
@@ -57,15 +59,15 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
             />
           </div>
           <div className="field" style={{ flex: 1 }}>
-            <label htmlFor={`${uid}-target`}>Target</label>
+            <label htmlFor={`${uid}-target`}>{t.onboarding.goal.targetLabel}</label>
             <CurrencyInput id={`${uid}-target`} name="lifetimeTargetAmount" allowEmpty onValueChange={setTarget} />
           </div>
         </div>
 
         <div className="field">
-          <label htmlFor={`${uid}-per`}>Per quincena</label>
+          <label htmlFor={`${uid}-per`}>{t.onboarding.goal.perQuincenaLabel}</label>
           <CurrencyInput id={`${uid}-per`} name="recurringAmount" allowEmpty onValueChange={setPerQuincena} />
-          <span className="field-hint">Sets the amount behind the one-tap Contribute button on Plan.</span>
+          <span className="field-hint">{t.onboarding.goal.perQuincenaHint}</span>
         </div>
 
         {projection && !projection.isComplete && projection.etaDate && (
@@ -74,8 +76,10 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
               <span>{Math.round(projection.percentage)}%</span>
             </div>
             <p>
-              At {formatCurrency(Number(perQuincena))} per quincena you&apos;d hit your target around{" "}
-              {formatFriendlyDate(projection.etaDate)}.
+              {t.onboarding.goal.projection(
+                formatCurrency(Number(perQuincena)),
+                formatFriendlyDate(projection.etaDate),
+              )}
             </p>
           </div>
         )}
@@ -88,10 +92,14 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
 
         <div className="form-actions form-actions--stacked">
           <button type="submit" className="button" disabled={pending || skipping}>
-            {pending ? "Saving..." : name.trim() ? "Create goal & finish" : "Finish setup"}
+            {pending
+              ? t.onboarding.goal.saving
+              : name.trim()
+                ? t.onboarding.goal.createAndFinish
+                : t.onboarding.goal.finishSetup}
           </button>
           <button type="button" className="button button--ghost" onClick={handleSkip} disabled={pending || skipping}>
-            {skipping ? "Finishing..." : "Skip for now"}
+            {skipping ? t.onboarding.goal.finishing : t.onboarding.goal.skip}
           </button>
         </div>
       </form>

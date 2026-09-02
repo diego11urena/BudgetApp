@@ -1,4 +1,6 @@
 import { Skeleton } from "../../_components/Skeleton";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 /**
  * Bespoke to this route's real layout (Insights card, balance card, budget
@@ -8,10 +10,11 @@ import { Skeleton } from "../../_components/Skeleton";
  * exists here at all (fast Postgres queries, still worth a flash of
  * layout-matching structure over a blank screen).
  */
-export default function Loading() {
+export default async function Loading() {
+  const t = getDictionary(await getRequestLocale());
   return (
     <div className="home-page" role="status">
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{t.common.loading}</span>
       <Skeleton title />
 
       <div className="dashboard-section dashboard-section--plain">

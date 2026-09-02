@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CreditCard, Home, LayoutGrid, User, type LucideIcon } from "lucide-react";
 import { useSheet } from "./useSheet";
+import { useT } from "@/app/_components/LocaleProvider";
 
 // BottomNav mounts in the app layout, on every page -- QuickAddSheet (its
 // own segmented type toggle, category chips, recurring-expense toggle,
@@ -20,17 +21,17 @@ type TxType = "EXPENSE" | "INCOME" | "SAVINGS";
 
 interface Tab {
   href: string;
-  label: string;
+  labelKey: "home" | "activity" | "plan" | "profile";
   icon: LucideIcon;
 }
 
 const TABS_BEFORE_FAB: Tab[] = [
-  { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/transactions", label: "Activity", icon: CreditCard },
+  { href: "/dashboard", labelKey: "home", icon: Home },
+  { href: "/transactions", labelKey: "activity", icon: CreditCard },
 ];
 const TABS_AFTER_FAB: Tab[] = [
-  { href: "/plan", label: "Plan", icon: LayoutGrid },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/plan", labelKey: "plan", icon: LayoutGrid },
+  { href: "/profile", labelKey: "profile", icon: User },
 ];
 
 export function BottomNav({
@@ -47,6 +48,7 @@ export function BottomNav({
   const pathname = usePathname();
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
   const { sheetProps, setTrigger } = useSheet();
+  const t = useT();
 
   function renderTab(tab: Tab) {
     const isActive = pathname.startsWith(tab.href);
@@ -58,7 +60,7 @@ export function BottomNav({
         className={`bottom-nav-item ${isActive ? "is-active" : ""}`}
       >
         <Icon className="bottom-nav-icon" size={22} aria-hidden="true" />
-        <span className="bottom-nav-label">{tab.label}</span>
+        <span className="bottom-nav-label">{t.nav[tab.labelKey]}</span>
       </Link>
     );
   }
@@ -70,7 +72,7 @@ export function BottomNav({
         <button
           type="button"
           className="bottom-nav-fab"
-          aria-label="Add a transaction"
+          aria-label={t.nav.addTransaction}
           onClick={(e) => {
             setTrigger(e.currentTarget);
             setQuickAddType("EXPENSE");

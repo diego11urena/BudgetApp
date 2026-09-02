@@ -16,8 +16,13 @@ import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesCha
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
 import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-export const metadata: Metadata = { title: "Quincena Details" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getRequestLocale());
+  return { title: t.history.detailMetaTitle };
+}
 
 export default async function CycleHistoryPage({
   params,
@@ -30,6 +35,7 @@ export default async function CycleHistoryPage({
   }
   const userId = session.user.id;
   const { cycleId } = await params;
+  const t = getDictionary(await getRequestLocale());
 
   const cycle = await prisma.budgetCycle.findFirst({
     where: { id: cycleId, userId },
@@ -76,14 +82,14 @@ export default async function CycleHistoryPage({
   return (
     <div className="home-page">
       <Link href="/history" className="back-link">
-        <ChevronLeft size={16} aria-hidden="true" /> Back
+        <ChevronLeft size={16} aria-hidden="true" /> {t.history.back}
       </Link>
 
       <div className="home-header">
         <div>
           <p className="home-greeting">{formatCycleRangeText(cycle)}</p>
           <div className="home-month">
-            {closed ? "Closed" : "Active"}
+            {closed ? t.history.closed : t.history.active}
             {closed && (
               <EditPayInfoButton
                 currentAmount={financials.baseIncome}
@@ -118,7 +124,7 @@ export default async function CycleHistoryPage({
 
       {recurringExpenseCategories.length > 0 && (
         <div className="dashboard-section">
-          <h2 style={{ marginBottom: "0.5rem" }}>Bills</h2>
+          <h2 style={{ marginBottom: "0.5rem" }}>{t.history.bills}</h2>
           <div className="category-progress-list">
             {recurringExpenseCategories.map((category) => (
               <CategoryProgressRow
@@ -136,12 +142,12 @@ export default async function CycleHistoryPage({
       )}
 
       <div className="dashboard-section">
-        <TopCategoriesChart categories={financials.topCategories} title="Top categories" />
+        <TopCategoriesChart categories={financials.topCategories} title={t.dashboard.topCategoriesTitle} />
       </div>
 
       <div className="dashboard-section">
         <div className="section-header-row">
-          <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>Transactions</h2>
+          <h2 style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 0 }}>{t.history.transactions}</h2>
           <AddToCycleButton
             cycleId={cycle.id}
             cycleStartDate={cycleStartDate}
@@ -156,7 +162,7 @@ export default async function CycleHistoryPage({
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
-          emptyMessage="Nothing logged in this quincena."
+          emptyMessage={t.history.empty2}
         />
       </div>
     </div>

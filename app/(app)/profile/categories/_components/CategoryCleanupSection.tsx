@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { MergeCategorySheet } from "./MergeCategorySheet";
 import type { CategoryWithUsage } from "./types";
+import { useT } from "../../../../_components/LocaleProvider";
 
 export interface DuplicatePairWithUsage {
   a: CategoryWithUsage;
@@ -25,6 +26,7 @@ export function CategoryCleanupSection({
   allCategories: CategoryWithUsage[];
 }) {
   const [reviewingIndex, setReviewingIndex] = useState<number | null>(null);
+  const t = useT();
 
   if (duplicates.length === 0) return null;
 
@@ -40,8 +42,7 @@ export function CategoryCleanupSection({
   return (
     <div className="dashboard-section dashboard-section--plain category-cleanup">
       <p className="category-cleanup-title">
-        <AlertTriangle size={16} aria-hidden="true" /> {duplicates.length} possible duplicate
-        {duplicates.length === 1 ? "" : "s"}
+        <AlertTriangle size={16} aria-hidden="true" /> {t.profile.categories.duplicates(duplicates.length)}
       </p>
       <div className="category-cleanup-list">
         {duplicates.map((pair, i) => (
@@ -50,7 +51,7 @@ export function CategoryCleanupSection({
               {pair.a.name} + {pair.b.name}
             </span>
             <button type="button" className="category-cleanup-review" onClick={() => setReviewingIndex(i)}>
-              Review →
+              {t.profile.categories.review}
             </button>
           </div>
         ))}

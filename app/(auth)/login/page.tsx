@@ -5,20 +5,22 @@ import Link from "next/link";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { loginAction, type LoginFormState } from "./actions";
 import { AuthShell } from "../_components/AuthShell";
+import { useT } from "@/app/_components/LocaleProvider";
 
 const initialState: LoginFormState = undefined;
 
 export default function LoginPage() {
+  const t = useT();
   const [state, formAction, pending] = useActionState(loginAction, initialState);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <AuthShell title="Welcome back." subtitle="Log in to pick up this quincena.">
+    <AuthShell title={t.auth.login.title} subtitle={t.auth.login.subtitle}>
       <form action={formAction} className="auth-form">
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t.auth.login.emailLabel}</label>
           <input
             id="email"
             name="email"
@@ -32,9 +34,9 @@ export default function LoginPage() {
         </div>
         <div className="field">
           <div className="auth-password-label-row">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t.auth.login.passwordLabel}</label>
             <Link href="/forgot-password" className="auth-forgot-link">
-              Forgot?
+              {t.auth.login.forgot}
             </Link>
           </div>
           <div className="auth-password-wrap">
@@ -52,7 +54,7 @@ export default function LoginPage() {
               type="button"
               className="auth-password-toggle"
               onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t.auth.login.hidePassword : t.auth.login.showPassword}
             >
               {showPassword ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
             </button>
@@ -66,25 +68,26 @@ export default function LoginPage() {
         )}
 
         <button type="submit" className="button auth-submit" disabled={pending || !email || !password}>
-          {pending ? "Logging in..." : "Log in"}
+          {pending ? t.auth.login.submitting : t.auth.login.submit}
         </button>
       </form>
 
       <div className="auth-divider">
-        <span>or</span>
+        <span>{t.auth.login.or}</span>
       </div>
 
       {/* UI only for now -- see the "wire real Gmail OAuth sign-in" follow-up
           task: reusing the Gmail-import app for sign-in needs a new
           redirect URI registered in Google Cloud Console and a decision on
           scope, neither of which this pass makes. */}
-      <button type="button" className="auth-gmail-button" disabled title="Coming soon">
+      <button type="button" className="auth-gmail-button" disabled title={t.auth.login.gmailComingSoon}>
         <Mail size={19} aria-hidden="true" />
-        Continue with Gmail
+        {t.auth.login.gmailButton}
       </button>
 
       <p className="auth-bottom-link">
-        New to Balboa? <Link href="/signup">Create an account</Link>
+        {t.auth.login.newToBalboa}
+        <Link href="/signup">{t.auth.login.createAccount}</Link>
       </p>
     </AuthShell>
   );

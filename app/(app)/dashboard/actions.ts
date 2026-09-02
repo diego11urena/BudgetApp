@@ -23,6 +23,9 @@ import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/
 import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 const JUST_GOT_PAID_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
@@ -55,13 +58,14 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
   if (!session?.user?.id) {
     redirect("/login");
   }
+  const t = getDictionary(await getRequestLocale());
 
   // Closing a cycle in a loop would grow BudgetCycle without bound --
   // this is the one throttle standing between a scripted/compromised
   // session and that.
   const rateLimit = await checkRateLimit(`just-got-paid:${session.user.id}`, JUST_GOT_PAID_RATE_LIMIT);
   if (!rateLimit.allowed) {
-    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+    return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
   }
 
   const payDate = (payDateStr && parsePayDate(payDateStr)) || nowInPanama();
@@ -124,16 +128,17 @@ export const confirmNewCycleIncomeAction = withActionErrorHandling(async functio
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const parsed = decimalString.safeParse(formData.get("netQuincenaAmount"));
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t) };
   }
   const netQuincenaAmount = parsed.data;
 
   const incomeSource = await getActiveIncomeSource(prisma, userId);
   if (!incomeSource) {
-    return { error: "No income source found yet — complete onboarding first." };
+    return { error: t.dashboard.noIncomeSource };
   }
 
   const cycle = await getOrCreateDraftCycle(userId);
@@ -178,19 +183,20 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const parsedAmount = decimalString.safeParse(formData.get("netQuincenaAmount"));
   if (!parsedAmount.success) {
-    return { error: parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE };
+    return { error: translateValidationMessage(parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t) };
   }
 
   const payDateStr = formData.get("payDate");
   if (typeof payDateStr !== "string" || !payDateStr) {
-    return { error: "Date is required" };
+    return { error: t.dashboard.editPayInfo.dateRequired };
   }
   const payDate = parseDateOnly(payDateStr);
   if (!payDate) {
-    return { error: "Invalid date" };
+    return { error: t.dashboard.editPayInfo.invalidDate };
   }
 
   const hintedCycleId = formData.get("cycleId");
@@ -199,7 +205,7 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
       ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
       : await getOrCreateDraftCycle(userId);
   if (!cycle) {
-    return { error: "Quincena not found" };
+    return { error: t.dashboard.quincenaNotFound };
   }
 
   let assessment: PayDateChangeResult | null = null;
@@ -207,9 +213,9 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
 
   if (payDateChanging) {
     if (cycle.status !== "CLOSED" && payDate.getTime() > nowInPanama().getTime()) {
-      return { error: "Date must not be in the future" };
+      return { error: t.dashboard.editPayInfo.dateNotFuture };
     }
-    assessment = await assessPayDateChange(userId, cycle, payDate);
+    assessment = await assessPayDateChange(userId, cycle, payDate, t.dashboard.editPayInfo);
     if (!assessment.ok) {
       return { error: assessment.error };
     }
@@ -217,7 +223,7 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
 
   const incomeSource = await getActiveIncomeSource(prisma, userId);
   if (!incomeSource) {
-    return { error: "No income source found yet — complete onboarding first." };
+    return { error: t.dashboard.noIncomeSource };
   }
 
   const writes: Prisma.PrismaPromise<unknown>[] = [];
@@ -269,15 +275,16 @@ export const previewPayDateChangeAction = withActionErrorHandling(async function
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
   if (!cycle) {
-    return { ok: false, error: "Quincena not found" };
+    return { ok: false, error: t.dashboard.quincenaNotFound };
   }
   const newDate = parseDateOnly(newPayDateStr);
   if (!newDate) {
-    return { ok: false, error: "Invalid date" };
+    return { ok: false, error: t.dashboard.editPayInfo.invalidDate };
   }
 
-  return assessPayDateChange(userId, cycle, newDate);
+  return assessPayDateChange(userId, cycle, newDate, t.dashboard.editPayInfo);
 });

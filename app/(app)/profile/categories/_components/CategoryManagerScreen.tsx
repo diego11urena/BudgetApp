@@ -8,6 +8,7 @@ import { CategoryFormSheet } from "./CategoryFormSheet";
 import { CategoryCleanupSection, type DuplicatePairWithUsage } from "./CategoryCleanupSection";
 import { EmptyState } from "../../../_components/EmptyState";
 import type { CategoryWithUsage } from "./types";
+import { useT } from "../../../../_components/LocaleProvider";
 
 export function CategoryManagerScreen({
   categories,
@@ -19,6 +20,7 @@ export function CategoryManagerScreen({
   const [query, setQuery] = useState("");
   const [unusedExpanded, setUnusedExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
+  const t = useT();
 
   const q = query.trim().toLowerCase();
   const matches = (c: CategoryWithUsage) => c.name.toLowerCase().includes(q);
@@ -33,20 +35,20 @@ export function CategoryManagerScreen({
       <input
         type="text"
         className="transaction-filters-search"
-        placeholder="Search categories…"
+        placeholder={t.profile.categories.searchPlaceholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        aria-label="Search categories"
+        aria-label={t.profile.categories.searchAria}
         style={{ marginBottom: "1rem" }}
       />
 
       <div className="dashboard-section">
         <div className="category-section-header">
-          <h2 style={{ marginBottom: 0 }}>Your categories</h2>
+          <h2 style={{ marginBottom: 0 }}>{t.profile.categories.yourCategories}</h2>
           <button
             type="button"
             className="icon-button"
-            aria-label="Add category"
+            aria-label={t.profile.categories.addAria}
             onClick={() => setAdding(true)}
           >
             <Plus size={16} aria-hidden="true" />
@@ -54,16 +56,16 @@ export function CategoryManagerScreen({
         </div>
 
         <Link href="/profile/categories/income" className="category-income-link">
-          Manage income categories →
+          {t.profile.categories.manageIncomeLink}
         </Link>
 
         {categories.length === 0 ? (
-          <EmptyState action={{ label: "Add category", onClick: () => setAdding(true) }}>
-            No categories yet.
+          <EmptyState action={{ label: t.profile.categories.addAria, onClick: () => setAdding(true) }}>
+            {t.profile.categories.noCategories}
           </EmptyState>
         ) : active.length === 0 ? (
           <EmptyState>
-            {q ? `No categories match "${query}".` : "No active categories — check Unused below."}
+            {q ? t.profile.categories.noMatch(query) : t.profile.categories.noActiveCheckUnused}
           </EmptyState>
         ) : (
           <div className="category-row-list">

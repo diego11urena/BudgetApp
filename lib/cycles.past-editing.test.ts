@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "./prisma";
 import { assessPayDateChange } from "./cycles";
 import { getCycleFinancials } from "./cycle-financials";
+import { en } from "./i18n/dictionaries/en";
 
 // Mirrors pay-date.ts's own panamaMidnight anchor (Panama midnight = 05:00
 // UTC, since Panama is UTC-5 year-round). These fixtures are seeded into a
@@ -115,7 +116,7 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     });
 
     const newPeriodStart = panama(2026, 7, 10);
-    const assessment = await assessPayDateChange(userId, cycle, newPeriodStart);
+    const assessment = await assessPayDateChange(userId, cycle, newPeriodStart, en.dashboard.editPayInfo);
     expect(assessment.ok).toBe(true);
     if (!assessment.ok) return;
     expect(assessment.changed).toBe(true);
@@ -166,7 +167,7 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     });
 
     // On or before the previous cycle's own periodStart -- an outright conflict.
-    const assessment = await assessPayDateChange(userId, cycle, previous.periodStart);
+    const assessment = await assessPayDateChange(userId, cycle, previous.periodStart, en.dashboard.editPayInfo);
     expect(assessment.ok).toBe(false);
     if (assessment.ok) return;
     expect(assessment.error).toContain("Jul 1");

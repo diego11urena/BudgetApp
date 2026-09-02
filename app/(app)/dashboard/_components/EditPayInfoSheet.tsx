@@ -8,6 +8,8 @@ import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
+import { useT } from "@/app/_components/LocaleProvider";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 /**
  * Corrects a cycle's already-recorded pay amount/date in place — distinct
@@ -37,6 +39,7 @@ export function EditPayInfoSheet({
   onDone: () => void;
   returnFocusTo?: HTMLElement | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [amount, setAmount] = useState(initialAmount.toFixed(2));
@@ -112,23 +115,23 @@ export function EditPayInfoSheet({
     // feedback (the form has noValidate specifically so this runs instead).
     const amountFormatError = validateAmountFormat(amount);
     if (amountFormatError) {
-      setError(amountFormatError);
+      setError(translateValidationMessage(amountFormatError, t));
       setErrorField("amount");
       return;
     }
     if (Number(amount) <= 0) {
-      setError(AMOUNT_NOT_POSITIVE_MESSAGE);
+      setError(translateValidationMessage(AMOUNT_NOT_POSITIVE_MESSAGE, t));
       setErrorField("amount");
       return;
     }
     if (!payDate) {
-      setError("Date is required");
+      setError(t.dashboard.editPayInfo.dateRequired);
       setErrorField("date");
       return;
     }
     if (payDate < minDate || payDate > (maxDate ?? "")) {
       const maxLabel = maxDate ?? "today";
-      setError(`Date must be between ${minDate} and ${maxLabel}`);
+      setError(t.dashboard.editPayInfo.dateRange(minDate, maxLabel));
       setErrorField("date");
       return;
     }
@@ -171,20 +174,18 @@ export function EditPayInfoSheet({
   return (
     <Sheet
       visible={visible}
-      title="Edit pay info"
+      title={t.dashboard.editPayInfo.title}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {closed
-          ? "Corrects this quincena's amount and start date in place."
-          : "Corrects this quincena's amount and start date in place — it won't start a new quincena."}
+        {closed ? t.dashboard.editPayInfo.hintNoMove : t.dashboard.editPayInfo.hintMayMove}
       </p>
 
       <form onSubmit={handleSubmit} noValidate>
         <div className="field">
-          <label htmlFor={amountId}>Net pay (USD)</label>
+          <label htmlFor={amountId}>{t.dashboard.editPayInfo.netPayLabel}</label>
           <CurrencyInput
             id={amountId}
             defaultValue={amount}
@@ -196,7 +197,7 @@ export function EditPayInfoSheet({
         </div>
 
         <div className="field">
-          <label htmlFor={dateId}>Pay date</label>
+          <label htmlFor={dateId}>{t.dashboard.editPayInfo.payDateLabel}</label>
           <input
             id={dateId}
             type="date"
@@ -218,10 +219,11 @@ export function EditPayInfoSheet({
 
         {pendingMove && pendingMove.changed && (
           <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-            This will move {pendingMove.movingCount} transaction
-            {pendingMove.movingCount === 1 ? "" : "s"} {pendingMove.direction === "in" ? "into" : "out of"}{" "}
-            this quincena, {pendingMove.direction === "in" ? "from" : "to"} {pendingMove.otherCycleLabel}.
-            Continue?
+            {t.dashboard.editPayInfo.moveWarning(
+              pendingMove.movingCount,
+              pendingMove.direction === "in" ? t.dashboard.editPayInfo.into : t.dashboard.editPayInfo.outOf,
+              `${pendingMove.direction === "in" ? t.dashboard.editPayInfo.from : t.dashboard.editPayInfo.to} ${pendingMove.otherCycleLabel}`,
+            )}
           </p>
         )}
 
@@ -233,7 +235,7 @@ export function EditPayInfoSheet({
               disabled={movePending}
               onClick={handleConfirmMove}
             >
-              {movePending ? "Saving..." : "Continue"}
+              {movePending ? t.dashboard.editPayInfo.saving : t.dashboard.editPayInfo.continue}
             </button>
             <button
               type="button"
@@ -241,12 +243,12 @@ export function EditPayInfoSheet({
               disabled={movePending}
               onClick={handleCancelMove}
             >
-              Cancel
+              {t.dashboard.editPayInfo.cancel}
             </button>
           </>
         ) : (
           <button type="submit" className="button sheet-submit" disabled={pending}>
-            {pending ? "Saving..." : "Save"}
+            {pending ? t.dashboard.editPayInfo.saving : t.dashboard.editPayInfo.save}
           </button>
         )}
       </form>
@@ -258,7 +260,7 @@ export function EditPayInfoSheet({
           onClick={handleClose}
           disabled={pending}
         >
-          Cancel
+          {t.dashboard.editPayInfo.cancel}
         </button>
       )}
     </Sheet>

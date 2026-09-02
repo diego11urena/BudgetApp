@@ -18,6 +18,7 @@ import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxTyp
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
 import { CurrencyInput } from "./CurrencyInput";
+import { useT } from "@/app/_components/LocaleProvider";
 
 export interface EditingTransaction {
   id: string;
@@ -69,6 +70,7 @@ export function QuickAddSheet({
   onClose: () => void;
 }) {
   const { showToast } = useToast();
+  const t = useT();
   const isEditing = editingTransaction !== null;
   // The cycle this transaction is currently expected to belong to — compared
   // against where a candidate date actually resolves to, to decide whether
@@ -225,23 +227,23 @@ export function QuickAddSheet({
       return { field: "amount", message: AMOUNT_NOT_POSITIVE_MESSAGE };
     }
     if (!displayName.trim()) {
-      return { field: "name", message: "Enter a merchant or business name" };
+      return { field: "name", message: t.quickAdd.merchantRequired };
     }
     if (!categoryValue.trim()) {
-      return { field: "category", message: "Choose or enter a category" };
+      return { field: "category", message: t.quickAdd.categoryRequired };
     }
     if (!occurredAt) {
-      return { field: "date", message: "Date is required" };
+      return { field: "date", message: t.quickAdd.dateRequired };
     }
     if (occurredAt > todayDate) {
-      return { field: "date", message: "Date can't be in the future" };
+      return { field: "date", message: t.quickAdd.dateNotFuture };
     }
     // The cycle-start floor only applies to a plain create (Home/Transactions'
     // "+", no explicit target) — editing, and creating directly into a
     // specific past quincena, both allow any past date (see
     // updateTransactionAction / addTransactionAction's cycleId-hint path).
     if (!isEditing && !targetCycleId && occurredAt < cycleStartDate) {
-      return { field: "date", message: "Date must be within this quincena" };
+      return { field: "date", message: t.quickAdd.dateWithinQuincena };
     }
     return null;
   }
@@ -268,8 +270,8 @@ export function QuickAddSheet({
         const amountNumber = Number(formData.get("amount"));
         const label = String(formData.get("name") ?? "").trim() || "transaction";
         const newTransactionId = result.transactionId;
-        showToast(`Logged ${formatCurrency(amountNumber)} for ${label}`, {
-          label: "Undo",
+        showToast(t.quickAdd.logged(formatCurrency(amountNumber), label), {
+          label: t.quickAdd.undo,
           onClick: () => {
             const fd = new FormData();
             fd.set("transactionId", newTransactionId);
@@ -285,7 +287,7 @@ export function QuickAddSheet({
       router.refresh();
       handleClose();
     } catch {
-      setError("Something went wrong. Your changes weren't saved — please try again.");
+      setError(t.quickAdd.savedError);
     } finally {
       setPending(false);
     }
@@ -352,8 +354,8 @@ export function QuickAddSheet({
 
       if (result && "deleted" in result) {
         const d = result.deleted;
-        showToast(`Deleted ${formatCurrency(d.amount)} — ${d.name}`, {
-          label: "Undo",
+        showToast(t.quickAdd.deleted(formatCurrency(d.amount), d.name), {
+          label: t.quickAdd.undo,
           onClick: () => {
             const restoreFd = new FormData();
             restoreFd.set("cycleId", d.cycleId);
@@ -375,7 +377,7 @@ export function QuickAddSheet({
       router.refresh();
       handleClose();
     } catch {
-      showToast("Something went wrong. Your changes weren't saved — please try again.");
+      showToast(t.quickAdd.savedError);
     } finally {
       setDeletePending(false);
     }
@@ -421,7 +423,7 @@ export function QuickAddSheet({
   return (
     <Sheet
       visible={visible}
-      ariaLabel={isEditing ? "Edit transaction" : "Log a transaction"}
+      ariaLabel={isEditing ? t.quickAdd.editAria : t.quickAdd.logAria}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
       panelRef={sheetRef}
@@ -462,7 +464,7 @@ export function QuickAddSheet({
         {!isEditing && targetCycleId && <input type="hidden" name="cycleId" value={targetCycleId} />}
 
         <div className="field sheet-amount-field">
-          <label htmlFor={amountId}>Amount (USD)</label>
+          <label htmlFor={amountId}>{t.quickAdd.amountLabel}</label>
           <CurrencyInput
             id={amountId}
             name="amount"
@@ -475,12 +477,12 @@ export function QuickAddSheet({
         </div>
 
         <div className="field">
-          <label htmlFor={nameId}>Merchant / name</label>
+          <label htmlFor={nameId}>{t.quickAdd.merchantLabel}</label>
           <input
             id={nameId}
             name="name"
             type="text"
-            placeholder="e.g. Panapass, Cafe Unido…"
+            placeholder={t.quickAdd.merchantPlaceholder}
             value={displayName}
             onChange={(e) => {
               setName(e.target.value);
@@ -495,7 +497,7 @@ export function QuickAddSheet({
         </div>
 
         <div className="field" key={type}>
-          <label htmlFor={categoryId}>Category</label>
+          <label htmlFor={categoryId}>{t.quickAdd.categoryLabel}</label>
           <select
             id={categoryId}
             value={isCreatingCategory ? "__new__" : categoryValue}
@@ -514,14 +516,14 @@ export function QuickAddSheet({
             aria-describedby={errorField === "category" ? errorId : undefined}
           >
             <option value="" disabled>
-              Choose a category
+              {t.quickAdd.chooseCategoryOption}
             </option>
             {categoryNames.map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
-            <option value="__new__">+ New category…</option>
+            <option value="__new__">{t.quickAdd.newCategoryOption}</option>
           </select>
 
           {isCreatingCategory && (
@@ -530,7 +532,7 @@ export function QuickAddSheet({
               name="category"
               autoFocus
               required
-              placeholder="New category name"
+              placeholder={t.quickAdd.newCategoryPlaceholder}
               value={categoryValue}
               onChange={(e) => setCategoryValue(e.target.value)}
               className={errorField === "category" ? "is-invalid" : ""}
@@ -543,14 +545,14 @@ export function QuickAddSheet({
 
         {type !== "SAVINGS" && (
           <div className="field">
-            <label htmlFor={paymentMethodId}>Payment method</label>
+            <label htmlFor={paymentMethodId}>{t.quickAdd.paymentMethodLabel}</label>
             <select
               id={paymentMethodId}
               name="paymentMethod"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod | "")}
             >
-              <option value="">No payment method</option>
+              <option value="">{t.quickAdd.noPaymentMethod}</option>
               {PAYMENT_METHOD_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -566,13 +568,13 @@ export function QuickAddSheet({
           onClick={() => setShowMore((v) => !v)}
           aria-expanded={showMore}
         >
-          {showMore ? "Fewer details" : "More details"}
+          {showMore ? t.quickAdd.fewerDetails : t.quickAdd.moreDetails}
         </button>
 
         {showMore && (
           <>
             <div className="field">
-              <label htmlFor={dateId}>Date</label>
+              <label htmlFor={dateId}>{t.quickAdd.dateLabel}</label>
               <input
                 id={dateId}
                 type="date"
@@ -603,18 +605,18 @@ export function QuickAddSheet({
                     checked={recurring}
                     onChange={(e) => setRecurring(e.target.checked)}
                   />
-                  This is a bill
+                  {t.quickAdd.thisIsABill}
                 </label>
               </div>
             )}
 
             <div className="field">
-              <label htmlFor={descriptionId}>Note (optional)</label>
+              <label htmlFor={descriptionId}>{t.quickAdd.noteLabel}</label>
               <input
                 id={descriptionId}
                 name="description"
                 type="text"
-                placeholder="What was this for?"
+                placeholder={t.quickAdd.notePlaceholder}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={200}
@@ -632,9 +634,7 @@ export function QuickAddSheet({
           {pendingMove ? (
             <div style={{ textAlign: "center" }}>
               <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-                Changing this date will move this transaction to a different quincena (
-                {pendingMove.rangeText}). Its totals and the totals for that quincena will be
-                recalculated. Continue?
+                {t.quickAdd.moveWarning(pendingMove.rangeText)}
               </p>
               <button
                 type="button"
@@ -642,7 +642,7 @@ export function QuickAddSheet({
                 disabled={movePending}
                 onClick={handleConfirmMove}
               >
-                {movePending ? "Moving..." : "Continue"}
+                {movePending ? t.quickAdd.moving : t.quickAdd.continue}
               </button>
               <button
                 type="button"
@@ -650,12 +650,18 @@ export function QuickAddSheet({
                 disabled={movePending}
                 onClick={handleCancelMove}
               >
-                Cancel
+                {t.quickAdd.cancel}
               </button>
             </div>
           ) : (
             <button type="submit" className="button sheet-submit" disabled={pending}>
-              {pending ? (isEditing ? "Saving..." : "Logging...") : isEditing ? "Save changes" : "Log it"}
+              {pending
+                ? isEditing
+                  ? t.quickAdd.saving
+                  : t.quickAdd.logging
+                : isEditing
+                  ? t.quickAdd.saveChanges
+                  : t.quickAdd.logIt}
             </button>
           )}
         </form>
@@ -667,7 +673,7 @@ export function QuickAddSheet({
           disabled={deletePending}
           onClick={handleDelete}
         >
-          {deletePending ? "Deleting..." : "Delete transaction"}
+          {deletePending ? t.quickAdd.deletingTx : t.quickAdd.deleteTransaction}
         </button>
       )}
     </Sheet>

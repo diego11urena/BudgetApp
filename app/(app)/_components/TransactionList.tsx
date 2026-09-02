@@ -12,6 +12,7 @@ import { CategoryIcon } from "@/lib/category-icons";
 import { useSheet } from "./useSheet";
 import { EmptyState } from "./EmptyState";
 import type { EditingTransaction } from "./QuickAddSheet";
+import { useT } from "../../_components/LocaleProvider";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
 const QuickAddSheet = dynamic(() => import("./QuickAddSheet").then((mod) => mod.QuickAddSheet));
@@ -35,6 +36,7 @@ function TransactionRowContent({
   tx: CycleTransactionSummary;
   showCycleLabel: boolean;
 }) {
+  const t = useT();
   // "Category · Payment method" — either half is dropped cleanly (no
   // trailing separator, no placeholder) when missing. Gmail/source stays a
   // model field (see cycle-financials.ts), just not surfaced on the row
@@ -48,7 +50,7 @@ function TransactionRowContent({
     tx.categoryName && tx.categoryName !== tx.name
       ? tx.categoryName
       : !tx.categoryName
-        ? "Uncategorized"
+        ? t.transactions.filters.uncategorized
         : null,
     tx.paymentMethod ? PAYMENT_METHOD_LABEL[tx.paymentMethod] : null,
     showCycleLabel && tx.cycleLabel ? tx.cycleLabel : null,
@@ -78,11 +80,11 @@ function TransactionRowContent({
         <span className="transaction-name">{tx.name}</span>
         {(subline || isClosed) && (
           <span className={`transaction-sub ${isUncategorized ? "transaction-sub--uncategorized" : ""}`}>
-            {isUncategorized ? "Needs a category" : subline}
+            {isUncategorized ? t.transactions.needsCategory : subline}
             {isClosed && (
               <>
                 {subline && " · "}
-                <Lock size={12} aria-hidden="true" className="inline-lock" /> closed
+                <Lock size={12} aria-hidden="true" className="inline-lock" /> {t.transactions.closedTag}
               </>
             )}
           </span>
@@ -135,7 +137,7 @@ export function TransactionList({
   savingsCategoryNames,
   incomeCategoryNames,
   cycleStartDate,
-  emptyMessage = "Nothing logged yet this quincena.",
+  emptyMessage,
   groupByDate = false,
 }: {
   transactions: CycleTransactionSummary[];
@@ -156,9 +158,10 @@ export function TransactionList({
 }) {
   const [editing, setEditing] = useState<EditingTransaction | null>(null);
   const { sheetProps, setTrigger } = useSheet();
+  const t = useT();
 
   if (transactions.length === 0) {
-    return <EmptyState>{emptyMessage}</EmptyState>;
+    return <EmptyState>{emptyMessage ?? t.transactions.nothingLoggedThisQuincena}</EmptyState>;
   }
 
   function handleEdit(tx: CycleTransactionSummary, trigger: HTMLElement) {
@@ -185,7 +188,7 @@ export function TransactionList({
   return (
     <div>
       {groupByDate ? (
-        groupTransactionsByDate(transactions).map((group) => {
+        groupTransactionsByDate(transactions, { today: t.transactions.today, yesterday: t.transactions.yesterday }).map((group) => {
           // A savings contribution counts toward "out," same convention
           // the Activity summary line and HeroCard's safeToSpend use --
           // it's still money leaving spendable balance, even though it

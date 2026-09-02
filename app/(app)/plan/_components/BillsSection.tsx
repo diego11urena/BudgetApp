@@ -6,6 +6,7 @@ import { useSheet } from "../../_components/useSheet";
 import { EmptyState } from "../../_components/EmptyState";
 import { formatCurrency } from "@/lib/format";
 import type { CategoryWithRecurringExpenses, RecurringExpensesSummary } from "@/lib/recurring-expenses";
+import { useT } from "@/app/_components/LocaleProvider";
 
 interface FlatBill extends RecurringExpenseRowData {
   categoryName: string;
@@ -42,23 +43,24 @@ export function BillsSection({
 }) {
   const { open: adding, triggerProps, sheetProps, close } = useSheet();
   const bills = flattenBills(categories);
+  const t = useT();
 
   return (
     <>
       <div className="section-header-row">
-        <h2 style={{ marginBottom: 0, minWidth: 0, flex: "1 1 auto" }}>Bills</h2>
+        <h2 style={{ marginBottom: 0, minWidth: 0, flex: "1 1 auto" }}>{t.plan.bills.title}</h2>
         <button type="button" className="button button--chip" {...triggerProps}>
-          + New bill
+          {t.plan.bills.newBill}
         </button>
       </div>
 
-      {bills.length === 0 && <EmptyState>No bills yet — tap &quot;+ New bill&quot; above.</EmptyState>}
+      {bills.length === 0 && <EmptyState>{t.plan.bills.empty}</EmptyState>}
 
       {summary.totalCount > 0 && (
         <div className="bills-summary-bar">
           <div className="bills-summary-bar-text">
             <span className="bills-summary-bar-count">
-              {summary.paidCount} of {summary.totalCount} paid this quincena
+              {t.plan.bills.paidOfTotal(String(summary.paidCount), String(summary.totalCount))}
             </span>
             <div className="progress-bar-track">
               <div

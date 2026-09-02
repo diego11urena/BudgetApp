@@ -14,24 +14,28 @@ function panama(year: number, month: number, day: number, hour = 12, minute = 0)
 }
 
 const NOW = panama(2026, 8, 15, 12, 0); // Aug 15, 2026, noon Panama time
+// English fixed here rather than pulled from the real dictionary -- these
+// tests assert on the exact label a caller-supplied pair produces, not on
+// what the dictionary happens to contain for a given locale.
+const LABELS = { today: "Today", yesterday: "Yesterday" };
 
 describe("formatGroupDateLabel", () => {
   it('labels the current calendar day as "Today"', () => {
-    expect(formatGroupDateLabel(panama(2026, 8, 15, 23, 59), NOW)).toBe("Today");
-    expect(formatGroupDateLabel(panama(2026, 8, 15, 0, 1), NOW)).toBe("Today");
+    expect(formatGroupDateLabel(panama(2026, 8, 15, 23, 59), LABELS, NOW)).toBe("Today");
+    expect(formatGroupDateLabel(panama(2026, 8, 15, 0, 1), LABELS, NOW)).toBe("Today");
   });
 
   it('labels the previous calendar day as "Yesterday"', () => {
-    expect(formatGroupDateLabel(panama(2026, 8, 14, 8, 0), NOW)).toBe("Yesterday");
+    expect(formatGroupDateLabel(panama(2026, 8, 14, 8, 0), LABELS, NOW)).toBe("Yesterday");
   });
 
   it("formats anything older as a short date with year", () => {
-    expect(formatGroupDateLabel(panama(2026, 8, 1), NOW)).toBe("Aug 1, 2026");
-    expect(formatGroupDateLabel(panama(2025, 12, 25), NOW)).toBe("Dec 25, 2025");
+    expect(formatGroupDateLabel(panama(2026, 8, 1), LABELS, NOW)).toBe("Aug 1, 2026");
+    expect(formatGroupDateLabel(panama(2025, 12, 25), LABELS, NOW)).toBe("Dec 25, 2025");
   });
 
   it("does not label a future date as Today/Yesterday", () => {
-    expect(formatGroupDateLabel(panama(2026, 8, 16), NOW)).toBe("Aug 16, 2026");
+    expect(formatGroupDateLabel(panama(2026, 8, 16), LABELS, NOW)).toBe("Aug 16, 2026");
   });
 });
 
@@ -47,6 +51,7 @@ describe("groupTransactionsByDate", () => {
         tx(panama(2026, 8, 15, 9, 0), "b"),
         tx(panama(2026, 8, 14, 18, 0), "c"),
       ],
+      LABELS,
       NOW,
     );
     expect(groups).toHaveLength(2);
@@ -63,18 +68,19 @@ describe("groupTransactionsByDate", () => {
         tx(panama(2026, 7, 20), "b"),
         tx(panama(2026, 8, 1), "c"),
       ],
+      LABELS,
       NOW,
     );
     expect(groups.map((g) => g.label)).toEqual(["Aug 1, 2026", "Jul 20, 2026", "Aug 1, 2026"]);
   });
 
   it("returns an empty array for no transactions", () => {
-    expect(groupTransactionsByDate([], NOW)).toEqual([]);
+    expect(groupTransactionsByDate([], LABELS, NOW)).toEqual([]);
   });
 
   it("puts a single transaction in its own group", () => {
     const solo = panama(2026, 8, 15);
-    const groups = groupTransactionsByDate([tx(solo, "solo")], NOW);
+    const groups = groupTransactionsByDate([tx(solo, "solo")], LABELS, NOW);
     expect(groups).toEqual([{ label: "Today", items: [{ id: "solo", occurredAt: solo }] }]);
   });
 });

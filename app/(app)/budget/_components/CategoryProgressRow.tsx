@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/format";
 import { getBudgetUsage } from "@/lib/budget-status";
 import { CategoryIcon } from "@/lib/category-icons";
 import { RecurringExpenseRow, type RecurringExpenseRowData } from "./RecurringExpenseRow";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * A category is an expandable container, not itself a single expense --
@@ -34,6 +35,7 @@ export function CategoryProgressRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const usage = getBudgetUsage(actual, budgetTotal);
+  const t = useT();
 
   // A single recurring expense sharing the category's own name (e.g. a
   // "Utilities" category holding only a "Utilities" account) has nothing
@@ -53,7 +55,7 @@ export function CategoryProgressRow({
       <p className="field-hint" style={{ margin: "0.35rem 0 0" }}>
         {formatCurrency(actual)} / {formatCurrency(budgetTotal)}
         {usage.overBy > 0 && (
-          <span className="overage-text"> · {formatCurrency(usage.overBy)} over</span>
+          <span className="overage-text"> · {t.budget.over(formatCurrency(usage.overBy))}</span>
         )}
       </p>
     </div>

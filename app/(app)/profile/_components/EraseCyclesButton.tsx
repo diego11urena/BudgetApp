@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { eraseAllCyclesAction } from "../cycle-actions";
 import { Sheet } from "../../_components/Sheet";
 import { useSheet } from "../../_components/useSheet";
+import { useT } from "../../../_components/LocaleProvider";
 
 /**
  * Mass-deleting all cycle history is the same class of "significant,
@@ -17,6 +18,7 @@ export function EraseCyclesButton() {
   const { open: confirming, triggerProps, sheetProps, close } = useSheet();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   async function handleConfirm() {
     setPending(true);
@@ -34,8 +36,8 @@ export function EraseCyclesButton() {
     <>
       <button type="button" className="line-item line-item--link profile-danger-row" {...triggerProps}>
         <span>
-          <span className="line-item-title profile-danger-row-title">Erase all cycles</span>
-          <span className="field-hint">Permanent. Cannot be undone.</span>
+          <span className="line-item-title profile-danger-row-title">{t.profile.eraseCycles.button}</span>
+          <span className="field-hint">{t.profile.eraseCycles.hint}</span>
         </span>
       </button>
 
@@ -60,6 +62,7 @@ function EraseCyclesConfirmSheet({
   returnFocusTo: HTMLElement | null;
 }) {
   const [visible, setVisible] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -74,16 +77,14 @@ function EraseCyclesConfirmSheet({
   return (
     <Sheet
       visible={visible}
-      title="Erase all cycles?"
+      title={t.profile.eraseCycles.confirmTitle}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!pending}
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        Permanently deletes every past and current quincena — all transactions, budget targets,
-        and income records in them. Your categories and income setup stay intact, and a fresh
-        cycle starts right away. This can&apos;t be undone.
+        {t.profile.eraseCycles.confirmBody}
       </p>
       {error && (
         <p className="error-text" role="alert" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
@@ -96,7 +97,7 @@ function EraseCyclesConfirmSheet({
         onClick={onConfirm}
         disabled={pending}
       >
-        {pending ? "Erasing..." : "Yes, erase everything"}
+        {pending ? t.profile.eraseCycles.erasing : t.profile.eraseCycles.yes}
       </button>
       <button
         type="button"
@@ -104,7 +105,7 @@ function EraseCyclesConfirmSheet({
         onClick={handleCancel}
         disabled={pending}
       >
-        Cancel
+        {t.profile.eraseCycles.cancel}
       </button>
     </Sheet>
   );

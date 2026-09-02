@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sheet } from "../../../_components/Sheet";
 import { mergeCategoryAction } from "../../category-actions";
 import type { CategoryWithUsage } from "./types";
+import { useT } from "../../../../_components/LocaleProvider";
 
 /**
  * A dedicated merge flow instead of a permanent per-row control — pick
@@ -35,6 +36,7 @@ export function MergeCategorySheet({
   const uid = useId();
   const sourceFieldId = `${uid}-source`;
   const targetFieldId = `${uid}-target`;
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -68,7 +70,11 @@ export function MergeCategorySheet({
   return (
     <Sheet
       visible={visible}
-      title={confirming ? `Merge ${source.name} into ${target?.name}?` : "Merge categories"}
+      title={
+        confirming && target
+          ? t.profile.categories.merge.title(source.name, target.name)
+          : t.profile.categories.merge.genericTitle
+      }
       titleStyle={confirming ? { textAlign: "center", marginBottom: "0.5rem" } : undefined}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
@@ -76,13 +82,13 @@ export function MergeCategorySheet({
       {!confirming ? (
         <>
           <div className="field">
-            <label htmlFor={sourceFieldId}>Source category</label>
+            <label htmlFor={sourceFieldId}>{t.profile.categories.merge.sourceLabel}</label>
             <input id={sourceFieldId} type="text" value={source.name} disabled />
           </div>
           <div className="field">
-            <label htmlFor={targetFieldId}>Merge into</label>
+            <label htmlFor={targetFieldId}>{t.profile.categories.merge.targetLabel}</label>
             <select id={targetFieldId} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-              <option value="">Choose a category…</option>
+              <option value="">{t.profile.categories.merge.chooseOption}</option>
               {otherCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -96,23 +102,23 @@ export function MergeCategorySheet({
             disabled={!targetId}
             onClick={() => setConfirming(true)}
           >
-            Continue
+            {t.profile.categories.merge.continue}
           </button>
           <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-            Cancel
+            {t.profile.categories.merge.cancel}
           </button>
         </>
       ) : (
         <>
           <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
             {source.transactionCount > 0
-              ? `${source.transactionCount} transaction${source.transactionCount === 1 ? "" : "s"} and all associated budget history will be moved to ${target?.name}.`
-              : `Any budget history for ${source.name} will be moved to ${target?.name}.`}{" "}
-            This action cannot be undone.
+              ? t.profile.categories.merge.bodyWithTx(source.transactionCount, target?.name ?? "")
+              : t.profile.categories.merge.bodyNoTx(target?.name ?? "")}
+            {t.profile.categories.merge.cannotBeUndone}
           </p>
           {error && <p className="error-text">{error}</p>}
           <button type="button" className="button sheet-submit" onClick={handleMerge} disabled={pending}>
-            {pending ? "Merging..." : "Merge categories"}
+            {pending ? t.profile.categories.merge.merging : t.profile.categories.merge.mergeButton}
           </button>
           <button
             type="button"
@@ -120,7 +126,7 @@ export function MergeCategorySheet({
             onClick={() => setConfirming(false)}
             disabled={pending}
           >
-            Cancel
+            {t.profile.categories.merge.cancel}
           </button>
         </>
       )}

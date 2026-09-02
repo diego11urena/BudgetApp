@@ -10,6 +10,9 @@ import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 const MERGE_CATEGORY_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
@@ -126,25 +129,26 @@ export const mergeCategoryAction = withActionErrorHandling(async function mergeC
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   // The merge itself does N+1 work inside one transaction (see
   // mergeCategoryRecurringExpenses) -- worth throttling on its own,
   // separately from every other category action in this file.
   const rateLimit = await checkRateLimit(`merge-category:${userId}`, MERGE_CATEGORY_RATE_LIMIT);
   if (!rateLimit.allowed) {
-    return { error: `Too many attempts. Try again in ${rateLimit.retryAfterSeconds}s.` };
+    return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
   }
 
   const sourceCategoryId = formData.get("sourceCategoryId");
   const targetCategoryId = formData.get("targetCategoryId");
   if (typeof sourceCategoryId !== "string" || !sourceCategoryId) {
-    return { error: "Missing category" };
+    return { error: t.profile.categories.missingCategory };
   }
   if (typeof targetCategoryId !== "string" || !targetCategoryId) {
-    return { error: "Pick a category to merge into" };
+    return { error: t.profile.categories.merge.pickTarget };
   }
   if (sourceCategoryId === targetCategoryId) {
-    return { error: "Pick two different categories" };
+    return { error: t.profile.categories.merge.pickDifferentCategories };
   }
 
   const [source, target] = await Promise.all([
@@ -152,10 +156,10 @@ export const mergeCategoryAction = withActionErrorHandling(async function mergeC
     prisma.expenseCategory.findFirst({ where: { id: targetCategoryId, userId } }),
   ]);
   if (!source || !target) {
-    return { error: "Category not found" };
+    return { error: t.profile.categories.categoryNotFound };
   }
   if (source.type !== target.type) {
-    return { error: "Categories must be the same type to merge" };
+    return { error: t.profile.categories.merge.sameTypeRequired };
   }
 
   await prisma.$transaction(async (tx) => {
@@ -251,23 +255,24 @@ export const createCategoryAction = withActionErrorHandling(async function creat
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const parsedName = categoryNameSchema.safeParse(formData.get("name"));
   if (!parsedName.success) {
-    return { error: parsedName.error.issues[0]?.message ?? "Invalid name" };
+    return { error: translateValidationMessage(parsedName.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
   const name = parsedName.data;
 
   const parsedIcon = parseIcon(formData.get("icon"));
   if (!parsedIcon.ok) {
-    return { error: "Invalid icon" };
+    return { error: t.profile.categories.form.invalidIcon };
   }
 
   const conflict = await prisma.expenseCategory.findFirst({
     where: { userId, type: "EXPENSE", name: { equals: name, mode: "insensitive" } },
   });
   if (conflict) {
-    return { error: `"${conflict.name}" already exists` };
+    return { error: t.profile.categories.form.nameExists(conflict.name) };
   }
 
   await prisma.expenseCategory.create({
@@ -291,25 +296,26 @@ export const updateCategoryAction = withActionErrorHandling(async function updat
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const categoryId = formData.get("categoryId");
   if (typeof categoryId !== "string" || !categoryId) {
-    return { error: "Missing category" };
+    return { error: t.profile.categories.missingCategory };
   }
   const type = parseEditableType(formData.get("type"));
   if (!type) {
-    return { error: "Invalid category type" };
+    return { error: t.profile.categories.invalidCategoryType };
   }
 
   const parsedName = categoryNameSchema.safeParse(formData.get("name"));
   if (!parsedName.success) {
-    return { error: parsedName.error.issues[0]?.message ?? "Invalid name" };
+    return { error: translateValidationMessage(parsedName.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
   const name = parsedName.data;
 
   const parsedIcon = parseIcon(formData.get("icon"));
   if (!parsedIcon.ok) {
-    return { error: "Invalid icon" };
+    return { error: t.profile.categories.form.invalidIcon };
   }
 
   // Ownership- and type-scoped: only this user's own category of the type the caller claims.
@@ -317,7 +323,7 @@ export const updateCategoryAction = withActionErrorHandling(async function updat
     where: { id: categoryId, userId, type },
   });
   if (!category) {
-    return { error: "Category not found" };
+    return { error: t.profile.categories.categoryNotFound };
   }
 
   if (name.toLowerCase() !== category.name.toLowerCase()) {
@@ -325,7 +331,7 @@ export const updateCategoryAction = withActionErrorHandling(async function updat
       where: { userId, type, name: { equals: name, mode: "insensitive" }, NOT: { id: category.id } },
     });
     if (conflict) {
-      return { error: `"${conflict.name}" already exists — merge into it instead of renaming.` };
+      return { error: t.profile.categories.form.nameExistsMergeHint(conflict.name) };
     }
   }
 
@@ -365,21 +371,22 @@ export const deleteCategoryAction = withActionErrorHandling(async function delet
     redirect("/login");
   }
   const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
 
   const categoryId = formData.get("categoryId");
   if (typeof categoryId !== "string" || !categoryId) {
-    return { error: "Missing category" };
+    return { error: t.profile.categories.missingCategory };
   }
   const type = parseEditableType(formData.get("type"));
   if (!type) {
-    return { error: "Invalid category type" };
+    return { error: t.profile.categories.invalidCategoryType };
   }
 
   const category = await prisma.expenseCategory.findFirst({
     where: { id: categoryId, userId, type },
   });
   if (!category) {
-    return { error: "Category not found" };
+    return { error: t.profile.categories.categoryNotFound };
   }
 
   if (type === "EXPENSE") {
@@ -387,10 +394,7 @@ export const deleteCategoryAction = withActionErrorHandling(async function delet
       where: { recurringExpense: { categoryId: category.id }, cycle: { status: "CLOSED" } },
     });
     if (closedCycleHistoryCount > 0) {
-      return {
-        error:
-          "This category has recurring-expense history from past quincenas. Delete or merge its recurring expenses first to keep that history.",
-      };
+      return { error: t.profile.categories.deleteConfirm.hasRecurringHistory };
     }
   }
 

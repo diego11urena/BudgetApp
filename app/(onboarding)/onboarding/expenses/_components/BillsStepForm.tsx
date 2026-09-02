@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState } from "react";
 import type { ExpensesFormState } from "../actions";
 import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
+import { useT } from "@/app/_components/LocaleProvider";
 
 interface BillRow {
   id: string;
@@ -10,8 +11,6 @@ interface BillRow {
   amount: string;
   dueDay: string;
 }
-
-const SUGGESTIONS = ["Phone", "Netflix", "Spotify", "Gym", "Insurance"];
 
 let nextId = 0;
 function makeId(): string {
@@ -35,12 +34,23 @@ export function BillsStepForm({
   action: (prevState: ExpensesFormState, formData: FormData) => Promise<ExpensesFormState>;
   initialItems: { name: string; amount: string; dueDay: string }[];
 }) {
+  const t = useT();
+  const SUGGESTIONS = [
+    t.onboarding.expenses.suggestions.phone,
+    t.onboarding.expenses.suggestions.netflix,
+    t.onboarding.expenses.suggestions.spotify,
+    t.onboarding.expenses.suggestions.gym,
+    t.onboarding.expenses.suggestions.insurance,
+  ];
   const [state, formAction, pending] = useActionState<ExpensesFormState, FormData>(action, undefined);
   const [rows, setRows] = useState<BillRow[]>(() =>
     initialItems.length > 0
       ? initialItems.map((item) => ({ id: makeId(), ...item }))
       : [{ id: makeId(), name: "Rent", amount: "450.00", dueDay: "1" }],
   );
+  // Note: the "Rent" seed row keeps its literal English name -- it's a
+  // pre-filled example VALUE the user types over, not a UI label (matching
+  // how the actual saved category name works: whatever the user submits).
   const [addName, setAddName] = useState("");
   const [addAmount, setAddAmount] = useState("");
   const [addDueDay, setAddDueDay] = useState("");
@@ -85,9 +95,9 @@ export function BillsStepForm({
         <div className="bills-step-list">
           {rows.map((row) => (
             <div key={row.id} className="bills-step-row">
-              <span className="bills-step-row-name">{row.name || "Untitled"}</span>
+              <span className="bills-step-row-name">{row.name || t.onboarding.expenses.untitled}</span>
               <span className="bills-step-row-meta">
-                Recurring{row.dueDay ? ` · due day ${row.dueDay}` : ""}
+                {t.onboarding.expenses.recurring(row.dueDay ? Number(row.dueDay) : null)}
               </span>
               <span className="bills-step-row-amount">
                 {row.amount ? `$${Number(row.amount).toFixed(2)}` : "—"}
@@ -95,7 +105,7 @@ export function BillsStepForm({
               <button
                 type="button"
                 className="bills-step-row-remove"
-                aria-label={`Remove ${row.name || "bill"}`}
+                aria-label={t.onboarding.expenses.removeAria(row.name)}
                 onClick={() => removeRow(row.id)}
               >
                 ×
@@ -110,25 +120,25 @@ export function BillsStepForm({
           <input
             ref={nameFieldRef}
             type="text"
-            placeholder="Name"
+            placeholder={t.onboarding.expenses.namePlaceholder}
             value={addName}
             onChange={(e) => setAddName(e.target.value)}
-            aria-label="Bill name"
+            aria-label={t.onboarding.expenses.billNameAria}
           />
           <CurrencyInput
             defaultValue=""
             allowEmpty
             onValueChange={setAddAmount}
-            placeholder="$ Amount"
+            placeholder={t.onboarding.expenses.amountPlaceholder}
           />
         </div>
         <div className="bills-step-add-row">
           <select
             value={addDueDay}
             onChange={(e) => setAddDueDay(e.target.value)}
-            aria-label="Due day"
+            aria-label={t.onboarding.expenses.dueDayAria}
           >
-            <option value="">Due day (optional)</option>
+            <option value="">{t.onboarding.expenses.dueDayOption}</option>
             {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
               <option key={day} value={day}>
                 {day}
@@ -136,7 +146,7 @@ export function BillsStepForm({
             ))}
           </select>
           <button type="button" className="button button--chip bills-step-add-button" onClick={() => addRow(addName)}>
-            + Add
+            {t.onboarding.expenses.addButton}
           </button>
         </div>
       </div>
@@ -149,15 +159,14 @@ export function BillsStepForm({
             className="chip-pill"
             onClick={() => addSuggestion(name)}
           >
-            + {name}
+            {t.onboarding.expenses.suggestionChip(name)}
           </button>
         ))}
       </div>
 
       <div className="tip-block">
         <p>
-          <strong>Tip</strong> Connect Gmail from Profile afterward to import transactions
-          automatically instead of typing each one in.
+          <strong>{t.onboarding.expenses.tipLabel}</strong> {t.onboarding.expenses.tipBody}
         </p>
       </div>
 
@@ -165,7 +174,11 @@ export function BillsStepForm({
 
       <div className="form-actions form-actions--stacked">
         <button type="submit" className="button" disabled={pending}>
-          {pending ? "Saving..." : count > 0 ? `Continue with ${count} bill${count === 1 ? "" : "s"}` : "Continue"}
+          {pending
+            ? t.onboarding.expenses.saving
+            : count > 0
+              ? t.onboarding.expenses.continueWithBills(count)
+              : t.onboarding.expenses.continueNoBills}
         </button>
       </div>
     </form>
@@ -183,13 +196,14 @@ export function BillsStepSkipButton({
 }: {
   action: (prevState: ExpensesFormState, formData: FormData) => Promise<ExpensesFormState>;
 }) {
+  const t = useT();
   const [, formAction, pending] = useActionState<ExpensesFormState, FormData>(action, undefined);
 
   return (
     <form action={formAction}>
       <input type="hidden" name="itemsJson" value="[]" readOnly />
       <button type="submit" className="button button--ghost" disabled={pending}>
-        Skip for now
+        {t.onboarding.expenses.skip}
       </button>
     </form>
   );

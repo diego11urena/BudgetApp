@@ -5,15 +5,17 @@ import { ChevronRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
 import { useSheet } from "../../_components/useSheet";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { useT } from "../../../_components/LocaleProvider";
 
 /** "Password" used to be a permanently-visible form on the main Profile screen — now behind this row, opened as a sheet. The form itself is untouched. */
 export function ChangePasswordSheet() {
   const { open, triggerProps, sheetProps, close } = useSheet();
+  const t = useT();
 
   return (
     <>
       <button type="button" className="line-item line-item--link" {...triggerProps}>
-        <span>Change password</span>
+        <span>{t.profile.changePassword.row}</span>
         <ChevronRight size={18} aria-hidden="true" />
       </button>
 
@@ -30,6 +32,7 @@ function ChangePasswordSheetContent({
   onClose: () => void;
 }) {
   const [visible, setVisible] = useState(false);
+  const t = useT();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -42,7 +45,7 @@ function ChangePasswordSheetContent({
   }
 
   return (
-    <Sheet visible={visible} title="Change password" onClose={handleClose} returnFocusTo={returnFocusTo}>
+    <Sheet visible={visible} title={t.profile.changePassword.title} onClose={handleClose} returnFocusTo={returnFocusTo}>
       <ChangePasswordForm />
     </Sheet>
   );

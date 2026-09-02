@@ -4,29 +4,8 @@ import { Check } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const HOW_IT_WORKS = [
-  {
-    title: "Set up in three questions",
-    body: "Income, the bills you already pay, and what you're saving for. That's the whole onboarding — no category wizard, no spreadsheets.",
-  },
-  {
-    title: "Your plan builds itself",
-    body: "Every transaction you log updates what's safe to spend, how your bills are tracking, and how close your goals are — automatically.",
-  },
-  {
-    title: "Import from Gmail",
-    body: "Connect your inbox and purchase notifications from your bank import themselves, so you barely have to type anything in by hand.",
-  },
-];
-
-// Mobile's own compact stand-in for the three how-it-works cards -- "too
-// heavy for a phone screen" per the design handoff's own mobile spec.
-const MOBILE_CHECKLIST = [
-  "Set up in three questions",
-  "Bills and goals build themselves",
-  "Import receipts from Gmail",
-];
+import { getRequestLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 export default async function Home() {
   const session = await auth();
@@ -38,6 +17,18 @@ export default async function Home() {
     redirect(user?.onboardingCompletedAt ? "/dashboard" : "/onboarding");
   }
 
+  const t = getDictionary(await getRequestLocale()).landing;
+
+  const HOW_IT_WORKS = [
+    { title: t.feature1Title, body: t.feature1Body },
+    { title: t.feature2Title, body: t.feature2Body },
+    { title: t.feature3Title, body: t.feature3Body },
+  ];
+
+  // Mobile's own compact stand-in for the three how-it-works cards -- "too
+  // heavy for a phone screen" per the design handoff's own mobile spec.
+  const MOBILE_CHECKLIST = [t.checklistSetup, t.checklistBills, t.checklistGmail];
+
   return (
     <div className="landing">
       <header className="landing-header">
@@ -45,17 +36,17 @@ export default async function Home() {
           <Image src="/balboa-logo.png" alt="" width={40} height={40} className="landing-brand-logo" />
           <span className="landing-brand-word">Balboa</span>
         </Link>
-        <nav className="landing-nav" aria-label="Primary">
-          <a href="#how-it-works">How it works</a>
-          <a href="#how-it-works">Features</a>
-          <a href="#pricing">Pricing</a>
+        <nav className="landing-nav" aria-label={t.navPrimary}>
+          <a href="#how-it-works">{t.navHowItWorks}</a>
+          <a href="#how-it-works">{t.navFeatures}</a>
+          <a href="#pricing">{t.navPricing}</a>
         </nav>
         <div className="landing-header-actions">
           <Link href="/login" className="button button--chip landing-header-login">
-            Log in
+            {t.logIn}
           </Link>
           <Link href="/signup" className="button landing-header-cta">
-            Get started
+            {t.getStarted}
           </Link>
         </div>
       </header>
@@ -64,31 +55,26 @@ export default async function Home() {
         <div className="landing-hero-copy">
           {/* Desktop only -- mobile drops the eyebrow pill entirely (see
               the handoff's own mobile spec). */}
-          <span className="landing-eyebrow">Built for quincena pay</span>
-          <h1>Your money, planned two weeks at a time.</h1>
+          <span className="landing-eyebrow">{t.eyebrow}</span>
+          <h1>{t.h1}</h1>
           {/* Two sub-copy variants, toggled by breakpoint (not just resized)
               -- mobile's is shorter/more casual per the handoff's own
               literal copy, not a paraphrase. */}
-          <p className="landing-hero-sub landing-hero-sub--desktop">
-            Balboa splits your budget the way you actually get paid. Set your income, the bills
-            you already pay and what you&apos;re saving for — the rest builds up as you log it.
-          </p>
-          <p className="landing-hero-sub landing-hero-sub--mobile">
-            Balboa budgets the way you actually get paid — by quincena.
-          </p>
+          <p className="landing-hero-sub landing-hero-sub--desktop">{t.subDesktop}</p>
+          <p className="landing-hero-sub landing-hero-sub--mobile">{t.subMobile}</p>
 
           {/* Desktop: two buttons side by side. */}
           <div className="landing-hero-buttons">
             <Link href="/signup" className="button landing-cta-primary">
-              Get started
+              {t.getStarted}
             </Link>
             <Link href="/login" className="button button--chip landing-cta-secondary">
-              Log in
+              {t.logIn}
             </Link>
           </div>
           <p className="landing-trust-line landing-trust-line--desktop">
             <span className="landing-trust-dot" aria-hidden="true" />
-            Free to start · Three questions to set up · No card required
+            {t.trustLineDesktop}
           </p>
 
           {/* Mobile: one full-width button + a plain text link -- "the link
@@ -96,10 +82,11 @@ export default async function Home() {
               button" per the handoff. */}
           <div className="landing-hero-mobile-cta">
             <Link href="/signup" className="button landing-cta-primary">
-              Get started
+              {t.getStarted}
             </Link>
             <p className="landing-mobile-login-link">
-              Already have an account? <Link href="/login">Log in</Link>
+              {t.alreadyHaveAccount}
+              <Link href="/login">{t.logIn}</Link>
             </p>
           </div>
 
@@ -113,7 +100,7 @@ export default async function Home() {
               </li>
             ))}
           </ul>
-          <p className="landing-trust-line landing-trust-line--mobile">Free to start · No card required</p>
+          <p className="landing-trust-line landing-trust-line--mobile">{t.trustLineMobile}</p>
         </div>
 
         {/* Desktop only -- mobile drops the whole preview visual (no
@@ -122,29 +109,29 @@ export default async function Home() {
         <div className="landing-hero-visual" aria-hidden="true">
           <div className="landing-device-mock">
             <div className="landing-device-screen">
-              <p className="landing-device-label">Left this quincena</p>
+              <p className="landing-device-label">{t.deviceLeftThisQuincena}</p>
               <p className="landing-device-figure">$412.60</p>
               <div className="landing-device-rows">
                 <div className="landing-device-row">
-                  <span>Groceries</span>
+                  <span>{t.deviceGroceries}</span>
                   <div className="landing-device-track">
                     <div className="landing-device-fill landing-device-fill--navy" style={{ width: "62%" }} />
                   </div>
                 </div>
                 <div className="landing-device-row">
-                  <span>Transport</span>
+                  <span>{t.deviceTransport}</span>
                   <div className="landing-device-track">
                     <div className="landing-device-fill landing-device-fill--silver" style={{ width: "38%" }} />
                   </div>
                 </div>
                 <div className="landing-device-row">
-                  <span>Savings goal</span>
+                  <span>{t.deviceSavingsGoal}</span>
                   <div className="landing-device-track">
                     <div className="landing-device-fill landing-device-fill--savings" style={{ width: "74%" }} />
                   </div>
                 </div>
               </div>
-              <div className="landing-device-strip">Next quincena +$1,250</div>
+              <div className="landing-device-strip">{t.deviceNextQuincena}</div>
             </div>
           </div>
         </div>
@@ -161,17 +148,17 @@ export default async function Home() {
         ))}
       </section>
 
-      <section id="pricing" className="landing-cta-band" aria-label="Get started">
+      <section id="pricing" className="landing-cta-band" aria-label={t.getStarted}>
         <div>
-          <h2>Start with your next quincena.</h2>
-          <p>Set up in minutes, and every paycheck after that plans itself.</p>
+          <h2>{t.ctaTitle}</h2>
+          <p>{t.ctaBody}</p>
         </div>
         <div className="landing-cta-band-buttons">
           <Link href="/signup" className="button landing-cta-band-primary">
-            Get started
+            {t.getStarted}
           </Link>
           <Link href="/login" className="button landing-cta-band-secondary">
-            Log in
+            {t.logIn}
           </Link>
         </div>
       </section>
@@ -179,12 +166,12 @@ export default async function Home() {
       <footer className="landing-footer">
         <div className="landing-brand landing-footer-brand">
           <Image src="/balboa-logo.png" alt="" width={26} height={26} className="landing-brand-logo" />
-          <span>© 2026 Balboa</span>
+          <span>{t.footerCopyright}</span>
         </div>
         <div className="landing-footer-links">
-          <a href="#privacy">Privacy</a>
-          <a href="#terms">Terms</a>
-          <a href="#support">Support</a>
+          <a href="#privacy">{t.footerPrivacy}</a>
+          <a href="#terms">{t.footerTerms}</a>
+          <a href="#support">{t.footerSupport}</a>
         </div>
       </footer>
     </div>

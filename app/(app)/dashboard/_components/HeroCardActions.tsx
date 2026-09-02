@@ -9,6 +9,7 @@ import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
 import { useToast } from "../../_components/ToastProvider";
 import { useSheet } from "../../_components/useSheet";
+import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * The one genuinely interactive slice of HeroCard -- the "I just got paid"
@@ -47,6 +48,7 @@ export function HeroCardActions({
   bannerLabel?: string;
   showBanner?: boolean;
 }) {
+  const t = useT().dashboard;
   const router = useRouter();
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
@@ -115,7 +117,7 @@ export function HeroCardActions({
               disabled={pending}
             >
               <span className="banner-dot" aria-hidden="true" />
-              <span>{pending ? "Closing quincena..." : bannerLabel}</span>
+              <span>{pending ? t.closingQuincena : bannerLabel}</span>
               <ChevronRight size={18} aria-hidden="true" />
             </button>
           </div>
@@ -131,10 +133,10 @@ export function HeroCardActions({
           disabled={pending}
         >
           {pending ? (
-            "Closing quincena..."
+            t.closingQuincena
           ) : (
             <>
-              I just got paid <ArrowRight size={16} aria-hidden="true" />
+              {t.iJustGotPaid} <ArrowRight size={16} aria-hidden="true" />
             </>
           )}
         </button>

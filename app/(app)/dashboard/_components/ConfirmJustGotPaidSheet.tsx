@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
+import { useT } from "@/app/_components/LocaleProvider";
 
 // Based on Panama time, not the device's own local clock — parsePayDate
 // validates this same window against nowInPanama() server-side regardless
@@ -32,6 +33,7 @@ export function ConfirmJustGotPaidSheet({
   onCancel: () => void;
   returnFocusTo?: HTMLElement | null;
 }) {
+  const t = useT().dashboard;
   const [visible, setVisible] = useState(false);
   // Guards against a fast double-tap on "Yes, I got paid" firing onConfirm
   // twice — closeCycleAndStartNext has no idempotency guard of its own
@@ -70,7 +72,7 @@ export function ConfirmJustGotPaidSheet({
     // today's date (see lib/pay-date.ts's parsePayDate) with no feedback
     // that the date you picked was ignored.
     if (payDate < minDate || payDate > maxDate) {
-      setError(`Date must be between ${minDate} and ${maxDate}`);
+      setError(t.editPayInfo.dateRange(minDate, maxDate));
       return;
     }
     setError(null);
@@ -82,19 +84,17 @@ export function ConfirmJustGotPaidSheet({
   return (
     <Sheet
       visible={visible}
-      title="Close this quincena?"
+      title={t.closeQuincena.title}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!confirmed}
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        This closes your current quincena for good and starts a fresh one. Recurring budget
-        targets and goal contributions carry forward automatically — you&apos;ll confirm this
-        quincena&apos;s pay amount next.
+        {t.closeQuincena.body}
       </p>
       <div className="field">
-        <label htmlFor={dateId}>When did you get paid?</label>
+        <label htmlFor={dateId}>{t.closeQuincena.whenPaid}</label>
         <input
           id={dateId}
           type="date"
@@ -117,7 +117,7 @@ export function ConfirmJustGotPaidSheet({
         </p>
       )}
       <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
-        Yes, I got paid <ArrowRight size={16} aria-hidden="true" />
+        {t.closeQuincena.yes} <ArrowRight size={16} aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -125,7 +125,7 @@ export function ConfirmJustGotPaidSheet({
         onClick={handleCancel}
         disabled={confirmed}
       >
-        Cancel
+        {t.closeQuincena.cancel}
       </button>
     </Sheet>
   );

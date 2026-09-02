@@ -1,8 +1,6 @@
 "use client";
 
-const CONFIRM_MESSAGE =
-  "This permanently deletes your CURRENT cycle — every transaction, income entry, and " +
-  "budget/goal target logged in it — and sends you back to onboarding. This cannot be undone. Continue?";
+import { useT } from "../../../_components/LocaleProvider";
 
 /**
  * Dev-only, so a plain window.confirm() (not this app's toast+Undo pattern)
@@ -11,17 +9,18 @@ const CONFIRM_MESSAGE =
  * their real, populated ACTIVE cycle, not just an empty draft.
  */
 export function DevResetButton({ action }: { action: () => void }) {
+  const t = useT();
   return (
     <form
       action={action}
       onSubmit={(e) => {
-        if (!window.confirm(CONFIRM_MESSAGE)) {
+        if (!window.confirm(t.profile.devReset.confirm)) {
           e.preventDefault();
         }
       }}
     >
       <button type="submit" className="button button--secondary">
-        Reset onboarding (dev only)
+        {t.profile.devReset.button}
       </button>
     </form>
   );
