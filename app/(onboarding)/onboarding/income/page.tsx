@@ -22,14 +22,18 @@ export default async function IncomeStepPage() {
 
   const state = await requireOnboardingStep(session.user.id, "income");
 
-  const existingEntry = await prisma.cycleIncomeEntry.findFirst({
-    where: { cycleId: state.cycle.id },
-    include: { incomeSource: true },
-  });
+  const [existingEntry, user] = await Promise.all([
+    prisma.cycleIncomeEntry.findFirst({
+      where: { cycleId: state.cycle.id },
+      include: { incomeSource: true },
+    }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { payFrequency: true } }),
+  ]);
 
-  const initial = existingEntry?.incomeSource
-    ? { netPayAmount: existingEntry.incomeSource.netPayAmount.toString() }
-    : undefined;
+  const initial = {
+    netPayAmount: existingEntry?.incomeSource ? existingEntry.incomeSource.netPayAmount.toString() : undefined,
+    payFrequency: user?.payFrequency ?? "QUINCENAL",
+  };
 
   return (
     <div className="card card--wide onboarding-shell">

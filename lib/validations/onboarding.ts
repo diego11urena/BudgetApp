@@ -28,6 +28,7 @@ export const changePasswordSchema = z.object({
 
 export const incomeStepSchema = z.object({
   netPayAmount: decimalString,
+  payFrequency: z.enum(["QUINCENAL", "MONTHLY"]).default("QUINCENAL"),
 });
 
 export const budgetLineItemSchema = z.object({

@@ -19,6 +19,7 @@ export const en: Dictionary = {
     optional: "Optional",
     confirm: "Confirm",
     close: "Close",
+    payFrequency: { quincenal: "Quincenal", monthly: "Monthly" },
     error: {
       appBody: "We hit a snag loading this page. Your data is safe — try again.",
       rootBody: "We hit a snag. Try again.",
@@ -138,6 +139,7 @@ export const en: Dictionary = {
       hint: "What actually lands in your account each quincena — after any taxes or deductions are already taken out elsewhere.",
       saving: "Saving...",
       continue: "Continue",
+      cadenceLabel: "How do you get paid?",
     },
     expenses: {
       metaTitle: "Bills",
@@ -537,6 +539,7 @@ export const en: Dictionary = {
     theme: "Theme",
     themeLabels: { system: "System", light: "Light", dark: "Dark" },
     language: "Language",
+    payFrequency: "Pay frequency",
     changePassword: {
       row: "Change password",
       title: "Change password",

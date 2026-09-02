@@ -10,10 +10,12 @@ import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { ThemeRow } from "./_components/ThemeRow";
 import { LanguageRow } from "./_components/LanguageRow";
+import { PayFrequencyRow } from "./_components/PayFrequencyRow";
 import { signOutAction, logOutEverywhereAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 import type { ThemePreferenceValue } from "@/lib/theme";
 import type { LocaleValue } from "@/lib/i18n/locale";
+import type { PayFrequency } from "@/lib/quincena-pace";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 
@@ -39,7 +41,7 @@ export default async function ProfilePage({
   const [user, gmailConnection, pastCycleCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, email: true, createdAt: true, theme: true, locale: true },
+      select: { name: true, email: true, createdAt: true, theme: true, locale: true, payFrequency: true },
     }),
     prisma.gmailConnection.findUnique({
       where: { userId },
@@ -51,6 +53,7 @@ export default async function ProfilePage({
   const initial = user?.name?.trim().charAt(0).toUpperCase() || "?";
   const initialTheme = (user?.theme.toLowerCase() ?? "system") as ThemePreferenceValue;
   const initialLocale = (user?.locale.toLowerCase() ?? locale) as LocaleValue;
+  const initialPayFrequency = (user?.payFrequency ?? "QUINCENAL") as PayFrequency;
 
   return (
     <div className="home-page">
@@ -96,6 +99,7 @@ export default async function ProfilePage({
         </Link>
         <ThemeRow initialTheme={initialTheme} />
         <LanguageRow initialLocale={initialLocale} />
+        <PayFrequencyRow initialPayFrequency={initialPayFrequency} />
       </div>
 
       <p className="profile-section-label">{t.profile.account}</p>

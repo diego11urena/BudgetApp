@@ -24,6 +24,8 @@ export type Dictionary = {
     optional: string;
     confirm: string;
     close: string;
+    /** Shared by the onboarding cadence picker and Profile's PayFrequencyRow -- one pair of labels, not duplicated per screen. */
+    payFrequency: { quincenal: string; monthly: string };
     /** Shared by the two top-level ("use client") error boundaries -- app/error.tsx and app/(app)/error.tsx -- whose title/retry text is identical to app/(onboarding)/error.tsx's own onboarding.error.title/retry (reused directly from there), but whose body copy is distinct per screen. */
     error: {
       appBody: string;
@@ -132,6 +134,8 @@ export type Dictionary = {
       hint: string;
       saving: string;
       continue: string;
+      /** The cadence picker's own label -- above the two payFrequency options (see common.payFrequency). */
+      cadenceLabel: string;
     };
     expenses: {
       metaTitle: string;
@@ -533,6 +537,8 @@ export type Dictionary = {
     /** Display labels for the System/Light/Dark picker's three options -- distinct from lib/theme.ts's own THEME_LABEL, which stays English-only since it's also used as a plain internal identifier in a couple of dev/debug spots; this is the one shown to a real user. */
     themeLabels: { system: string; light: string; dark: string };
     language: string;
+    /** PayFrequencyRow's own row label -- the two option labels themselves are shared via common.payFrequency. */
+    payFrequency: string;
     changePassword: {
       row: string;
       title: string;

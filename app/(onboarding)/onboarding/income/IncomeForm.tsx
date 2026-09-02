@@ -1,19 +1,24 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import { saveIncomeAction, type IncomeFormState } from "./actions";
 import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
 import { useT } from "@/app/_components/LocaleProvider";
+import type { PayFrequency } from "@/lib/quincena-pace";
 
 const initialState: IncomeFormState = undefined;
 
 export interface IncomeFormInitial {
-  netPayAmount: string;
+  netPayAmount?: string;
+  payFrequency: PayFrequency;
 }
+
+const PAY_FREQUENCY_VALUES: PayFrequency[] = ["QUINCENAL", "MONTHLY"];
 
 export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveIncomeAction, initialState);
+  const [payFrequency, setPayFrequency] = useState<PayFrequency>(initial?.payFrequency ?? "QUINCENAL");
 
   return (
     <form action={formAction}>
@@ -29,6 +34,24 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
           describedBy={state?.error ? "income-amount-error" : undefined}
         />
         <span className="field-hint">{t.onboarding.income.hint}</span>
+      </div>
+
+      <div className="field">
+        <label>{t.onboarding.income.cadenceLabel}</label>
+        <input type="hidden" name="payFrequency" value={payFrequency} />
+        <div className="theme-picker" role="group" aria-label={t.onboarding.income.cadenceLabel}>
+          {PAY_FREQUENCY_VALUES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={`theme-picker-option${payFrequency === value ? " is-active" : ""}`}
+              aria-pressed={payFrequency === value}
+              onClick={() => setPayFrequency(value)}
+            >
+              {value === "QUINCENAL" ? t.common.payFrequency.quincenal : t.common.payFrequency.monthly}
+            </button>
+          ))}
+        </div>
       </div>
 
       {state?.error && (

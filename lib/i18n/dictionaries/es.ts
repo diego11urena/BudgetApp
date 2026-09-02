@@ -19,6 +19,7 @@ export const es: Dictionary = {
     optional: "Opcional",
     confirm: "Confirmar",
     close: "Cerrar",
+    payFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
     error: {
       appBody: "Tuvimos un problema al cargar esta página. Tus datos están seguros — intenta de nuevo.",
       rootBody: "Tuvimos un problema. Intenta de nuevo.",
@@ -140,6 +141,7 @@ export const es: Dictionary = {
       hint: "Lo que realmente llega a tu cuenta cada quincena — después de que ya se descontaron impuestos u otras deducciones en otro lugar.",
       saving: "Guardando...",
       continue: "Continuar",
+      cadenceLabel: "¿Cómo recibes tu pago?",
     },
     expenses: {
       metaTitle: "Cuentas",
@@ -540,6 +542,7 @@ export const es: Dictionary = {
     theme: "Tema",
     themeLabels: { system: "Sistema", light: "Claro", dark: "Oscuro" },
     language: "Idioma",
+    payFrequency: "Frecuencia de pago",
     changePassword: {
       row: "Cambiar contraseña",
       title: "Cambiar contraseña",

@@ -27,13 +27,14 @@ export async function saveIncomeAction(
 
   const parsed = incomeStepSchema.safeParse({
     netPayAmount: formData.get("netPayAmount"),
+    payFrequency: formData.get("payFrequency") || undefined,
   });
 
   if (!parsed.success) {
     return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
 
-  const { netPayAmount } = parsed.data;
+  const { netPayAmount, payFrequency } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
 
@@ -66,6 +67,10 @@ export async function saveIncomeAction(
       data: { netPayAmount },
     }),
     upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netPayAmount),
+    prisma.user.update({
+      where: { id: userId },
+      data: { payFrequency },
+    }),
   ]);
 
   redirect("/onboarding/expenses");
