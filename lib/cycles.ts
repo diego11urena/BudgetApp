@@ -678,7 +678,7 @@ export async function closeCycleAndStartNext(
 
       const incomeSource = await getActiveIncomeSource(tx, userId);
       if (incomeSource) {
-        await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netQuincenaAmount);
+        await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netPayAmount);
       }
 
       // Only categories marked recurring auto-carry their most recent target

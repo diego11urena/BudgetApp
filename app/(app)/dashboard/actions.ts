@@ -117,7 +117,7 @@ export type ConfirmNewCycleIncomeResult = ActionResult | undefined;
  * Sets this quincena's actual paycheck amount, prompted right after closing
  * the previous cycle (rather than only editable via Profile) — pay varies
  * quincena to quincena, so this is asked every time instead of silently
- * reusing whatever was set last. Updates IncomeSource.netQuincenaAmount too,
+ * reusing whatever was set last. Updates IncomeSource.netPayAmount too,
  * so it becomes the new baseline (and what the *next* prompt prefills).
  */
 export const confirmNewCycleIncomeAction = withActionErrorHandling(async function confirmNewCycleIncomeAction(
@@ -130,11 +130,11 @@ export const confirmNewCycleIncomeAction = withActionErrorHandling(async functio
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
 
-  const parsed = decimalString.safeParse(formData.get("netQuincenaAmount"));
+  const parsed = decimalString.safeParse(formData.get("netPayAmount"));
   if (!parsed.success) {
     return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t) };
   }
-  const netQuincenaAmount = parsed.data;
+  const netPayAmount = parsed.data;
 
   const incomeSource = await getActiveIncomeSource(prisma, userId);
   if (!incomeSource) {
@@ -144,8 +144,8 @@ export const confirmNewCycleIncomeAction = withActionErrorHandling(async functio
   const cycle = await getOrCreateDraftCycle(userId);
 
   await prisma.$transaction([
-    prisma.incomeSource.update({ where: { id: incomeSource.id }, data: { netQuincenaAmount } }),
-    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
+    prisma.incomeSource.update({ where: { id: incomeSource.id }, data: { netPayAmount } }),
+    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netPayAmount),
   ]);
 
   revalidateAppPages();
@@ -170,7 +170,7 @@ export type EditPayInfoResult = ActionResult | undefined;
  * the future.
  *
  * On the current draft cycle (no cycleId, or cycleId resolving to it):
- * also updates IncomeSource.netQuincenaAmount, so the correction becomes
+ * also updates IncomeSource.netPayAmount, so the correction becomes
  * the new baseline for future cycles. On a CLOSED cycle, that baseline is
  * left alone — only the currently-open cycle's edits should change what
  * prefills the *next* cycle's income prompt.
@@ -185,7 +185,7 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
 
-  const parsedAmount = decimalString.safeParse(formData.get("netQuincenaAmount"));
+  const parsedAmount = decimalString.safeParse(formData.get("netPayAmount"));
   if (!parsedAmount.success) {
     return { error: translateValidationMessage(parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t) };
   }
@@ -231,7 +231,7 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
     writes.push(
       prisma.incomeSource.update({
         where: { id: incomeSource.id },
-        data: { netQuincenaAmount: parsedAmount.data },
+        data: { netPayAmount: parsedAmount.data },
       }),
     );
   }

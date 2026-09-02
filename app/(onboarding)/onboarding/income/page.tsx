@@ -28,7 +28,7 @@ export default async function IncomeStepPage() {
   });
 
   const initial = existingEntry?.incomeSource
-    ? { netQuincenaAmount: existingEntry.incomeSource.netQuincenaAmount.toString() }
+    ? { netPayAmount: existingEntry.incomeSource.netPayAmount.toString() }
     : undefined;
 
   return (

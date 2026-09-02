@@ -48,7 +48,7 @@ export function NewCycleIncomeSheet({
     setPending(true);
     setError(null);
     const fd = new FormData();
-    fd.set("netQuincenaAmount", amount);
+    fd.set("netPayAmount", amount);
     const result = await confirmNewCycleIncomeAction(fd);
 
     if (result?.error) {

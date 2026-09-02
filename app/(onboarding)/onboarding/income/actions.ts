@@ -26,14 +26,14 @@ export async function saveIncomeAction(
   const userId = session.user.id;
 
   const parsed = incomeStepSchema.safeParse({
-    netQuincenaAmount: formData.get("netQuincenaAmount"),
+    netPayAmount: formData.get("netPayAmount"),
   });
 
   if (!parsed.success) {
     return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
 
-  const { netQuincenaAmount } = parsed.data;
+  const { netPayAmount } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
 
@@ -48,7 +48,7 @@ export async function saveIncomeAction(
 
   if (!incomeSource) {
     try {
-      incomeSource = await prisma.incomeSource.create({ data: { userId, netQuincenaAmount } });
+      incomeSource = await prisma.incomeSource.create({ data: { userId, netPayAmount } });
     } catch (error) {
       if (!isUniqueConstraintViolation(error)) throw error;
       // Lost the race to a concurrent submit that also found no existing
@@ -63,9 +63,9 @@ export async function saveIncomeAction(
   await prisma.$transaction([
     prisma.incomeSource.update({
       where: { id: incomeSource.id },
-      data: { netQuincenaAmount },
+      data: { netPayAmount },
     }),
-    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netQuincenaAmount),
+    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netPayAmount),
   ]);
 
   redirect("/onboarding/expenses");

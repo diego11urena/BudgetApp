@@ -82,7 +82,7 @@ export function EditPayInfoSheet({
 
   function buildFormData(): FormData {
     const fd = new FormData();
-    fd.set("netQuincenaAmount", amount);
+    fd.set("netPayAmount", amount);
     fd.set("payDate", payDate);
     if (cycleId) fd.set("cycleId", cycleId);
     return fd;

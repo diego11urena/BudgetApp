@@ -8,7 +8,7 @@ import { useT } from "@/app/_components/LocaleProvider";
 const initialState: IncomeFormState = undefined;
 
 export interface IncomeFormInitial {
-  netQuincenaAmount: string;
+  netPayAmount: string;
 }
 
 export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
@@ -18,11 +18,11 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="netQuincenaAmount">{t.onboarding.income.label}</label>
+        <label htmlFor="netPayAmount">{t.onboarding.income.label}</label>
         <CurrencyInput
-          id="netQuincenaAmount"
-          name="netQuincenaAmount"
-          defaultValue={initial?.netQuincenaAmount}
+          id="netPayAmount"
+          name="netPayAmount"
+          defaultValue={initial?.netPayAmount}
           required
           className={state?.error ? "is-invalid" : ""}
           invalid={!!state?.error}

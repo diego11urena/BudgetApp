@@ -27,7 +27,7 @@ export const changePasswordSchema = z.object({
 });
 
 export const incomeStepSchema = z.object({
-  netQuincenaAmount: decimalString,
+  netPayAmount: decimalString,
 });
 
 export const budgetLineItemSchema = z.object({

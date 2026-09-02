@@ -73,7 +73,7 @@ export const eraseAllCyclesAction = withActionErrorHandling(async function erase
 
     const incomeSource = await getActiveIncomeSource(tx, userId);
     if (incomeSource) {
-      await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, incomeSource.netQuincenaAmount);
+      await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, incomeSource.netPayAmount);
     }
 
     for (const goal of latestGoalByCategory.values()) {

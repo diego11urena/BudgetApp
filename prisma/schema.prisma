@@ -34,6 +34,17 @@ model User {
   // feature existed). Mirrored into a cookie the same way theme is; see
   // lib/i18n/locale.ts.
   locale                 Locale    @default(EN)
+  // Whether this account budgets in quincena (biweekly, paid twice a
+  // month) or monthly cycles -- defaults to QUINCENAL so this migration
+  // doesn't change any existing account's behavior (the app's whole
+  // history before this field existed was quincena-only). Read by every
+  // cycle-boundary/pace/carry-forward computation instead of always
+  // assuming quincena; see lib/quincena-pace.ts's cycleEnd/cycleLengthDays
+  // dispatchers. Set once during onboarding's income step, changeable
+  // any time from Profile -- purely forward-looking: switching never
+  // rewrites already-closed cycles, since a cycle's real length was
+  // always just "however long since the last close," never enforced.
+  payFrequency           PayFrequency @default(QUINCENAL)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -55,13 +66,21 @@ enum Locale {
   ES
 }
 
+enum PayFrequency {
+  QUINCENAL
+  MONTHLY
+}
+
 model IncomeSource {
   id                String   @id @default(cuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // What actually lands in the account each quincena — entered directly by
-  // the user, no gross/deduction calculation involved.
-  netQuincenaAmount Decimal  @db.Decimal(12, 2)
+  // What actually lands in the account each pay cycle -- entered directly
+  // by the user, no gross/deduction calculation involved. Named cadence-
+  // neutrally (not netQuincenaAmount) since this is a flat per-cycle
+  // amount regardless of whether the account's payFrequency is quincenal
+  // or monthly.
+  netPayAmount      Decimal  @db.Decimal(12, 2)
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
