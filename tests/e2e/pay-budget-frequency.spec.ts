@@ -67,8 +67,13 @@ test.describe("pay/budget frequency combination lock", () => {
     // The one paycheck from onboarding is already this cycle's income --
     // close the month without logging anything further.
     await page.click('button:has-text("Edit")');
-    await expect(page.getByText("This month's paychecks")).toBeVisible();
-    await expect(page.getByText("$2,400.00")).toBeVisible();
+    // Scoped to the sheet itself (role="dialog", aria-labelledby its own
+    // title) -- an unscoped page.getByText("$2,400.00") also matches the
+    // HeroCard's big number and the StatGrid income tile behind it, both
+    // showing the same amount.
+    const paychecksSheet = page.getByLabel("This month's paychecks");
+    await expect(paychecksSheet).toBeVisible();
+    await expect(paychecksSheet.getByText("$2,400.00")).toBeVisible();
     await page.click('button:has-text("Close")');
 
     await page.locator(".hero-action-link", { hasText: "Close this month" }).click();
