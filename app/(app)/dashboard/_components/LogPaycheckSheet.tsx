@@ -112,7 +112,6 @@ export function LogPaycheckSheet({
             id={amountId}
             defaultValue={amount}
             onValueChange={setAmount}
-            autoFocus
             className="sheet-amount-input"
           />
         </div>
