@@ -29,7 +29,17 @@ test.describe("MONTHLY budget cadence", () => {
     await expect(page.getByText("Log a paycheck")).toBeVisible();
     await fillAmount(page.locator(".sheet input[type=\"text\"]").first(), "800");
     await page.click('button:has-text("Log paycheck")');
-    await expect(page.getByText("Log a paycheck")).toHaveCount(0);
+    // Waits for the full unmount (not just the text disappearing mid-
+    // transition), same pattern goals.spec.ts already uses after a
+    // mutation -- LogPaycheckSheet's onDone fires router.refresh() only
+    // once it unmounts, and MonthlyIncomeEntriesButton's own `entries`
+    // prop is only as fresh as Header.tsx's last completed server
+    // render, not something the sheet re-fetches on its own when
+    // opened -- networkidle below gives that refresh's round trip a
+    // chance to actually land before "Edit" is tapped again, the same
+    // gap a real user's natural pause between actions would avoid.
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    await page.waitForLoadState("networkidle");
 
     // Still the same open cycle -- both actions still there, nothing closed.
     await expect(page.locator(".hero-action-link", { hasText: "I just got paid" })).toBeVisible();
@@ -55,6 +65,9 @@ test.describe("MONTHLY budget cadence", () => {
     // closed-cycle summary goes straight back to the dashboard.
     await page.click('button:has-text("Continue")');
     await expect(page.getByText("How much did you get paid?")).toHaveCount(0);
+    // Same router.refresh()-lands-async gap as after logging a paycheck
+    // above -- give it a chance to complete before re-opening "Edit".
+    await page.waitForLoadState("networkidle");
 
     // The new month starts at $0 income -- not seeded from the last
     // logged paycheck amount (that would double-count once real
