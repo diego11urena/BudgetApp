@@ -56,10 +56,14 @@ const ANOMALY_THRESHOLD_FRACTION = 0.2;
 const ANOMALY_WINDOW_SIZE = 4;
 /** Minimum closed cycles of history required before the rolling-average rule runs at all -- below this, categoryAnomalyCandidate falls back to the older single-previous-cycle comparison so a newer user still sees something. */
 const ANOMALY_MIN_HISTORY = 2;
-/** Below this dollar delta (actual vs. this cycle's prorated expected spend), a category swing isn't worth mentioning even if it clears the relative threshold -- without this, a $4/cycle category ticking up to $5 (a 25% relative swing) would beat a genuine $200 grocery overage. */
-const ANOMALY_MIN_DOLLAR_DELTA = 15;
-/** Categories averaging less than this per cycle are too small to bother flagging at all -- same reasoning as ANOMALY_MIN_DOLLAR_DELTA, applied to the baseline itself. */
-const ANOMALY_MIN_AVERAGE = 25;
+/** Below this dollar delta (actual vs. this cycle's prorated expected spend), a category swing isn't worth mentioning even if it clears the relative threshold -- without this, a $4/cycle category ticking up to $5 (a 25% relative swing) would beat a genuine $200 grocery overage. Roughly doubled for MONTHLY: a cycle spanning a full month naturally carries bigger swings than a quincena's, so the same flat floor would fire far too often. */
+function anomalyMinDollarDelta(payFrequency: PayFrequency): number {
+  return payFrequency === "MONTHLY" ? 30 : 15;
+}
+/** Categories averaging less than this per cycle are too small to bother flagging at all -- same reasoning as anomalyMinDollarDelta, applied to the baseline itself, and roughly doubled for MONTHLY for the same reason. */
+function anomalyMinAverage(payFrequency: PayFrequency): number {
+  return payFrequency === "MONTHLY" ? 50 : 25;
+}
 /** How close (as % of a savings goal's lifetime target) progress has to be before it's worth calling out -- skips a goal that's barely started, which would otherwise read as "you're 90% short" framed as good news. Lowered from 80: by 80% a user is already well past the point of finding this exciting news. */
 const SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT = 60;
 /** How many days out (in either direction -- "due in N days" or "N days overdue") a MONTHLY recurring expense's own due day has to fall within, unpaid, before it's worth a dedicated call-out. */
@@ -116,7 +120,7 @@ export function generateInsights(
   const duplicateCharge = duplicateChargeCandidate(current, t);
   if (duplicateCharge) candidates.push(duplicateCharge);
 
-  const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase, t);
+  const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase, extras.payFrequency, t);
   if (categoryAnomaly) candidates.push(categoryAnomaly);
 
   candidates.push(paceAwareCandidate(current, phase, now, t));
@@ -323,6 +327,7 @@ function categoryAnomalyCandidate(
   current: CycleFinancials,
   previousClosedFinancials: CycleFinancials[],
   phase: CyclePhase,
+  payFrequency: PayFrequency,
   t: InsightsDictionary,
 ): Candidate | null {
   if (previousClosedFinancials.length < ANOMALY_MIN_HISTORY) {
@@ -330,6 +335,8 @@ function categoryAnomalyCandidate(
   }
 
   const window = previousClosedFinancials.slice(0, ANOMALY_WINDOW_SIZE);
+  const minAverage = anomalyMinAverage(payFrequency);
+  const minDollarDelta = anomalyMinDollarDelta(payFrequency);
   let best: { categoryId: string; categoryName: string; amount: number; expected: number; relativeDelta: number } | null = null;
 
   for (const category of current.categoryTotals) {
@@ -338,7 +345,7 @@ function categoryAnomalyCandidate(
       return total + (match?.amount ?? 0);
     }, 0);
     const average = sum / window.length;
-    if (average < ANOMALY_MIN_AVERAGE) continue; // Too small a category to matter either way.
+    if (average < minAverage) continue; // Too small a category to matter either way.
 
     // `average` is a FULL-cycle number from window cycles that already
     // closed; `category.amount` is only what's posted so far THIS cycle,
@@ -352,8 +359,8 @@ function categoryAnomalyCandidate(
     const dollarDelta = category.amount - expected;
     // A dollar floor on top of the relative one -- without it, a $4/cycle
     // category ticking up to $5 (a 25% relative swing) beats a genuine
-    // $200 overage in a bigger category. See ANOMALY_MIN_DOLLAR_DELTA.
-    if (dollarDelta < ANOMALY_MIN_DOLLAR_DELTA) continue;
+    // $200 overage in a bigger category. See anomalyMinDollarDelta.
+    if (dollarDelta < minDollarDelta) continue;
 
     const relativeDelta = dollarDelta / expected;
     // Only an increase is actionable -- a category quietly spending LESS

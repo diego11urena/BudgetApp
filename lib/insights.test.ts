@@ -374,6 +374,60 @@ describe("generateInsights", () => {
       // average 25 (clears ANOMALY_MIN_AVERAGE), delta 10 (under ANOMALY_MIN_DOLLAR_DELTA of 15), 40% relative.
       expect(insights.some((i) => i.text.includes("Snacks"))).toBe(false);
     });
+
+    describe("MONTHLY cadence roughly doubles both dollar floors", () => {
+      // Explicit periodEnd == now makes phase.percentElapsed exactly 1, so
+      // proration is a no-op and these dollar amounts read at face value --
+      // same trick the tests above use via "now = the cycle's own last day".
+      const monthlyExtras = (overrides: Parameters<typeof makeExtras>[0] = {}) =>
+        makeExtras({
+          payFrequency: "MONTHLY",
+          vocab: en.periodVocab.monthly,
+          cycle: { periodStart: parseDateOnly("2026-08-03")!, periodEnd: parseDateOnly("2026-08-03")! },
+          now: parseDateOnly("2026-08-03")!,
+          ...overrides,
+        });
+
+      it("ignores an average that clears QUINCENAL's floor (25) but not MONTHLY's doubled floor (50)", () => {
+        const insights = generateInsights(
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
+          [
+            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 35 }] }),
+            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 35 }] }),
+          ],
+          monthlyExtras(),
+        );
+        // average 35 -- clears the QUINCENAL floor but not MONTHLY's 50.
+        expect(insights.some((i) => i.text.includes("Groceries"))).toBe(false);
+      });
+
+      it("ignores a dollar delta that clears QUINCENAL's floor (15) but not MONTHLY's doubled floor (30)", () => {
+        const insights = generateInsights(
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 85 }] }),
+          [
+            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
+            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
+          ],
+          monthlyExtras(),
+        );
+        // average 60 (clears the 50 floor), delta 25 (clears QUINCENAL's 15
+        // but not MONTHLY's 30), ~42% relative swing (clears the relative floor).
+        expect(insights.some((i) => i.text.includes("Dining"))).toBe(false);
+      });
+
+      it("still fires once both doubled MONTHLY floors are cleared", () => {
+        const insights = generateInsights(
+          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 100 }] }),
+          [
+            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
+            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
+          ],
+          monthlyExtras(),
+        );
+        // average 60, delta 40 (clears MONTHLY's 30), ~67% relative swing.
+        expect(insights.some((i) => i.text === "Dining spending is up $40.00 vs your recent average.")).toBe(true);
+      });
+    });
   });
 
   describe("pace-aware on-track rule", () => {
