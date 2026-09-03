@@ -3,7 +3,7 @@ import { EditPayInfoButton } from "./EditPayInfoButton";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import type { Dictionary } from "@/lib/i18n/dictionary";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 function getGreeting(hour: number, t: Dictionary["dashboard"]): string {
   if (hour < 12) return t.greetingMorning;
@@ -18,7 +18,7 @@ export async function Header({
   cycleId,
   previousBoundDate,
   dateRangeLabel,
-  payFrequency,
+  budgetFrequency,
 }: {
   name?: string | null;
   /** This cycle's already-recorded pay amount — prefills the "Edit" sheet. */
@@ -31,11 +31,11 @@ export async function Header({
   previousBoundDate: string | null;
   /** "Aug 16 – Aug 31" -- lib/format.ts's formatCycleRangeLabel, precomputed by the page since it needs both periodStart and periodEnd. */
   dateRangeLabel: string;
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
 }) {
   const dict = getDictionary(await getRequestLocale());
   const t = dict.dashboard;
-  const vocab = resolveVocab(dict, payFrequency);
+  const vocab = resolveVocab(dict, budgetFrequency);
   const greeting = getGreeting(hourInPanama(), t);
   const firstName = name?.trim().split(/\s+/)[0];
 

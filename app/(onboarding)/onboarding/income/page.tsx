@@ -27,14 +27,14 @@ export default async function IncomeStepPage() {
       where: { cycleId: state.cycle.id },
       include: { incomeSource: true },
     }),
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { payFrequency: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { budgetFrequency: true } }),
   ]);
 
   const initial = {
     netPayAmount: existingEntry?.incomeSource ? existingEntry.incomeSource.netPayAmount.toString() : undefined,
-    payFrequency: user?.payFrequency ?? "QUINCENAL",
+    budgetFrequency: user?.budgetFrequency ?? "QUINCENAL",
   };
-  const vocab = resolveVocab(t, initial.payFrequency);
+  const vocab = resolveVocab(t, initial.budgetFrequency);
 
   return (
     <div className="card card--wide onboarding-shell">

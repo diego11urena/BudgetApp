@@ -43,7 +43,7 @@ export const en: Dictionary = {
     optional: "Optional",
     confirm: "Confirm",
     close: "Close",
-    payFrequency: { quincenal: "Quincenal", monthly: "Monthly" },
+    budgetFrequency: { quincenal: "Quincenal", monthly: "Monthly" },
     error: {
       appBody: "We hit a snag loading this page. Your data is safe — try again.",
       rootBody: "We hit a snag. Try again.",
@@ -565,7 +565,7 @@ export const en: Dictionary = {
     theme: "Theme",
     themeLabels: { system: "System", light: "Light", dark: "Dark" },
     language: "Language",
-    payFrequency: "Pay frequency",
+    budgetFrequency: "Pay frequency",
     changePassword: {
       row: "Change password",
       title: "Change password",

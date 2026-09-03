@@ -44,7 +44,22 @@ model User {
   // any time from Profile -- purely forward-looking: switching never
   // rewrites already-closed cycles, since a cycle's real length was
   // always just "however long since the last close," never enforced.
-  payFrequency           PayFrequency @default(QUINCENAL)
+  //
+  // Deliberately distinct from payFrequency below -- this controls the
+  // BUDGET cycle's length/boundaries and every cycle-based comparison;
+  // payFrequency is purely descriptive of how often income actually
+  // arrives and gates no calculation. Was itself named "payFrequency"
+  // until this field split -- renamed here specifically so the two
+  // concepts can never be confused again the way they were before.
+  budgetFrequency        BudgetFrequency @default(QUINCENAL)
+  // How often the user actually receives a paycheck -- "once a month" /
+  // "twice a month" / "biweekly". Purely descriptive: doesn't drive any
+  // cycle-boundary or comparison math (see budgetFrequency above for
+  // that). Defaults to SEMIMONTHLY since every account before this field
+  // existed was implicitly quincenal (paid twice a month); the guess has
+  // zero functional effect either way since nothing reads this into a
+  // calculation.
+  payFrequency           IncomeFrequency @default(SEMIMONTHLY)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -66,9 +81,15 @@ enum Locale {
   ES
 }
 
-enum PayFrequency {
+enum BudgetFrequency {
   QUINCENAL
   MONTHLY
+}
+
+enum IncomeFrequency {
+  MONTHLY
+  SEMIMONTHLY
+  BIWEEKLY
 }
 
 model IncomeSource {
@@ -78,7 +99,7 @@ model IncomeSource {
   // What actually lands in the account each pay cycle -- entered directly
   // by the user, no gross/deduction calculation involved. Named cadence-
   // neutrally (not netQuincenaAmount) since this is a flat per-cycle
-  // amount regardless of whether the account's payFrequency is quincenal
+  // amount regardless of whether the account's budgetFrequency is quincenal
   // or monthly.
   netPayAmount      Decimal  @db.Decimal(12, 2)
   isActive          Boolean  @default(true)
@@ -148,13 +169,25 @@ model CycleIncomeEntry {
   incomeSourceId String?
   incomeSource   IncomeSource? @relation(fields: [incomeSourceId], references: [id], onDelete: SetNull)
   netAmount      Decimal       @db.Decimal(12, 2)
+  // The real date this paycheck landed -- distinct from createdAt (when the
+  // row was written), since a user can log a paycheck a day or two after
+  // the fact. Used to display/sort a MONTHLY cycle's multiple logged
+  // paychecks (see MonthlyIncomeEntriesSheet); for a QUINCENAL cycle's one
+  // entry it's cosmetic, always ~= createdAt in practice.
+  receivedAt     DateTime      @default(now())
   createdAt      DateTime      @default(now())
 
-  // Lets a shared upsert helper safely be the single way every callsite
-  // creates-or-updates a cycle's income entry, instead of each one doing
-  // its own separate find-then-branch (a narrow window for two near-
-  // simultaneous calls to both see "missing" and both create).
-  @@unique([cycleId, incomeSourceId])
+  // No longer a @@unique([cycleId, incomeSourceId]) -- that constraint used
+  // to cap a cycle at exactly one income entry per source (fine when "one
+  // paycheck = one cycle" was universal, wrong once a MONTHLY cycle needs
+  // to hold 2+ paychecks additively). getCycleFinancials/summarizeCycleFinancials
+  // already SUM every entry for a cycle, so removing this constraint alone
+  // is what lets multiple paychecks accumulate correctly -- see
+  // lib/cycles.ts's logPaycheckToOpenCycle. The two call sites that used to
+  // rely on this for an atomic upsert (confirmNewCycleIncomeAction,
+  // editCyclePayInfoAction -- both still genuinely "there's exactly one
+  // entry, correct it in place" for QUINCENAL) now find-then-update by id
+  // instead; see their own comments for the accepted narrow race window.
   @@index([cycleId])
   @@index([incomeSourceId])
 }

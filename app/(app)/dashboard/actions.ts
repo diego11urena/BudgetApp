@@ -9,12 +9,11 @@ import {
   getActiveIncomeSource,
   getOrCreateDraftCycle,
   getRecentCycles,
-  getUserPayFrequency,
+  getUserBudgetFrequency,
   parsePayDate,
   upsertCycleIncomeEntry,
   type PayDateChangeResult,
 } from "@/lib/cycles";
-import type { Prisma } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { summarizeCycleFinancials } from "@/lib/cycle-financials";
@@ -144,10 +143,10 @@ export const confirmNewCycleIncomeAction = withActionErrorHandling(async functio
 
   const cycle = await getOrCreateDraftCycle(userId);
 
-  await prisma.$transaction([
-    prisma.incomeSource.update({ where: { id: incomeSource.id }, data: { netPayAmount } }),
-    upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, netPayAmount),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.incomeSource.update({ where: { id: incomeSource.id }, data: { netPayAmount } });
+    await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, netPayAmount);
+  });
 
   revalidateAppPages();
 });
@@ -206,7 +205,7 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
       ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
       : await getOrCreateDraftCycle(userId);
   if (!cycle) {
-    return { error: t.dashboard.quincenaNotFound(resolveVocab(t, await getUserPayFrequency(userId))) };
+    return { error: t.dashboard.quincenaNotFound(resolveVocab(t, await getUserBudgetFrequency(userId))) };
   }
 
   let assessment: PayDateChangeResult | null = null;
@@ -227,35 +226,28 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
     return { error: t.dashboard.noIncomeSource };
   }
 
-  const writes: Prisma.PrismaPromise<unknown>[] = [];
-  if (cycle.status !== "CLOSED") {
-    writes.push(
-      prisma.incomeSource.update({
+  await prisma.$transaction(async (tx) => {
+    if (cycle.status !== "CLOSED") {
+      await tx.incomeSource.update({
         where: { id: incomeSource.id },
         data: { netPayAmount: parsedAmount.data },
-      }),
-    );
-  }
-  writes.push(upsertCycleIncomeEntry(prisma, cycle.id, incomeSource.id, parsedAmount.data));
-  writes.push(
-    prisma.budgetCycle.update({
+      });
+    }
+    await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, parsedAmount.data);
+    await tx.budgetCycle.update({
       where: { id: cycle.id },
       data: { periodStart: payDate, label: formatCycleLabel(payDate) },
-    }),
-  );
+    });
 
-  if (assessment?.ok && assessment.changed && assessment.movingCount > 0 && assessment.moveRange) {
-    const sourceForMoved = assessment.direction === "in" ? assessment.otherCycleId! : cycle.id;
-    const targetForMoved = assessment.direction === "in" ? cycle.id : assessment.otherCycleId!;
-    writes.push(
-      prisma.cycleTransaction.updateMany({
+    if (assessment?.ok && assessment.changed && assessment.movingCount > 0 && assessment.moveRange) {
+      const sourceForMoved = assessment.direction === "in" ? assessment.otherCycleId! : cycle.id;
+      const targetForMoved = assessment.direction === "in" ? cycle.id : assessment.otherCycleId!;
+      await tx.cycleTransaction.updateMany({
         where: { cycleId: sourceForMoved, occurredAt: assessment.moveRange },
         data: { cycleId: targetForMoved },
-      }),
-    );
-  }
-
-  await prisma.$transaction(writes);
+      });
+    }
+  });
 
   revalidateAppPages();
 });
@@ -280,7 +272,7 @@ export const previewPayDateChangeAction = withActionErrorHandling(async function
 
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
   if (!cycle) {
-    return { ok: false, error: t.dashboard.quincenaNotFound(resolveVocab(t, await getUserPayFrequency(userId))) };
+    return { ok: false, error: t.dashboard.quincenaNotFound(resolveVocab(t, await getUserBudgetFrequency(userId))) };
   }
   const newDate = parseDateOnly(newPayDateStr);
   if (!newDate) {

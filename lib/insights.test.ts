@@ -6,7 +6,7 @@ import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "
 import type { GoalWithProgress } from "./goals";
 import type { Dictionary, PeriodVocab } from "./i18n/dictionary";
 import { en } from "./i18n/dictionaries/en";
-import type { PayFrequency } from "./quincena-pace";
+import type { BudgetFrequency } from "./quincena-pace";
 
 let nextTransactionId = 0;
 function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
@@ -49,7 +49,7 @@ function makeExtras(
     cycle: { periodStart: Date; periodEnd: Date | null };
     recurringExpenseCategories: CategoryWithRecurringExpenses[];
     goals: GoalWithProgress[];
-    payFrequency: PayFrequency;
+    budgetFrequency: BudgetFrequency;
     vocab: PeriodVocab;
     now: Date;
     t: Dictionary["insights"];
@@ -63,7 +63,7 @@ function makeExtras(
     // QUINCENAL fixed here rather than parameterized, for the same reason
     // `t` below is -- every test's expected daysRemaining/percentElapsed
     // math is written against a 15-day quincena.
-    payFrequency: "QUINCENAL" as PayFrequency,
+    budgetFrequency: "QUINCENAL" as BudgetFrequency,
     vocab: en.periodVocab.quincenal,
     now: periodStart,
     // English fixed here rather than parameterized -- these tests assert on
@@ -381,7 +381,7 @@ describe("generateInsights", () => {
       // same trick the tests above use via "now = the cycle's own last day".
       const monthlyExtras = (overrides: Parameters<typeof makeExtras>[0] = {}) =>
         makeExtras({
-          payFrequency: "MONTHLY",
+          budgetFrequency: "MONTHLY",
           vocab: en.periodVocab.monthly,
           cycle: { periodStart: parseDateOnly("2026-08-03")!, periodEnd: parseDateOnly("2026-08-03")! },
           now: parseDateOnly("2026-08-03")!,

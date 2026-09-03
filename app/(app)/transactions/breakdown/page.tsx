@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getMostRecentClosedCycle, getOrCreateDraftCycle, getUserPayFrequency } from "@/lib/cycles";
+import { getMostRecentClosedCycle, getOrCreateDraftCycle, getUserBudgetFrequency } from "@/lib/cycles";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import { withUncategorizedBucket, type GroupTotal } from "@/lib/paycheck-breakdown";
 import { BreakdownScreen, type BreakdownCycleData } from "./_components/BreakdownScreen";
@@ -39,7 +39,7 @@ export default async function PaycheckBreakdownPage() {
   }
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
-  const vocab = resolveVocab(t, await getUserPayFrequency(userId));
+  const vocab = resolveVocab(t, await getUserBudgetFrequency(userId));
 
   const cycle = await getOrCreateDraftCycle(userId);
   const lastClosedCycle = await getMostRecentClosedCycle(userId);

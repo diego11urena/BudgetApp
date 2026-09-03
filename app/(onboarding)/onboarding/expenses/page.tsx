@@ -8,7 +8,7 @@ import { BillsStepForm, BillsStepSkipButton } from "./_components/BillsStepForm"
 import { saveExpensesAction } from "./actions";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
-import { getUserPayFrequency } from "@/lib/cycles";
+import { getUserBudgetFrequency } from "@/lib/cycles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -21,7 +21,7 @@ export default async function ExpensesStepPage() {
     redirect("/login");
   }
   const t = getDictionary(await getRequestLocale());
-  const vocab = resolveVocab(t, await getUserPayFrequency(session.user.id));
+  const vocab = resolveVocab(t, await getUserBudgetFrequency(session.user.id));
 
   await requireOnboardingStep(session.user.id, "expenses");
 

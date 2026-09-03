@@ -11,7 +11,7 @@ import {
   parsePayDate,
 } from "@/lib/pay-date";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
-import { cycleEnd, dueDayFallsWithinCycle, type PayFrequency } from "@/lib/quincena-pace";
+import { cycleEnd, dueDayFallsWithinCycle, type BudgetFrequency } from "@/lib/quincena-pace";
 import { formatFriendlyDate } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 
@@ -33,9 +33,9 @@ export { formatCycleLabel, parsePayDate };
  * without getOrCreateDraftCycle's own staleness trap, since this value is
  * never mutated mid-request the way a cycle can be.
  */
-export const getUserPayFrequency = cache(async (userId: string): Promise<PayFrequency> => {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { payFrequency: true } });
-  return user.payFrequency;
+export const getUserBudgetFrequency = cache(async (userId: string): Promise<BudgetFrequency> => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { budgetFrequency: true } });
+  return user.budgetFrequency;
 });
 
 /**
@@ -51,11 +51,11 @@ export const getUserPayFrequency = cache(async (userId: string): Promise<PayFreq
 export function shouldCarryForwardToCycle(
   rule: { frequency: "BIWEEKLY" | "MONTHLY"; dueDay: number | null },
   newCyclePeriodStart: Date,
-  payFrequency: PayFrequency,
+  budgetFrequency: BudgetFrequency,
 ): boolean {
   if (rule.frequency === "BIWEEKLY") return true;
   if (rule.dueDay === null) return false;
-  return dueDayFallsWithinCycle(rule.dueDay, newCyclePeriodStart, payFrequency);
+  return dueDayFallsWithinCycle(rule.dueDay, newCyclePeriodStart, budgetFrequency);
 }
 
 /**
@@ -125,13 +125,13 @@ export async function carryForwardRecurringExpenses(
   userId: string,
   newCycleId: string,
   newCyclePeriodStart: Date,
-  payFrequency: PayFrequency,
+  budgetFrequency: BudgetFrequency,
 ): Promise<void> {
   const recurringExpenses = await db.recurringExpense.findMany({ where: { userId, recurring: true } });
   const affectedCategoryIds = new Set<string>();
 
   for (const recurringExpense of recurringExpenses) {
-    if (!shouldCarryForwardToCycle(recurringExpense, newCyclePeriodStart, payFrequency)) continue;
+    if (!shouldCarryForwardToCycle(recurringExpense, newCyclePeriodStart, budgetFrequency)) continue;
 
     // upsert, not create: makes this idempotent against a retry, so a
     // recurring expense can never end up with two snapshots for the same
@@ -308,23 +308,40 @@ export function getActiveIncomeSource(db: Db, userId: string) {
  * Creates or updates a cycle's income entry for a given income source and
  * amount — the shared "make this cycle's income reflect this amount" step,
  * reused by closing a cycle, the post-close pay-amount prompt, editing
- * income settings, and erasing all cycles. Relies on the
- * cycleId+incomeSourceId unique constraint, so two near-simultaneous calls
- * for the same cycle can never create duplicate entries. Accepts either the
- * top-level Prisma client or an interactive $transaction's tx client, since
- * some callers need this to participate in a larger atomic write.
+ * income settings, and erasing all cycles. Every call site today still
+ * means "there's exactly one entry for this cycle/source pair, correct it
+ * in place" (QUINCENAL's one-paycheck-per-cycle model) -- MONTHLY's
+ * additive multi-paycheck logging goes through logPaycheckToOpenCycle
+ * instead, a plain create, never this.
+ *
+ * No longer a true atomic upsert -- the unique index this used to rely on
+ * (cycleId+incomeSourceId) was dropped so a cycle CAN hold more than one
+ * entry (see the CycleIncomeEntry model's own schema comment). This does
+ * an explicit find-then-write instead, which means it must be `await`ed
+ * directly rather than pushed into a `$transaction([...])` array the way
+ * every other query in that array is -- every call site either awaits
+ * this inside an interactive `$transaction(async (tx) => ...)` callback,
+ * or awaits it as its own statement before/after a separate transaction.
+ * The residual race (two genuinely concurrent requests both finding "no
+ * entry yet" for the same cycle) is narrow and already mitigated
+ * client-side -- every relevant sheet disables its own submit while
+ * pending -- and non-corrupting even if it happens (worst case: 2 entries
+ * instead of 1, correctable via the per-entry edit/delete UI). Accepts
+ * either the top-level Prisma client or an interactive $transaction's tx
+ * client, since some callers need this to participate in a larger atomic
+ * write.
  */
-export function upsertCycleIncomeEntry(
+export async function upsertCycleIncomeEntry(
   db: Db,
   cycleId: string,
   incomeSourceId: string,
   netAmount: Prisma.Decimal | string | number,
 ) {
-  return db.cycleIncomeEntry.upsert({
-    where: { cycleId_incomeSourceId: { cycleId, incomeSourceId } },
-    create: { cycleId, incomeSourceId, netAmount },
-    update: { netAmount },
-  });
+  const existing = await db.cycleIncomeEntry.findFirst({ where: { cycleId, incomeSourceId } });
+  if (existing) {
+    return db.cycleIncomeEntry.update({ where: { id: existing.id }, data: { netAmount } });
+  }
+  return db.cycleIncomeEntry.create({ data: { cycleId, incomeSourceId, netAmount } });
 }
 
 /** Uncached read of the user's current open (DRAFT or ACTIVE) cycle -- see getOrCreateDraftCycle's own cache() trap warning for when this, not that, is the right call. */
@@ -577,10 +594,10 @@ export function formatCycleRangeText(
   // Defaults to QUINCENAL (today's only cadence) so every not-yet-updated
   // caller keeps its current behavior -- only matters for a still-open
   // cycle (periodEnd null); a closed cycle always uses its real periodEnd.
-  payFrequency: PayFrequency = "QUINCENAL",
+  budgetFrequency: BudgetFrequency = "QUINCENAL",
 ): string {
   const { includeYear = true } = options;
-  const end = cycle.periodEnd ?? cycleEnd(cycle.periodStart, payFrequency);
+  const end = cycle.periodEnd ?? cycleEnd(cycle.periodStart, budgetFrequency);
   const startParts = panamaDateParts(cycle.periodStart);
   const endParts = panamaDateParts(end);
   const dateOpts: Intl.DateTimeFormatOptions = includeYear
@@ -677,7 +694,7 @@ export async function closeCycleAndStartNext(
       // and carryForwardRecurringExpenses agree on the same cadence for
       // this one close -- a mid-transaction cadence change isn't a real
       // scenario, but reading it twice would leave that possibility open.
-      const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { payFrequency: true } });
+      const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { budgetFrequency: true } });
 
       const closed = await tx.budgetCycle.update({
         where: { id: currentCycle.id },
@@ -713,7 +730,7 @@ export async function closeCycleAndStartNext(
       });
 
       for (const goal of previousSavingsGoals) {
-        if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart, user.payFrequency)) continue;
+        if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart, user.budgetFrequency)) continue;
 
         // upsert, not create: makes this idempotent against a retry of this
         // transaction, so a rule can never end up with two CycleBudgetGoal
@@ -731,7 +748,7 @@ export async function closeCycleAndStartNext(
         });
       }
 
-      await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart, user.payFrequency);
+      await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart, user.budgetFrequency);
 
       return { closed, created };
     });

@@ -7,8 +7,8 @@ import { THEME_COOKIE, THEME_VALUES, type ThemePreferenceValue } from "@/lib/the
 import { LocaleProvider } from "./_components/LocaleProvider";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocaleValue, type LocaleValue } from "@/lib/i18n/locale";
 import { auth } from "@/lib/auth";
-import { getUserPayFrequency } from "@/lib/cycles";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import { getUserBudgetFrequency } from "@/lib/cycles";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -28,17 +28,17 @@ async function resolveLocale(): Promise<LocaleValue> {
 }
 
 /**
- * Unlike locale/theme, payFrequency has no cookie -- it only ever matters
- * once a request is already authenticated (see PayFrequencyRow's own doc
+ * Unlike locale/theme, budgetFrequency has no cookie -- it only ever matters
+ * once a request is already authenticated (see BudgetFrequencyRow's own doc
  * comment), so this is a DB read, not a cookie read. Anonymous/pre-auth
  * pages (landing, login, signup) get the "QUINCENAL" default, matching the
  * app's own branding and today's only cadence -- there's no real preference
  * to reflect yet for a visitor who hasn't signed up.
  */
-async function resolvePayFrequency(): Promise<PayFrequency> {
+async function resolveBudgetFrequency(): Promise<BudgetFrequency> {
   const session = await auth();
   if (!session?.user?.id) return "QUINCENAL";
-  return getUserPayFrequency(session.user.id);
+  return getUserBudgetFrequency(session.user.id);
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -77,7 +77,7 @@ export default async function RootLayout({
   const dataTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : undefined;
 
   const locale = await resolveLocale();
-  const payFrequency = await resolvePayFrequency();
+  const budgetFrequency = await resolveBudgetFrequency();
 
   return (
     <html
@@ -90,7 +90,7 @@ export default async function RootLayout({
         <ThemeScript />
       </head>
       <body suppressHydrationWarning>
-        <LocaleProvider locale={locale} payFrequency={payFrequency}>
+        <LocaleProvider locale={locale} budgetFrequency={budgetFrequency}>
           {children}
         </LocaleProvider>
       </body>

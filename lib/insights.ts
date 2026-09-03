@@ -1,7 +1,7 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { addDays, nowInPanama, panamaDateParts, parseDateOnly } from "@/lib/pay-date";
-import { calendarDaysBetween, cycleEnd, type PayFrequency } from "@/lib/quincena-pace";
+import { calendarDaysBetween, cycleEnd, type BudgetFrequency } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 import type { GoalWithProgress } from "@/lib/goals";
@@ -57,12 +57,12 @@ const ANOMALY_WINDOW_SIZE = 4;
 /** Minimum closed cycles of history required before the rolling-average rule runs at all -- below this, categoryAnomalyCandidate falls back to the older single-previous-cycle comparison so a newer user still sees something. */
 const ANOMALY_MIN_HISTORY = 2;
 /** Below this dollar delta (actual vs. this cycle's prorated expected spend), a category swing isn't worth mentioning even if it clears the relative threshold -- without this, a $4/cycle category ticking up to $5 (a 25% relative swing) would beat a genuine $200 grocery overage. Roughly doubled for MONTHLY: a cycle spanning a full month naturally carries bigger swings than a quincena's, so the same flat floor would fire far too often. */
-function anomalyMinDollarDelta(payFrequency: PayFrequency): number {
-  return payFrequency === "MONTHLY" ? 30 : 15;
+function anomalyMinDollarDelta(budgetFrequency: BudgetFrequency): number {
+  return budgetFrequency === "MONTHLY" ? 30 : 15;
 }
 /** Categories averaging less than this per cycle are too small to bother flagging at all -- same reasoning as anomalyMinDollarDelta, applied to the baseline itself, and roughly doubled for MONTHLY for the same reason. */
-function anomalyMinAverage(payFrequency: PayFrequency): number {
-  return payFrequency === "MONTHLY" ? 50 : 25;
+function anomalyMinAverage(budgetFrequency: BudgetFrequency): number {
+  return budgetFrequency === "MONTHLY" ? 50 : 25;
 }
 /** How close (as % of a savings goal's lifetime target) progress has to be before it's worth calling out -- skips a goal that's barely started, which would otherwise read as "you're 90% short" framed as good news. Lowered from 80: by 80% a user is already well past the point of finding this exciting news. */
 const SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT = 60;
@@ -97,8 +97,8 @@ export function generateInsights(
     /** The user's savings goals with progress, e.g. from getGoalsWithProgress -- drives the savings-goal-proximity rule. */
     goals: GoalWithProgress[];
     /** The user's own pay-cadence setting -- only matters for deriving a still-open cycle's nominal end (see cyclePhase) and a goal's projected ETA; every rule that just compares dollar amounts is unaffected. */
-    payFrequency: PayFrequency;
-    /** Resolved from payFrequency by the caller (which has the full Dictionary in scope, unlike this plain function) -- feeds the one rule sentence that names the cadence ("quincena"/"month"). */
+    budgetFrequency: BudgetFrequency;
+    /** Resolved from budgetFrequency by the caller (which has the full Dictionary in scope, unlike this plain function) -- feeds the one rule sentence that names the cadence ("quincena"/"month"). */
     vocab: PeriodVocab;
     /** Defaults to nowInPanama() -- overridable for tests. */
     now?: Date;
@@ -107,7 +107,7 @@ export function generateInsights(
   },
 ): Insight[] {
   const now = extras.now ?? nowInPanama();
-  const phase = cyclePhase(extras.cycle, extras.payFrequency, now);
+  const phase = cyclePhase(extras.cycle, extras.budgetFrequency, now);
   const t = extras.t;
   const candidates: Candidate[] = [];
 
@@ -120,7 +120,7 @@ export function generateInsights(
   const duplicateCharge = duplicateChargeCandidate(current, t);
   if (duplicateCharge) candidates.push(duplicateCharge);
 
-  const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase, extras.payFrequency, t);
+  const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase, extras.budgetFrequency, t);
   if (categoryAnomaly) candidates.push(categoryAnomaly);
 
   candidates.push(paceAwareCandidate(current, phase, now, t));
@@ -128,7 +128,7 @@ export function generateInsights(
   const goalContribution = goalContributionCandidate(extras.goals, current, phase, extras.vocab, t);
   if (goalContribution) candidates.push(goalContribution);
 
-  const savingsGoal = savingsGoalCandidate(extras.goals, now, extras.payFrequency, t);
+  const savingsGoal = savingsGoalCandidate(extras.goals, now, extras.budgetFrequency, t);
   if (savingsGoal) candidates.push(savingsGoal);
 
   // Capped at 2, not 3 -- with the fuller rule set above, most cycles now
@@ -153,10 +153,10 @@ interface CyclePhase {
 /** Shared by every rule that needs to know how far into the cycle `now` is -- previously computed inline, only inside paceAwareCandidate. */
 function cyclePhase(
   cycle: { periodStart: Date; periodEnd: Date | null },
-  payFrequency: PayFrequency,
+  budgetFrequency: BudgetFrequency,
   now: Date,
 ): CyclePhase {
-  const resolvedCycleEnd = cycle.periodEnd ?? cycleEnd(cycle.periodStart, payFrequency);
+  const resolvedCycleEnd = cycle.periodEnd ?? cycleEnd(cycle.periodStart, budgetFrequency);
   const totalDays = calendarDaysBetween(cycle.periodStart, resolvedCycleEnd) + 1;
   const elapsedDays = Math.min(Math.max(calendarDaysBetween(cycle.periodStart, now) + 1, 1), totalDays);
   const daysRemaining = Math.max(totalDays - elapsedDays, 0);
@@ -327,7 +327,7 @@ function categoryAnomalyCandidate(
   current: CycleFinancials,
   previousClosedFinancials: CycleFinancials[],
   phase: CyclePhase,
-  payFrequency: PayFrequency,
+  budgetFrequency: BudgetFrequency,
   t: InsightsDictionary,
 ): Candidate | null {
   if (previousClosedFinancials.length < ANOMALY_MIN_HISTORY) {
@@ -335,8 +335,8 @@ function categoryAnomalyCandidate(
   }
 
   const window = previousClosedFinancials.slice(0, ANOMALY_WINDOW_SIZE);
-  const minAverage = anomalyMinAverage(payFrequency);
-  const minDollarDelta = anomalyMinDollarDelta(payFrequency);
+  const minAverage = anomalyMinAverage(budgetFrequency);
+  const minDollarDelta = anomalyMinDollarDelta(budgetFrequency);
   let best: { categoryId: string; categoryName: string; amount: number; expected: number; relativeDelta: number } | null = null;
 
   for (const category of current.categoryTotals) {
@@ -479,7 +479,7 @@ export function computeStreak(previousClosedFinancials: CycleFinancials[]): numb
 function savingsGoalCandidate(
   goals: GoalWithProgress[],
   now: Date,
-  payFrequency: PayFrequency,
+  budgetFrequency: BudgetFrequency,
   t: InsightsDictionary,
 ): Candidate | null {
   let best: { name: string; remaining: number; percentage: number } | null = null;
@@ -490,7 +490,7 @@ function savingsGoalCandidate(
       lifetimeTargetAmount: goal.lifetimeTargetAmount,
       currentCycleRecurringAmount: goal.currentCycleRecurringAmount,
       now,
-      frequency: payFrequency,
+      frequency: budgetFrequency,
     });
     if (projection.isComplete) continue;
     if (projection.percentage < SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT) continue;

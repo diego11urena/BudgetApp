@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAdjacentCycles, formatCycleRangeText, getOrCreateDraftCycle, getUserPayFrequency } from "@/lib/cycles";
+import { getAdjacentCycles, formatCycleRangeText, getOrCreateDraftCycle, getUserBudgetFrequency } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -22,8 +22,8 @@ import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
   const session = await auth();
-  const payFrequency = session?.user?.id ? await getUserPayFrequency(session.user.id) : "QUINCENAL";
-  return { title: t.history.detailMetaTitle(resolveVocab(t, payFrequency)) };
+  const budgetFrequency = session?.user?.id ? await getUserBudgetFrequency(session.user.id) : "QUINCENAL";
+  return { title: t.history.detailMetaTitle(resolveVocab(t, budgetFrequency)) };
 }
 
 export default async function CycleHistoryPage({
@@ -56,14 +56,14 @@ export default async function CycleHistoryPage({
   // reorder chips slightly differently for a past cycle.
   const currentCycle = await getOrCreateDraftCycle(userId);
 
-  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }, payFrequency] =
+  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }, budgetFrequency] =
     await Promise.all([
       getCycleFinancials(cycle.id),
       getOrderedCategoryNames(userId, currentCycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, currentCycle.id, "SAVINGS"),
       getOrderedCategoryNames(userId, currentCycle.id, "INCOME"),
       getAdjacentCycles(userId, cycle),
-      getUserPayFrequency(userId),
+      getUserBudgetFrequency(userId),
     ]);
 
   // Historical category -> recurring-expense breakdown for this specific
@@ -90,7 +90,7 @@ export default async function CycleHistoryPage({
 
       <div className="home-header">
         <div>
-          <p className="home-greeting">{formatCycleRangeText(cycle, {}, payFrequency)}</p>
+          <p className="home-greeting">{formatCycleRangeText(cycle, {}, budgetFrequency)}</p>
           <div className="home-month">
             {closed ? t.history.closed : t.history.active}
             {closed && (
@@ -113,7 +113,7 @@ export default async function CycleHistoryPage({
           periodStart={cycle.periodStart}
           totalExpenses={financials.totalExpenses}
           closed={closed}
-          payFrequency={payFrequency}
+          budgetFrequency={budgetFrequency}
         />
       </div>
 
@@ -166,7 +166,7 @@ export default async function CycleHistoryPage({
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
-          emptyMessage={t.history.empty2(resolveVocab(t, payFrequency))}
+          emptyMessage={t.history.empty2(resolveVocab(t, budgetFrequency))}
         />
       </div>
     </div>

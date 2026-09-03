@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getClosedCycles, getUserPayFrequency } from "@/lib/cycles";
+import { getClosedCycles, getUserBudgetFrequency } from "@/lib/cycles";
 import { summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { getRequestLocale } from "@/lib/i18n/locale";
@@ -21,7 +21,7 @@ export default async function HistoryPage() {
   }
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
-  const vocab = resolveVocab(t, await getUserPayFrequency(userId));
+  const vocab = resolveVocab(t, await getUserBudgetFrequency(userId));
 
   const closedCycles = await getClosedCycles(userId);
 

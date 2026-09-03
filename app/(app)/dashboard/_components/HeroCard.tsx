@@ -1,5 +1,5 @@
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
-import { computeCyclePace, type PayFrequency } from "@/lib/quincena-pace";
+import { computeCyclePace, type BudgetFrequency } from "@/lib/quincena-pace";
 import { HeroCardActions } from "./HeroCardActions";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
@@ -18,7 +18,7 @@ export async function HeroCard({
   totalExpenses,
   closed = false,
   pendingBills = 0,
-  payFrequency,
+  budgetFrequency,
 }: {
   amountLeft: number;
   periodStart: Date;
@@ -30,11 +30,11 @@ export async function HeroCard({
   /** Sum of (targetAmount - actual), floored at 0, across this cycle's still-unpaid bills -- e.g. RecurringExpensesSummary.pendingAmount. Subtracted from amountLeft for the headline number (see below); defaults 0 (no adjustment) for callers that don't have it, e.g. History's closed-cycle view, where "safety margin" isn't a meaningful concept for a period that's already over. */
   pendingBills?: number;
   /** The user's own pay-cadence setting -- only matters when periodEnd is null (an open cycle), where it decides whether the nominal end is derived via the ~15-day quincena formula or the ~30-day month one. A closed cycle's real periodEnd makes this irrelevant, but every caller passes it regardless so this component never has to guess. */
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
 }) {
   const dict = getDictionary(await getRequestLocale());
   const t = dict.dashboard;
-  const vocab = resolveVocab(dict, payFrequency);
+  const vocab = resolveVocab(dict, budgetFrequency);
   // The hero number used to be raw amountLeft -- money that still includes
   // whatever's sitting in unpaid bills (e.g. rent not paid yet). That reads
   // as more spendable than it really is, and worst in the first half of
@@ -52,7 +52,7 @@ export async function HeroCard({
         now: new Date(),
         amountLeft: safeToSpend,
         totalExpenses,
-        frequency: payFrequency,
+        frequency: budgetFrequency,
       });
 
   return (

@@ -4,10 +4,10 @@ import { createContext, useContext, useMemo } from "react";
 import type { Dictionary, PeriodVocab } from "@/lib/i18n/dictionary";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import type { LocaleValue } from "@/lib/i18n/locale";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 /**
- * Takes only the resolved locale STRING and payFrequency STRING from the
+ * Takes only the resolved locale STRING and budgetFrequency STRING from the
  * server (see app/layout.tsx) and calls getDictionary() again right here,
  * client-side -- the dictionary/vocab objects themselves are never passed
  * as props across the server/client boundary. They can't be: templated
@@ -21,22 +21,22 @@ import type { PayFrequency } from "@/lib/quincena-pace";
 const LocaleContext = createContext<{
   locale: LocaleValue;
   t: Dictionary;
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
   vocab: PeriodVocab;
 } | null>(null);
 
 export function LocaleProvider({
   locale,
-  payFrequency,
+  budgetFrequency,
   children,
 }: {
   locale: LocaleValue;
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
   children: React.ReactNode;
 }) {
   const t = useMemo(() => getDictionary(locale), [locale]);
-  const vocab = useMemo(() => resolveVocab(t, payFrequency), [t, payFrequency]);
-  return <LocaleContext.Provider value={{ locale, t, payFrequency, vocab }}>{children}</LocaleContext.Provider>;
+  const vocab = useMemo(() => resolveVocab(t, budgetFrequency), [t, budgetFrequency]);
+  return <LocaleContext.Provider value={{ locale, t, budgetFrequency, vocab }}>{children}</LocaleContext.Provider>;
 }
 
 export function useLocale(): LocaleValue {
@@ -51,13 +51,13 @@ export function useT(): Dictionary {
   return ctx.t;
 }
 
-export function usePayFrequency(): PayFrequency {
+export function useBudgetFrequency(): BudgetFrequency {
   const ctx = useContext(LocaleContext);
-  if (!ctx) throw new Error("usePayFrequency must be used within a LocaleProvider");
-  return ctx.payFrequency;
+  if (!ctx) throw new Error("useBudgetFrequency must be used within a LocaleProvider");
+  return ctx.budgetFrequency;
 }
 
-/** The account's own period vocabulary (see lib/i18n/dictionary.ts's PeriodVocab) -- resolved from payFrequency, for client components that need a cadence-aware word ("quincena" vs "mes") without re-deriving it themselves. */
+/** The account's own period vocabulary (see lib/i18n/dictionary.ts's PeriodVocab) -- resolved from budgetFrequency, for client components that need a cadence-aware word ("quincena" vs "mes") without re-deriving it themselves. */
 export function useVocab(): PeriodVocab {
   const ctx = useContext(LocaleContext);
   if (!ctx) throw new Error("useVocab must be used within a LocaleProvider");

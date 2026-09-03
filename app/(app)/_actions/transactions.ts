@@ -7,7 +7,7 @@ import {
   findCycleForDate,
   formatCycleRangeText,
   getOrCreateDraftCycle,
-  getUserPayFrequency,
+  getUserBudgetFrequency,
   linkOrCreateRecurringExpenseForTransaction,
   unlinkTransactionFromRecurringExpense,
 } from "@/lib/cycles";
@@ -81,7 +81,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
   }
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
-  const vocab = resolveVocab(t, await getUserPayFrequency(userId));
+  const vocab = resolveVocab(t, await getUserBudgetFrequency(userId));
 
   const parsed = parseTransactionFields(formData, t);
   if ("error" in parsed) {
@@ -377,7 +377,7 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
     return { error: t.quickAdd.transactionNotFound };
   }
   if (existing.cycle.status === "CLOSED") {
-    return { error: t.quickAdd.quincenaClosedCantEdit(resolveVocab(t, await getUserPayFrequency(userId))) };
+    return { error: t.quickAdd.quincenaClosedCantEdit(resolveVocab(t, await getUserBudgetFrequency(userId))) };
   }
 
   const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), existing.type);
@@ -656,6 +656,6 @@ export const resolveCycleForDateAction = withActionErrorHandling(async function 
   const cycle = await findCycleForDate(userId, date);
   if (!cycle) return null;
 
-  const payFrequency = await getUserPayFrequency(userId);
-  return { cycleId: cycle.id, label: cycle.label, rangeText: formatCycleRangeText(cycle, {}, payFrequency) };
+  const budgetFrequency = await getUserBudgetFrequency(userId);
+  return { cycleId: cycle.id, label: cycle.label, rangeText: formatCycleRangeText(cycle, {}, budgetFrequency) };
 });

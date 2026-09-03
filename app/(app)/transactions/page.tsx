@@ -5,7 +5,7 @@ import { PieChart } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
-import { formatCycleRangeText, getOrCreateDraftCycle, getUserPayFrequency } from "@/lib/cycles";
+import { formatCycleRangeText, getOrCreateDraftCycle, getUserBudgetFrequency } from "@/lib/cycles";
 import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary, TRANSACTION_SELECT } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
@@ -81,7 +81,7 @@ export default async function TransactionsPage({
     incomeCategoryNames,
     allCategories,
     recentCycles,
-    payFrequency,
+    budgetFrequency,
   ] = await Promise.all([
       prisma.cycleTransaction.findMany({
         where,
@@ -114,7 +114,7 @@ export default async function TransactionsPage({
         take: 6,
         select: { id: true, periodStart: true, periodEnd: true },
       }),
-      getUserPayFrequency(userId),
+      getUserBudgetFrequency(userId),
     ]);
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
@@ -132,7 +132,7 @@ export default async function TransactionsPage({
   const cycleOptions = [
     cycle,
     ...recentCycles.filter((c) => c.id !== cycle.id),
-  ].map((c) => ({ id: c.id, label: formatCycleRangeText(c, { includeYear: false }, payFrequency) }));
+  ].map((c) => ({ id: c.id, label: formatCycleRangeText(c, { includeYear: false }, budgetFrequency) }));
 
   // The summary line's "out"/"in" split -- over whatever's currently
   // filtered/listed, not the whole cycle's financials (a search/category/

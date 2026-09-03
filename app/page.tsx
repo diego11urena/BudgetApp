@@ -19,9 +19,9 @@ export default async function Home() {
 
   const dictionary = getDictionary(await getRequestLocale());
   const t = dictionary.landing;
-  // Landing is always pre-auth -- no real payFrequency to reflect yet, so
+  // Landing is always pre-auth -- no real budgetFrequency to reflect yet, so
   // this defaults to quincenal, matching the app's own branding (see
-  // app/layout.tsx's resolvePayFrequency, which defaults the same way).
+  // app/layout.tsx's resolveBudgetFrequency, which defaults the same way).
   const vocab = dictionary.periodVocab.quincenal;
 
   const HOW_IT_WORKS = [

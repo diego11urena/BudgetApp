@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles, getUserPayFrequency } from "@/lib/cycles";
+import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles, getUserBudgetFrequency } from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { generateInsights } from "@/lib/insights";
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
     recurringExpenseCategories,
     goals,
     needsAttentionTransactions,
-    payFrequency,
+    budgetFrequency,
   ] = await Promise.all([
     getCycleFinancials(cycle.id),
     getAdjacentCycles(userId, cycle),
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
     getNeedsAttentionTransactions(cycle.id),
-    getUserPayFrequency(userId),
+    getUserBudgetFrequency(userId),
   ]);
 
   // Exclusive neighbor boundary -> inclusive HTML date-input min, same
@@ -96,15 +96,15 @@ export default async function DashboardPage() {
     now: new Date(),
     amountLeft: financials.amountLeft,
     totalExpenses: financials.totalExpenses,
-    frequency: payFrequency,
+    frequency: budgetFrequency,
   });
 
   const insights = generateInsights(financials, previousClosedFinancials, {
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
     goals,
-    payFrequency,
-    vocab: resolveVocab(t, payFrequency),
+    budgetFrequency,
+    vocab: resolveVocab(t, budgetFrequency),
     t: t.insights,
   });
 
@@ -124,7 +124,7 @@ export default async function DashboardPage() {
         cycleId={cycle.id}
         previousBoundDate={previousBoundDate}
         dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd)}
-        payFrequency={payFrequency}
+        budgetFrequency={budgetFrequency}
       />
 
       {/* Action-required banners (missing category, missing description)
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
           button, never on its own (see its own doc comment for why an
           always-present empty one broke e2e's generic .dashboard-section
           waits elsewhere on this page). */}
-      <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} payFrequency={payFrequency} />
+      <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} budgetFrequency={budgetFrequency} />
 
       {/* A brand-new account otherwise has three half-empty cards below
           (no top category, no recent activity, no bills/goals paid-count)
@@ -176,7 +176,7 @@ export default async function DashboardPage() {
           periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
           pendingBills={recurringExpensesSummary.pendingAmount}
-          payFrequency={payFrequency}
+          budgetFrequency={budgetFrequency}
         />
       </div>
 
@@ -188,7 +188,7 @@ export default async function DashboardPage() {
           saved={financials.totalSavings}
           fundedGoalsCount={fundedGoalsCount}
           recurringExpenses={recurringExpensesSummary}
-          payFrequency={payFrequency}
+          budgetFrequency={budgetFrequency}
         />
       </div>
 

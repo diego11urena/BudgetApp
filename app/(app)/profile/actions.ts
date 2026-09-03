@@ -11,7 +11,7 @@ import { changePasswordSchema } from "@/lib/validations/onboarding";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { THEME_COOKIE, THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
 import { LOCALE_COOKIE, isLocaleValue, getRequestLocale } from "@/lib/i18n/locale";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
@@ -140,17 +140,17 @@ export const setLocaleAction = withActionErrorHandling(async function setLocaleA
   });
 });
 
-const PAY_FREQUENCY_VALUES: PayFrequency[] = ["QUINCENAL", "MONTHLY"];
+const BUDGET_FREQUENCY_VALUES: BudgetFrequency[] = ["QUINCENAL", "MONTHLY"];
 
 /**
- * No cookie, unlike setThemeAction/setLocaleAction above -- payFrequency
+ * No cookie, unlike setThemeAction/setLocaleAction above -- budgetFrequency
  * only ever matters once a request is already authenticated (pace/carry-
  * forward math, the copy sweep's period vocab), never on an anonymous
  * pre-auth request the way theme/locale are read on every page load, so a
- * straight per-request DB read (see lib/cycles.ts's getUserPayFrequency) is
+ * straight per-request DB read (see lib/cycles.ts's getUserBudgetFrequency) is
  * simpler and sufficient -- no read-side cache needed.
  */
-export const setPayFrequencyAction = withActionErrorHandling(async function setPayFrequencyAction(
+export const setBudgetFrequencyAction = withActionErrorHandling(async function setBudgetFrequencyAction(
   formData: FormData,
 ): Promise<ActionResult | undefined> {
   const session = await auth();
@@ -158,14 +158,14 @@ export const setPayFrequencyAction = withActionErrorHandling(async function setP
     redirect("/login");
   }
 
-  const raw = formData.get("payFrequency");
-  if (typeof raw !== "string" || !PAY_FREQUENCY_VALUES.includes(raw as PayFrequency)) {
+  const raw = formData.get("budgetFrequency");
+  if (typeof raw !== "string" || !BUDGET_FREQUENCY_VALUES.includes(raw as BudgetFrequency)) {
     return { error: "Invalid pay frequency" };
   }
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { payFrequency: raw as PayFrequency },
+    data: { budgetFrequency: raw as BudgetFrequency },
   });
 });
 

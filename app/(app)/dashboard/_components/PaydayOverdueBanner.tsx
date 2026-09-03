@@ -2,7 +2,7 @@ import { formatFriendlyDate } from "@/lib/format";
 import { HeroCardActions } from "./HeroCardActions";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 /**
  * Auto-detects a stale cycle by expected date (fix-list batch 11.5,
@@ -28,15 +28,15 @@ import type { PayFrequency } from "@/lib/quincena-pace";
 export async function PaydayOverdueBanner({
   cycleEndDate,
   isOverdue,
-  payFrequency,
+  budgetFrequency,
 }: {
   cycleEndDate: Date;
   isOverdue: boolean;
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
 }) {
   const dict = getDictionary(await getRequestLocale());
   const t = dict.dashboard;
-  const vocab = resolveVocab(dict, payFrequency);
+  const vocab = resolveVocab(dict, budgetFrequency);
   return (
     <HeroCardActions
       variant="banner"

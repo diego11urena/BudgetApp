@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { CompleteRedirect } from "./_components/CompleteRedirect";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
-import { getUserPayFrequency } from "@/lib/cycles";
+import { getUserBudgetFrequency } from "@/lib/cycles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -25,7 +25,7 @@ export default async function OnboardingCompletePage() {
     redirect("/login");
   }
   const t = getDictionary(await getRequestLocale());
-  const vocab = resolveVocab(t, await getUserPayFrequency(session.user.id));
+  const vocab = resolveVocab(t, await getUserBudgetFrequency(session.user.id));
 
   return (
     <div className="onboarding-complete">

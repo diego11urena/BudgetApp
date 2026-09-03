@@ -12,14 +12,14 @@ import { addDays, panamaDateParts, panamaMidnight, startOfDay } from "./pay-date
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Mirrors the Prisma PayFrequency enum's own string values exactly (no
+// Mirrors the Prisma BudgetFrequency enum's own string values exactly (no
 // lowercase mapping the way lib/theme.ts's ThemePreferenceValue does --
 // that one's lowercase for cookie-friendliness; this type never touches
 // a cookie, so there's no reason to diverge from the DB's own casing).
 // Defined locally rather than imported from the generated Prisma client
 // so this file -- pure calendar arithmetic -- stays decoupled from
 // Prisma, the same discipline lib/pay-date.ts documents at its own top.
-export type PayFrequency = "QUINCENAL" | "MONTHLY";
+export type BudgetFrequency = "QUINCENAL" | "MONTHLY";
 
 export function calendarDaysBetween(from: Date, to: Date): number {
   return Math.round((startOfDay(to).getTime() - startOfDay(from).getTime()) / MS_PER_DAY);
@@ -89,19 +89,19 @@ export function monthLengthDays(periodStart: Date): number {
 /**
  * The one place every caller should go through instead of calling
  * quincenaEnd/monthEnd directly — dispatches on the account's own
- * payFrequency so cycle-boundary/pace/carry-forward logic never has to
+ * budgetFrequency so cycle-boundary/pace/carry-forward logic never has to
  * branch on cadence itself, just call these.
  */
-export function cycleEnd(periodStart: Date, frequency: PayFrequency): Date {
+export function cycleEnd(periodStart: Date, frequency: BudgetFrequency): Date {
   return frequency === "MONTHLY" ? monthEnd(periodStart) : quincenaEnd(periodStart);
 }
 
-export function cycleLengthDays(periodStart: Date, frequency: PayFrequency): number {
+export function cycleLengthDays(periodStart: Date, frequency: BudgetFrequency): number {
   return frequency === "MONTHLY" ? monthLengthDays(periodStart) : quincenaLengthDays(periodStart);
 }
 
 /** The day after cycleEnd — used to walk forward through consecutive real cycles (see lib/goal-projection.ts). Generalizes nextQuincenaStart to either cadence. */
-export function nextCycleStart(periodStart: Date, frequency: PayFrequency): Date {
+export function nextCycleStart(periodStart: Date, frequency: BudgetFrequency): Date {
   return addDays(cycleEnd(periodStart, frequency), 1);
 }
 
@@ -124,7 +124,7 @@ export function nextCycleStart(periodStart: Date, frequency: PayFrequency): Date
  * falls inside it, so a MONTHLY-frequency bill now correctly carries into
  * every cycle -- the only sane behavior once a cycle IS the month.
  */
-export function dueDayFallsWithinCycle(dueDay: number, periodStart: Date, frequency: PayFrequency): boolean {
+export function dueDayFallsWithinCycle(dueDay: number, periodStart: Date, frequency: BudgetFrequency): boolean {
   const rangeStart = startOfDay(periodStart).getTime();
   const rangeEnd = startOfDay(cycleEnd(periodStart, frequency)).getTime();
 
@@ -184,7 +184,7 @@ export function computeCyclePace(input: {
   now: Date;
   amountLeft: number;
   totalExpenses: number;
-  frequency: PayFrequency;
+  frequency: BudgetFrequency;
 }): QuincenaPace {
   const { periodStart, periodEnd, now, amountLeft, totalExpenses, frequency } = input;
 

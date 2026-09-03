@@ -4,25 +4,25 @@ import { useState, useActionState } from "react";
 import { saveIncomeAction, type IncomeFormState } from "./actions";
 import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
 import { useT } from "@/app/_components/LocaleProvider";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 const initialState: IncomeFormState = undefined;
 
 export interface IncomeFormInitial {
   netPayAmount?: string;
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
 }
 
-const PAY_FREQUENCY_VALUES: PayFrequency[] = ["QUINCENAL", "MONTHLY"];
+const BUDGET_FREQUENCY_VALUES: BudgetFrequency[] = ["QUINCENAL", "MONTHLY"];
 
 export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveIncomeAction, initialState);
-  const [payFrequency, setPayFrequency] = useState<PayFrequency>(initial?.payFrequency ?? "QUINCENAL");
+  const [budgetFrequency, setBudgetFrequency] = useState<BudgetFrequency>(initial?.budgetFrequency ?? "QUINCENAL");
   // Reflects the picker's own live (not-yet-submitted) selection below, not
   // the account's already-stored setting -- so the label/hint text updates
   // the instant someone taps "Monthly," before they've saved anything.
-  const vocab = t.periodVocab[payFrequency === "MONTHLY" ? "monthly" : "quincenal"];
+  const vocab = t.periodVocab[budgetFrequency === "MONTHLY" ? "monthly" : "quincenal"];
 
   return (
     <form action={formAction}>
@@ -42,17 +42,17 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
 
       <div className="field">
         <label>{t.onboarding.income.cadenceLabel}</label>
-        <input type="hidden" name="payFrequency" value={payFrequency} />
+        <input type="hidden" name="budgetFrequency" value={budgetFrequency} />
         <div className="theme-picker" role="group" aria-label={t.onboarding.income.cadenceLabel}>
-          {PAY_FREQUENCY_VALUES.map((value) => (
+          {BUDGET_FREQUENCY_VALUES.map((value) => (
             <button
               key={value}
               type="button"
-              className={`theme-picker-option${payFrequency === value ? " is-active" : ""}`}
-              aria-pressed={payFrequency === value}
-              onClick={() => setPayFrequency(value)}
+              className={`theme-picker-option${budgetFrequency === value ? " is-active" : ""}`}
+              aria-pressed={budgetFrequency === value}
+              onClick={() => setBudgetFrequency(value)}
             >
-              {value === "QUINCENAL" ? t.common.payFrequency.quincenal : t.common.payFrequency.monthly}
+              {value === "QUINCENAL" ? t.common.budgetFrequency.quincenal : t.common.budgetFrequency.monthly}
             </button>
           ))}
         </div>

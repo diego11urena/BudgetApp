@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserPayFrequency, recomputeCategoryBudgetGoal } from "@/lib/cycles";
+import { getUserBudgetFrequency, recomputeCategoryBudgetGoal } from "@/lib/cycles";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
@@ -394,7 +394,7 @@ export const deleteCategoryAction = withActionErrorHandling(async function delet
       where: { recurringExpense: { categoryId: category.id }, cycle: { status: "CLOSED" } },
     });
     if (closedCycleHistoryCount > 0) {
-      return { error: t.profile.categories.deleteConfirm.hasRecurringHistory(resolveVocab(t, await getUserPayFrequency(userId))) };
+      return { error: t.profile.categories.deleteConfirm.hasRecurringHistory(resolveVocab(t, await getUserBudgetFrequency(userId))) };
     }
   }
 

@@ -1,4 +1,4 @@
-import { nextCycleStart, type PayFrequency } from "./quincena-pace";
+import { nextCycleStart, type BudgetFrequency } from "./quincena-pace";
 import { nowInPanama } from "./pay-date";
 
 export interface GoalProjection {
@@ -27,10 +27,10 @@ export function computeGoalProjection(input: {
   // Defaults to QUINCENAL (today's only cadence) so every not-yet-updated
   // caller keeps its current behavior -- callers without the user's real
   // setting in scope yet (e.g. onboarding's own cadence-picker step, Plan's
-  // GoalRow before Phase 4 wires payFrequency through LocaleProvider) fall
+  // GoalRow before Phase 4 wires budgetFrequency through LocaleProvider) fall
   // back to this rather than needing an extra prop-drilled value they can't
   // supply correctly yet.
-  frequency?: PayFrequency;
+  frequency?: BudgetFrequency;
 }): GoalProjection {
   const { savedSoFar, lifetimeTargetAmount, currentCycleRecurringAmount, frequency = "QUINCENAL" } = input;
   const now = input.now ?? nowInPanama();

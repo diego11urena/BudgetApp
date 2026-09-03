@@ -2,7 +2,7 @@ import { formatCurrency } from "@/lib/format";
 import type { RecurringExpensesSummary } from "@/lib/recurring-expenses";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
-import type { PayFrequency } from "@/lib/quincena-pace";
+import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 /**
  * Home's 2x2 stat grid -- replaces BudgetBreakdownCard's stacked
@@ -18,7 +18,7 @@ export async function StatGrid({
   saved,
   fundedGoalsCount,
   recurringExpenses,
-  payFrequency,
+  budgetFrequency,
 }: {
   baseIncome: number;
   extraIncome: number;
@@ -26,11 +26,11 @@ export async function StatGrid({
   saved: number;
   fundedGoalsCount: number;
   recurringExpenses: RecurringExpensesSummary;
-  payFrequency: PayFrequency;
+  budgetFrequency: BudgetFrequency;
 }) {
   const dict = getDictionary(await getRequestLocale());
   const t = dict.dashboard;
-  const vocab = resolveVocab(dict, payFrequency);
+  const vocab = resolveVocab(dict, budgetFrequency);
   const totalIncome = baseIncome + extraIncome;
   const spentPercent = totalIncome > 0 ? Math.round((spent / totalIncome) * 100) : 0;
   const unpaidCount = recurringExpenses.totalCount - recurringExpenses.paidCount;

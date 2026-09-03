@@ -45,7 +45,7 @@ export const es: Dictionary = {
     optional: "Opcional",
     confirm: "Confirmar",
     close: "Cerrar",
-    payFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
+    budgetFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
     error: {
       appBody: "Tuvimos un problema al cargar esta página. Tus datos están seguros — intenta de nuevo.",
       rootBody: "Tuvimos un problema. Intenta de nuevo.",
@@ -575,7 +575,7 @@ export const es: Dictionary = {
     theme: "Tema",
     themeLabels: { system: "Sistema", light: "Claro", dark: "Oscuro" },
     language: "Idioma",
-    payFrequency: "Frecuencia de pago",
+    budgetFrequency: "Frecuencia de pago",
     changePassword: {
       row: "Cambiar contraseña",
       title: "Cambiar contraseña",
