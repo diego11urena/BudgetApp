@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { signOut } from "@/lib/auth";
 import { auth } from "@/lib/auth";
@@ -149,7 +150,18 @@ const BUDGET_FREQUENCY_VALUES: BudgetFrequency[] = ["QUINCENAL", "MONTHLY"];
  * forward math, the copy sweep's period vocab), never on an anonymous
  * pre-auth request the way theme/locale are read on every page load, so a
  * straight per-request DB read (see lib/cycles.ts's getUserBudgetFrequency) is
- * simpler and sufficient -- no read-side cache needed.
+ * simpler and sufficient -- no read-side cache needed at the page level.
+ *
+ * The root layout's own read is a different story: it feeds
+ * LocaleProvider's client context (useBudgetFrequency/useVocab), and
+ * without an explicit layout revalidation here, Next.js's client Router
+ * Cache can keep serving the already-rendered root layout (with the OLD
+ * budgetFrequency baked into that context) across subsequent
+ * navigations, even though every individual PAGE does its own fresh DB
+ * read and renders correctly. theme/locale don't need this because
+ * mutating their cookie already triggers Next's own automatic
+ * invalidation -- budgetFrequency deliberately has no cookie, so it needs
+ * this explicit revalidatePath("/", "layout") instead.
  */
 export const setBudgetFrequencyAction = withActionErrorHandling(async function setBudgetFrequencyAction(
   formData: FormData,
@@ -168,6 +180,8 @@ export const setBudgetFrequencyAction = withActionErrorHandling(async function s
     where: { id: session.user.id },
     data: { budgetFrequency: raw as BudgetFrequency },
   });
+
+  revalidatePath("/", "layout");
 });
 
 const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["MONTHLY", "SEMIMONTHLY", "BIWEEKLY"];

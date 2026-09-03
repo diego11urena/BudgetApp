@@ -206,6 +206,7 @@ export default async function DashboardPage() {
           categories={financials.topCategories}
           title={t.dashboard.whereItsGoing}
           badge={t.dashboard.top6Badge}
+          budgetFrequency={budgetFrequency}
         />
       </div>
 

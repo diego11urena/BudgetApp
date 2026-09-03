@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getActiveIncomeSource, getOrCreateDraftCycle, upsertCycleIncomeEntry } from "@/lib/cycles";
@@ -73,6 +74,21 @@ export async function saveIncomeAction(
       data: { budgetFrequency, payFrequency },
     });
   });
+
+  // budgetFrequency has no cookie (see setBudgetFrequencyAction's own doc
+  // comment) -- it's read into the ROOT layout's LocaleProvider purely
+  // from a per-request DB read. Without an explicit layout revalidation
+  // here, Next.js's client Router Cache can keep serving that already-
+  // rendered root layout (with the OLD budgetFrequency baked into
+  // LocaleProvider's context) across the rest of onboarding's redirects,
+  // even though every individual PAGE the user lands on (which each do
+  // their own fresh DB read) renders correctly -- exactly the gap that
+  // let HeroCardActions' MONTHLY branch silently never fire client-side
+  // despite the dashboard page itself showing the right cadence
+  // everywhere else. revalidatePath("/", "layout") forces the next
+  // navigation to re-fetch the root layout instead of reusing the stale
+  // cached one.
+  revalidatePath("/", "layout");
 
   redirect("/onboarding/expenses");
 }
