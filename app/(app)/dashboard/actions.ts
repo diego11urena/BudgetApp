@@ -6,12 +6,14 @@ import { prisma } from "@/lib/prisma";
 import {
   assessPayDateChange,
   closeCycleAndStartNext,
+  deleteCycleIncomeEntry,
   getActiveIncomeSource,
   getOrCreateDraftCycle,
   getRecentCycles,
   getUserBudgetFrequency,
   logPaycheckToOpenCycle,
   parsePayDate,
+  updateCycleIncomeEntry,
   upsertCycleIncomeEntry,
   type PayDateChangeResult,
 } from "@/lib/cycles";
@@ -393,4 +395,77 @@ export const previewPayDateChangeAction = withActionErrorHandling(async function
   }
 
   return assessPayDateChange(userId, cycle, newDate, t.dashboard.editPayInfo);
+});
+
+export type UpdateCycleIncomeEntryResult = ActionResult | undefined;
+
+/**
+ * MONTHLY-budget only: corrects one already-logged paycheck's amount
+ * and/or date in place (MonthlyIncomeEntriesSheet's per-row edit) --
+ * unlike editCyclePayInfoAction, this never reassigns cycle membership or
+ * moves any transaction, since a CycleIncomeEntry's receivedAt is display
+ * metadata only (see updateCycleIncomeEntry's own doc comment).
+ */
+export const updateCycleIncomeEntryAction = withActionErrorHandling(async function updateCycleIncomeEntryAction(
+  formData: FormData,
+): Promise<UpdateCycleIncomeEntryResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return { error: t.common.invalidInput };
+  }
+
+  const parsedAmount = decimalString.safeParse(formData.get("netPayAmount"));
+  if (!parsedAmount.success) {
+    return { error: translateValidationMessage(parsedAmount.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t) };
+  }
+
+  const payDateStr = formData.get("payDate");
+  if (typeof payDateStr !== "string" || !payDateStr) {
+    return { error: t.dashboard.editPayInfo.dateRequired };
+  }
+  const payDate = parseDateOnly(payDateStr);
+  if (!payDate) {
+    return { error: t.dashboard.editPayInfo.invalidDate };
+  }
+
+  // entryId alone doesn't prove ownership -- scope the lookup through the
+  // owning cycle's userId before writing anything.
+  const entry = await prisma.cycleIncomeEntry.findFirst({ where: { id: entryId, cycle: { userId } } });
+  if (!entry) {
+    return { error: t.common.invalidInput };
+  }
+
+  await updateCycleIncomeEntry(prisma, entryId, parsedAmount.data, payDate);
+
+  revalidateAppPages();
+});
+
+export type DeleteCycleIncomeEntryResult = ActionResult | undefined;
+
+/** MONTHLY-budget only: removes one logged paycheck entirely (MonthlyIncomeEntriesSheet's per-row delete) -- e.g. a duplicate log or a mistaken entry. */
+export const deleteCycleIncomeEntryAction = withActionErrorHandling(async function deleteCycleIncomeEntryAction(
+  entryId: string,
+): Promise<DeleteCycleIncomeEntryResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
+
+  const entry = await prisma.cycleIncomeEntry.findFirst({ where: { id: entryId, cycle: { userId } } });
+  if (!entry) {
+    return { error: t.common.invalidInput };
+  }
+
+  await deleteCycleIncomeEntry(prisma, entryId);
+
+  revalidateAppPages();
 });

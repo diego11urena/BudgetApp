@@ -4,7 +4,13 @@ import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getAdjacentCycles, formatCycleRangeText, getOrCreateDraftCycle, getUserBudgetFrequency } from "@/lib/cycles";
+import {
+  getAdjacentCycles,
+  formatCycleRangeText,
+  getCycleIncomeEntries,
+  getOrCreateDraftCycle,
+  getUserBudgetFrequency,
+} from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
 import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
@@ -14,6 +20,7 @@ import { HeroCard } from "../../dashboard/_components/HeroCard";
 import { BudgetBreakdownCard } from "../../dashboard/_components/BudgetBreakdownCard";
 import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesChart";
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
+import { MonthlyIncomeEntriesButton } from "../../dashboard/_components/MonthlyIncomeEntriesButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
 import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
 import { getRequestLocale } from "@/lib/i18n/locale";
@@ -82,6 +89,19 @@ export default async function CycleHistoryPage({
   const previousBoundDate = previous ? formatCycleLabel(addDays(previous.periodStart, 1)) : null;
   const nextBoundDate = next ? formatCycleLabel(addDays(next.periodStart, -1)) : null;
 
+  // Same MONTHLY/QUINCENAL "Edit" pill split as Header.tsx -- a closed
+  // MONTHLY cycle can have logged more than one paycheck, so its own
+  // per-entry list (not the single amount/date form) is what "Edit"
+  // should open here too.
+  const monthlyEntries =
+    closed && budgetFrequency === "MONTHLY"
+      ? (await getCycleIncomeEntries(cycle.id)).map((entry) => ({
+          id: entry.id,
+          netAmount: entry.netAmount.toNumber(),
+          receivedAt: formatCycleLabel(entry.receivedAt),
+        }))
+      : null;
+
   return (
     <div className="home-page">
       <Link href="/history" className="back-link">
@@ -93,7 +113,8 @@ export default async function CycleHistoryPage({
           <p className="home-greeting">{formatCycleRangeText(cycle, {}, budgetFrequency)}</p>
           <div className="home-month">
             {closed ? t.history.closed : t.history.active}
-            {closed && (
+            {closed && monthlyEntries && <MonthlyIncomeEntriesButton entries={monthlyEntries} />}
+            {closed && !monthlyEntries && (
               <EditPayInfoButton
                 currentAmount={financials.baseIncome}
                 currentPayDate={cycleStartDate}

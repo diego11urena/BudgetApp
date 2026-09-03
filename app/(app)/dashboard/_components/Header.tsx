@@ -1,5 +1,7 @@
-import { hourInPanama } from "@/lib/pay-date";
+import { formatCycleLabel, hourInPanama } from "@/lib/pay-date";
 import { EditPayInfoButton } from "./EditPayInfoButton";
+import { MonthlyIncomeEntriesButton } from "./MonthlyIncomeEntriesButton";
+import { getCycleIncomeEntries } from "@/lib/cycles";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -39,6 +41,19 @@ export async function Header({
   const greeting = getGreeting(hourInPanama(), t);
   const firstName = name?.trim().split(/\s+/)[0];
 
+  // MONTHLY's "Edit" pill opens a per-entry list instead of the single
+  // amount/date form -- a cycle can hold more than one logged paycheck
+  // (see lib/cycles.ts's logPaycheckToOpenCycle). QUINCENAL never fetches
+  // this at all (still exactly one entry, no list needed).
+  const monthlyEntries =
+    budgetFrequency === "MONTHLY"
+      ? (await getCycleIncomeEntries(cycleId)).map((entry) => ({
+          id: entry.id,
+          netAmount: entry.netAmount.toNumber(),
+          receivedAt: formatCycleLabel(entry.receivedAt),
+        }))
+      : null;
+
   return (
     <div className="home-header">
       <div>
@@ -50,13 +65,17 @@ export async function Header({
         <p className="home-greeting">{firstName ? t.greeting(greeting, firstName) : greeting}</p>
         <p className="home-month">{t.dateRange(vocab, dateRangeLabel)}</p>
       </div>
-      <EditPayInfoButton
-        currentAmount={currentPayAmount}
-        currentPayDate={currentPayDate}
-        cycleId={cycleId}
-        previousBoundDate={previousBoundDate}
-        className="home-edit-pill"
-      />
+      {monthlyEntries ? (
+        <MonthlyIncomeEntriesButton entries={monthlyEntries} className="home-edit-pill" />
+      ) : (
+        <EditPayInfoButton
+          currentAmount={currentPayAmount}
+          currentPayDate={currentPayDate}
+          cycleId={cycleId}
+          previousBoundDate={previousBoundDate}
+          className="home-edit-pill"
+        />
+      )}
     </div>
   );
 }

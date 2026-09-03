@@ -402,6 +402,11 @@ export function deleteCycleIncomeEntry(db: Db, entryId: string) {
   return db.cycleIncomeEntry.delete({ where: { id: entryId } });
 }
 
+/** A cycle's individual logged paychecks, oldest first -- for MonthlyIncomeEntriesSheet's per-entry list (QUINCENAL's own single-entry UI never needs this; it just reads CycleFinancials.baseIncome). */
+export function getCycleIncomeEntries(cycleId: string) {
+  return prisma.cycleIncomeEntry.findMany({ where: { cycleId }, orderBy: { receivedAt: "asc" } });
+}
+
 /** Uncached read of the user's current open (DRAFT or ACTIVE) cycle -- see getOrCreateDraftCycle's own cache() trap warning for when this, not that, is the right call. */
 export function findOpenCycle(userId: string) {
   return prisma.budgetCycle.findFirst({

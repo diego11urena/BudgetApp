@@ -298,6 +298,16 @@ export const es: Dictionary = {
       confirm: "Registrar pago",
       cancel: "Cancelar",
     },
+    monthlyIncomeEntries: {
+      button: "Editar",
+      title: "Pagos de este mes",
+      empty: "Aún no has registrado pagos este mes.",
+      edit: "Editar",
+      delete: "Eliminar",
+      save: "Guardar",
+      saving: "Guardando...",
+      close: "Cerrar",
+    },
     cycleClosed: {
       aria: (vocab) => `${capitalize(vocab.noun)} ${vocab.noun === "mes" ? "cerrado" : "cerrada"}`,
       title: (vocab) => `${capitalize(vocab.noun)} ${vocab.noun === "mes" ? "cerrado" : "cerrada"}`,

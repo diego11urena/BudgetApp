@@ -293,6 +293,16 @@ export const en: Dictionary = {
       confirm: "Log paycheck",
       cancel: "Cancel",
     },
+    monthlyIncomeEntries: {
+      button: "Edit",
+      title: "This month's paychecks",
+      empty: "No paychecks logged yet this month.",
+      edit: "Edit",
+      delete: "Delete",
+      save: "Save",
+      saving: "Saving...",
+      close: "Close",
+    },
     cycleClosed: {
       aria: (vocab) => `${capitalize(vocab.noun)} closed`,
       title: (vocab) => `${capitalize(vocab.noun)} closed`,

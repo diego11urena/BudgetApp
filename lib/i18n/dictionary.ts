@@ -301,6 +301,17 @@ export type Dictionary = {
       confirm: string;
       cancel: string;
     };
+    /** MONTHLY-budget only: the "Edit" pill's alternate target -- a cycle's logged-paychecks list (MonthlyIncomeEntriesSheet), view/edit/delete per entry. QUINCENAL keeps EditPayInfoButton/Sheet unchanged (exactly one entry, no list needed). */
+    monthlyIncomeEntries: {
+      button: string;
+      title: string;
+      empty: string;
+      edit: string;
+      delete: string;
+      save: string;
+      saving: string;
+      close: string;
+    };
     cycleClosed: {
       aria: (vocab: PeriodVocab) => string;
       title: (vocab: PeriodVocab) => string;
