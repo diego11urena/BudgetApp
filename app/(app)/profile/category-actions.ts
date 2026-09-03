@@ -4,14 +4,14 @@ import { redirect } from "next/navigation";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { recomputeCategoryBudgetGoal } from "@/lib/cycles";
+import { getUserPayFrequency, recomputeCategoryBudgetGoal } from "@/lib/cycles";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { categoryNameSchema } from "@/lib/validations/shared";
 import { getIconByName } from "@/lib/category-icon-library";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 const MERGE_CATEGORY_RATE_LIMIT = { max: 10, windowMs: 60_000 };
@@ -394,7 +394,7 @@ export const deleteCategoryAction = withActionErrorHandling(async function delet
       where: { recurringExpense: { categoryId: category.id }, cycle: { status: "CLOSED" } },
     });
     if (closedCycleHistoryCount > 0) {
-      return { error: t.profile.categories.deleteConfirm.hasRecurringHistory };
+      return { error: t.profile.categories.deleteConfirm.hasRecurringHistory(resolveVocab(t, await getUserPayFrequency(userId))) };
     }
   }
 

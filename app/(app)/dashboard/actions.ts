@@ -9,6 +9,7 @@ import {
   getActiveIncomeSource,
   getOrCreateDraftCycle,
   getRecentCycles,
+  getUserPayFrequency,
   parsePayDate,
   upsertCycleIncomeEntry,
   type PayDateChangeResult,
@@ -24,7 +25,7 @@ import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 const JUST_GOT_PAID_RATE_LIMIT = { max: 10, windowMs: 60_000 };
@@ -205,7 +206,7 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
       ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
       : await getOrCreateDraftCycle(userId);
   if (!cycle) {
-    return { error: t.dashboard.quincenaNotFound };
+    return { error: t.dashboard.quincenaNotFound(resolveVocab(t, await getUserPayFrequency(userId))) };
   }
 
   let assessment: PayDateChangeResult | null = null;
@@ -279,7 +280,7 @@ export const previewPayDateChangeAction = withActionErrorHandling(async function
 
   const cycle = await prisma.budgetCycle.findFirst({ where: { id: cycleId, userId } });
   if (!cycle) {
-    return { ok: false, error: t.dashboard.quincenaNotFound };
+    return { ok: false, error: t.dashboard.quincenaNotFound(resolveVocab(t, await getUserPayFrequency(userId))) };
   }
   const newDate = parseDateOnly(newPayDateStr);
   if (!newDate) {

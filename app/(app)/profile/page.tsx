@@ -17,7 +17,7 @@ import type { ThemePreferenceValue } from "@/lib/theme";
 import type { LocaleValue } from "@/lib/i18n/locale";
 import type { PayFrequency } from "@/lib/quincena-pace";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -54,6 +54,7 @@ export default async function ProfilePage({
   const initialTheme = (user?.theme.toLowerCase() ?? "system") as ThemePreferenceValue;
   const initialLocale = (user?.locale.toLowerCase() ?? locale) as LocaleValue;
   const initialPayFrequency = (user?.payFrequency ?? "QUINCENAL") as PayFrequency;
+  const vocab = resolveVocab(t, initialPayFrequency);
 
   return (
     <div className="home-page">
@@ -86,7 +87,7 @@ export default async function ProfilePage({
       <p className="profile-section-label">{t.profile.yourData}</p>
       <div className="dashboard-section">
         <Link href="/history" className="line-item line-item--link">
-          <span>{t.profile.pastQuincenas}</span>
+          <span>{t.profile.pastQuincenas(vocab)}</span>
           <span className="profile-row-trailing">
             {pastCycleCount > 0 && <span className="status-badge">{pastCycleCount}</span>}
             <ChevronRight size={18} aria-hidden="true" />

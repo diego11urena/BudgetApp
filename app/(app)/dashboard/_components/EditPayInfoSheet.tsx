@@ -8,7 +8,7 @@ import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { addDays, FIRST_CYCLE_BACKDATE_FLOOR_DAYS, formatCycleLabel, nowInPanama } from "@/lib/pay-date";
 import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validations/shared";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 /**
@@ -40,6 +40,7 @@ export function EditPayInfoSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const t = useT();
+  const vocab = useVocab();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [amount, setAmount] = useState(initialAmount.toFixed(2));
@@ -180,7 +181,7 @@ export function EditPayInfoSheet({
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {closed ? t.dashboard.editPayInfo.hintNoMove : t.dashboard.editPayInfo.hintMayMove}
+        {closed ? t.dashboard.editPayInfo.hintNoMove(vocab) : t.dashboard.editPayInfo.hintMayMove(vocab)}
       </p>
 
       <form onSubmit={handleSubmit} noValidate>
@@ -220,6 +221,7 @@ export function EditPayInfoSheet({
         {pendingMove && pendingMove.changed && (
           <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
             {t.dashboard.editPayInfo.moveWarning(
+              vocab,
               pendingMove.movingCount,
               pendingMove.direction === "in" ? t.dashboard.editPayInfo.into : t.dashboard.editPayInfo.outOf,
               `${pendingMove.direction === "in" ? t.dashboard.editPayInfo.from : t.dashboard.editPayInfo.to} ${pendingMove.otherCycleLabel}`,

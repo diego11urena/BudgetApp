@@ -18,7 +18,7 @@ import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxTyp
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
 import { CurrencyInput } from "./CurrencyInput";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 export interface EditingTransaction {
   id: string;
@@ -71,6 +71,7 @@ export function QuickAddSheet({
 }) {
   const { showToast } = useToast();
   const t = useT();
+  const vocab = useVocab();
   const isEditing = editingTransaction !== null;
   // The cycle this transaction is currently expected to belong to — compared
   // against where a candidate date actually resolves to, to decide whether
@@ -243,7 +244,7 @@ export function QuickAddSheet({
     // specific past quincena, both allow any past date (see
     // updateTransactionAction / addTransactionAction's cycleId-hint path).
     if (!isEditing && !targetCycleId && occurredAt < cycleStartDate) {
-      return { field: "date", message: t.quickAdd.dateWithinQuincena };
+      return { field: "date", message: t.quickAdd.dateWithinQuincena(vocab) };
     }
     return null;
   }
@@ -634,7 +635,7 @@ export function QuickAddSheet({
           {pendingMove ? (
             <div style={{ textAlign: "center" }}>
               <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
-                {t.quickAdd.moveWarning(pendingMove.rangeText)}
+                {t.quickAdd.moveWarning(vocab, pendingMove.rangeText)}
               </p>
               <button
                 type="button"

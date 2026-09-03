@@ -3,11 +3,11 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getClosedCycles } from "@/lib/cycles";
+import { getClosedCycles, getUserPayFrequency } from "@/lib/cycles";
 import { summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -21,6 +21,7 @@ export default async function HistoryPage() {
   }
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
+  const vocab = resolveVocab(t, await getUserPayFrequency(userId));
 
   const closedCycles = await getClosedCycles(userId);
 
@@ -30,7 +31,7 @@ export default async function HistoryPage() {
 
       <div className="dashboard-section">
         {closedCycles.length === 0 ? (
-          <p className="field-hint">{t.history.empty}</p>
+          <p className="field-hint">{t.history.empty(vocab)}</p>
         ) : (
           <div className="preview-box">
             {closedCycles.map((c) => {

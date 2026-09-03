@@ -82,21 +82,21 @@ export type Dictionary = {
     navPrimary: string;
     logIn: string;
     getStarted: string;
-    eyebrow: string;
+    eyebrow: (vocab: PeriodVocab) => string;
     h1: string;
     subDesktop: string;
-    subMobile: string;
+    subMobile: (vocab: PeriodVocab) => string;
     trustLineDesktop: string;
     trustLineMobile: string;
     alreadyHaveAccount: string;
     checklistSetup: string;
     checklistBills: string;
     checklistGmail: string;
-    deviceLeftThisQuincena: string;
+    deviceLeftThisQuincena: (vocab: PeriodVocab) => string;
     deviceGroceries: string;
     deviceTransport: string;
     deviceSavingsGoal: string;
-    deviceNextQuincena: string;
+    deviceNextQuincena: (vocab: PeriodVocab) => string;
     feature1Title: string;
     feature1Body: string;
     feature2Title: string;
@@ -104,7 +104,7 @@ export type Dictionary = {
     feature3Title: string;
     feature3Body: string;
     howItWorks: string;
-    ctaTitle: string;
+    ctaTitle: (vocab: PeriodVocab) => string;
     ctaBody: string;
     footerCopyright: string;
     footerPrivacy: string;
@@ -116,7 +116,7 @@ export type Dictionary = {
     backToHome: string;
     login: {
       title: string;
-      subtitle: string;
+      subtitle: (vocab: PeriodVocab) => string;
       metaTitle: string;
       emailLabel: string;
       passwordLabel: string;
@@ -133,7 +133,7 @@ export type Dictionary = {
       invalidCredentials: string;
     };
     signup: {
-      title: string;
+      title: (vocab: PeriodVocab) => string;
       subtitle: string;
       metaTitle: string;
       nameLabel: string;
@@ -158,14 +158,14 @@ export type Dictionary = {
     stepBack: (step: string) => string;
     stepNames: { income: string; expenses: string; goal: string };
     error: { title: string; body: string; retry: string };
-    complete: { metaTitle: string; title: string; redirecting: string };
+    complete: { metaTitle: string; title: string; redirecting: (vocab: PeriodVocab) => string };
     income: {
       metaTitle: string;
       kicker: string;
       question: string;
-      explainer: string;
-      label: string;
-      hint: string;
+      explainer: (vocab: PeriodVocab) => string;
+      label: (vocab: PeriodVocab) => string;
+      hint: (vocab: PeriodVocab) => string;
       saving: string;
       continue: string;
       /** The cadence picker's own label -- above the two payFrequency options (see common.payFrequency). */
@@ -175,7 +175,7 @@ export type Dictionary = {
       metaTitle: string;
       kicker: string;
       question: string;
-      explainer: string;
+      explainer: (vocab: PeriodVocab) => string;
       untitled: string;
       recurring: (dueDay: number | null) => string;
       removeAria: (name: string) => string;
@@ -203,9 +203,9 @@ export type Dictionary = {
       namePlaceholder: string;
       alreadySavedLabel: string;
       targetLabel: string;
-      perQuincenaLabel: string;
+      perQuincenaLabel: (vocab: PeriodVocab) => string;
       perQuincenaHint: string;
-      projection: (amount: string, date: string) => string;
+      projection: (vocab: PeriodVocab, amount: string, date: string) => string;
       saving: string;
       createAndFinish: string;
       finishSetup: string;
@@ -220,15 +220,15 @@ export type Dictionary = {
     greetingAfternoon: string;
     greetingEvening: string;
     greeting: (greeting: string, name: string) => string;
-    dateRange: (range: string) => string;
+    dateRange: (vocab: PeriodVocab, range: string) => string;
     heroFinalAvailable: string;
     heroSafeToSpend: string;
     heroAvailableSummary: (left: string, pendingBills: string) => string;
     heroDaysLeft: (n: number) => string;
     heroPacePerDay: (perDay: string) => string;
     heroLastDay: (amount: string) => string;
-    heroCycleEnded: (date: string) => string;
-    closingQuincena: string;
+    heroCycleEnded: (vocab: PeriodVocab, date: string) => string;
+    closingQuincena: (vocab: PeriodVocab) => string;
     iJustGotPaid: string;
     insightsTitle: string;
     needsAttention: (n: number) => string;
@@ -246,14 +246,14 @@ export type Dictionary = {
     saving: string;
     save: string;
     howMuchPaid: string;
-    becomesIncome: string;
+    becomesIncome: (vocab: PeriodVocab) => string;
     netPayLabel: string;
     confirmSaving: string;
     confirm: string;
     skip: string;
     noIncomeSource: string;
-    quincenaNotFound: string;
-    paydayOverdue: (date: string) => string;
+    quincenaNotFound: (vocab: PeriodVocab) => string;
+    paydayOverdue: (vocab: PeriodVocab, date: string) => string;
     statIncome: string;
     statSpent: string;
     statSaved: string;
@@ -262,35 +262,43 @@ export type Dictionary = {
     billsPaidOfTotal: (paid: number, total: number) => string;
     pendingAmount: (amount: string) => string;
     baseExtra: (base: string, extra: string) => string;
-    thisQuincena: string;
+    thisQuincena: (vocab: PeriodVocab) => string;
     percentOfIncome: (percent: number) => string;
     goalsFunded: (n: number) => string;
     billsUnpaid: (n: number, total: number) => string;
-    topCategoriesTitle: string;
-    noExpensesYet: string;
+    topCategoriesTitle: (vocab: PeriodVocab) => string;
+    /** TopCategoriesChart's default title on a past/closed cycle's own page (History) -- "this quincena"/"this month" doesn't read correctly there, so this is the period-neutral fallback the component's own doc comment calls for. */
+    topCategoriesTitlePlain: string;
+    noExpensesYet: (vocab: PeriodVocab) => string;
     top6Badge: string;
     tapToLogFirst: string;
     whereItsGoing: string;
     recent: string;
     seeAll: string;
-    closeQuincena: { title: string; body: string; whenPaid: string; yes: string; cancel: string };
+    closeQuincena: {
+      title: (vocab: PeriodVocab) => string;
+      body: (vocab: PeriodVocab) => string;
+      whenPaid: string;
+      yes: string;
+      cancel: string;
+    };
     cycleClosed: {
-      aria: string;
-      title: string;
+      aria: (vocab: PeriodVocab) => string;
+      title: (vocab: PeriodVocab) => string;
       spent: string;
       saved: string;
       rolledOver: string;
       topCategory: (name: string) => string;
       overBudgetBy: (amount: string) => string;
       onBudget: string;
-      streak: (n: number) => string;
+      streak: (vocab: PeriodVocab, n: number) => string;
       continue: string;
     };
     editPayInfo: {
       edit: string;
       title: string;
-      hintNoMove: string;
-      hintMayMove: string;
+      hintNoMove: (vocab: PeriodVocab) => string;
+      hintMayMove: (vocab: PeriodVocab) => string;
       netPayLabel: string;
       payDateLabel: string;
       dateRequired: string;
@@ -301,7 +309,7 @@ export type Dictionary = {
       payDateAfter: (min: string) => string;
       payDateAfterAndBefore: (min: string, max: string) => string;
       startOfHistory: string;
-      moveWarning: (n: number, direction: string, cycleLabel: string) => string;
+      moveWarning: (vocab: PeriodVocab, n: number, direction: string, cycleLabel: string) => string;
       into: string;
       outOf: string;
       from: string;
@@ -321,7 +329,7 @@ export type Dictionary = {
     noMatch: string;
     noneYet: string;
     /** TransactionList's own default emptyMessage — distinct from `noneYet` (used elsewhere for a plain "no transactions at all" state); this one is specifically the current-quincena empty state. */
-    nothingLoggedThisQuincena: string;
+    nothingLoggedThisQuincena: (vocab: PeriodVocab) => string;
     /** lib/transaction-grouping.ts's date-group headers -- everything older falls back to a plain formatted date, which stays unlocalized (see lib/format.ts's own comment on that decision). */
     today: string;
     yesterday: string;
@@ -334,8 +342,8 @@ export type Dictionary = {
       searchPlaceholder: string;
       searchAria: string;
       typeAria: string;
-      quincenaAria: string;
-      currentQuincena: string;
+      quincenaAria: (vocab: PeriodVocab) => string;
+      currentQuincena: (vocab: PeriodVocab) => string;
       categoryAria: string;
       category: string;
       uncategorized: string;
@@ -344,15 +352,15 @@ export type Dictionary = {
       metaTitle: string;
       backToActivity: string;
       title: string;
-      subtitle: string;
+      subtitle: (vocab: PeriodVocab) => string;
       fullPaycheck: string;
       spendingOnly: string;
-      thisQuincena: string;
-      lastQuincena: string;
-      noPreviousQuincena: string;
+      thisQuincena: (vocab: PeriodVocab) => string;
+      lastQuincena: (vocab: PeriodVocab) => string;
+      noPreviousQuincena: (vocab: PeriodVocab) => string;
       nothingToShow: string;
       categoryCount: (n: number) => string;
-      notYetSpent: string;
+      notYetSpent: (vocab: PeriodVocab) => string;
       groupCount: (n: number) => string;
       noTransactions: string;
       seeAll: string;
@@ -368,7 +376,7 @@ export type Dictionary = {
       title: string;
       newBill: string;
       empty: string;
-      paidOfTotal: (paid: string, total: string) => string;
+      paidOfTotal: (vocab: PeriodVocab, paid: string, total: string) => string;
     };
     goals: {
       title: string;
@@ -383,9 +391,9 @@ export type Dictionary = {
     categoryRequired: string;
     dateRequired: string;
     dateNotFuture: string;
-    dateWithinQuincena: string;
+    dateWithinQuincena: (vocab: PeriodVocab) => string;
     /** addTransactionAction's own plain-create path -- combines dateWithinQuincena and dateNotFuture into the one message that path actually returns. */
-    dateWithinQuincenaNotFuture: string;
+    dateWithinQuincenaNotFuture: (vocab: PeriodVocab) => string;
     logged: (amount: string, label: string) => string;
     undo: string;
     savedError: string;
@@ -407,7 +415,7 @@ export type Dictionary = {
     moreDetails: string;
     thisIsABill: string;
     notePlaceholder: string;
-    moveWarning: (rangeText: string) => string;
+    moveWarning: (vocab: PeriodVocab, rangeText: string) => string;
     moving: string;
     continue: string;
     cancel: string;
@@ -421,7 +429,7 @@ export type Dictionary = {
     missingTransaction: string;
     transactionNotFound: string;
     categoryIsRequired: string;
-    quincenaClosedCantEdit: string;
+    quincenaClosedCantEdit: (vocab: PeriodVocab) => string;
     recurringLinkRemoved: string;
     /** restoreTransactionAction's own "Cycle not found" -- distinct wording from dashboard.quincenaNotFound, which addTransactionAction's cycle lookup uses instead. */
     restoreCycleNotFound: string;
@@ -450,7 +458,8 @@ export type Dictionary = {
       categoryLabel: string;
       categoryPlaceholder: string;
       recurrenceLabel: string;
-      everyQuincena: string;
+      /** The BIWEEKLY option -- "every cycle," by definition (see lib/cycles.ts's shouldCarryForwardToCycle). Relabeled per the account's own payFrequency so it never says "quincena" for a monthly-cadence account. */
+      everyQuincena: (vocab: PeriodVocab) => string;
       monthly: string;
       oneTime: string;
       dueDayLabel: string;
@@ -540,16 +549,16 @@ export type Dictionary = {
   history: {
     metaTitle: string;
     title: string;
-    empty: string;
+    empty: (vocab: PeriodVocab) => string;
     left: (amount: string) => string;
-    detailMetaTitle: string;
+    detailMetaTitle: (vocab: PeriodVocab) => string;
     back: string;
     closed: string;
     active: string;
     bills: string;
     transactions: string;
-    empty2: string;
-    addToQuincena: string;
+    empty2: (vocab: PeriodVocab) => string;
+    addToQuincena: (vocab: PeriodVocab) => string;
   };
 
   profile: {
@@ -559,7 +568,7 @@ export type Dictionary = {
     gmailError: string;
     gmailRateLimited: string;
     yourData: string;
-    pastQuincenas: string;
+    pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
     account: string;
     signOutEverywhere: string;
@@ -594,7 +603,7 @@ export type Dictionary = {
       button: string;
       hint: string;
       confirmTitle: string;
-      confirmBody: string;
+      confirmBody: (vocab: PeriodVocab) => string;
       erasing: string;
       yes: string;
       cancel: string;
@@ -663,7 +672,7 @@ export type Dictionary = {
         deleting: string;
         delete: string;
         cancel: string;
-        hasRecurringHistory: string;
+        hasRecurringHistory: (vocab: PeriodVocab) => string;
       };
       iconPicker: {
         title: string;
@@ -715,7 +724,7 @@ export type Dictionary = {
     runOutOfCash: (date: string, days: number) => string;
     onTrackPace: string;
     savingsGoalClose: (amount: string, name: string) => string;
-    goalContributionBehind: (planned: string, actual: string, name: string, days: number) => string;
+    goalContributionBehind: (vocab: PeriodVocab, planned: string, actual: string, name: string, days: number) => string;
   };
 
   validations: {

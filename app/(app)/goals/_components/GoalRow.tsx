@@ -10,7 +10,7 @@ import { RemoveGoalButton } from "./RemoveGoalButton";
 import { EditGoalSheet, type EditableGoal } from "./EditGoalSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { GoalWithProgress } from "@/lib/goals";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, usePayFrequency } from "@/app/_components/LocaleProvider";
 
 /**
  * One row in Plan's Goals list. The design system handoff's action row is
@@ -23,8 +23,9 @@ import { useT } from "@/app/_components/LocaleProvider";
  */
 export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categoryNames: string[] }) {
   const t = useT();
+  const payFrequency = usePayFrequency();
   const editSheet = useSheet();
-  const projection = computeGoalProjection(goal);
+  const projection = computeGoalProjection({ ...goal, frequency: payFrequency });
   const editable: EditableGoal = {
     categoryId: goal.categoryId,
     name: goal.name,

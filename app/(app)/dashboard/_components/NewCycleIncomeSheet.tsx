@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { confirmNewCycleIncomeAction } from "../actions";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 /**
  * Shown right after CycleClosedCard, on every "I just got paid" close —
@@ -25,6 +25,7 @@ export function NewCycleIncomeSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const t = useT().dashboard;
+  const vocab = useVocab();
   const [visible, setVisible] = useState(false);
   const [amount, setAmount] = useState(initialAmount.toFixed(2));
   const [pending, setPending] = useState(false);
@@ -71,7 +72,7 @@ export function NewCycleIncomeSheet({
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {t.becomesIncome}
+        {t.becomesIncome(vocab)}
       </p>
 
       <form onSubmit={handleConfirm}>

@@ -5,19 +5,20 @@ import Link from "next/link";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { loginAction, type LoginFormState } from "./actions";
 import { AuthShell } from "../_components/AuthShell";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 const initialState: LoginFormState = undefined;
 
 export default function LoginPage() {
   const t = useT();
+  const vocab = useVocab();
   const [state, formAction, pending] = useActionState(loginAction, initialState);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <AuthShell title={t.auth.login.title} subtitle={t.auth.login.subtitle}>
+    <AuthShell title={t.auth.login.title} subtitle={t.auth.login.subtitle(vocab)}>
       <form action={formAction} className="auth-form">
         <div className="field">
           <label htmlFor="email">{t.auth.login.emailLabel}</label>

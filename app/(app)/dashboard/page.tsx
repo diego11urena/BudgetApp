@@ -22,7 +22,7 @@ import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { PaydayOverdueBanner } from "./_components/PaydayOverdueBanner";
 import { TransactionList } from "../_components/TransactionList";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -104,6 +104,7 @@ export default async function DashboardPage() {
     recurringExpenseCategories,
     goals,
     payFrequency,
+    vocab: resolveVocab(t, payFrequency),
     t: t.insights,
   });
 
@@ -123,6 +124,7 @@ export default async function DashboardPage() {
         cycleId={cycle.id}
         previousBoundDate={previousBoundDate}
         dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd)}
+        payFrequency={payFrequency}
       />
 
       {/* Action-required banners (missing category, missing description)
@@ -153,7 +155,7 @@ export default async function DashboardPage() {
           button, never on its own (see its own doc comment for why an
           always-present empty one broke e2e's generic .dashboard-section
           waits elsewhere on this page). */}
-      <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} />
+      <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} payFrequency={payFrequency} />
 
       {/* A brand-new account otherwise has three half-empty cards below
           (no top category, no recent activity, no bills/goals paid-count)
@@ -186,6 +188,7 @@ export default async function DashboardPage() {
           saved={financials.totalSavings}
           fundedGoalsCount={fundedGoalsCount}
           recurringExpenses={recurringExpensesSummary}
+          payFrequency={payFrequency}
         />
       </div>
 

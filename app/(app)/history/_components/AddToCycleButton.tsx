@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 import { useSheet } from "../../_components/useSheet";
-import { useT } from "../../../_components/LocaleProvider";
+import { useT, useVocab } from "../../../_components/LocaleProvider";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
 const QuickAddSheet = dynamic(() => import("../../_components/QuickAddSheet").then((mod) => mod.QuickAddSheet));
@@ -35,6 +35,7 @@ export function AddToCycleButton({
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
   const { sheetProps, setTrigger } = useSheet();
   const t = useT();
+  const vocab = useVocab();
 
   return (
     <>
@@ -46,7 +47,7 @@ export function AddToCycleButton({
           setQuickAddType("EXPENSE");
         }}
       >
-        <Plus size={16} aria-hidden="true" /> {t.history.addToQuincena}
+        <Plus size={16} aria-hidden="true" /> {t.history.addToQuincena(vocab)}
       </button>
 
       {quickAddType && (

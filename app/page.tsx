@@ -17,7 +17,12 @@ export default async function Home() {
     redirect(user?.onboardingCompletedAt ? "/dashboard" : "/onboarding");
   }
 
-  const t = getDictionary(await getRequestLocale()).landing;
+  const dictionary = getDictionary(await getRequestLocale());
+  const t = dictionary.landing;
+  // Landing is always pre-auth -- no real payFrequency to reflect yet, so
+  // this defaults to quincenal, matching the app's own branding (see
+  // app/layout.tsx's resolvePayFrequency, which defaults the same way).
+  const vocab = dictionary.periodVocab.quincenal;
 
   const HOW_IT_WORKS = [
     { title: t.feature1Title, body: t.feature1Body },
@@ -55,13 +60,13 @@ export default async function Home() {
         <div className="landing-hero-copy">
           {/* Desktop only -- mobile drops the eyebrow pill entirely (see
               the handoff's own mobile spec). */}
-          <span className="landing-eyebrow">{t.eyebrow}</span>
+          <span className="landing-eyebrow">{t.eyebrow(vocab)}</span>
           <h1>{t.h1}</h1>
           {/* Two sub-copy variants, toggled by breakpoint (not just resized)
               -- mobile's is shorter/more casual per the handoff's own
               literal copy, not a paraphrase. */}
           <p className="landing-hero-sub landing-hero-sub--desktop">{t.subDesktop}</p>
-          <p className="landing-hero-sub landing-hero-sub--mobile">{t.subMobile}</p>
+          <p className="landing-hero-sub landing-hero-sub--mobile">{t.subMobile(vocab)}</p>
 
           {/* Desktop: two buttons side by side. */}
           <div className="landing-hero-buttons">
@@ -109,7 +114,7 @@ export default async function Home() {
         <div className="landing-hero-visual" aria-hidden="true">
           <div className="landing-device-mock">
             <div className="landing-device-screen">
-              <p className="landing-device-label">{t.deviceLeftThisQuincena}</p>
+              <p className="landing-device-label">{t.deviceLeftThisQuincena(vocab)}</p>
               <p className="landing-device-figure">$412.60</p>
               <div className="landing-device-rows">
                 <div className="landing-device-row">
@@ -131,7 +136,7 @@ export default async function Home() {
                   </div>
                 </div>
               </div>
-              <div className="landing-device-strip">{t.deviceNextQuincena}</div>
+              <div className="landing-device-strip">{t.deviceNextQuincena(vocab)}</div>
             </div>
           </div>
         </div>
@@ -150,7 +155,7 @@ export default async function Home() {
 
       <section id="pricing" className="landing-cta-band" aria-label={t.getStarted}>
         <div>
-          <h2>{t.ctaTitle}</h2>
+          <h2>{t.ctaTitle(vocab)}</h2>
           <p>{t.ctaBody}</p>
         </div>
         <div className="landing-cta-band-buttons">

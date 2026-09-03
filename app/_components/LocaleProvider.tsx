@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo } from "react";
 import type { Dictionary, PeriodVocab } from "@/lib/i18n/dictionary";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import type { LocaleValue } from "@/lib/i18n/locale";
 import type { PayFrequency } from "@/lib/quincena-pace";
 
@@ -35,10 +35,7 @@ export function LocaleProvider({
   children: React.ReactNode;
 }) {
   const t = useMemo(() => getDictionary(locale), [locale]);
-  const vocab = useMemo(
-    () => t.periodVocab[payFrequency === "MONTHLY" ? "monthly" : "quincenal"],
-    [t, payFrequency],
-  );
+  const vocab = useMemo(() => resolveVocab(t, payFrequency), [t, payFrequency]);
   return <LocaleContext.Provider value={{ locale, t, payFrequency, vocab }}>{children}</LocaleContext.Provider>;
 }
 

@@ -1,8 +1,9 @@
 import { hourInPanama } from "@/lib/pay-date";
 import { EditPayInfoButton } from "./EditPayInfoButton";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import type { Dictionary } from "@/lib/i18n/dictionary";
+import type { PayFrequency } from "@/lib/quincena-pace";
 
 function getGreeting(hour: number, t: Dictionary["dashboard"]): string {
   if (hour < 12) return t.greetingMorning;
@@ -17,6 +18,7 @@ export async function Header({
   cycleId,
   previousBoundDate,
   dateRangeLabel,
+  payFrequency,
 }: {
   name?: string | null;
   /** This cycle's already-recorded pay amount — prefills the "Edit" sheet. */
@@ -29,9 +31,11 @@ export async function Header({
   previousBoundDate: string | null;
   /** "Aug 16 – Aug 31" -- lib/format.ts's formatCycleRangeLabel, precomputed by the page since it needs both periodStart and periodEnd. */
   dateRangeLabel: string;
+  payFrequency: PayFrequency;
 }) {
   const dict = getDictionary(await getRequestLocale());
   const t = dict.dashboard;
+  const vocab = resolveVocab(dict, payFrequency);
   const greeting = getGreeting(hourInPanama(), t);
   const firstName = name?.trim().split(/\s+/)[0];
 
@@ -44,7 +48,7 @@ export async function Header({
             the one route in the app with zero level-1 headings. */}
         <h1 className="sr-only">{dict.nav.home}</h1>
         <p className="home-greeting">{firstName ? t.greeting(greeting, firstName) : greeting}</p>
-        <p className="home-month">{t.dateRange(dateRangeLabel)}</p>
+        <p className="home-month">{t.dateRange(vocab, dateRangeLabel)}</p>
       </div>
       <EditPayInfoButton
         currentAmount={currentPayAmount}

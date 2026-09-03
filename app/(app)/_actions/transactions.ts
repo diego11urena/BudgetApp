@@ -19,7 +19,7 @@ import { nowInPanama, panamaDateParts, parseDateOnly, parseTransactionDate } fro
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import type { PaymentMethod } from "@/lib/payment-method";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 import type { Dictionary } from "@/lib/i18n/dictionary";
 
@@ -81,6 +81,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
   }
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
+  const vocab = resolveVocab(t, await getUserPayFrequency(userId));
 
   const parsed = parseTransactionFields(formData, t);
   if ("error" in parsed) {
@@ -100,7 +101,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
       ? await prisma.budgetCycle.findFirst({ where: { id: hintedCycleId, userId } })
       : await getOrCreateDraftCycle(userId);
   if (!cycle) {
-    return { error: t.dashboard.quincenaNotFound };
+    return { error: t.dashboard.quincenaNotFound(vocab) };
   }
 
   let occurredAtDate = nowInPanama();
@@ -121,7 +122,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
     } else {
       const parsedDate = parseTransactionDate(occurredAt, cycle.periodStart);
       if (!parsedDate) {
-        return { error: t.quickAdd.dateWithinQuincenaNotFuture };
+        return { error: t.quickAdd.dateWithinQuincenaNotFuture(vocab) };
       }
       occurredAtDate = parsedDate;
     }
@@ -376,7 +377,7 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
     return { error: t.quickAdd.transactionNotFound };
   }
   if (existing.cycle.status === "CLOSED") {
-    return { error: t.quickAdd.quincenaClosedCantEdit };
+    return { error: t.quickAdd.quincenaClosedCantEdit(resolveVocab(t, await getUserPayFrequency(userId))) };
   }
 
   const category = await getOrCreateCategory(prisma, userId, categoryName.trim(), existing.type);

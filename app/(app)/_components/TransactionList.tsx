@@ -12,7 +12,7 @@ import { CategoryIcon } from "@/lib/category-icons";
 import { useSheet } from "./useSheet";
 import { EmptyState } from "./EmptyState";
 import type { EditingTransaction } from "./QuickAddSheet";
-import { useT } from "../../_components/LocaleProvider";
+import { useT, useVocab } from "../../_components/LocaleProvider";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
 const QuickAddSheet = dynamic(() => import("./QuickAddSheet").then((mod) => mod.QuickAddSheet));
@@ -159,9 +159,10 @@ export function TransactionList({
   const [editing, setEditing] = useState<EditingTransaction | null>(null);
   const { sheetProps, setTrigger } = useSheet();
   const t = useT();
+  const vocab = useVocab();
 
   if (transactions.length === 0) {
-    return <EmptyState>{emptyMessage ?? t.transactions.nothingLoggedThisQuincena}</EmptyState>;
+    return <EmptyState>{emptyMessage ?? t.transactions.nothingLoggedThisQuincena(vocab)}</EmptyState>;
   }
 
   function handleEdit(tx: CycleTransactionSummary, trigger: HTMLElement) {

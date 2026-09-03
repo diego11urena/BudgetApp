@@ -4,7 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 // Based on Panama time, not the device's own local clock — parsePayDate
 // validates this same window against nowInPanama() server-side regardless
@@ -34,6 +34,7 @@ export function ConfirmJustGotPaidSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const t = useT().dashboard;
+  const vocab = useVocab();
   const [visible, setVisible] = useState(false);
   // Guards against a fast double-tap on "Yes, I got paid" firing onConfirm
   // twice — closeCycleAndStartNext has no idempotency guard of its own
@@ -84,14 +85,14 @@ export function ConfirmJustGotPaidSheet({
   return (
     <Sheet
       visible={visible}
-      title={t.closeQuincena.title}
+      title={t.closeQuincena.title(vocab)}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!confirmed}
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {t.closeQuincena.body}
+        {t.closeQuincena.body(vocab)}
       </p>
       <div className="field">
         <label htmlFor={dateId}>{t.closeQuincena.whenPaid}</label>

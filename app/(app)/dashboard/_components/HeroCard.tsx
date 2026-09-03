@@ -2,7 +2,7 @@ import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { computeCyclePace, type PayFrequency } from "@/lib/quincena-pace";
 import { HeroCardActions } from "./HeroCardActions";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 /**
  * Server component -- the label/value/pace text below is pure display over
@@ -32,7 +32,9 @@ export async function HeroCard({
   /** The user's own pay-cadence setting -- only matters when periodEnd is null (an open cycle), where it decides whether the nominal end is derived via the ~15-day quincena formula or the ~30-day month one. A closed cycle's real periodEnd makes this irrelevant, but every caller passes it regardless so this component never has to guess. */
   payFrequency: PayFrequency;
 }) {
-  const t = getDictionary(await getRequestLocale()).dashboard;
+  const dict = getDictionary(await getRequestLocale());
+  const t = dict.dashboard;
+  const vocab = resolveVocab(dict, payFrequency);
   // The hero number used to be raw amountLeft -- money that still includes
   // whatever's sitting in unpaid bills (e.g. rent not paid yet). That reads
   // as more spendable than it really is, and worst in the first half of
@@ -91,7 +93,7 @@ export async function HeroCard({
             <p className="hero-pace">
               {pace.phase === "running" && t.heroPacePerDay(formatCurrency(pace.perDay))}
               {pace.phase === "last-day" && t.heroLastDay(formatCurrency(safeToSpend))}
-              {pace.phase === "ended" && t.heroCycleEnded(formatFriendlyDate(pace.cycleEnd))}
+              {pace.phase === "ended" && t.heroCycleEnded(vocab, formatFriendlyDate(pace.cycleEnd))}
             </p>
             <HeroCardActions />
           </div>

@@ -17,11 +17,13 @@ import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton
 import { AddToCycleButton } from "../_components/AddToCycleButton";
 import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
-  return { title: t.history.detailMetaTitle };
+  const session = await auth();
+  const payFrequency = session?.user?.id ? await getUserPayFrequency(session.user.id) : "QUINCENAL";
+  return { title: t.history.detailMetaTitle(resolveVocab(t, payFrequency)) };
 }
 
 export default async function CycleHistoryPage({
@@ -144,7 +146,7 @@ export default async function CycleHistoryPage({
       )}
 
       <div className="dashboard-section">
-        <TopCategoriesChart categories={financials.topCategories} title={t.dashboard.topCategoriesTitle} />
+        <TopCategoriesChart categories={financials.topCategories} title={t.dashboard.topCategoriesTitlePlain} />
       </div>
 
       <div className="dashboard-section">
@@ -164,7 +166,7 @@ export default async function CycleHistoryPage({
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
           cycleStartDate={cycleStartDate}
-          emptyMessage={t.history.empty2}
+          emptyMessage={t.history.empty2(resolveVocab(t, payFrequency))}
         />
       </div>
     </div>

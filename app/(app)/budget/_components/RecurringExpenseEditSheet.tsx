@@ -12,7 +12,7 @@ import {
   restoreRecurringExpenseAction,
   updateRecurringExpenseAction,
 } from "../recurring-actions";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 type Frequency = "BIWEEKLY" | "MONTHLY";
 /**
@@ -63,6 +63,7 @@ export function RecurringExpenseEditSheet({
   const router = useRouter();
   const { showToast } = useToast();
   const t = useT();
+  const vocab = useVocab();
   const [visible, setVisible] = useState(false);
   const [name, setName] = useState(existing?.name ?? "");
   const [amount, setAmount] = useState(existing ? existing.targetAmount.toFixed(2) : "");
@@ -221,7 +222,7 @@ export function RecurringExpenseEditSheet({
               value={recurrenceChoice}
               onChange={(e) => setRecurrenceChoice(e.target.value as RecurrenceChoice)}
             >
-              <option value="BIWEEKLY">{t.budget.recurringEdit.everyQuincena}</option>
+              <option value="BIWEEKLY">{t.budget.recurringEdit.everyQuincena(vocab)}</option>
               <option value="MONTHLY">{t.budget.recurringEdit.monthly}</option>
               <option value="ONE_TIME">{t.budget.recurringEdit.oneTime}</option>
             </select>

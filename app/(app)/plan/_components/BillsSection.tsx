@@ -6,7 +6,7 @@ import { useSheet } from "../../_components/useSheet";
 import { EmptyState } from "../../_components/EmptyState";
 import { formatCurrency } from "@/lib/format";
 import type { CategoryWithRecurringExpenses, RecurringExpensesSummary } from "@/lib/recurring-expenses";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 interface FlatBill extends RecurringExpenseRowData {
   categoryName: string;
@@ -44,6 +44,7 @@ export function BillsSection({
   const { open: adding, triggerProps, sheetProps, close } = useSheet();
   const bills = flattenBills(categories);
   const t = useT();
+  const vocab = useVocab();
 
   return (
     <>
@@ -60,7 +61,7 @@ export function BillsSection({
         <div className="bills-summary-bar">
           <div className="bills-summary-bar-text">
             <span className="bills-summary-bar-count">
-              {t.plan.bills.paidOfTotal(String(summary.paidCount), String(summary.totalCount))}
+              {t.plan.bills.paidOfTotal(vocab, String(summary.paidCount), String(summary.totalCount))}
             </span>
             <div className="progress-bar-track">
               <div

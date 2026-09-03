@@ -4,7 +4,7 @@ import { parseDateOnly } from "./pay-date";
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
 import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "./recurring-expenses";
 import type { GoalWithProgress } from "./goals";
-import type { Dictionary } from "./i18n/dictionary";
+import type { Dictionary, PeriodVocab } from "./i18n/dictionary";
 import { en } from "./i18n/dictionaries/en";
 import type { PayFrequency } from "./quincena-pace";
 
@@ -50,6 +50,7 @@ function makeExtras(
     recurringExpenseCategories: CategoryWithRecurringExpenses[];
     goals: GoalWithProgress[];
     payFrequency: PayFrequency;
+    vocab: PeriodVocab;
     now: Date;
     t: Dictionary["insights"];
   }> = {},
@@ -63,6 +64,7 @@ function makeExtras(
     // `t` below is -- every test's expected daysRemaining/percentElapsed
     // math is written against a 15-day quincena.
     payFrequency: "QUINCENAL" as PayFrequency,
+    vocab: en.periodVocab.quincenal,
     now: periodStart,
     // English fixed here rather than parameterized -- these tests assert on
     // exact rendered strings (see every `expect(insights).toEqual([{ text:

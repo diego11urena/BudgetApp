@@ -6,10 +6,12 @@ import { CategoryNameInput } from "@/app/(app)/_components/CategoryNameInput";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { saveGoalStepAction, skipGoalStepAction, type GoalStepFormState } from "../actions";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, usePayFrequency, useVocab } from "@/app/_components/LocaleProvider";
 
 export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: string[] }) {
   const t = useT();
+  const vocab = useVocab();
+  const payFrequency = usePayFrequency();
   const [state, formAction, pending] = useActionState<GoalStepFormState, FormData>(saveGoalStepAction, undefined);
   const [skipping, setSkipping] = useState(false);
   const [name, setName] = useState("");
@@ -24,6 +26,7 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
           savedSoFar: Number(alreadySaved || 0),
           lifetimeTargetAmount: Number(target),
           currentCycleRecurringAmount: Number(perQuincena),
+          frequency: payFrequency,
         })
       : null;
 
@@ -65,7 +68,7 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
         </div>
 
         <div className="field">
-          <label htmlFor={`${uid}-per`}>{t.onboarding.goal.perQuincenaLabel}</label>
+          <label htmlFor={`${uid}-per`}>{t.onboarding.goal.perQuincenaLabel(vocab)}</label>
           <CurrencyInput id={`${uid}-per`} name="recurringAmount" allowEmpty onValueChange={setPerQuincena} />
           <span className="field-hint">{t.onboarding.goal.perQuincenaHint}</span>
         </div>
@@ -77,6 +80,7 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
             </div>
             <p>
               {t.onboarding.goal.projection(
+                vocab,
                 formatCurrency(Number(perQuincena)),
                 formatFriendlyDate(projection.etaDate),
               )}

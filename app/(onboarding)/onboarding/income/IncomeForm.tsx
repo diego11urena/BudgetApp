@@ -19,11 +19,15 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveIncomeAction, initialState);
   const [payFrequency, setPayFrequency] = useState<PayFrequency>(initial?.payFrequency ?? "QUINCENAL");
+  // Reflects the picker's own live (not-yet-submitted) selection below, not
+  // the account's already-stored setting -- so the label/hint text updates
+  // the instant someone taps "Monthly," before they've saved anything.
+  const vocab = t.periodVocab[payFrequency === "MONTHLY" ? "monthly" : "quincenal"];
 
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="netPayAmount">{t.onboarding.income.label}</label>
+        <label htmlFor="netPayAmount">{t.onboarding.income.label(vocab)}</label>
         <CurrencyInput
           id="netPayAmount"
           name="netPayAmount"
@@ -33,7 +37,7 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
           invalid={!!state?.error}
           describedBy={state?.error ? "income-amount-error" : undefined}
         />
-        <span className="field-hint">{t.onboarding.income.hint}</span>
+        <span className="field-hint">{t.onboarding.income.hint(vocab)}</span>
       </div>
 
       <div className="field">

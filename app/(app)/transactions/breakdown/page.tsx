@@ -3,12 +3,12 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getMostRecentClosedCycle, getOrCreateDraftCycle } from "@/lib/cycles";
+import { getMostRecentClosedCycle, getOrCreateDraftCycle, getUserPayFrequency } from "@/lib/cycles";
 import { getCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
 import { withUncategorizedBucket, type GroupTotal } from "@/lib/paycheck-breakdown";
 import { BreakdownScreen, type BreakdownCycleData } from "./_components/BreakdownScreen";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 function toBreakdownCycleData(financials: CycleFinancials): BreakdownCycleData {
   const categoryTotals: GroupTotal[] = financials.categoryTotals.map((c) => ({
@@ -39,6 +39,7 @@ export default async function PaycheckBreakdownPage() {
   }
   const userId = session.user.id;
   const t = getDictionary(await getRequestLocale());
+  const vocab = resolveVocab(t, await getUserPayFrequency(userId));
 
   const cycle = await getOrCreateDraftCycle(userId);
   const lastClosedCycle = await getMostRecentClosedCycle(userId);
@@ -58,7 +59,7 @@ export default async function PaycheckBreakdownPage() {
       </Link>
       <h1 className="page-title">{t.transactions.breakdown.title}</h1>
       <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        {t.transactions.breakdown.subtitle}
+        {t.transactions.breakdown.subtitle(vocab)}
       </p>
 
       <div className="dashboard-section">

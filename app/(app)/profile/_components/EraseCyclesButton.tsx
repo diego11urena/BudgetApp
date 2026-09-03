@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { eraseAllCyclesAction } from "../cycle-actions";
 import { Sheet } from "../../_components/Sheet";
 import { useSheet } from "../../_components/useSheet";
-import { useT } from "../../../_components/LocaleProvider";
+import { useT, useVocab } from "../../../_components/LocaleProvider";
 
 /**
  * Mass-deleting all cycle history is the same class of "significant,
@@ -63,6 +63,7 @@ function EraseCyclesConfirmSheet({
 }) {
   const [visible, setVisible] = useState(false);
   const t = useT();
+  const vocab = useVocab();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
@@ -84,7 +85,7 @@ function EraseCyclesConfirmSheet({
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {t.profile.eraseCycles.confirmBody}
+        {t.profile.eraseCycles.confirmBody(vocab)}
       </p>
       {error && (
         <p className="error-text" role="alert" style={{ textAlign: "center", marginBottom: "0.5rem" }}>

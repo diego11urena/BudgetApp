@@ -7,7 +7,8 @@ import { StepProgress } from "../_components/StepProgress";
 import { BillsStepForm, BillsStepSkipButton } from "./_components/BillsStepForm";
 import { saveExpensesAction } from "./actions";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
+import { getUserPayFrequency } from "@/lib/cycles";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -20,6 +21,7 @@ export default async function ExpensesStepPage() {
     redirect("/login");
   }
   const t = getDictionary(await getRequestLocale());
+  const vocab = resolveVocab(t, await getUserPayFrequency(session.user.id));
 
   await requireOnboardingStep(session.user.id, "expenses");
 
@@ -42,7 +44,7 @@ export default async function ExpensesStepPage() {
       <StepProgress current="expenses" />
       <p className="onboarding-kicker">{t.onboarding.expenses.kicker}</p>
       <h1>{t.onboarding.expenses.question}</h1>
-      <p className="field-hint">{t.onboarding.expenses.explainer}</p>
+      <p className="field-hint">{t.onboarding.expenses.explainer(vocab)}</p>
       <BillsStepForm action={saveExpensesAction} initialItems={initialItems} />
       <BillsStepSkipButton action={saveExpensesAction} />
     </div>

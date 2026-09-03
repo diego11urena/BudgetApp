@@ -6,7 +6,7 @@ import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
 import { IncomeForm } from "./IncomeForm";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -34,13 +34,14 @@ export default async function IncomeStepPage() {
     netPayAmount: existingEntry?.incomeSource ? existingEntry.incomeSource.netPayAmount.toString() : undefined,
     payFrequency: user?.payFrequency ?? "QUINCENAL",
   };
+  const vocab = resolveVocab(t, initial.payFrequency);
 
   return (
     <div className="card card--wide onboarding-shell">
       <StepProgress current="income" />
       <p className="onboarding-kicker">{t.onboarding.income.kicker}</p>
       <h1>{t.onboarding.income.question}</h1>
-      <p className="field-hint">{t.onboarding.income.explainer}</p>
+      <p className="field-hint">{t.onboarding.income.explainer(vocab)}</p>
       <IncomeForm initial={initial} />
     </div>
   );

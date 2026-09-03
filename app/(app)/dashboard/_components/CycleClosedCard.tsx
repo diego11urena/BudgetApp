@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/category-icons";
 import { useModalFocus } from "../../_components/useModalFocus";
 import type { CycleClosedSummary } from "../actions";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 export function CycleClosedCard({
   summary,
@@ -18,18 +18,19 @@ export function CycleClosedCard({
   returnFocusTo?: HTMLElement | null;
 }) {
   const t = useT().dashboard.cycleClosed;
+  const vocab = useVocab();
   const isOver = summary.budget.hasBudget && summary.budget.overBy > 0;
   const isPositiveRollover = summary.rolledOver >= 0;
   const cardRef = useRef<HTMLDivElement>(null);
   useModalFocus(cardRef, onDismiss, returnFocusTo);
 
   return (
-    <div className="cycle-closed-overlay" role="dialog" aria-modal="true" aria-label={t.aria}>
+    <div className="cycle-closed-overlay" role="dialog" aria-modal="true" aria-label={t.aria(vocab)}>
       <div ref={cardRef} tabIndex={-1} className="cycle-closed-card">
         <p className="cycle-closed-emoji">
           <PartyPopper size={40} aria-hidden="true" />
         </p>
-        <h1 className="cycle-closed-title">{t.title}</h1>
+        <h1 className="cycle-closed-title">{t.title(vocab)}</h1>
 
         <div className="summary-row">
           <div className="summary-item">
@@ -75,7 +76,7 @@ export function CycleClosedCard({
             repeating all quincena long. */}
         {summary.streak >= 2 && (
           <div className="banner banner--good" role="status">
-            {t.streak(summary.streak)}
+            {t.streak(vocab, summary.streak)}
           </div>
         )}
 

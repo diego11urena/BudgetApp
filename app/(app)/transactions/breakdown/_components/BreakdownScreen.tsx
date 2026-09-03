@@ -14,7 +14,7 @@ import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { EmptyState } from "../../../_components/EmptyState";
 import { PieChart } from "./PieChart";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 export interface BreakdownCycleData {
   baseIncome: number;
@@ -35,6 +35,7 @@ export function BreakdownScreen({
   lastCycle: BreakdownCycleData | null;
 }) {
   const t = useT();
+  const vocab = useVocab();
   const SCOPE_OPTIONS: { value: BreakdownScope; label: string }[] = [
     { value: "full", label: t.transactions.breakdown.fullPaycheck },
     { value: "spending", label: t.transactions.breakdown.spendingOnly },
@@ -106,7 +107,7 @@ export function BreakdownScreen({
             className={`type-toggle-btn ${period === "current" ? "is-active" : ""}`}
             onClick={() => handlePeriodChange("current")}
           >
-            {t.transactions.breakdown.thisQuincena}
+            {t.transactions.breakdown.thisQuincena(vocab)}
           </button>
           <button
             type="button"
@@ -114,12 +115,12 @@ export function BreakdownScreen({
             onClick={() => handlePeriodChange("last")}
             disabled={!lastCycle}
           >
-            {t.transactions.breakdown.lastQuincena}
+            {t.transactions.breakdown.lastQuincena(vocab)}
           </button>
         </div>
       </div>
 
-      {!activeCycle && <EmptyState>{t.transactions.breakdown.noPreviousQuincena}</EmptyState>}
+      {!activeCycle && <EmptyState>{t.transactions.breakdown.noPreviousQuincena(vocab)}</EmptyState>}
 
       {activeCycle && breakdown.pieTotal <= 0 && (
         <EmptyState>{t.transactions.breakdown.nothingToShow}</EmptyState>
@@ -187,6 +188,7 @@ function SliceDetailPanel({
   onSelectMember: (key: string) => void;
 }) {
   const t = useT();
+  const vocab = useVocab();
   // "Uncategorized" doesn't map to a real Transactions filter -- a q= search
   // for that literal text wouldn't match transactions that have no category
   // name at all. The recent-transactions preview above still shows what's in it.
@@ -206,7 +208,7 @@ function SliceDetailPanel({
         </span>
       </div>
 
-      {slice.kind === "remaining" && <EmptyState>{t.transactions.breakdown.notYetSpent}</EmptyState>}
+      {slice.kind === "remaining" && <EmptyState>{t.transactions.breakdown.notYetSpent(vocab)}</EmptyState>}
 
       {slice.kind === "other" && slice.members && (
         <div className="breakdown-detail-members">

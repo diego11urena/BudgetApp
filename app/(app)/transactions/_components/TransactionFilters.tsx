@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { TRANSACTION_TYPE_OPTIONS } from "@/lib/transaction-type";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 export function TransactionFilters({
   categories,
@@ -20,6 +20,7 @@ export function TransactionFilters({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const t = useT();
+  const vocab = useVocab();
 
   // "" ("any type") prepended onto the shared canonical list, for the "All"
   // segment. INCOME's label is shortened to "Income" here only -- as a
@@ -96,9 +97,9 @@ export function TransactionFilters({
         <select
           value={searchParams.get("cycleId") ?? ""}
           onChange={(e) => updateParam("cycleId", e.target.value)}
-          aria-label={t.transactions.filters.quincenaAria}
+          aria-label={t.transactions.filters.quincenaAria(vocab)}
         >
-          <option value="">{t.transactions.filters.currentQuincena}</option>
+          <option value="">{t.transactions.filters.currentQuincena(vocab)}</option>
           {cycles.slice(1).map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}

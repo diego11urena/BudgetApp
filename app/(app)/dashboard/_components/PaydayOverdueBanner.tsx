@@ -1,7 +1,8 @@
 import { formatFriendlyDate } from "@/lib/format";
 import { HeroCardActions } from "./HeroCardActions";
 import { getRequestLocale } from "@/lib/i18n/locale";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
+import type { PayFrequency } from "@/lib/quincena-pace";
 
 /**
  * Auto-detects a stale cycle by expected date (fix-list batch 11.5,
@@ -24,13 +25,23 @@ import { getDictionary } from "@/lib/i18n/get-dictionary";
  * visibility) would wipe its in-flight confirm/closed-summary state the
  * instant justGotPaidAction succeeds.
  */
-export async function PaydayOverdueBanner({ cycleEndDate, isOverdue }: { cycleEndDate: Date; isOverdue: boolean }) {
-  const t = getDictionary(await getRequestLocale()).dashboard;
+export async function PaydayOverdueBanner({
+  cycleEndDate,
+  isOverdue,
+  payFrequency,
+}: {
+  cycleEndDate: Date;
+  isOverdue: boolean;
+  payFrequency: PayFrequency;
+}) {
+  const dict = getDictionary(await getRequestLocale());
+  const t = dict.dashboard;
+  const vocab = resolveVocab(dict, payFrequency);
   return (
     <HeroCardActions
       variant="banner"
       showBanner={isOverdue}
-      bannerLabel={t.paydayOverdue(formatFriendlyDate(cycleEndDate))}
+      bannerLabel={t.paydayOverdue(vocab, formatFriendlyDate(cycleEndDate))}
     />
   );
 }

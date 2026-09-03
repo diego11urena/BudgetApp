@@ -4,19 +4,20 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signupAction, type SignupFormState } from "./actions";
 import { AuthShell } from "../_components/AuthShell";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 const initialState: SignupFormState = undefined;
 
 export default function SignupPage() {
   const t = useT();
+  const vocab = useVocab();
   const [state, formAction, pending] = useActionState(signupAction, initialState);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   return (
-    <AuthShell title={t.auth.signup.title} subtitle={t.auth.signup.subtitle}>
+    <AuthShell title={t.auth.signup.title(vocab)} subtitle={t.auth.signup.subtitle}>
       <form action={formAction} className="auth-form">
         <div className="field">
           <label htmlFor="name">{t.auth.signup.nameLabel}</label>

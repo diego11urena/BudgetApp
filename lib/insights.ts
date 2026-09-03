@@ -6,7 +6,7 @@ import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 import type { GoalWithProgress } from "@/lib/goals";
 import { computeGoalProjection } from "@/lib/goal-projection";
-import type { Dictionary } from "@/lib/i18n/dictionary";
+import type { Dictionary, PeriodVocab } from "@/lib/i18n/dictionary";
 
 type InsightsDictionary = Dictionary["insights"];
 
@@ -94,6 +94,8 @@ export function generateInsights(
     goals: GoalWithProgress[];
     /** The user's own pay-cadence setting -- only matters for deriving a still-open cycle's nominal end (see cyclePhase) and a goal's projected ETA; every rule that just compares dollar amounts is unaffected. */
     payFrequency: PayFrequency;
+    /** Resolved from payFrequency by the caller (which has the full Dictionary in scope, unlike this plain function) -- feeds the one rule sentence that names the cadence ("quincena"/"month"). */
+    vocab: PeriodVocab;
     /** Defaults to nowInPanama() -- overridable for tests. */
     now?: Date;
     /** This is a plain function (no useT()), so the caller threads the resolved dictionary's `insights` slice through here instead. */
@@ -119,7 +121,7 @@ export function generateInsights(
 
   candidates.push(paceAwareCandidate(current, phase, now, t));
 
-  const goalContribution = goalContributionCandidate(extras.goals, current, phase, t);
+  const goalContribution = goalContributionCandidate(extras.goals, current, phase, extras.vocab, t);
   if (goalContribution) candidates.push(goalContribution);
 
   const savingsGoal = savingsGoalCandidate(extras.goals, now, extras.payFrequency, t);
@@ -517,6 +519,7 @@ function goalContributionCandidate(
   goals: GoalWithProgress[],
   current: CycleFinancials,
   phase: CyclePhase,
+  vocab: PeriodVocab,
   t: InsightsDictionary,
 ): Candidate | null {
   if (phase.percentElapsed < GOAL_CONTRIBUTION_MIN_PERCENT_ELAPSED) return null;
@@ -539,7 +542,7 @@ function goalContributionCandidate(
 
   if (!best) return null;
   return {
-    text: t.goalContributionBehind(formatCurrency(best.planned), formatCurrency(best.actual), best.name, phase.daysRemaining),
+    text: t.goalContributionBehind(vocab, formatCurrency(best.planned), formatCurrency(best.actual), best.name, phase.daysRemaining),
     priority: PRIORITY.GOAL_CONTRIBUTION,
     href: "/plan",
   };
