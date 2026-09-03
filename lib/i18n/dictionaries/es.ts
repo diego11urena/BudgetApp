@@ -46,7 +46,7 @@ export const es: Dictionary = {
     confirm: "Confirmar",
     close: "Cerrar",
     budgetFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
-    payFrequency: { monthly: "Una vez al mes", semimonthly: "Dos veces al mes", biweekly: "Cada dos semanas" },
+    payFrequency: { monthly: "Una vez al mes", semimonthly: "Dos veces al mes / Quincenal" },
     error: {
       appBody: "Tuvimos un problema al cargar esta página. Tus datos están seguros — intenta de nuevo.",
       rootBody: "Tuvimos un problema. Intenta de nuevo.",
@@ -171,6 +171,7 @@ export const es: Dictionary = {
       continue: "Continuar",
       cadenceLabel: "¿Cómo quieres presupuestar?",
       payCadenceLabel: "¿Con qué frecuencia te pagan?",
+      monthlyPayLocksMonthlyBudget: "Como te pagan una vez al mes, tu ciclo de presupuesto también es mensual.",
     },
     expenses: {
       metaTitle: "Cuentas",
@@ -767,5 +768,6 @@ export const es: Dictionary = {
     newPasswordMaxLength: "La nueva contraseña debe tener como máximo 72 caracteres",
     amountTooLarge: "El monto es demasiado grande",
     dueDayRequiredForMonthly: "Elige un día de vencimiento para una cuenta mensual",
+    payFrequencyRequiresMonthlyBudget: "El pago mensual requiere presupuesto mensual",
   },
 };

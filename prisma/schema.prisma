@@ -53,12 +53,18 @@ model User {
   // concepts can never be confused again the way they were before.
   budgetFrequency        BudgetFrequency @default(QUINCENAL)
   // How often the user actually receives a paycheck -- "once a month" /
-  // "twice a month" / "biweekly". Purely descriptive: doesn't drive any
+  // "twice a month (quincenal)". Purely descriptive: doesn't drive any
   // cycle-boundary or comparison math (see budgetFrequency above for
   // that). Defaults to SEMIMONTHLY since every account before this field
   // existed was implicitly quincenal (paid twice a month); the guess has
   // zero functional effect either way since nothing reads this into a
   // calculation.
+  //
+  // Constraint enforced in application code (setIncomeFrequencyAction/
+  // setBudgetFrequencyAction/incomeStepSchema), not the DB: MONTHLY here
+  // forces budgetFrequency to MONTHLY too -- a once-a-month earner
+  // budgeting in quincenas isn't a supported combination (there's no
+  // second paycheck to split a quincena around).
   payFrequency           IncomeFrequency @default(SEMIMONTHLY)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
@@ -86,10 +92,14 @@ enum BudgetFrequency {
   MONTHLY
 }
 
+// BIWEEKLY (every 14 days, ~26 pays/year) was removed as a distinct option --
+// collapsed into SEMIMONTHLY ("twice a month," fixed calendar dates, 24
+// pays/year) since the app doesn't need that distinction for pay frequency.
+// See prisma/migrations/.../normalize_biweekly_pay_frequency for the
+// existing-row backfill this rename required.
 enum IncomeFrequency {
   MONTHLY
   SEMIMONTHLY
-  BIWEEKLY
 }
 
 model IncomeSource {

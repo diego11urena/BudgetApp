@@ -60,8 +60,8 @@ export type Dictionary = {
     close: string;
     /** Shared by the onboarding cadence picker and Profile's BudgetFrequencyRow -- one pair of labels, not duplicated per screen. */
     budgetFrequency: { quincenal: string; monthly: string };
-    /** Shared by onboarding's new pay-cadence picker and Profile's IncomeFrequencyRow -- purely descriptive (how often income arrives), distinct from budgetFrequency above (which controls actual cycle-length math). */
-    payFrequency: { monthly: string; semimonthly: string; biweekly: string };
+    /** Shared by onboarding's new pay-cadence picker and Profile's IncomeFrequencyRow -- purely descriptive (how often income arrives), distinct from budgetFrequency above (which controls actual cycle-length math). Only two options -- BIWEEKLY was removed as a distinct value, collapsed into SEMIMONTHLY. */
+    payFrequency: { monthly: string; semimonthly: string };
     /** Shared by the two top-level ("use client") error boundaries -- app/error.tsx and app/(app)/error.tsx -- whose title/retry text is identical to app/(onboarding)/error.tsx's own onboarding.error.title/retry (reused directly from there), but whose body copy is distinct per screen. */
     error: {
       appBody: string;
@@ -172,8 +172,10 @@ export type Dictionary = {
       continue: string;
       /** The budget-cadence picker's own label -- above the two budgetFrequency options (see common.budgetFrequency). Asks how the user wants to BUDGET, not how they get paid -- see payCadenceLabel below for the separate, genuinely-about-paychecks question. */
       cadenceLabel: string;
-      /** The pay-cadence picker's own label -- above the three payFrequency options (see common.payFrequency). Purely descriptive; doesn't affect cadenceLabel's own budget-cycle setting. */
+      /** The pay-cadence picker's own label -- above the two payFrequency options (see common.payFrequency). Purely descriptive on its own, but constrains cadenceLabel's own picker: MONTHLY pay forces/locks MONTHLY budget (see monthlyPayLocksMonthlyBudget below). */
       payCadenceLabel: string;
+      /** Shown under the budget-frequency picker only while payFrequency is MONTHLY -- explains why Quincenal is disabled there instead of just silently unclickable. */
+      monthlyPayLocksMonthlyBudget: string;
     };
     expenses: {
       metaTitle: string;
@@ -777,5 +779,6 @@ export type Dictionary = {
     newPasswordMaxLength: string;
     amountTooLarge: string;
     dueDayRequiredForMonthly: string;
+    payFrequencyRequiresMonthlyBudget: string;
   };
 };

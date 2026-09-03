@@ -10,8 +10,7 @@ import { EraseCyclesButton } from "./_components/EraseCyclesButton";
 import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { ThemeRow } from "./_components/ThemeRow";
 import { LanguageRow } from "./_components/LanguageRow";
-import { BudgetFrequencyRow } from "./_components/BudgetFrequencyRow";
-import { IncomeFrequencyRow } from "./_components/IncomeFrequencyRow";
+import { PayAndBudgetFrequencyRows } from "./_components/PayAndBudgetFrequencyRows";
 import { signOutAction, logOutEverywhereAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 import type { ThemePreferenceValue } from "@/lib/theme";
@@ -111,8 +110,10 @@ export default async function ProfilePage({
         </Link>
         <ThemeRow initialTheme={initialTheme} />
         <LanguageRow initialLocale={initialLocale} />
-        <BudgetFrequencyRow initialBudgetFrequency={initialBudgetFrequency} />
-        <IncomeFrequencyRow initialPayFrequency={initialPayFrequency} />
+        <PayAndBudgetFrequencyRows
+          initialPayFrequency={initialPayFrequency}
+          initialBudgetFrequency={initialBudgetFrequency}
+        />
       </div>
 
       <p className="profile-section-label">{t.profile.account}</p>

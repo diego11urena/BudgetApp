@@ -26,15 +26,28 @@ export const changePasswordSchema = z.object({
     .max(72, "New password must be at most 72 characters"),
 });
 
-export const incomeStepSchema = z.object({
-  netPayAmount: decimalString,
-  budgetFrequency: z.enum(["QUINCENAL", "MONTHLY"]).default("QUINCENAL"),
-  // Purely descriptive (how often income arrives) -- distinct from
-  // budgetFrequency above, which controls actual cycle-length math.
-  // Default matches what every account implicitly was before this field
-  // existed (quincena = paid twice a month).
-  payFrequency: z.enum(["MONTHLY", "SEMIMONTHLY", "BIWEEKLY"]).default("SEMIMONTHLY"),
-});
+export const incomeStepSchema = z
+  .object({
+    netPayAmount: decimalString,
+    budgetFrequency: z.enum(["QUINCENAL", "MONTHLY"]).default("QUINCENAL"),
+    // Purely descriptive (how often income arrives) -- distinct from
+    // budgetFrequency above, which controls actual cycle-length math.
+    // Default matches what every account implicitly was before this field
+    // existed (quincena = paid twice a month). BIWEEKLY was removed as a
+    // distinct option -- collapsed into SEMIMONTHLY, see IncomeFrequency's
+    // own schema comment.
+    payFrequency: z.enum(["MONTHLY", "SEMIMONTHLY"]).default("SEMIMONTHLY"),
+  })
+  // A once-a-month earner has no second paycheck to split a quincena
+  // around -- MONTHLY pay + QUINCENAL budget is not a supported
+  // combination. The picker itself already prevents selecting it (see
+  // IncomeForm.tsx), but this is the server-side backstop: a raw POST
+  // that skips the client entirely must not be able to write this
+  // invalid state either.
+  .refine((data) => !(data.payFrequency === "MONTHLY" && data.budgetFrequency === "QUINCENAL"), {
+    message: "Monthly pay frequency requires monthly budget frequency",
+    path: ["budgetFrequency"],
+  });
 
 export const budgetLineItemSchema = z.object({
   name: z.string().trim().min(1).max(100),

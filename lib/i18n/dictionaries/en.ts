@@ -44,7 +44,7 @@ export const en: Dictionary = {
     confirm: "Confirm",
     close: "Close",
     budgetFrequency: { quincenal: "Quincenal", monthly: "Monthly" },
-    payFrequency: { monthly: "Once a month", semimonthly: "Twice a month", biweekly: "Biweekly" },
+    payFrequency: { monthly: "Once a month", semimonthly: "Twice a month / Quincenal" },
     error: {
       appBody: "We hit a snag loading this page. Your data is safe — try again.",
       rootBody: "We hit a snag. Try again.",
@@ -166,6 +166,7 @@ export const en: Dictionary = {
       continue: "Continue",
       cadenceLabel: "How do you want to budget?",
       payCadenceLabel: "How often do you get paid?",
+      monthlyPayLocksMonthlyBudget: "Since you're paid once a month, your budget cycle is monthly too.",
     },
     expenses: {
       metaTitle: "Bills",
@@ -755,5 +756,6 @@ export const en: Dictionary = {
     newPasswordMaxLength: "New password must be at most 72 characters",
     amountTooLarge: "Amount is too large",
     dueDayRequiredForMonthly: "Pick a due day for a monthly expense",
+    payFrequencyRequiresMonthlyBudget: "Monthly pay frequency requires monthly budget frequency",
   },
 };

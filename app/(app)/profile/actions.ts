@@ -162,6 +162,13 @@ const BUDGET_FREQUENCY_VALUES: BudgetFrequency[] = ["QUINCENAL", "MONTHLY"];
  * mutating their cookie already triggers Next's own automatic
  * invalidation -- budgetFrequency deliberately has no cookie, so it needs
  * this explicit revalidatePath("/", "layout") instead.
+ *
+ * QUINCENAL is rejected outright (not silently coerced to MONTHLY) when
+ * the account's payFrequency is MONTHLY -- a once-a-month earner has no
+ * second paycheck to split a quincena around, so this combination is
+ * simply not supported. PayAndBudgetFrequencyRows' own picker already
+ * disables that option client-side; this is the server-side backstop
+ * against a direct action call bypassing it.
  */
 export const setBudgetFrequencyAction = withActionErrorHandling(async function setBudgetFrequencyAction(
   formData: FormData,
@@ -175,21 +182,35 @@ export const setBudgetFrequencyAction = withActionErrorHandling(async function s
   if (typeof raw !== "string" || !BUDGET_FREQUENCY_VALUES.includes(raw as BudgetFrequency)) {
     return { error: "Invalid budget frequency" };
   }
+  const budgetFrequency = raw as BudgetFrequency;
+
+  if (budgetFrequency === "QUINCENAL") {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: session.user.id },
+      select: { payFrequency: true },
+    });
+    if (user.payFrequency === "MONTHLY") {
+      return { error: "Monthly pay frequency requires monthly budget frequency" };
+    }
+  }
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { budgetFrequency: raw as BudgetFrequency },
+    data: { budgetFrequency },
   });
 
   revalidatePath("/", "layout");
 });
 
-const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["MONTHLY", "SEMIMONTHLY", "BIWEEKLY"];
+const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["MONTHLY", "SEMIMONTHLY"];
 
 /**
  * Same no-cookie reasoning as setBudgetFrequencyAction -- purely
  * descriptive (see User.payFrequency's own schema comment), never read
- * pre-auth.
+ * pre-auth. Unlike that action, this one still needs revalidatePath: MONTHLY
+ * here forces budgetFrequency to MONTHLY too (a once-a-month earner has no
+ * second paycheck to split a quincena around), and *that* field does feed
+ * the root layout's LocaleProvider context.
  */
 export const setIncomeFrequencyAction = withActionErrorHandling(async function setIncomeFrequencyAction(
   formData: FormData,
@@ -203,11 +224,16 @@ export const setIncomeFrequencyAction = withActionErrorHandling(async function s
   if (typeof raw !== "string" || !PAY_FREQUENCY_VALUES.includes(raw as IncomeFrequency)) {
     return { error: "Invalid pay frequency" };
   }
+  const payFrequency = raw as IncomeFrequency;
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { payFrequency: raw as IncomeFrequency },
+    data: payFrequency === "MONTHLY" ? { payFrequency, budgetFrequency: "MONTHLY" } : { payFrequency },
   });
+
+  if (payFrequency === "MONTHLY") {
+    revalidatePath("/", "layout");
+  }
 });
 
 export const logOutEverywhereAction = withActionErrorHandling(async function logOutEverywhereAction() {

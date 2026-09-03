@@ -18,10 +18,21 @@ export async function signUpAndOnboard(
     netQuincenaAmount?: string;
     /** Defaults to QUINCENAL (every existing spec's own assumption) -- MONTHLY picks the onboarding income step's "Monthly" budget-cadence option before submitting, so the resulting account budgets in calendar months instead of quincenas. */
     budgetFrequency?: "QUINCENAL" | "MONTHLY";
+    /**
+     * Defaults to SEMIMONTHLY (every existing spec's own assumption --
+     * "twice a month," the picker's default). MONTHLY picks "Once a
+     * month" -- which, per the pay/budget-frequency combination lock, also
+     * force-selects (and disables Quincenal on) the budget-frequency
+     * picker, so passing payFrequency: "MONTHLY" with budgetFrequency:
+     * "QUINCENAL" (or omitted) still lands on a MONTHLY-budget account --
+     * there's no way to onboard Monthly pay + Quincenal budget, by design.
+     */
+    payFrequency?: "MONTHLY" | "SEMIMONTHLY";
   } = {},
 ): Promise<{ email: string }> {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-  const budgetFrequency = opts.budgetFrequency ?? "QUINCENAL";
+  const payFrequency = opts.payFrequency ?? "SEMIMONTHLY";
+  const budgetFrequency = payFrequency === "MONTHLY" ? "MONTHLY" : (opts.budgetFrequency ?? "QUINCENAL");
 
   // The app defaults anonymous visitors AND brand-new signups to Spanish
   // (built for the Panama market -- see lib/i18n/locale.ts's
@@ -42,7 +53,13 @@ export async function signUpAndOnboard(
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/income/, { timeout: 60_000, waitUntil: "commit" });
 
-  if (budgetFrequency === "MONTHLY") {
+  // Pay frequency is asked first (its own picker), and choosing "Once a
+  // month" force-selects Monthly budget frequency on its own -- clicking
+  // the budget picker's own "Monthly" button afterward would be redundant
+  // (and it's disabled there anyway once pay frequency is MONTHLY).
+  if (payFrequency === "MONTHLY") {
+    await page.click('button:has-text("Once a month")');
+  } else if (budgetFrequency === "MONTHLY") {
     await page.click('button:has-text("Monthly")');
   }
   // The amount field's own label is cadence-aware ("Net pay per quincena
