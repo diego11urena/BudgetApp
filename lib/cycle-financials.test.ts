@@ -35,6 +35,18 @@ describe("summarizeCycleFinancials", () => {
     expect(result.baseIncome).toBe(800);
   });
 
+  // Locks in the literal acceptance-criteria example for MONTHLY budgeting
+  // with twice-monthly pay: two $800 paychecks logged into the same
+  // BudgetCycle (see lib/cycles.ts's logPaycheckToOpenCycle) must sum to
+  // $1,600 for that one cycle, never treated as two separate cycles.
+  it("sums two same-cycle paychecks to $1,600, matching the twice-monthly-pay/MONTHLY-budget acceptance criteria", () => {
+    const result = summarizeCycleFinancials(
+      [{ netAmount: decimal(800) }, { netAmount: decimal(800) }],
+      [],
+    );
+    expect(result.baseIncome).toBe(1600);
+  });
+
   it("computes amountLeft as income minus expenses minus savings", () => {
     const result = summarizeCycleFinancials(
       [{ netAmount: decimal(1000) }],

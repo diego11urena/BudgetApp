@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, TRANSACTION_SELECT, type CycleFinancials } from "@/lib/cycle-financials";
-import type { BudgetCycle, Prisma, PrismaClient } from "@/app/generated/prisma/client";
+import type { BudgetCycle, CycleIncomeEntry, Prisma, PrismaClient } from "@/app/generated/prisma/client";
 import {
   addDays,
   FIRST_CYCLE_BACKDATE_FLOOR_DAYS,
@@ -344,6 +344,64 @@ export async function upsertCycleIncomeEntry(
   return db.cycleIncomeEntry.create({ data: { cycleId, incomeSourceId, netAmount } });
 }
 
+/**
+ * Logs one paycheck into whichever cycle is currently open, ADDITIVELY --
+ * a plain create, never touching any existing entry, so a MONTHLY-budget
+ * cycle can accumulate 2+ paychecks (e.g. semi-monthly or biweekly pay)
+ * into one month's total instead of the cycle resetting on every "I just
+ * got paid" tap the way QUINCENAL's closeCycleAndStartNext does. Also
+ * updates IncomeSource.netPayAmount as a UI prefill convenience (the
+ * amount the next log-a-paycheck sheet defaults to) -- this was already
+ * true of every other income-writing call site, and it's never read into
+ * any real calculation (getCycleFinancials always sums the actual
+ * CycleIncomeEntry rows), so "last amount logged wins" needs no special
+ * handling even when paychecks vary in amount.
+ *
+ * QUINCENAL-budget accounts never call this -- their one-paycheck-per-
+ * cycle model goes through closeCycleAndStartNext instead, same as today.
+ */
+export async function logPaycheckToOpenCycle(
+  userId: string,
+  amount: Prisma.Decimal | string | number,
+  receivedAt: Date,
+): Promise<CycleIncomeEntry> {
+  const cycle = await getOrCreateDraftCycle(userId);
+
+  return prisma.$transaction(async (tx) => {
+    const incomeSource = await getActiveIncomeSource(tx, userId);
+    if (!incomeSource) {
+      throw new Error(`logPaycheckToOpenCycle: user ${userId} has no active income source`);
+    }
+    await tx.incomeSource.update({ where: { id: incomeSource.id }, data: { netPayAmount: amount } });
+    return tx.cycleIncomeEntry.create({
+      data: { cycleId: cycle.id, incomeSourceId: incomeSource.id, netAmount: amount, receivedAt },
+    });
+  });
+}
+
+/**
+ * Corrects one already-logged paycheck's amount and/or date in place --
+ * unlike a QUINCENAL cycle's pay-date edit (assessPayDateChange), this
+ * never reassigns cycle membership or moves any transaction: a
+ * CycleIncomeEntry's receivedAt is display metadata only, fixed to
+ * whichever cycle it was logged into at creation time. MONTHLY-only in
+ * practice (see MonthlyIncomeEntriesSheet) -- a QUINCENAL cycle's one
+ * entry still goes through editCyclePayInfoAction/upsertCycleIncomeEntry.
+ */
+export function updateCycleIncomeEntry(
+  db: Db,
+  entryId: string,
+  amount: Prisma.Decimal | string | number,
+  receivedAt: Date,
+) {
+  return db.cycleIncomeEntry.update({ where: { id: entryId }, data: { netAmount: amount, receivedAt } });
+}
+
+/** Removes one logged paycheck entirely -- e.g. a duplicate log or a mistaken entry. See updateCycleIncomeEntry's own comment for why this needs no cross-cycle reassignment logic. */
+export function deleteCycleIncomeEntry(db: Db, entryId: string) {
+  return db.cycleIncomeEntry.delete({ where: { id: entryId } });
+}
+
 /** Uncached read of the user's current open (DRAFT or ACTIVE) cycle -- see getOrCreateDraftCycle's own cache() trap warning for when this, not that, is the right call. */
 export function findOpenCycle(userId: string) {
   return prisma.budgetCycle.findFirst({
@@ -666,11 +724,13 @@ export interface CloseCycleResult {
 }
 
 /**
- * "Just got paid": closes the current open cycle and starts the next one,
- * carrying forward the recurring setup (income, fixed-expense and savings
- * targets) so the user never has to redo onboarding-style setup for a new
- * paycheck. Logged transactions do NOT carry forward — the closed cycle
- * keeps its own transaction history forever, exactly as it was.
+ * "Just got paid" (QUINCENAL) / "Close this month" (MONTHLY): closes the
+ * current open cycle and starts the next one, carrying forward the
+ * recurring setup (fixed-expense and savings targets, and -- only when
+ * carryIncomeForward is true -- income) so the user never has to redo
+ * onboarding-style setup for a new cycle. Logged transactions do NOT
+ * carry forward — the closed cycle keeps its own transaction history
+ * forever, exactly as it was.
  *
  * payDate anchors the new cycle's periodStart (and the old cycle's
  * periodEnd) — defaults to now, but the caller can pass an actual past pay
@@ -682,7 +742,22 @@ export interface CloseCycleResult {
 export async function closeCycleAndStartNext(
   userId: string,
   payDate: Date = nowInPanama(),
+  options: {
+    /**
+     * Whether the new cycle's income should be seeded from the active
+     * IncomeSource's own netPayAmount -- true (the default) preserves
+     * today's QUINCENAL behavior exactly: one paycheck per cycle, so
+     * "next cycle = same paycheck as last time" is the right assumption.
+     * MONTHLY's "Close this month" rollover passes false: seeding from
+     * the last logged paycheck amount would double-count once the
+     * user's real paychecks for the new month get logged individually
+     * via logPaycheckToOpenCycle -- a new MONTHLY cycle should start at
+     * $0 income, not a guess.
+     */
+    carryIncomeForward?: boolean;
+  } = {},
 ): Promise<CloseCycleResult> {
+  const { carryIncomeForward = true } = options;
   const currentCycle = await getOrCreateDraftCycle(userId);
   const closedCycleFinancials = await getCycleFinancials(currentCycle.id);
 
@@ -710,9 +785,11 @@ export async function closeCycleAndStartNext(
         },
       });
 
-      const incomeSource = await getActiveIncomeSource(tx, userId);
-      if (incomeSource) {
-        await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netPayAmount);
+      if (carryIncomeForward) {
+        const incomeSource = await getActiveIncomeSource(tx, userId);
+        if (incomeSource) {
+          await upsertCycleIncomeEntry(tx, created.id, incomeSource.id, incomeSource.netPayAmount);
+        }
       }
 
       // Only categories marked recurring auto-carry their most recent target
