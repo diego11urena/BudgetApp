@@ -28,13 +28,14 @@ export async function saveIncomeAction(
   const parsed = incomeStepSchema.safeParse({
     netPayAmount: formData.get("netPayAmount"),
     budgetFrequency: formData.get("budgetFrequency") || undefined,
+    payFrequency: formData.get("payFrequency") || undefined,
   });
 
   if (!parsed.success) {
     return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
 
-  const { netPayAmount, budgetFrequency } = parsed.data;
+  const { netPayAmount, budgetFrequency, payFrequency } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
 
@@ -69,7 +70,7 @@ export async function saveIncomeAction(
     await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, netPayAmount);
     await tx.user.update({
       where: { id: userId },
-      data: { budgetFrequency },
+      data: { budgetFrequency, payFrequency },
     });
   });
 

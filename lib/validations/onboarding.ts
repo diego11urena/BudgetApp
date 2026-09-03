@@ -29,6 +29,11 @@ export const changePasswordSchema = z.object({
 export const incomeStepSchema = z.object({
   netPayAmount: decimalString,
   budgetFrequency: z.enum(["QUINCENAL", "MONTHLY"]).default("QUINCENAL"),
+  // Purely descriptive (how often income arrives) -- distinct from
+  // budgetFrequency above, which controls actual cycle-length math.
+  // Default matches what every account implicitly was before this field
+  // existed (quincena = paid twice a month).
+  payFrequency: z.enum(["MONTHLY", "SEMIMONTHLY", "BIWEEKLY"]).default("SEMIMONTHLY"),
 });
 
 export const budgetLineItemSchema = z.object({

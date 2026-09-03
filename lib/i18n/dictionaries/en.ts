@@ -44,6 +44,7 @@ export const en: Dictionary = {
     confirm: "Confirm",
     close: "Close",
     budgetFrequency: { quincenal: "Quincenal", monthly: "Monthly" },
+    payFrequency: { monthly: "Once a month", semimonthly: "Twice a month", biweekly: "Biweekly" },
     error: {
       appBody: "We hit a snag loading this page. Your data is safe — try again.",
       rootBody: "We hit a snag. Try again.",
@@ -163,7 +164,8 @@ export const en: Dictionary = {
       hint: (vocab) => `What actually lands in your account each ${vocab.noun} — after any taxes or deductions are already taken out elsewhere.`,
       saving: "Saving...",
       continue: "Continue",
-      cadenceLabel: "How do you get paid?",
+      cadenceLabel: "How do you want to budget?",
+      payCadenceLabel: "How often do you get paid?",
     },
     expenses: {
       metaTitle: "Bills",
@@ -592,7 +594,8 @@ export const en: Dictionary = {
     theme: "Theme",
     themeLabels: { system: "System", light: "Light", dark: "Dark" },
     language: "Language",
-    budgetFrequency: "Pay frequency",
+    budgetFrequency: "Budget frequency",
+    payFrequency: "Pay frequency",
     changePassword: {
       row: "Change password",
       title: "Change password",

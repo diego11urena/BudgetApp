@@ -11,11 +11,13 @@ import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { ThemeRow } from "./_components/ThemeRow";
 import { LanguageRow } from "./_components/LanguageRow";
 import { BudgetFrequencyRow } from "./_components/BudgetFrequencyRow";
+import { IncomeFrequencyRow } from "./_components/IncomeFrequencyRow";
 import { signOutAction, logOutEverywhereAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 import type { ThemePreferenceValue } from "@/lib/theme";
 import type { LocaleValue } from "@/lib/i18n/locale";
 import type { BudgetFrequency } from "@/lib/quincena-pace";
+import type { IncomeFrequency } from "@/app/generated/prisma/client";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
@@ -41,7 +43,15 @@ export default async function ProfilePage({
   const [user, gmailConnection, pastCycleCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, email: true, createdAt: true, theme: true, locale: true, budgetFrequency: true },
+      select: {
+        name: true,
+        email: true,
+        createdAt: true,
+        theme: true,
+        locale: true,
+        budgetFrequency: true,
+        payFrequency: true,
+      },
     }),
     prisma.gmailConnection.findUnique({
       where: { userId },
@@ -54,6 +64,7 @@ export default async function ProfilePage({
   const initialTheme = (user?.theme.toLowerCase() ?? "system") as ThemePreferenceValue;
   const initialLocale = (user?.locale.toLowerCase() ?? locale) as LocaleValue;
   const initialBudgetFrequency = (user?.budgetFrequency ?? "QUINCENAL") as BudgetFrequency;
+  const initialPayFrequency = (user?.payFrequency ?? "SEMIMONTHLY") as IncomeFrequency;
   const vocab = resolveVocab(t, initialBudgetFrequency);
 
   return (
@@ -101,6 +112,7 @@ export default async function ProfilePage({
         <ThemeRow initialTheme={initialTheme} />
         <LanguageRow initialLocale={initialLocale} />
         <BudgetFrequencyRow initialBudgetFrequency={initialBudgetFrequency} />
+        <IncomeFrequencyRow initialPayFrequency={initialPayFrequency} />
       </div>
 
       <p className="profile-section-label">{t.profile.account}</p>

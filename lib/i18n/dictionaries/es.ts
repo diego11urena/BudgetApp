@@ -46,6 +46,7 @@ export const es: Dictionary = {
     confirm: "Confirmar",
     close: "Cerrar",
     budgetFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
+    payFrequency: { monthly: "Una vez al mes", semimonthly: "Dos veces al mes", biweekly: "Cada dos semanas" },
     error: {
       appBody: "Tuvimos un problema al cargar esta página. Tus datos están seguros — intenta de nuevo.",
       rootBody: "Tuvimos un problema. Intenta de nuevo.",
@@ -168,7 +169,8 @@ export const es: Dictionary = {
         `Lo que realmente llega a tu cuenta cada ${vocab.noun} — después de que ya se descontaron impuestos u otras deducciones en otro lugar.`,
       saving: "Guardando...",
       continue: "Continuar",
-      cadenceLabel: "¿Cómo recibes tu pago?",
+      cadenceLabel: "¿Cómo quieres presupuestar?",
+      payCadenceLabel: "¿Con qué frecuencia te pagan?",
     },
     expenses: {
       metaTitle: "Cuentas",
@@ -602,7 +604,8 @@ export const es: Dictionary = {
     theme: "Tema",
     themeLabels: { system: "Sistema", light: "Claro", dark: "Oscuro" },
     language: "Idioma",
-    budgetFrequency: "Frecuencia de pago",
+    budgetFrequency: "Frecuencia de presupuesto",
+    payFrequency: "Frecuencia de pago",
     changePassword: {
       row: "Cambiar contraseña",
       title: "Cambiar contraseña",

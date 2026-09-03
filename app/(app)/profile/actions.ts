@@ -12,6 +12,7 @@ import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { THEME_COOKIE, THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
 import { LOCALE_COOKIE, isLocaleValue, getRequestLocale } from "@/lib/i18n/locale";
 import type { BudgetFrequency } from "@/lib/quincena-pace";
+import type { IncomeFrequency } from "@/app/generated/prisma/client";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
@@ -160,12 +161,38 @@ export const setBudgetFrequencyAction = withActionErrorHandling(async function s
 
   const raw = formData.get("budgetFrequency");
   if (typeof raw !== "string" || !BUDGET_FREQUENCY_VALUES.includes(raw as BudgetFrequency)) {
-    return { error: "Invalid pay frequency" };
+    return { error: "Invalid budget frequency" };
   }
 
   await prisma.user.update({
     where: { id: session.user.id },
     data: { budgetFrequency: raw as BudgetFrequency },
+  });
+});
+
+const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["MONTHLY", "SEMIMONTHLY", "BIWEEKLY"];
+
+/**
+ * Same no-cookie reasoning as setBudgetFrequencyAction -- purely
+ * descriptive (see User.payFrequency's own schema comment), never read
+ * pre-auth.
+ */
+export const setIncomeFrequencyAction = withActionErrorHandling(async function setIncomeFrequencyAction(
+  formData: FormData,
+): Promise<ActionResult | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const raw = formData.get("payFrequency");
+  if (typeof raw !== "string" || !PAY_FREQUENCY_VALUES.includes(raw as IncomeFrequency)) {
+    return { error: "Invalid pay frequency" };
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { payFrequency: raw as IncomeFrequency },
   });
 });
 

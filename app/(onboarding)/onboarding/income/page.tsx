@@ -27,12 +27,13 @@ export default async function IncomeStepPage() {
       where: { cycleId: state.cycle.id },
       include: { incomeSource: true },
     }),
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { budgetFrequency: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { budgetFrequency: true, payFrequency: true } }),
   ]);
 
   const initial = {
     netPayAmount: existingEntry?.incomeSource ? existingEntry.incomeSource.netPayAmount.toString() : undefined,
     budgetFrequency: user?.budgetFrequency ?? "QUINCENAL",
+    payFrequency: user?.payFrequency ?? "SEMIMONTHLY",
   };
   const vocab = resolveVocab(t, initial.budgetFrequency);
 
