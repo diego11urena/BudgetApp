@@ -17,21 +17,38 @@ function daysAgo(days: number): Date {
 }
 
 /**
- * Closing a quincena is the one significant, hard-to-undo action in the
- * app (unlike transaction/budget/goal delete, which have toast+Undo — a
- * true undo here would mean unwinding a whole new cycle plus anything
- * already logged in it, riskier than just confirming first). Uses the
- * same sheet visual language as the rest of the app rather than a native
- * confirm() dialog, which this product deliberately avoids.
+ * Closing a cycle is the one significant, hard-to-undo action in the app
+ * (unlike transaction/budget/goal delete, which have toast+Undo — a true
+ * undo here would mean unwinding a whole new cycle plus anything already
+ * logged in it, riskier than just confirming first). Uses the same sheet
+ * visual language as the rest of the app rather than a native confirm()
+ * dialog, which this product deliberately avoids.
+ *
+ * The copy props (title/body/etc.) default to the QUINCENAL "I just got
+ * paid" wording (t.closeQuincena.*) so every existing caller is
+ * unaffected -- MONTHLY's "Close this month" flow reuses this same sheet
+ * for its date step, but passes t.closeMonth.* instead, since that
+ * action means something different (never asks for a paycheck amount
+ * afterward) even though the UI is identical.
  */
 export function ConfirmJustGotPaidSheet({
   onConfirm,
   onCancel,
   returnFocusTo = null,
+  title,
+  body,
+  whenLabel,
+  confirmLabel,
+  cancelLabel,
 }: {
   onConfirm: (payDate: string) => void;
   onCancel: () => void;
   returnFocusTo?: HTMLElement | null;
+  title?: string;
+  body?: string;
+  whenLabel?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
 }) {
   const t = useT().dashboard;
   const vocab = useVocab();
@@ -85,17 +102,17 @@ export function ConfirmJustGotPaidSheet({
   return (
     <Sheet
       visible={visible}
-      title={t.closeQuincena.title(vocab)}
+      title={title ?? t.closeQuincena.title(vocab)}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!confirmed}
       returnFocusTo={returnFocusTo}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
-        {t.closeQuincena.body(vocab)}
+        {body ?? t.closeQuincena.body(vocab)}
       </p>
       <div className="field">
-        <label htmlFor={dateId}>{t.closeQuincena.whenPaid}</label>
+        <label htmlFor={dateId}>{whenLabel ?? t.closeQuincena.whenPaid}</label>
         <input
           id={dateId}
           type="date"
@@ -118,7 +135,7 @@ export function ConfirmJustGotPaidSheet({
         </p>
       )}
       <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
-        {t.closeQuincena.yes} <ArrowRight size={16} aria-hidden="true" />
+        {confirmLabel ?? t.closeQuincena.yes} <ArrowRight size={16} aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -126,7 +143,7 @@ export function ConfirmJustGotPaidSheet({
         onClick={handleCancel}
         disabled={confirmed}
       >
-        {t.closeQuincena.cancel}
+        {cancelLabel ?? t.closeQuincena.cancel}
       </button>
     </Sheet>
   );

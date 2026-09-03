@@ -154,8 +154,17 @@ export default async function DashboardPage() {
           .dashboard-section internally, rendered only alongside its
           button, never on its own (see its own doc comment for why an
           always-present empty one broke e2e's generic .dashboard-section
-          waits elsewhere on this page). */}
-      <PaydayOverdueBanner cycleEndDate={pace.cycleEnd} isOverdue={pace.phase === "ended"} budgetFrequency={budgetFrequency} />
+          waits elsewhere on this page).
+
+          isOverdue forced false for MONTHLY -- rollover is manual-only
+          there (no auto-detected nudge), via the explicit "Close this
+          month" button HeroCardActions' link variant already renders for
+          a MONTHLY account. */}
+      <PaydayOverdueBanner
+        cycleEndDate={pace.cycleEnd}
+        isOverdue={budgetFrequency !== "MONTHLY" && pace.phase === "ended"}
+        budgetFrequency={budgetFrequency}
+      />
 
       {/* A brand-new account otherwise has three half-empty cards below
           (no top category, no recent activity, no bills/goals paid-count)

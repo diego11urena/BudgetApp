@@ -281,6 +281,23 @@ export const es: Dictionary = {
       yes: "Sí, ya me pagaron",
       cancel: "Cancelar",
     },
+    closeMonth: {
+      button: "Cerrar este mes",
+      pending: "Cerrando mes...",
+      title: "¿Cerrar este mes?",
+      body: "Esto cierra definitivamente el mes actual y comienza uno nuevo. Las metas de presupuesto recurrentes y las contribuciones a metas se trasladan automáticamente. Los pagos que ya registraste este mes quedan finales.",
+      whenEnded: "¿Cuándo terminó el mes?",
+      yes: "Sí, cerrar este mes",
+      cancel: "Cancelar",
+    },
+    logPaycheck: {
+      title: "Registrar un pago",
+      body: "Agrega este pago al ingreso de tu mes actual — no cierra ni comienza un nuevo ciclo.",
+      dateLabel: "¿Cuándo te pagaron?",
+      pending: "Registrando...",
+      confirm: "Registrar pago",
+      cancel: "Cancelar",
+    },
     cycleClosed: {
       aria: (vocab) => `${capitalize(vocab.noun)} ${vocab.noun === "mes" ? "cerrado" : "cerrada"}`,
       title: (vocab) => `${capitalize(vocab.noun)} ${vocab.noun === "mes" ? "cerrado" : "cerrada"}`,

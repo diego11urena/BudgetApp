@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import { justGotPaidAction, type CycleClosedSummary } from "../actions";
+import { justGotPaidAction, rolloverMonthlyCycleAction, type CycleClosedSummary } from "../actions";
 import { CycleClosedCard } from "./CycleClosedCard";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
+import { LogPaycheckSheet } from "./LogPaycheckSheet";
 import { useToast } from "../../_components/ToastProvider";
 import { useSheet } from "../../_components/useSheet";
-import { useT, useVocab } from "@/app/_components/LocaleProvider";
+import { useT, useVocab, useBudgetFrequency } from "@/app/_components/LocaleProvider";
 
 /**
  * The one genuinely interactive slice of HeroCard -- the "I just got paid"
- * button and its three follow-on sheets. Split out so HeroCard itself can
+ * button(s) and their follow-on sheets. Split out so HeroCard itself can
  * be a server component: its label/value/pace text is pure display over
  * props the page already fetched server-side, with no client-only API
  * involved, so there's no reason it (and the client JS it'd otherwise drag
@@ -38,6 +39,15 @@ import { useT, useVocab } from "@/app/_components/LocaleProvider";
  * render. Keeping the component permanently mounted and only toggling the
  * trigger's visibility lets that local state survive the refresh, exactly
  * like the always-mounted "link" variant already does.
+ *
+ * MONTHLY budgets never auto-detect an overdue cycle (dashboard/page.tsx
+ * always passes showBanner={false} to the banner-variant mount for a
+ * MONTHLY account -- see PaydayOverdueBanner's caller), so the banner
+ * variant below is QUINCENAL-only in practice; the link variant is where
+ * MONTHLY's two explicit actions -- "I just got paid" (logs a paycheck
+ * additively, never closes) and "Close this month" (closes, never asks
+ * for a paycheck amount) -- both live, side by side, always available,
+ * matching the "manual only, no auto-nudge" design for MONTHLY rollover.
  */
 export function HeroCardActions({
   variant = "link",
@@ -50,24 +60,37 @@ export function HeroCardActions({
 }) {
   const t = useT().dashboard;
   const vocab = useVocab();
+  const budgetFrequency = useBudgetFrequency();
   const router = useRouter();
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
   const [showIncomePrompt, setShowIncomePrompt] = useState(false);
-  // Captured synchronously on click, before either modal mounts, and reused
-  // across all three — the trigger button gets disabled while pending, so a
+  // MONTHLY's "I just got paid" -- a separate, independent flow from the
+  // confirming/closedSummary state above, since logging a paycheck never
+  // closes anything (no CycleClosedCard, no income-prompt follow-up).
+  const [showLogPaycheck, setShowLogPaycheck] = useState(false);
+  // Captured synchronously on click, before any modal mounts, and reused
+  // across all of them — the trigger button gets disabled while pending, so a
   // modal that instead re-derives document.activeElement at its own mount
   // time (rather than being handed this directly) can end up capturing
   // <body> if that mount happens to land while the button is disabled.
   const { sheetProps, setTrigger } = useSheet();
 
+  const isMonthly = budgetFrequency === "MONTHLY";
+
   async function handleConfirmedJustGotPaid(payDate: string) {
     setConfirming(false);
     setPending(true);
     try {
-      const result = await justGotPaidAction(payDate);
+      // QUINCENAL: closes and seeds the new cycle's income from the
+      // account's IncomeSource, then prompts to confirm/correct that
+      // amount (see handleDismissSummary). MONTHLY's "Close this month"
+      // closes without touching income at all -- paychecks were already
+      // logged individually via logPaycheckAction, so there's nothing to
+      // seed or confirm.
+      const result = isMonthly ? await rolloverMonthlyCycleAction(payDate) : await justGotPaidAction(payDate);
       if ("error" in result) {
         showToast(result.error);
         return;
@@ -85,6 +108,13 @@ export function HeroCardActions({
   }
 
   function handleDismissSummary() {
+    if (isMonthly) {
+      // No income to confirm for a MONTHLY rollover -- go straight to
+      // finishing, mirroring handleFinishIncomePrompt's own cleanup below.
+      setClosedSummary(null);
+      router.refresh();
+      return;
+    }
     setShowIncomePrompt(true);
   }
 
@@ -93,6 +123,11 @@ export function HeroCardActions({
     setClosedSummary(null);
     // Catches confirmNewCycleIncomeAction's write too (NewCycleIncomeSheet,
     // the very last step of this flow).
+    router.refresh();
+  }
+
+  function handleFinishLogPaycheck() {
+    setShowLogPaycheck(false);
     router.refresh();
   }
 
@@ -123,6 +158,30 @@ export function HeroCardActions({
             </button>
           </div>
         )
+      ) : isMonthly ? (
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="hero-action-link"
+            onClick={(e) => {
+              setTrigger(e.currentTarget);
+              setShowLogPaycheck(true);
+            }}
+          >
+            {t.iJustGotPaid} <ArrowRight size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="hero-action-link"
+            onClick={(e) => {
+              setTrigger(e.currentTarget);
+              setConfirming(true);
+            }}
+            disabled={pending}
+          >
+            {pending ? t.closeMonth.pending : t.closeMonth.button}
+          </button>
+        </div>
       ) : (
         <button
           type="button"
@@ -144,7 +203,24 @@ export function HeroCardActions({
       )}
 
       {confirming && (
-        <ConfirmJustGotPaidSheet onConfirm={handleConfirmedJustGotPaid} onCancel={() => setConfirming(false)} {...sheetProps} />
+        <ConfirmJustGotPaidSheet
+          onConfirm={handleConfirmedJustGotPaid}
+          onCancel={() => setConfirming(false)}
+          {...(isMonthly
+            ? {
+                title: t.closeMonth.title,
+                body: t.closeMonth.body,
+                whenLabel: t.closeMonth.whenEnded,
+                confirmLabel: t.closeMonth.yes,
+                cancelLabel: t.closeMonth.cancel,
+              }
+            : {})}
+          {...sheetProps}
+        />
+      )}
+
+      {showLogPaycheck && (
+        <LogPaycheckSheet onDone={handleFinishLogPaycheck} onCancel={() => setShowLogPaycheck(false)} {...sheetProps} />
       )}
 
       {closedSummary && !showIncomePrompt && (

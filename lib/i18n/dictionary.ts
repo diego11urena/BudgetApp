@@ -282,6 +282,25 @@ export type Dictionary = {
       yes: string;
       cancel: string;
     };
+    /** MONTHLY-budget only: the explicit, manually-triggered rollover -- closes the current cycle and starts the next, but (unlike closeQuincena) never asks for a paycheck amount, since MONTHLY income is logged per-paycheck via logPaycheck instead. Reuses ConfirmJustGotPaidSheet's UI via its copy-override props, and CycleClosedCard unmodified. */
+    closeMonth: {
+      button: string;
+      pending: string;
+      title: string;
+      body: string;
+      whenEnded: string;
+      yes: string;
+      cancel: string;
+    };
+    /** MONTHLY-budget only: logs one paycheck into the currently-open cycle additively, without closing it -- the mechanism that lets a twice-monthly/biweekly paycheck accumulate into one MONTHLY budget cycle. Amount and date are collected together in one step (LogPaycheckSheet), unlike closeQuincena's two-step close-then-confirm-amount flow. */
+    logPaycheck: {
+      title: string;
+      body: string;
+      dateLabel: string;
+      pending: string;
+      confirm: string;
+      cancel: string;
+    };
     cycleClosed: {
       aria: (vocab: PeriodVocab) => string;
       title: (vocab: PeriodVocab) => string;

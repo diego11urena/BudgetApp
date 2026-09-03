@@ -276,6 +276,23 @@ export const en: Dictionary = {
       yes: "Yes, I got paid",
       cancel: "Cancel",
     },
+    closeMonth: {
+      button: "Close this month",
+      pending: "Closing month...",
+      title: "Close this month?",
+      body: "This closes the current month for good and starts a fresh one. Recurring budget targets and goal contributions carry forward automatically. Any paychecks you've already logged this month are final.",
+      whenEnded: "When did the month end?",
+      yes: "Yes, close this month",
+      cancel: "Cancel",
+    },
+    logPaycheck: {
+      title: "Log a paycheck",
+      body: "Add this paycheck to your current month's income — it won't close or start a new cycle.",
+      dateLabel: "When did you get paid?",
+      pending: "Logging...",
+      confirm: "Log paycheck",
+      cancel: "Cancel",
+    },
     cycleClosed: {
       aria: (vocab) => `${capitalize(vocab.noun)} closed`,
       title: (vocab) => `${capitalize(vocab.noun)} closed`,
