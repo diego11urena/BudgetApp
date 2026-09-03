@@ -100,6 +100,21 @@ export function LogPaycheckSheet({
       onClose={handleCancel}
       closeOnBackdropClick={!pending}
       returnFocusTo={returnFocusTo}
+      // Sheet's own default (true) auto-focuses the first focusable child
+      // -- the amount field -- the instant this mounts, which is *before*
+      // the slide-in transition even starts (useModalFocus's effect runs
+      // on this component's first commit, one render ahead of the rAF
+      // that flips `visible`/starts the CSS transition). That focus+the
+      // field's own onFocus (select-all) firing while the panel is still
+      // off-screen and animating is what produced a corrupted amount:
+      // Playwright's click, arriving only once the transform has
+      // stabilized ~300ms later, lands on an *already-focused* field and
+      // collapses the select-all to wherever it clicked instead of a
+      // clean caret-at-end, so the first few typed digits land mid-string
+      // instead of appending. False here defers focus to that first real
+      // click, same fix NeedsAttentionSheet already uses for its own
+      // first-child text field.
+      autoFocus={false}
     >
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
         {t.logPaycheck.body}
