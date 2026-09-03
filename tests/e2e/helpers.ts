@@ -14,9 +14,14 @@ import type { Locator, Page } from "@playwright/test";
  */
 export async function signUpAndOnboard(
   page: Page,
-  opts: { netQuincenaAmount?: string } = {},
+  opts: {
+    netQuincenaAmount?: string;
+    /** Defaults to QUINCENAL (every existing spec's own assumption) -- MONTHLY picks the onboarding income step's "Monthly" budget-cadence option before submitting, so the resulting account budgets in calendar months instead of quincenas. */
+    budgetFrequency?: "QUINCENAL" | "MONTHLY";
+  } = {},
 ): Promise<{ email: string }> {
   const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
+  const budgetFrequency = opts.budgetFrequency ?? "QUINCENAL";
 
   // The app defaults anonymous visitors AND brand-new signups to Spanish
   // (built for the Panama market -- see lib/i18n/locale.ts's
@@ -37,7 +42,14 @@ export async function signUpAndOnboard(
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/income/, { timeout: 60_000, waitUntil: "commit" });
 
-  await fillAmount(page.getByLabel("Net pay per quincena (USD)"), opts.netQuincenaAmount ?? "1000");
+  if (budgetFrequency === "MONTHLY") {
+    await page.click('button:has-text("Monthly")');
+  }
+  // The amount field's own label is cadence-aware ("Net pay per quincena
+  // (USD)" vs "Net pay per month (USD)") -- matching on the leading "Net
+  // pay per" fragment keeps this helper working for either cadence
+  // without needing to know which one was just picked above.
+  await fillAmount(page.getByLabel(/Net pay per/), opts.netQuincenaAmount ?? "1000");
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/expenses/, { timeout: 60_000, waitUntil: "commit" });
 
