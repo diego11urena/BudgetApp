@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import type { BudgetCycle } from "@/app/generated/prisma/client";
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import type { PeriodVocab, Dictionary } from "@/lib/i18n/dictionary";
@@ -28,6 +29,15 @@ export default function BreakdownScreenNew({
   t,
 }: BreakdownScreenNewProps) {
   const router = useRouter();
+
+  // Add incoming animation classes on mount.
+  useEffect(() => {
+    const root = document.documentElement;
+    // Remove the outgoing animation class if it exists.
+    root.classList.remove("takeover-out");
+    // Add incoming animations (wipe + fade in).
+    root.classList.add("takeover-wipe-in", "takeover-in");
+  }, []);
 
   return (
     <div className="breakdown-screen-v2">

@@ -42,10 +42,6 @@ export default function SummaryScreen({
 }: SummaryScreenProps) {
   const router = useRouter();
 
-  const handleNavigateToBreakdown = () => {
-    router.push(`/transactions/breakdown?cycle=${cycle.id}`);
-  };
-
   return (
     <div className="summary-screen">
       {/* Eyebrow + back chevron */}
@@ -76,7 +72,6 @@ export default function SummaryScreen({
       {/* Sparkline row (tappable) */}
       <SummarySparklineRow
         cycleId={cycle.id}
-        onTap={handleNavigateToBreakdown}
         vocab={vocab}
         t={t}
       />
@@ -92,8 +87,7 @@ export default function SummaryScreen({
 
       {/* CTA row */}
       <SummaryCta
-        onStartNextPeriod={() => router.push("/dashboard")}
-        onSeeFullBreakdown={handleNavigateToBreakdown}
+        cycleId={cycle.id}
         vocab={vocab}
         t={t}
       />

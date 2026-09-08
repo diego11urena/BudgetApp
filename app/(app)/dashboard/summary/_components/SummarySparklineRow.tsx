@@ -1,18 +1,17 @@
 "use client";
 
 import Sparkline from "@/app/(app)/_components/charts/Sparkline";
+import PageTransitionLink from "@/app/(app)/_components/PageTransitionLink";
 import type { PeriodVocab, Dictionary } from "@/lib/i18n/dictionary";
 
 interface SummarySparklineRowProps {
   cycleId: string;
-  onTap: () => void;
   vocab: PeriodVocab;
   t: Dictionary;
 }
 
 export default function SummarySparklineRow({
   cycleId,
-  onTap,
   vocab,
   t,
 }: SummarySparklineRowProps) {
@@ -20,12 +19,15 @@ export default function SummarySparklineRow({
   const samplePoints = [500, 550, 600, 575, 625, 594];
 
   return (
-    <button className="summary-sparkline-row" onClick={onTap}>
+    <PageTransitionLink
+      href={`/transactions/breakdown?cycle=${cycleId}`}
+      className="summary-sparkline-row"
+    >
       <div className="summary-sparkline-content">
         <Sparkline points={samplePoints} colorVar="--color-savings" />
         <span className="summary-sparkline-label">{t.summary.sparklineLabel(vocab, 6)}</span>
       </div>
       <span className="summary-sparkline-chevron">›</span>
-    </button>
+    </PageTransitionLink>
   );
 }
