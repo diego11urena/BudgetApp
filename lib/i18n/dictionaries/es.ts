@@ -355,7 +355,7 @@ export const es: Dictionary = {
   transactions: {
     metaTitle: "Actividad",
     title: "Actividad",
-    seeWhereItWent: "Ver a dónde fue",
+    seeWhereItWent: "Desglose",
     count: (n) => `${n} ${plural(n, "transacción", "transacciones")}`,
     noMatch: "Ninguna transacción coincide con tu búsqueda.",
     noneYet: "Aún no hay transacciones registradas.",
