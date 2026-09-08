@@ -138,6 +138,19 @@ export default async function CycleHistoryPage({
         />
       </div>
 
+      {closed && (
+        <div className="dashboard-section dashboard-section--plain">
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <Link href={`/dashboard/summary/${cycleId}`} className="hero-action-link">
+              {t.history.viewSummary}
+            </Link>
+            <Link href={`/transactions/breakdown?cycle=${cycleId}`} className="hero-action-link">
+              {t.history.viewBreakdown}
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="dashboard-section">
         <BudgetBreakdownCard
           baseIncome={financials.baseIncome}

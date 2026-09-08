@@ -599,6 +599,8 @@ export type Dictionary = {
     transactions: string;
     empty2: (vocab: PeriodVocab) => string;
     addToQuincena: (vocab: PeriodVocab) => string;
+    viewSummary: string;
+    viewBreakdown: string;
   };
 
   profile: {

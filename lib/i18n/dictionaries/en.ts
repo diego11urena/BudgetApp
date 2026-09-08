@@ -578,6 +578,8 @@ export const en: Dictionary = {
     transactions: "Transactions",
     empty2: (vocab) => `Nothing logged in ${vocab.thisPeriod}.`,
     addToQuincena: (vocab) => `Add to ${vocab.thisPeriod}`,
+    viewSummary: "View summary",
+    viewBreakdown: "Breakdown",
   },
 
   profile: {

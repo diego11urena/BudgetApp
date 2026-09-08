@@ -585,6 +585,8 @@ export const es: Dictionary = {
     transactions: "Transacciones",
     empty2: (vocab) => `Nada registrado en ${vocab.thisPeriod}.`,
     addToQuincena: (vocab) => `Agregar a ${vocab.thisPeriod}`,
+    viewSummary: "Ver resumen",
+    viewBreakdown: "Desglose",
   },
 
   profile: {
