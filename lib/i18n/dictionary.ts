@@ -8,33 +8,37 @@
  * or misuses a variable is a type error, not a silent runtime bug.
  */
 /**
- * The pay-cadence-aware vocabulary every "quincena"-containing dictionary
- * key will be parameterized with (see Dictionary.periodVocab below and the
- * Phase 11.5 copy sweep) -- rather than quadrupling the whole dictionary
- * (2 languages x 2 cadences), just this small slice of period-specific
- * words gets duplicated per cadence, and every other string interpolates
- * from it. English needs no grammatical care ("this quincena"/"this month"
- * takes no gender agreement); Spanish does -- "esta quincena" (feminine) vs
- * "este mes" (masculine) changes the article on every adjacent phrase, not
- * just the noun, so each Spanish field is written whole, not assembled
- * from noun + a shared article.
+ * The pay-cadence-aware vocabulary every period-referencing dictionary key
+ * is parameterized with (see Dictionary.periodVocab below and the Phase
+ * 11.5 copy sweep) -- rather than quadrupling the whole dictionary (2
+ * languages x 2 cadences), just this small slice of period-specific words
+ * gets duplicated per cadence, and every other string interpolates from
+ * it. English never borrows the Spanish "quincena"/"quincenal" -- it uses
+ * "paycheck"/"biweekly" (this app's own vocabulary decision: budgeting by
+ * paycheck, twice-monthly pay is colloquially "biweekly" in everyday
+ * English); Spanish keeps "quincena"/"quincenal", the actual local term.
+ * English also needs no grammatical care ("this paycheck"/"this month"
+ * takes no gender agreement); Spanish does -- "esta quincena" (feminine)
+ * vs "este mes" (masculine) changes the article on every adjacent phrase,
+ * not just the noun, so each Spanish field is written whole, not
+ * assembled from noun + a shared article.
  */
 export type PeriodVocab = {
-  /** "quincena" | "month" / "mes" */
+  /** "paycheck" / "quincena" | "month" / "mes" */
   noun: string;
-  /** "quincenas" | "months" / "meses" */
+  /** "paychecks" / "quincenas" | "months" / "meses" */
   nounPlural: string;
-  /** "this quincena" / "esta quincena" | "this month" / "este mes" */
+  /** "this paycheck" / "esta quincena" | "this month" / "este mes" */
   thisPeriod: string;
-  /** "next quincena" / "próxima quincena" | "next month" / "próximo mes" */
+  /** "next paycheck" / "próxima quincena" | "next month" / "próximo mes" */
   nextPeriod: string;
-  /** "last quincena" / "quincena pasada" | "last month" / "mes pasado" */
+  /** "last paycheck" / "quincena pasada" | "last month" / "mes pasado" */
   lastPeriod: string;
-  /** "current quincena" / "quincena actual" | "current month" / "mes actual" */
+  /** "current paycheck" / "quincena actual" | "current month" / "mes actual" */
   currentPeriodAdj: string;
-  /** "quincenal" | "monthly" / "mensual" */
+  /** "biweekly" / "quincenal" | "monthly" / "mensual" */
   adjective: string;
-  /** "every quincena" / "cada quincena" | "every month" / "cada mes" */
+  /** "every paycheck" / "cada quincena" | "every month" / "cada mes" */
   everyPeriod: string;
 };
 
@@ -658,6 +662,7 @@ export type Dictionary = {
       disconnect: string;
       syncing: string;
       on: string;
+      error: string;
       synced: (time: string, email: string) => string;
     };
     categories: {
@@ -763,6 +768,49 @@ export type Dictionary = {
     onTrackPace: string;
     savingsGoalClose: (amount: string, name: string) => string;
     goalContributionBehind: (vocab: PeriodVocab, planned: string, actual: string, name: string, days: number) => string;
+  };
+
+  summary: {
+    headline: (vocab: PeriodVocab, spent: string, leftOver: string) => string;
+    subcopyDelta: (vocab: PeriodVocab, amount: string) => string;
+    subcopyLightestSince: (vocab: PeriodVocab, month: string) => string;
+    statIncome: string;
+    statSpent: string;
+    statLeftOver: string;
+    sparklineLabel: (vocab: PeriodVocab, n: number) => string;
+    goalsEyebrow: string;
+    goalCompleted: (name: string) => string;
+    goalInProgress: (name: string, amount: string, pct: number, target: string) => string;
+    billsEyebrow: string;
+    billsPaidOnTime: (paid: number, total: number) => string;
+    billsLateTag: (n: number) => string;
+    uncategorizedWarning: (count: number, amount: string) => string;
+    fixAction: string;
+    ctaStart: (vocab: PeriodVocab) => string;
+    seeFullBreakdown: string;
+  };
+
+  breakdown: {
+    closedEyebrow: (dateRange: string) => string;
+    headingLive: (vocab: PeriodVocab, periodName: string) => string;
+    headingClosed: string;
+    sublineDay: (day: number, total: number) => string;
+    bannerLive: (vocab: PeriodVocab, day: number, total: number, spent: string, projected: string) => string;
+    bannerClosed: (spent: string, avg: string) => string;
+    chapter1Title: string;
+    chapter2Title: string;
+    chapter3Title: string;
+    chapter4Title: string;
+    noSpending: string;
+    viewAllN: (n: number) => string;
+    fixedShareRising: (vocab: PeriodVocab) => string;
+    fixedShareFalling: (vocab: PeriodVocab) => string;
+    fixedShareSteady: (vocab: PeriodVocab) => string;
+    fixedShareSubcopy: (oldPct: number, newPct: number) => string;
+    smallMultiplesCaptionOldest: (vocab: PeriodVocab, n: number) => string;
+    smallMultiplesCaptionNow: string;
+    prevCycleAria: string;
+    nextCycleAria: string;
   };
 
   validations: {

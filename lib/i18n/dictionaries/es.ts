@@ -46,7 +46,7 @@ export const es: Dictionary = {
     confirm: "Confirmar",
     close: "Cerrar",
     budgetFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
-    payFrequency: { monthly: "Una vez al mes", semimonthly: "Dos veces al mes / Quincenal" },
+    payFrequency: { monthly: "Una vez al mes", semimonthly: "Quincenal" },
     error: {
       appBody: "Tuvimos un problema al cargar esta página. Tus datos están seguros — intenta de nuevo.",
       rootBody: "Tuvimos un problema. Intenta de nuevo.",
@@ -648,6 +648,7 @@ export const es: Dictionary = {
       disconnect: "Desconectar",
       syncing: "Sincronizando…",
       on: "Activo",
+      error: "Error",
       synced: (time, email) => `Sincronizado ${time} · ${email}`,
     },
     categories: {
@@ -752,6 +753,60 @@ export const es: Dictionary = {
     savingsGoalClose: (amount, name) => `Te faltan ${amount} para alcanzar tu meta de ${name}.`,
     goalContributionBehind: (vocab, planned, actual, name, days) =>
       `Planeaste ${planned} para ${name} ${vocab.thisPeriod} — solo se ha registrado ${actual} hasta ahora, con ${days} ${plural(days, "día restante", "días restantes")}.`,
+  },
+
+  summary: {
+    headline: (vocab, spent, leftOver) =>
+      `Gastaste ${spent}, ${leftOver} restante.`,
+    subcopyDelta: (vocab, amount) =>
+      `${amount} menos que tus últimas tres ${vocab.nounPlural}`,
+    subcopyLightestSince: (vocab, month) =>
+      `la más baja desde ${month}`,
+    statIncome: "Ingreso",
+    statSpent: "Gastado",
+    statLeftOver: "Restante",
+    sparklineLabel: (vocab, n) =>
+      `Últimas ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
+    goalsEyebrow: "Metas",
+    goalCompleted: (name) => `${name} · completada ✓`,
+    goalInProgress: (name, amount, pct, target) =>
+      `${name} · +${amount} · ${pct.toFixed(0)}% de ${target}`,
+    billsEyebrow: "Cuentas",
+    billsPaidOnTime: (paid, total) =>
+      `${paid} de ${total} pagadas a tiempo`,
+    billsLateTag: (n) => `${n} ${n === 1 ? "atrasada" : "atrasadas"}`,
+    uncategorizedWarning: (count, amount) =>
+      `${count} ${count === 1 ? "transacción sin" : "transacciones sin"} categoría (${amount})`,
+    fixAction: "Arreglar",
+    ctaStart: (vocab) => `Comenzar ${vocab.nextPeriod}`,
+    seeFullBreakdown: "Ver desglose completo",
+  },
+
+  breakdown: {
+    closedEyebrow: (dateRange) => `${dateRange} · cerrada`,
+    headingLive: (vocab, periodName) => periodName,
+    headingClosed: "A dónde fue",
+    sublineDay: (day, total) => `Día ${day} de ${total}`,
+    bannerLive: (vocab, day, total, spent, projected) =>
+      `Día ${day} de ${total} · **${spent}** gastado · en camino a **${projected}**`,
+    bannerClosed: (spent, avg) =>
+      `Mismo punto en el ciclo anterior: **${spent}** vs tu **${avg}** promedio`,
+    chapter1Title: "Cuándo gastas",
+    chapter2Title: "La tendencia",
+    chapter3Title: "Fijo vs flexible, en el tiempo",
+    chapter4Title: "Por categoría",
+    noSpending: "Sin gastos",
+    viewAllN: (n) => `Ver las ${n}`,
+    fixedShareRising: (vocab) => `Tu gasto fijo está aumentando.`,
+    fixedShareFalling: (vocab) => `Tu gasto fijo está disminuyendo.`,
+    fixedShareSteady: (vocab) => `Tu gasto fijo se mantiene estable.`,
+    fixedShareSubcopy: (oldPct, newPct) =>
+      `${oldPct.toFixed(0)}% hace seis ${oldPct === 1 ? "período" : "períodos"}, ${newPct.toFixed(0)}% ahora`,
+    smallMultiplesCaptionOldest: (vocab, n) =>
+      `Hace ${n} ${vocab.nounPlural}`,
+    smallMultiplesCaptionNow: "Ahora",
+    prevCycleAria: "Ciclo anterior",
+    nextCycleAria: "Próximo ciclo",
   },
 
   validations: {

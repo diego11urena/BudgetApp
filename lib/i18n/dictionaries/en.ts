@@ -5,15 +5,18 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const en: Dictionary = {
   periodVocab: {
+    // English never borrows "quincena"/"quincenal" (that's Spanish, see
+    // es.ts's own copy of this block) -- "paycheck" and "biweekly" are the
+    // words this app consistently uses for it in English instead.
     quincenal: {
-      noun: "quincena",
-      nounPlural: "quincenas",
-      thisPeriod: "this quincena",
-      nextPeriod: "next quincena",
-      lastPeriod: "last quincena",
-      currentPeriodAdj: "current quincena",
-      adjective: "quincenal",
-      everyPeriod: "every quincena",
+      noun: "paycheck",
+      nounPlural: "paychecks",
+      thisPeriod: "this paycheck",
+      nextPeriod: "next paycheck",
+      lastPeriod: "last paycheck",
+      currentPeriodAdj: "current paycheck",
+      adjective: "biweekly",
+      everyPeriod: "every paycheck",
     },
     monthly: {
       noun: "month",
@@ -43,8 +46,8 @@ export const en: Dictionary = {
     optional: "Optional",
     confirm: "Confirm",
     close: "Close",
-    budgetFrequency: { quincenal: "Quincenal", monthly: "Monthly" },
-    payFrequency: { monthly: "Once a month", semimonthly: "Twice a month / Quincenal" },
+    budgetFrequency: { quincenal: "Biweekly", monthly: "Monthly" },
+    payFrequency: { monthly: "Once a month", semimonthly: "Biweekly" },
     error: {
       appBody: "We hit a snag loading this page. Your data is safe — try again.",
       rootBody: "We hit a snag. Try again.",
@@ -638,6 +641,7 @@ export const en: Dictionary = {
       disconnect: "Disconnect",
       syncing: "Syncing…",
       on: "On",
+      error: "Error",
       synced: (time, email) => `Synced ${time} · ${email}`,
     },
     categories: {
@@ -740,6 +744,60 @@ export const en: Dictionary = {
     savingsGoalClose: (amount, name) => `You're ${amount} away from hitting your ${name} target.`,
     goalContributionBehind: (vocab, planned, actual, name, days) =>
       `You planned ${planned} for ${name} ${vocab.thisPeriod} — only ${actual} logged so far, with ${days} ${plural(days, "day", "days")} left.`,
+  },
+
+  summary: {
+    headline: (vocab, spent, leftOver) =>
+      `You spent ${spent}, ${leftOver} left over.`,
+    subcopyDelta: (vocab, amount) =>
+      `${amount} less than your last three ${vocab.nounPlural}`,
+    subcopyLightestSince: (vocab, month) =>
+      `your lightest since ${month}`,
+    statIncome: "Income",
+    statSpent: "Spent",
+    statLeftOver: "Left over",
+    sparklineLabel: (vocab, n) =>
+      `Last ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
+    goalsEyebrow: "Goals",
+    goalCompleted: (name) => `${name} · completed ✓`,
+    goalInProgress: (name, amount, pct, target) =>
+      `${name} · +${amount} · ${pct.toFixed(0)}% of ${target}`,
+    billsEyebrow: "Bills",
+    billsPaidOnTime: (paid, total) =>
+      `${paid} of ${total} paid on time`,
+    billsLateTag: (n) => `${n} ${n === 1 ? "late" : "late"}`,
+    uncategorizedWarning: (count, amount) =>
+      `${count} ${count === 1 ? "transaction" : "transactions"} without a category (${amount})`,
+    fixAction: "Fix",
+    ctaStart: (vocab) => `Start ${vocab.nextPeriod}`,
+    seeFullBreakdown: "See full breakdown",
+  },
+
+  breakdown: {
+    closedEyebrow: (dateRange) => `${dateRange} · closed`,
+    headingLive: (vocab, periodName) => periodName,
+    headingClosed: "Where it went",
+    sublineDay: (day, total) => `Day ${day} of ${total}`,
+    bannerLive: (vocab, day, total, spent, projected) =>
+      `Day ${day} of ${total} · **${spent}** spent · on pace for **${projected}**`,
+    bannerClosed: (spent, avg) =>
+      `Same point last cycle: **${spent}** vs your **${avg}** average`,
+    chapter1Title: "When you spend",
+    chapter2Title: "The trend",
+    chapter3Title: "Fixed vs flexible, over time",
+    chapter4Title: "By category",
+    noSpending: "No spending",
+    viewAllN: (n) => `View all ${n}`,
+    fixedShareRising: (vocab) => `Your fixed share is rising.`,
+    fixedShareFalling: (vocab) => `Your fixed share is falling.`,
+    fixedShareSteady: (vocab) => `Your fixed share is holding steady.`,
+    fixedShareSubcopy: (oldPct, newPct) =>
+      `${oldPct.toFixed(0)}% six ${oldPct === 1 ? "period" : "periods"} ago, ${newPct.toFixed(0)}% now`,
+    smallMultiplesCaptionOldest: (vocab, n) =>
+      `${n} ${vocab.nounPlural} ago`,
+    smallMultiplesCaptionNow: "Now",
+    prevCycleAria: "Previous cycle",
+    nextCycleAria: "Next cycle",
   },
 
   validations: {
