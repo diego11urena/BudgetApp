@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import { justGotPaidAction, rolloverMonthlyCycleAction, type CycleClosedSummary } from "../actions";
-import { CycleClosedCard } from "./CycleClosedCard";
+import { justGotPaidAction, rolloverMonthlyCycleAction } from "../actions";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
 import { LogPaycheckSheet } from "./LogPaycheckSheet";
@@ -65,8 +64,6 @@ export function HeroCardActions({
   const { showToast } = useToast();
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [closedSummary, setClosedSummary] = useState<CycleClosedSummary | null>(null);
-  const [showIncomePrompt, setShowIncomePrompt] = useState(false);
   // MONTHLY's "I just got paid" -- a separate, independent flow from the
   // confirming/closedSummary state above, since logging a paycheck never
   // closes anything (no CycleClosedCard, no income-prompt follow-up).
@@ -85,45 +82,20 @@ export function HeroCardActions({
     setPending(true);
     try {
       // QUINCENAL: closes and seeds the new cycle's income from the
-      // account's IncomeSource, then prompts to confirm/correct that
-      // amount (see handleDismissSummary). MONTHLY's "Close this month"
-      // closes without touching income at all -- paychecks were already
-      // logged individually via logPaycheckAction, so there's nothing to
-      // seed or confirm.
+      // account's IncomeSource. MONTHLY's "Close this month" closes without
+      // touching income at all -- paychecks were already logged individually
+      // via logPaycheckAction, so there's nothing to seed or confirm.
       const result = isMonthly ? await rolloverMonthlyCycleAction(payDate) : await justGotPaidAction(payDate);
       if ("error" in result) {
         showToast(result.error);
         return;
       }
-      setClosedSummary(result);
-      // The new cycle exists in the DB now, even while CycleClosedCard's
-      // own overlay (built from this response, not a re-fetch) is still
-      // showing — refresh so the Home content underneath is already
-      // correct once the overlay dismisses, instead of relying only on
-      // revalidatePath.
+      // TODO: Route to Summary screen by including cycle ID in response
+      // For now, just refresh to show the updated dashboard state.
       router.refresh();
     } finally {
       setPending(false);
     }
-  }
-
-  function handleDismissSummary() {
-    if (isMonthly) {
-      // No income to confirm for a MONTHLY rollover -- go straight to
-      // finishing, mirroring handleFinishIncomePrompt's own cleanup below.
-      setClosedSummary(null);
-      router.refresh();
-      return;
-    }
-    setShowIncomePrompt(true);
-  }
-
-  function handleFinishIncomePrompt() {
-    setShowIncomePrompt(false);
-    setClosedSummary(null);
-    // Catches confirmNewCycleIncomeAction's write too (NewCycleIncomeSheet,
-    // the very last step of this flow).
-    router.refresh();
   }
 
   function handleFinishLogPaycheck() {
@@ -221,18 +193,6 @@ export function HeroCardActions({
 
       {showLogPaycheck && (
         <LogPaycheckSheet onDone={handleFinishLogPaycheck} onCancel={() => setShowLogPaycheck(false)} {...sheetProps} />
-      )}
-
-      {closedSummary && !showIncomePrompt && (
-        <CycleClosedCard summary={closedSummary} onDismiss={handleDismissSummary} {...sheetProps} />
-      )}
-
-      {closedSummary && showIncomePrompt && (
-        <NewCycleIncomeSheet
-          initialAmount={closedSummary.carriedIncomeAmount}
-          onDone={handleFinishIncomePrompt}
-          {...sheetProps}
-        />
       )}
     </>
   );
