@@ -519,6 +519,37 @@ export async function getAdjacentCycles(
   return { previous, next };
 }
 
+/**
+ * Like getAdjacentCycles but status-filtered to CLOSED only — for Breakdown's
+ * prev/next navigation, so "next" never lands on the open draft cycle.
+ */
+export async function getAdjacentClosedCycles(
+  userId: string,
+  cycle: Pick<BudgetCycle, "id" | "periodStart">,
+): Promise<{ previous: BudgetCycle | null; next: BudgetCycle | null }> {
+  const [previous, next] = await Promise.all([
+    prisma.budgetCycle.findFirst({
+      where: {
+        userId,
+        status: "CLOSED",
+        periodStart: { lt: cycle.periodStart },
+        id: { not: cycle.id },
+      },
+      orderBy: { periodStart: "desc" },
+    }),
+    prisma.budgetCycle.findFirst({
+      where: {
+        userId,
+        status: "CLOSED",
+        periodStart: { gt: cycle.periodStart },
+        id: { not: cycle.id },
+      },
+      orderBy: { periodStart: "asc" },
+    }),
+  ]);
+  return { previous, next };
+}
+
 export interface PayDateChangeAssessment {
   ok: true;
   /** False when the candidate date is identical to the cycle's current periodStart — a net-pay-only edit, nothing to reassign. */

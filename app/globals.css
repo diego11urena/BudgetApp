@@ -244,6 +244,21 @@
      lightness, and (in dark mode below) nearly indistinguishable from it.
      Now a warm taupe instead of a second cool gray. */
   --chart-other: #7a6a5c;
+
+  /* Summary + Breakdown chart colors — fixed semantic roles (Bills,
+     Discretionary, Goals) across chapters 02 and 03, distinct from
+     --chart-cat-N which are per-category identity colors in chapter 04. */
+  --chart-bills: #17395c;
+  --chart-discretionary: #2f8f8a;
+  --chart-goal: var(--color-savings);
+
+  /* Heatmap 5-step percentile buckets: 0 = no spend, 1-4 = 25th/50th/75th
+     percentile splits over non-zero days. */
+  --heatmap-0: #eef0f3;
+  --heatmap-1: #cfe0f2;
+  --heatmap-2: #9dc0e4;
+  --heatmap-3: #5b8fc9;
+  --heatmap-4: #17395c;
 }
 
 /* Full second theme, not a filter -- attribute-based (not
@@ -342,6 +357,21 @@
   /* Was #5f6975 -- effectively the same gray as --chart-remaining right
      next to it. Now a warm taupe instead. */
   --chart-other: #8a7a6a;
+
+  /* Summary + Breakdown chart colors — dark-mode equivalents of light-mode
+     tokens above (bills/discretionary/goals are the same mapping across
+     both themes per design spec; goals reuses --color-savings which already
+     has its own dark value). */
+  --chart-bills: #7fb3e8;
+  --chart-discretionary: #4fb3ad;
+  --chart-goal: var(--color-savings);
+
+  /* Heatmap 5-step percentile buckets — dark-mode scale. */
+  --heatmap-0: #243444;
+  --heatmap-1: #1e3552;
+  --heatmap-2: #2f5c8c;
+  --heatmap-3: #4a83c0;
+  --heatmap-4: #7fb3e8;
 
   /* Elevation is color, not shadow, in dark mode -- cards separate from
      the page via --color-card/--color-divider rather than a visible drop
@@ -1198,7 +1228,17 @@ button.line-item--link {
   appearance: none;
 }
 
-.banner--action > span:not(.banner-dot) {
+/* :not(.banner-action-label) too -- NeedsAttentionBanner's trailing
+   "Review" label is also a bare <span> (not an icon, unlike
+   HeroCardActions' own .banner--action), so it used to match this
+   selector as well. Its own flex-shrink: 0 below couldn't override that:
+   this selector (element + 2 :not() classes) beats a single class alone
+   on specificity, so the label was getting flex: 1 (grow/shrink/basis:0%)
+   right along with the message span -- splitting the row 50/50 instead of
+   the message filling the space and the label staying fixed-width on the
+   right, which pushed the message's own text into a too-narrow box and
+   made it wrap hard against the left edge. */
+.banner--action > span:not(.banner-dot):not(.banner-action-label) {
   flex: 1;
 }
 
@@ -1592,6 +1632,46 @@ button.line-item--link {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* Summary → Breakdown full-screen takeover transition */
+@keyframes takeover-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes takeover-wipe-in {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0%);
+  }
+}
+
+@keyframes takeover-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .takeover-out,
+  .takeover-in {
+    animation: fade 150ms ease !important;
+    transform: none !important;
+  }
+  .takeover-wipe-in {
+    animation: none !important;
+    clip-path: none !important;
   }
 }
 
@@ -3425,6 +3505,15 @@ button.line-item--link {
   background: var(--color-success);
 }
 
+.profile-gmail-status--error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.profile-gmail-status--error .profile-gmail-status-dot {
+  background: var(--color-error);
+}
+
 .profile-danger-row-title {
   color: var(--color-error);
   font-weight: 700;
@@ -4318,3 +4407,10 @@ button.line-item--link {
   font-weight: 700;
   text-decoration: none;
 }
+
+/* ===== Summary Screen ===== */
+/* Placeholder for Summary-specific classes — see plan for breakdown. */
+
+/* ===== Breakdown V2 (Heatmap, Trend, Fixed vs Flexible, By Category) ===== */
+/* Placeholder for Breakdown-specific classes — see plan for breakdown. */
+
