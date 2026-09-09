@@ -97,6 +97,20 @@ export function CurrencyInput({
         value={display}
         onChange={handleChange}
         onFocus={(e) => e.target.select()}
+        // Also on click, not just focus. onFocus fires only on the
+        // focus TRANSITION, so a field that's already focused -- any sheet
+        // whose amount input carries autoFocus, which is most of them --
+        // gets no select() when the user finally taps it. The tap then
+        // just drops a caret wherever it landed, and because every
+        // keystroke is re-parsed as "all the digits in this string",
+        // digits inserted mid-value silently multiply the amount:
+        // tapping the untouched "0.00" one character in and typing
+        // 1-5-0-0-0 yielded $10,050.00 instead of $150.00. Selecting here
+        // too makes a tap behave identically whether or not the field
+        // already had focus -- the invariant this widget's own doc comment
+        // above claims ("tapping anywhere in the field still behaves the
+        // same as tapping at the end") but couldn't keep.
+        onClick={(e) => e.currentTarget.select()}
         placeholder={placeholder}
         autoFocus={autoFocus}
         className={className}
