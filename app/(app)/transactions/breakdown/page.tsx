@@ -9,12 +9,27 @@ import {
   getUserBudgetFrequency,
 } from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
-import { computeLiveBanner, computeSameDayIndexAverage } from "@/lib/breakdown-v2";
+import {
+  computeCategoryRollingAverage,
+  computeDailySpendBuckets,
+  computeFixedShareTrend,
+  computeHeatmapPercentileBuckets,
+  computeLiveBanner,
+  computeSameDayIndexAverage,
+  computeTransactionsForDay,
+  computeTrendSeries,
+  pickDefaultSelectedDay,
+} from "@/lib/breakdown-v2";
 import { calendarDaysBetween, cycleEnd as resolveCycleEnd } from "@/lib/quincena-pace";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { formatCycleRangeLabel } from "@/lib/format";
 import BreakdownScreenNew from "./_components/BreakdownScreenNew";
+import type { DayTransaction } from "./_components/types";
 
 export const metadata: Metadata = { title: "Breakdown" };
+
+/** How many periods the trend/fixed-share chapters look back over. */
+const HISTORY_DEPTH = 6;
 
 /**
  * Two states off one route, exactly as the design handoff specifies:
@@ -53,9 +68,10 @@ export default async function BreakdownPage({
   }
   const state: "LIVE" | "CLOSED" = cycleIdParam ? "CLOSED" : "LIVE";
 
-  const [budgetFrequency, financials] = await Promise.all([
+  const [budgetFrequency, financials, closedCycles] = await Promise.all([
     getUserBudgetFrequency(userId),
     getCycleFinancials(cycle.id),
+    getClosedCycles(userId, HISTORY_DEPTH),
   ]);
 
   // A closed cycle has a real periodEnd; an open one is still calendar-derived
@@ -72,29 +88,80 @@ export default async function BreakdownPage({
 
   const banner = computeLiveBanner(financials.totalExpenses, dayIndex, totalDays);
 
+  // ---- Chapter 01: when you spend -------------------------------------
+  const dailyTotals = computeDailySpendBuckets(financials.transactions, cycle.periodStart, periodEnd);
+  const buckets = computeHeatmapPercentileBuckets(dailyTotals);
+  const todayLabel = formatCycleLabel(new Date());
+  const heatmapDays = dailyTotals.map((day) => {
+    const label = formatCycleLabel(day.date);
+    return {
+      date: label,
+      bucket: buckets.get(label) ?? (0 as const),
+      total: day.total,
+      // A live cycle's future days aren't "no spending", they haven't
+      // happened -- greyed out rather than rendered as a real zero.
+      disabled: state === "LIVE" && label > todayLabel,
+    };
+  });
+  const defaultSelected = pickDefaultSelectedDay(dailyTotals);
+  const selectedDayDefault = defaultSelected ? formatCycleLabel(defaultSelected) : null;
+  // Only the days that actually have something to show, so a 31-day cycle
+  // doesn't ship 31 empty arrays to the client.
+  const transactionsByDay: Record<string, DayTransaction[]> = {};
+  for (const day of dailyTotals) {
+    if (day.total === 0) continue;
+    const label = formatCycleLabel(day.date);
+    transactionsByDay[label] = computeTransactionsForDay(financials.transactions, day.date)
+      .filter((tx) => tx.type === "EXPENSE")
+      .map((tx) => ({
+        id: tx.id,
+        name: tx.name,
+        amount: tx.amount,
+        categoryName: tx.categoryName,
+        isBill: tx.recurringExpenseId !== null,
+      }));
+  }
+
+  // ---- Chapters 02-04: trailing history -------------------------------
+  // Oldest first, ending on the cycle being viewed, so every series reads
+  // left-to-right through time. The viewed cycle is excluded from the
+  // history half so it can't appear twice.
+  const history = closedCycles
+    .filter((c) => c.id !== cycle.id)
+    .map((c) => ({
+      financials: summarizeCycleFinancials(c.incomeEntries, c.transactions),
+      periodStart: c.periodStart,
+    }));
+  const seriesInput = [...history].reverse().concat([{ financials, periodStart: cycle.periodStart }]);
+
+  const trendSeries = computeTrendSeries(
+    seriesInput.map((c) => ({ financials: c.financials, periodLabel: formatCycleLabel(c.periodStart) })),
+  );
+  const fixedShare = computeFixedShareTrend(seriesInput);
+
+  // ---- Chapter 04: by category ----------------------------------------
+  // Rolling average wants most-recent-first; a category with no prior-period
+  // data gets null rather than a misleading 0 tick.
+  const categories = financials.categoryTotals.slice(0, 8).map((ct) => {
+    const rolling = history.length > 0 ? computeCategoryRollingAverage(ct.categoryId, history) : 0;
+    return {
+      categoryId: ct.categoryId,
+      categoryName: ct.categoryName,
+      categoryIcon: ct.categoryIcon,
+      amount: ct.amount,
+      rollingAverage: history.length > 0 && rolling > 0 ? rolling : null,
+    };
+  });
+
+  // ---- CLOSED-state comparison ----------------------------------------
   let prevCycleId: string | null = null;
   let nextCycleId: string | null = null;
   let comparisonAverage = 0;
-  let comparisonCycleCount = 0;
-
   if (state === "CLOSED") {
-    const [adjacent, closedCycles] = await Promise.all([
-      getAdjacentClosedCycles(userId, cycle),
-      getClosedCycles(userId, 5),
-    ]);
+    const adjacent = await getAdjacentClosedCycles(userId, cycle);
     prevCycleId = adjacent.previous?.id ?? null;
     nextCycleId = adjacent.next?.id ?? null;
-
-    // "Same point last cycle" only means anything against other cycles --
-    // this one is excluded from its own trailing average.
-    const others = closedCycles
-      .filter((c) => c.id !== cycle.id)
-      .map((c) => ({
-        financials: summarizeCycleFinancials(c.incomeEntries, c.transactions),
-        periodStart: c.periodStart,
-      }));
-    comparisonCycleCount = others.length;
-    comparisonAverage = computeSameDayIndexAverage(others, totalDays);
+    comparisonAverage = computeSameDayIndexAverage(history, totalDays);
   }
 
   return (
@@ -106,9 +173,16 @@ export default async function BreakdownPage({
       dayIndex={dayIndex}
       totalDays={totalDays}
       comparisonAverage={comparisonAverage}
-      comparisonCycleCount={comparisonCycleCount}
+      comparisonCycleCount={history.length}
       prevCycleId={prevCycleId}
       nextCycleId={nextCycleId}
+      heatmapDays={heatmapDays}
+      selectedDayDefault={selectedDayDefault}
+      transactionsByDay={transactionsByDay}
+      trendSeries={trendSeries}
+      fixedShare={fixedShare}
+      categories={categories}
+      historyCount={history.length}
     />
   );
 }

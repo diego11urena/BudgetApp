@@ -809,6 +809,10 @@ export const es: Dictionary = {
     smallMultiplesCaptionOldest: (vocab, n) =>
       `Hace ${n} ${vocab.nounPlural}`,
     smallMultiplesCaptionNow: "Ahora",
+    notEnoughHistory: (vocab) =>
+      `Aún no hay suficiente historial — esto se llena después de algunas ${vocab.nounPlural} más.`,
+    discretionaryLabel: "Todo lo demás",
+    categoryAverageTick: (amount) => `Tu promedio: ${amount}`,
     prevCycleAria: "Ciclo anterior",
     nextCycleAria: "Próximo ciclo",
   },

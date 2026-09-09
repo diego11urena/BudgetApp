@@ -800,6 +800,9 @@ export const en: Dictionary = {
     smallMultiplesCaptionOldest: (vocab, n) =>
       `${n} ${vocab.nounPlural} ago`,
     smallMultiplesCaptionNow: "Now",
+    notEnoughHistory: (vocab) => `Not enough history yet — this fills in after a few more ${vocab.nounPlural}.`,
+    discretionaryLabel: "Everything else",
+    categoryAverageTick: (amount) => `Your usual: ${amount}`,
     prevCycleAria: "Previous cycle",
     nextCycleAria: "Next cycle",
   },

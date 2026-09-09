@@ -1,4 +1,5 @@
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
+import { addDays, formatCycleLabel } from "./pay-date";
 
 /** Transaction classification for chapters 02 and 03. */
 export type TransactionCategory = "fixed" | "discretionary" | "goals";
@@ -65,20 +66,26 @@ export function computeDailySpendBuckets(
 
   for (const tx of transactions) {
     if (tx.type !== "EXPENSE") continue;
-    const day = tx.occurredAt.toISOString().split("T")[0];
+    const day = formatCycleLabel(tx.occurredAt);
     dayTotals.set(day, (dayTotals.get(day) ?? 0) + tx.amount);
   }
 
-  // Fill in all days in range, even zero-spend days.
+  // Fill in all days in range, even zero-spend days. Both the walk and the
+  // keys go through pay-date's Panama helpers, never toISOString()/setDate():
+  // this app's calendar day is America/Panama (UTC-5), so a 7pm purchase is
+  // already tomorrow in UTC and would land on the wrong heatmap cell -- the
+  // one thing this chapter exists to get right. See pay-date.ts's own
+  // addDays comment for why setDate() is wrong for the same reason.
   const result: DailySpend[] = [];
-  let current = new Date(periodStart);
-  while (current <= periodEnd) {
-    const day = current.toISOString().split("T")[0];
-    result.push({
-      date: new Date(current),
-      total: dayTotals.get(day) ?? 0,
-    });
-    current.setDate(current.getDate() + 1);
+  const endLabel = formatCycleLabel(periodEnd);
+  let current = periodStart;
+  // Bounded rather than `while (current <= periodEnd)`: a cycle whose end
+  // somehow precedes its start would otherwise spin forever.
+  for (let i = 0; i < 400; i++) {
+    const day = formatCycleLabel(current);
+    result.push({ date: current, total: dayTotals.get(day) ?? 0 });
+    if (day >= endLabel) break;
+    current = addDays(current, 1);
   }
 
   return result;
@@ -97,7 +104,7 @@ export function computeHeatmapPercentileBuckets(dailyTotals: DailySpend[]): Map<
   if (nonZeroAmounts.length === 0) {
     // All zero days → everyone gets bucket 0.
     for (const day of dailyTotals) {
-      result.set(day.date.toISOString().split("T")[0], 0);
+      result.set(formatCycleLabel(day.date), 0);
     }
     return result;
   }
@@ -108,16 +115,17 @@ export function computeHeatmapPercentileBuckets(dailyTotals: DailySpend[]): Map<
   const p75 = nonZeroAmounts[Math.floor(nonZeroAmounts.length * 0.75)];
 
   for (const day of dailyTotals) {
+    const key = formatCycleLabel(day.date);
     if (day.total === 0) {
-      result.set(day.date.toISOString().split("T")[0], 0);
+      result.set(key, 0);
     } else if (day.total <= p25) {
-      result.set(day.date.toISOString().split("T")[0], 1);
+      result.set(key, 1);
     } else if (day.total <= p50) {
-      result.set(day.date.toISOString().split("T")[0], 2);
+      result.set(key, 2);
     } else if (day.total <= p75) {
-      result.set(day.date.toISOString().split("T")[0], 3);
+      result.set(key, 3);
     } else {
-      result.set(day.date.toISOString().split("T")[0], 4);
+      result.set(key, 4);
     }
   }
 
@@ -145,8 +153,8 @@ export function pickDefaultSelectedDay(dailyTotals: DailySpend[]): Date | null {
  * Filter transactions to a specific calendar day.
  */
 export function computeTransactionsForDay(transactions: CycleTransactionSummary[], date: Date): CycleTransactionSummary[] {
-  const dayStr = date.toISOString().split("T")[0];
-  return transactions.filter((tx) => tx.occurredAt.toISOString().split("T")[0] === dayStr);
+  const dayStr = formatCycleLabel(date);
+  return transactions.filter((tx) => formatCycleLabel(tx.occurredAt) === dayStr);
 }
 
 /**

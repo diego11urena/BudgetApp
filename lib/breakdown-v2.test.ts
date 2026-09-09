@@ -10,6 +10,7 @@ import {
   computeCategoryRollingAverage,
   computeLiveBanner,
 } from "./breakdown-v2";
+import { formatCycleLabel } from "./pay-date";
 import type { CycleTransactionSummary, CycleFinancials } from "./cycle-financials";
 
 describe("breakdown-v2", () => {
@@ -53,54 +54,54 @@ describe("breakdown-v2", () => {
 
   describe("computeDailySpendBuckets", () => {
     it("sums EXPENSE transactions by date", () => {
-      const start = new Date("2026-08-01");
-      const end = new Date("2026-08-03");
+      const start = new Date("2026-08-01T05:00:00.000Z");
+      const end = new Date("2026-08-03T05:00:00.000Z");
 
       const transactions: CycleTransactionSummary[] = [
         {
           type: "EXPENSE",
           amount: 100,
-          occurredAt: new Date("2026-08-01T10:00:00"),
+          occurredAt: new Date("2026-08-01T15:00:00.000Z"),
         } as CycleTransactionSummary,
         {
           type: "EXPENSE",
           amount: 50,
-          occurredAt: new Date("2026-08-01T14:00:00"),
+          occurredAt: new Date("2026-08-01T19:00:00.000Z"),
         } as CycleTransactionSummary,
         {
           type: "EXPENSE",
           amount: 75,
-          occurredAt: new Date("2026-08-02T10:00:00"),
+          occurredAt: new Date("2026-08-02T15:00:00.000Z"),
         } as CycleTransactionSummary,
       ];
 
       const result = computeDailySpendBuckets(transactions, start, end);
 
       expect(result).toHaveLength(3);
-      expect(result[0]).toEqual({ date: new Date("2026-08-01"), total: 150 });
-      expect(result[1]).toEqual({ date: new Date("2026-08-02"), total: 75 });
-      expect(result[2]).toEqual({ date: new Date("2026-08-03"), total: 0 });
+      expect(result[0]).toEqual({ date: new Date("2026-08-01T05:00:00.000Z"), total: 150 });
+      expect(result[1]).toEqual({ date: new Date("2026-08-02T05:00:00.000Z"), total: 75 });
+      expect(result[2]).toEqual({ date: new Date("2026-08-03T05:00:00.000Z"), total: 0 });
     });
 
     it("ignores non-EXPENSE transactions", () => {
-      const start = new Date("2026-08-01");
-      const end = new Date("2026-08-02");
+      const start = new Date("2026-08-01T05:00:00.000Z");
+      const end = new Date("2026-08-02T05:00:00.000Z");
 
       const transactions: CycleTransactionSummary[] = [
         {
           type: "INCOME",
           amount: 1000,
-          occurredAt: new Date("2026-08-01T10:00:00"),
+          occurredAt: new Date("2026-08-01T15:00:00.000Z"),
         } as CycleTransactionSummary,
         {
           type: "SAVINGS",
           amount: 100,
-          occurredAt: new Date("2026-08-01T11:00:00"),
+          occurredAt: new Date("2026-08-01T16:00:00.000Z"),
         } as CycleTransactionSummary,
         {
           type: "EXPENSE",
           amount: 50,
-          occurredAt: new Date("2026-08-01T12:00:00"),
+          occurredAt: new Date("2026-08-01T17:00:00.000Z"),
         } as CycleTransactionSummary,
       ];
 
@@ -113,8 +114,8 @@ describe("breakdown-v2", () => {
   describe("computeHeatmapPercentileBuckets", () => {
     it("assigns zero-spend days to bucket 0", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01"), total: 0 },
-        { date: new Date("2026-08-02"), total: 0 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 0 },
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 0 },
       ];
 
       const result = computeHeatmapPercentileBuckets(dailyTotals);
@@ -125,11 +126,11 @@ describe("breakdown-v2", () => {
 
     it("splits non-zero days into buckets 1-4 via percentiles", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01"), total: 10 },
-        { date: new Date("2026-08-02"), total: 25 },
-        { date: new Date("2026-08-03"), total: 35 },
-        { date: new Date("2026-08-04"), total: 50 },
-        { date: new Date("2026-08-05"), total: 0 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 10 },
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 25 },
+        { date: new Date("2026-08-03T05:00:00.000Z"), total: 35 },
+        { date: new Date("2026-08-04T05:00:00.000Z"), total: 50 },
+        { date: new Date("2026-08-05T05:00:00.000Z"), total: 0 },
       ];
 
       const result = computeHeatmapPercentileBuckets(dailyTotals);
@@ -151,9 +152,9 @@ describe("breakdown-v2", () => {
   describe("pickDefaultSelectedDay", () => {
     it("returns highest-spend day", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01"), total: 100 },
-        { date: new Date("2026-08-02"), total: 300 },
-        { date: new Date("2026-08-03"), total: 200 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 100 },
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 300 },
+        { date: new Date("2026-08-03T05:00:00.000Z"), total: 200 },
       ];
 
       const result = pickDefaultSelectedDay(dailyTotals);
@@ -163,8 +164,8 @@ describe("breakdown-v2", () => {
 
     it("returns null when all days are zero", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01"), total: 0 },
-        { date: new Date("2026-08-02"), total: 0 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 0 },
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 0 },
       ];
 
       expect(pickDefaultSelectedDay(dailyTotals)).toBeNull();
@@ -172,9 +173,9 @@ describe("breakdown-v2", () => {
 
     it("ignores zero-spend days", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01"), total: 0 },
-        { date: new Date("2026-08-02"), total: 100 },
-        { date: new Date("2026-08-03"), total: 0 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 0 },
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 100 },
+        { date: new Date("2026-08-03T05:00:00.000Z"), total: 0 },
       ];
 
       const result = pickDefaultSelectedDay(dailyTotals);
@@ -188,19 +189,19 @@ describe("breakdown-v2", () => {
       const transactions: CycleTransactionSummary[] = [
         {
           id: "1",
-          occurredAt: new Date("2026-08-01T10:00:00"),
+          occurredAt: new Date("2026-08-01T15:00:00.000Z"),
         } as CycleTransactionSummary,
         {
           id: "2",
-          occurredAt: new Date("2026-08-01T15:00:00"),
+          occurredAt: new Date("2026-08-01T20:00:00.000Z"),
         } as CycleTransactionSummary,
         {
           id: "3",
-          occurredAt: new Date("2026-08-02T10:00:00"),
+          occurredAt: new Date("2026-08-02T15:00:00.000Z"),
         } as CycleTransactionSummary,
       ];
 
-      const result = computeTransactionsForDay(transactions, new Date("2026-08-01"));
+      const result = computeTransactionsForDay(transactions, new Date("2026-08-01T05:00:00.000Z"));
 
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe("1");
@@ -380,5 +381,58 @@ describe("breakdown-v2", () => {
 
       expect(result.projected).toBe(0);
     });
+  });
+});
+
+describe("Panama calendar days (not UTC)", () => {
+  // Panama is UTC-5 and never observes DST, so 19:00 Panama on the 10th is
+  // already 00:00 UTC on the 11th. Bucketing on toISOString() puts that
+  // purchase on the wrong heatmap cell -- the single thing chapter 01 is
+  // about. Every assertion below fails if this file goes back to UTC days.
+  const tx = (iso: string, amount: number): CycleTransactionSummary =>
+    ({
+      id: iso,
+      type: "EXPENSE",
+      name: "Test",
+      amount,
+      occurredAt: new Date(iso),
+      expenseCategoryId: null,
+      expenseCategoryName: null,
+      expenseCategoryIcon: null,
+      recurringExpenseId: null,
+    }) as unknown as CycleTransactionSummary;
+
+  it("counts a late-evening Panama purchase on the day it happened locally", () => {
+    // 19:30 Panama on Aug 10 == 00:30 UTC Aug 11.
+    const evening = tx("2026-08-11T00:30:00.000Z", 40);
+    const days = computeDailySpendBuckets([evening], new Date("2026-08-10T05:00:00.000Z"), new Date("2026-08-12T05:00:00.000Z"));
+
+    const aug10 = days.find((d) => formatCycleLabel(d.date) === "2026-08-10");
+    const aug11 = days.find((d) => formatCycleLabel(d.date) === "2026-08-11");
+    expect(aug10?.total).toBe(40);
+    expect(aug11?.total).toBe(0);
+  });
+
+  it("walks a whole cycle without dropping or duplicating a day", () => {
+    const days = computeDailySpendBuckets([], new Date("2026-08-01T05:00:00.000Z"), new Date("2026-08-15T05:00:00.000Z"));
+    const labels = days.map((d) => formatCycleLabel(d.date));
+    expect(labels).toHaveLength(15);
+    expect(labels[0]).toBe("2026-08-01");
+    expect(labels[14]).toBe("2026-08-15");
+    expect(new Set(labels).size).toBe(15);
+  });
+
+  it("filters a day's transactions by the Panama date, not the UTC one", () => {
+    const evening = tx("2026-08-11T00:30:00.000Z", 40);
+    expect(computeTransactionsForDay([evening], new Date("2026-08-10T12:00:00.000Z"))).toHaveLength(1);
+    expect(computeTransactionsForDay([evening], new Date("2026-08-11T12:00:00.000Z"))).toHaveLength(0);
+  });
+
+  it("keys heatmap buckets by the Panama day", () => {
+    const evening = tx("2026-08-11T00:30:00.000Z", 40);
+    const days = computeDailySpendBuckets([evening], new Date("2026-08-10T05:00:00.000Z"), new Date("2026-08-11T05:00:00.000Z"));
+    const buckets = computeHeatmapPercentileBuckets(days);
+    expect(buckets.get("2026-08-10")).toBeGreaterThan(0);
+    expect(buckets.get("2026-08-11")).toBe(0);
   });
 });

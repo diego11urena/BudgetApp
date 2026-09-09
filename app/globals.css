@@ -4935,3 +4935,224 @@ button.line-item--link {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
 }
+
+/* ----- Chapter 01: the selected day's own transactions ----- */
+.breakdown-day-detail {
+  margin-top: 1rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.breakdown-day-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.breakdown-day-detail-total {
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-day-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.breakdown-day-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name amount" "meta amount";
+  gap: 0 0.75rem;
+  align-items: baseline;
+  font-size: 0.875rem;
+}
+
+.breakdown-day-row-name {
+  grid-area: name;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.breakdown-day-row-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--chart-bills);
+  background: var(--color-bg-secondary);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  flex-shrink: 0;
+}
+
+.breakdown-day-row-meta {
+  grid-area: meta;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.breakdown-day-row-amount {
+  grid-area: amount;
+  align-self: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ----- Chapter 02/03 shared: legends and captions ----- */
+.breakdown-legend,
+.small-multiples-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.625rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.breakdown-legend-item,
+.small-multiples-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.breakdown-legend-swatch,
+.small-multiples-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.breakdown-chapter-headline {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.breakdown-chapter-subcopy {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.875rem;
+}
+
+.breakdown-small-multiples-captions,
+.small-multiples-captions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* ----- Chapter 03: small multiples ----- */
+.small-multiples,
+.small-multiples-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  width: 100%;
+}
+
+.small-multiples {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.small-multiples-bar {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column-reverse; /* bills at the base, goals on top */
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+}
+
+.small-multiples-segment {
+  width: 100%;
+}
+
+.small-multiples-caption-start,
+.small-multiples-caption-end {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* ----- Chapter 04: category bars with an average tick ----- */
+.breakdown-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  list-style: none;
+}
+
+.breakdown-category-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.75rem;
+}
+
+.breakdown-category-label {
+  font-size: 0.875rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breakdown-category-amount {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.breakdown-category-track {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.breakdown-category-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--chart-discretionary);
+}
+
+/* The trailing-period average, drawn ON the track so "more than usual" is
+   readable at a glance. overflow:hidden on the track clips it at 100%,
+   which is why the chapter scales its bars against the tick too. */
+.breakdown-category-tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--color-text-primary);
+  opacity: 0.55;
+  transform: translateX(-1px);
+}
+
+/* Endpoint markers on the trend chart (see TrendAreaChart). */
+.trend-endpoint-closed {
+  fill: var(--color-text-primary);
+}
+
+.trend-endpoint-pulse {
+  fill: var(--chart-discretionary);
+}

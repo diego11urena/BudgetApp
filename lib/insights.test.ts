@@ -672,7 +672,7 @@ describe("generateInsights", () => {
       );
       const match = insights.find((i) => i.text.includes("planned"));
       expect(match?.text).toBe(
-        "You planned $200.00 for Emergency fund this quincena — only $0.00 logged so far, with 4 days left.",
+        "You planned $200.00 for Emergency fund this paycheck — only $0.00 logged so far, with 4 days left.",
       );
       expect(match?.href).toBe("/plan");
     });

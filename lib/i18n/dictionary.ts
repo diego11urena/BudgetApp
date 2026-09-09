@@ -814,6 +814,12 @@ export type Dictionary = {
     fixedShareSubcopy: (oldPct: number, newPct: number) => string;
     smallMultiplesCaptionOldest: (vocab: PeriodVocab, n: number) => string;
     smallMultiplesCaptionNow: string;
+    /** Shown by chapters 02/03 when fewer than two periods exist to compare -- see the plan's insufficient-history degradation. */
+    notEnoughHistory: (vocab: PeriodVocab) => string;
+    /** Chapter 02's legend label for the non-bills half of spending. */
+    discretionaryLabel: string;
+    /** Chapter 04's average-tick tooltip. */
+    categoryAverageTick: (amount: string) => string;
     prevCycleAria: string;
     nextCycleAria: string;
   };
