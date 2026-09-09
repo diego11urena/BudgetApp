@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard } from "./helpers";
+import { signUpAndOnboard, dismissCycleSummary } from "./helpers";
 
 function daysAgoISO(n: number): string {
   const d = new Date();
@@ -40,8 +40,7 @@ test.describe("payday-overdue banner", () => {
     await banner.click();
     await page.waitForSelector('button:has-text("Yes, I got paid")');
     await page.click('button:has-text("Yes, I got paid")');
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
 
     // The new cycle starts today -- nowhere near overdue anymore.
     await expect(page.getByRole("button", { name: /did you get paid/i })).toHaveCount(0);

@@ -36,6 +36,8 @@ const ROLLOVER_MONTH_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 const LOG_PAYCHECK_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
 export interface CycleClosedSummary {
+  /** The cycle that just closed -- what HeroCardActions routes to (/dashboard/summary/{id}) once the close succeeds. */
+  closedCycleId: string;
   spent: number;
   saved: number;
   /** Income minus expenses minus savings — what's left from that cycle. */
@@ -87,6 +89,7 @@ async function buildCycleClosedSummary(
   const streak = computeStreak([closedCycleFinancials, ...olderClosedFinancials]);
 
   return {
+    closedCycleId: closedCycle.id,
     spent: closedCycleFinancials.totalExpenses,
     saved: closedCycleFinancials.totalSavings,
     rolledOver: closedCycleFinancials.amountLeft,

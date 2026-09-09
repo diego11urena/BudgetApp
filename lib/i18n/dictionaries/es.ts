@@ -274,6 +274,8 @@ export const es: Dictionary = {
     top6Badge: "Top 6",
     tapToLogFirst: "Toca el botón + de abajo para registrar tu primera transacción.",
     whereItsGoing: "A dónde va",
+    breakdownTeaserTitle: "Desglose",
+    breakdownTeaserBody: (vocab) => `Mira cuándo y en qué se fue tu dinero ${vocab.thisPeriod}.`,
     recent: "Recientes",
     seeAll: "Ver todo",
     closeQuincena: {
@@ -786,13 +788,13 @@ export const es: Dictionary = {
 
   breakdown: {
     closedEyebrow: (dateRange) => `${dateRange} · cerrada`,
-    headingLive: (vocab, periodName) => periodName,
+    headingLive: (vocab, periodName) => capitalize(periodName),
     headingClosed: "A dónde fue",
     sublineDay: (day, total) => `Día ${day} de ${total}`,
     bannerLive: (vocab, day, total, spent, projected) =>
-      `Día ${day} de ${total} · **${spent}** gastado · en camino a **${projected}**`,
+      `Día ${day} de ${total} · ${spent} gastado · en camino a ${projected}`,
     bannerClosed: (spent, avg) =>
-      `Mismo punto en el ciclo anterior: **${spent}** vs tu **${avg}** promedio`,
+      `Mismo punto en el ciclo anterior: ${spent} vs tu ${avg} promedio`,
     chapter1Title: "Cuándo gastas",
     chapter2Title: "La tendencia",
     chapter3Title: "Fijo vs flexible, en el tiempo",

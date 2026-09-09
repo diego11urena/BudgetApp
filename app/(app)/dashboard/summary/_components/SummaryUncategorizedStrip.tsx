@@ -1,28 +1,26 @@
-import type { CycleFinancials } from "@/lib/cycle-financials";
+import Link from "next/link";
+import type { UncategorizedWarning } from "@/lib/summary";
 import type { Dictionary } from "@/lib/i18n/dictionary";
-import { computeUncategorizedWarning } from "@/lib/summary";
+import { formatCurrency } from "@/lib/format";
 
-interface SummaryUncategorizedStripProps {
-  financials: CycleFinancials;
-  t: Dictionary;
-}
-
+/**
+ * The amber "n transactions still need a category" strip. The fix
+ * affordance is a real Link to Activity (where categorizing actually
+ * happens) rather than a bare <button> with no handler.
+ */
 export default function SummaryUncategorizedStrip({
-  financials,
+  warning,
   t,
-}: SummaryUncategorizedStripProps) {
-  const warning = computeUncategorizedWarning(financials);
-
-  if (!warning) {
-    return null;
-  }
-
+}: {
+  warning: UncategorizedWarning;
+  t: Dictionary;
+}) {
   return (
     <div className="summary-uncategorized-strip">
-      <span>
-        {t.summary.uncategorizedWarning(warning.count, `$${warning.totalAmount.toFixed(2)}`)}
-      </span>
-      <button className="summary-uncategorized-fix">{t.summary.fixAction}</button>
+      <span>{t.summary.uncategorizedWarning(warning.count, formatCurrency(warning.totalAmount))}</span>
+      <Link href="/transactions" className="summary-uncategorized-fix">
+        {t.summary.fixAction}
+      </Link>
     </div>
   );
 }

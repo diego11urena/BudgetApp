@@ -220,7 +220,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="dashboard-section dashboard-section--plain">
-        <BreakdownTeaser t={t} />
+        <BreakdownTeaser t={t} vocab={resolveVocab(t, budgetFrequency)} />
       </div>
 
       <div className="dashboard-section">

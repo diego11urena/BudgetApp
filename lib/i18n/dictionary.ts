@@ -283,6 +283,9 @@ export type Dictionary = {
     top6Badge: string;
     tapToLogFirst: string;
     whereItsGoing: string;
+    /** BreakdownTeaser's own card on Home -- the LIVE Breakdown screen's only entry point. */
+    breakdownTeaserTitle: string;
+    breakdownTeaserBody: (vocab: PeriodVocab) => string;
     recent: string;
     seeAll: string;
     closeQuincena: {

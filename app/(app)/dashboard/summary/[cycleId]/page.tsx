@@ -1,66 +1,75 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getCycleFinancials } from "@/lib/cycle-financials";
-import { getAdjacentClosedCycles, getUserBudgetFrequency } from "@/lib/cycles";
 import { prisma } from "@/lib/prisma";
-import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
-import { getRequestLocale } from "@/lib/i18n/locale";
-import { formatCycleLabel } from "@/lib/pay-date";
+import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
+import { getClosedCycles, getUserBudgetFrequency, formatCycleRangeText } from "@/lib/cycles";
+import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getGoalsWithProgress } from "@/lib/goals";
+import { computeUncategorizedWarning } from "@/lib/summary";
 import SummaryScreen from "../_components/SummaryScreen";
 
-export async function generateMetadata({ params }: { params: Promise<{ cycleId: string }> }) {
-  const { cycleId } = await params;
-  return { title: "Summary" };
-}
+export const metadata: Metadata = { title: "Summary" };
 
+/**
+ * The end-of-cycle Summary, reached after closing a cycle and from
+ * History's cycle detail. Closed cycles only -- a still-open one has no
+ * "here's how it went" story to tell yet.
+ *
+ * Like the Breakdown page, nothing here hands the Dictionary itself to the
+ * client tree: SummaryScreen is "use client" and reads it from
+ * LocaleProvider instead (see that file's doc comment -- templated strings
+ * are functions, which React can't serialize across the boundary).
+ */
 export default async function SummaryPage({ params }: { params: Promise<{ cycleId: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return redirect("/login");
+    redirect("/login");
   }
-
-  const { cycleId } = await params;
   const userId = session.user.id;
+  const { cycleId } = await params;
 
-  // Fetch the closed cycle.
-  const cycle = await prisma.budgetCycle.findUnique({
-    where: { id: cycleId },
+  // Ownership + CLOSED status enforced in the query itself.
+  const cycle = await prisma.budgetCycle.findFirst({
+    where: { id: cycleId, userId, status: "CLOSED" },
   });
-
-  if (!cycle || cycle.userId !== userId || cycle.status !== "CLOSED") {
-    return notFound();
+  if (!cycle) {
+    notFound();
   }
 
-  // Fetch financials and metadata.
-  const budgetFrequency = await getUserBudgetFrequency(userId);
-  const financials = await getCycleFinancials(cycleId);
-  const { previous: prevCycle, next: nextCycle } = await getAdjacentClosedCycles(userId, cycle);
+  const [budgetFrequency, financials, goalsWithProgress, recurringExpenseCategories, closedCycles] = await Promise.all([
+    getUserBudgetFrequency(userId),
+    getCycleFinancials(cycle.id),
+    getGoalsWithProgress(userId, cycle.id),
+    getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
+    getClosedCycles(userId, 6),
+  ]);
 
-  // Fetch goals with progress for this cycle.
-  const goalsWithProgress = await getGoalsWithProgress(userId, cycleId);
+  // A bill still unpaid when the cycle closed counts as late -- the
+  // confirmed rule for this screen (it's in both the total and the late
+  // tally, never silently dropped).
+  const bills = summarizeRecurringExpenses(recurringExpenseCategories);
+  const billsLateCount = Math.max(bills.totalCount - bills.paidCount, 0);
 
-  // Dictionaries and vocab.
-  const locale = await getRequestLocale();
-  const t = getDictionary(locale);
-  const vocab = resolveVocab(t, budgetFrequency);
-
-  // Format cycle labels for display.
-  const cycleLabel = formatCycleLabel(cycle.periodStart);
-  const cycleRangeText = `${new Date(cycle.periodStart).toLocaleDateString()} – ${cycle.periodEnd?.toLocaleDateString() ?? ""}`.trim();
+  // Oldest-first, so the sparkline reads left-to-right through time and
+  // ends on this cycle. Whatever history exists is what gets drawn -- a
+  // brand-new account with one closed cycle gets a single dot, not a
+  // fabricated trend.
+  const sparklinePoints = [...closedCycles]
+    .reverse()
+    .map((c) => summarizeCycleFinancials(c.incomeEntries, c.transactions).totalExpenses);
 
   return (
     <SummaryScreen
-      cycle={cycle}
-      cycleLabel={cycleLabel}
-      cycleRangeText={cycleRangeText}
-      budgetFrequency={budgetFrequency}
+      cycleId={cycle.id}
+      cycleRangeText={formatCycleRangeText(cycle, {}, budgetFrequency)}
       financials={financials}
       goalsWithProgress={goalsWithProgress}
-      prevCycle={prevCycle}
-      nextCycle={nextCycle}
-      vocab={vocab}
-      t={t}
+      billsPaidCount={bills.paidCount}
+      billsTotalCount={bills.totalCount}
+      billsLateCount={billsLateCount}
+      sparklinePoints={sparklinePoints}
+      uncategorized={computeUncategorizedWarning(financials)}
     />
   );
 }

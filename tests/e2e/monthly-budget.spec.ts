@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, fillAmount } from "./helpers";
+import { signUpAndOnboard, fillAmount, dismissCycleSummary } from "./helpers";
 
 /**
  * The acceptance-criteria scenario for the pay-frequency/budget-frequency
@@ -60,10 +60,7 @@ test.describe("MONTHLY budget cadence", () => {
     await expect(page.getByText("Close this month?")).toBeVisible();
     await page.click('button:has-text("Yes, close this month")');
 
-    await expect(page.getByText("Month closed")).toBeVisible();
-    // No "How much did you get paid?" prompt for MONTHLY -- dismissing the
-    // closed-cycle summary goes straight back to the dashboard.
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
     await expect(page.getByText("How much did you get paid?")).toHaveCount(0);
     // Same router.refresh()-lands-async gap as after logging a paycheck
     // above -- give it a chance to complete before re-opening "Edit".

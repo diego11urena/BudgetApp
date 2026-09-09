@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory, fillAmount } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory, fillAmount, dismissCycleSummary } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text — every sheet in this app follows this convention, and several buttons across sheets share text ("Save", "Cancel"), so this scopes to whichever sheet is currently open. */
 async function clickSheetButton(page: import("@playwright/test").Page, text: string) {
@@ -208,8 +208,7 @@ test.describe("managing categories", () => {
     await page.click('button:has-text("I just got paid")');
     await page.getByLabel("When did you get paid?").waitFor();
     await page.click('button:has-text("Yes, I got paid")');
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
 
     await page.goto("/profile/categories");
     const row = page.locator(".category-row", { hasText: "Subscriptions" });
@@ -218,7 +217,7 @@ test.describe("managing categories", () => {
     await page.waitForSelector('button:has-text("Delete category")');
     await clickSheetButton(page, "Delete category");
 
-    await expect(page.getByText(/recurring-expense history from past quincenas/)).toBeVisible();
+    await expect(page.getByText(/recurring-expense history from past paychecks/)).toBeVisible();
     // Blocked -- the category is still there.
     await expect(page.locator(".sheet-backdrop")).toBeVisible();
     await page.click('button:has-text("Cancel")');

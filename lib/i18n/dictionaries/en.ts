@@ -272,6 +272,8 @@ export const en: Dictionary = {
     top6Badge: "Top 6",
     tapToLogFirst: "Tap the + button below to log your first transaction.",
     whereItsGoing: "Where it's going",
+    breakdownTeaserTitle: "Breakdown",
+    breakdownTeaserBody: (vocab) => `See when and where your money went ${vocab.thisPeriod}.`,
     recent: "Recent",
     seeAll: "See all",
     closeQuincena: {
@@ -777,13 +779,13 @@ export const en: Dictionary = {
 
   breakdown: {
     closedEyebrow: (dateRange) => `${dateRange} · closed`,
-    headingLive: (vocab, periodName) => periodName,
+    headingLive: (vocab, periodName) => capitalize(periodName),
     headingClosed: "Where it went",
     sublineDay: (day, total) => `Day ${day} of ${total}`,
     bannerLive: (vocab, day, total, spent, projected) =>
-      `Day ${day} of ${total} · **${spent}** spent · on pace for **${projected}**`,
+      `Day ${day} of ${total} · ${spent} spent · on pace for ${projected}`,
     bannerClosed: (spent, avg) =>
-      `Same point last cycle: **${spent}** vs your **${avg}** average`,
+      `Same point last cycle: ${spent} vs your ${avg} average`,
     chapter1Title: "When you spend",
     chapter2Title: "The trend",
     chapter3Title: "Fixed vs flexible, over time",

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 
 test.describe("closing a quincena", () => {
-  test("'I just got paid' closes the cycle, shows a summary, and starts a fresh one", async ({
+  test("'I just got paid' closes the cycle, lands on Summary, and starts a fresh one", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
@@ -13,21 +13,22 @@ test.describe("closing a quincena", () => {
     await page.waitForSelector('button:has-text("Yes, I got paid")');
     await page.click('button:has-text("Yes, I got paid")');
 
-    // The closed-cycle summary overlay -- scoped to .cycle-closed-card,
-    // not a bare page.getByText("Spent"): Home's own StatGrid has a
-    // "Spent" stat tile label too, and the overlay still sits in the DOM
-    // on top of it at this point.
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await expect(page.locator(".cycle-closed-card").getByText("Spent")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    // The redesign replaced the old CycleClosedCard overlay with a real
+    // Summary page for the cycle that just closed -- see
+    // app/(app)/dashboard/summary/[cycleId]/page.tsx and the closedCycleId
+    // that justGotPaidAction now returns for exactly this navigation.
+    await page.waitForURL(/\/dashboard\/summary\/[a-z0-9]+/, { timeout: 60_000, waitUntil: "commit" });
+    await expect(page.locator(".summary-screen")).toBeVisible();
+    await expect(page.locator(".summary-stat-row")).toContainText("Spent");
 
-    // Back on Home, in a fresh cycle with the same recurring income
-    // carried forward and a full runway again. Not asserting the exact day
-    // count here — a brand-new cycle starting *today* is 13-16 days
-    // depending on where today falls in the calendar (see
-    // lib/quincena-pace.ts's quincenaLengthDays), by design, so hardcoding
-    // "15" would make this test fail on whatever days it isn't 15.
-    await expect(page.getByText("Quincena closed")).toHaveCount(0);
+    // "Start next paycheck" takes them back to Home, in a fresh cycle with
+    // the same recurring income carried forward and a full runway again.
+    // Not asserting the exact day count -- a brand-new cycle starting
+    // *today* is 13-16 days depending on where today falls in the calendar
+    // (see lib/quincena-pace.ts's quincenaLengthDays), by design, so
+    // hardcoding "15" would fail on whatever days it isn't 15.
+    await page.click(".summary-cta-primary");
+    await page.waitForURL(/\/dashboard/, { timeout: 60_000, waitUntil: "commit" });
     await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
     await expect(page.locator(".hero-elapsed-label")).toContainText(/\d+ days? left/);
   });

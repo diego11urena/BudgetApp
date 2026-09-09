@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount, dismissCycleSummary } from "./helpers";
 
 function daysAgoISO(n: number): string {
   const d = new Date();
@@ -22,8 +22,7 @@ test.describe("past quincenas", () => {
     await page.click('button:has-text("I just got paid")');
     await page.waitForSelector('button:has-text("Yes, I got paid")');
     await page.click('button:has-text("Yes, I got paid")');
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
 
     // Back on Home, in the new active cycle — no expenses logged there yet.
     await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
@@ -35,7 +34,7 @@ test.describe("past quincenas", () => {
     await expect(page.locator(".hero-value")).toHaveText("$950.00");
 
     // Add a transaction directly into this closed cycle via its own "+".
-    await page.click('button:has-text("Add to this quincena")');
+    await page.click('button:has-text("Add to this paycheck")');
     const amountField = page.getByLabel("Amount (USD)");
     await amountField.waitFor();
     await fillAmount(amountField, "25");
@@ -91,8 +90,7 @@ test.describe("past quincenas", () => {
     await confirmPayDate.waitFor();
     await confirmPayDate.fill(daysAgoISO(4));
     await page.click('button:has-text("Yes, I got paid")');
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
 
     await page.goto("/history");
     await page.click(".preview-box .line-item >> nth=0");
@@ -108,7 +106,7 @@ test.describe("past quincenas", () => {
     await dateField.fill(destinationDate);
     await page.click('.sheet button[type="submit"]');
 
-    await expect(page.locator(".sheet")).toContainText("move this transaction to a different quincena");
+    await expect(page.locator(".sheet")).toContainText("move this transaction to a different paycheck");
 
     // Cancel -- the date reverts and nothing moves.
     await page.click('.sheet button:has-text("Cancel")');

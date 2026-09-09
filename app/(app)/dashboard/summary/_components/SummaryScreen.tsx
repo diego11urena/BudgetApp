@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { BudgetCycle } from "@/app/generated/prisma/client";
+import { ChevronLeft } from "lucide-react";
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import type { GoalWithProgress } from "@/lib/goals";
-import type { PeriodVocab, Dictionary } from "@/lib/i18n/dictionary";
-import type { BudgetFrequency } from "@/lib/quincena-pace";
+import type { UncategorizedWarning } from "@/lib/summary";
 import { formatCurrency } from "@/lib/format";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import SummaryHeadline from "./SummaryHeadline";
 import SummaryStatRow from "./SummaryStatRow";
 import SummaryGoalsSection from "./SummaryGoalsSection";
@@ -16,52 +16,54 @@ import SummaryUncategorizedStrip from "./SummaryUncategorizedStrip";
 import SummaryCta from "./SummaryCta";
 
 interface SummaryScreenProps {
-  cycle: BudgetCycle;
-  cycleLabel: string;
+  cycleId: string;
   cycleRangeText: string;
-  budgetFrequency: BudgetFrequency;
   financials: CycleFinancials;
   goalsWithProgress: GoalWithProgress[];
-  prevCycle: BudgetCycle | null;
-  nextCycle: BudgetCycle | null;
-  vocab: PeriodVocab;
-  t: Dictionary;
+  billsPaidCount: number;
+  billsTotalCount: number;
+  billsLateCount: number;
+  sparklinePoints: number[];
+  uncategorized: UncategorizedWarning | null;
 }
 
 export default function SummaryScreen({
-  cycle,
-  cycleLabel,
+  cycleId,
   cycleRangeText,
-  budgetFrequency,
   financials,
   goalsWithProgress,
-  prevCycle,
-  nextCycle,
-  vocab,
-  t,
+  billsPaidCount,
+  billsTotalCount,
+  billsLateCount,
+  sparklinePoints,
+  uncategorized,
 }: SummaryScreenProps) {
   const router = useRouter();
+  const t = useT();
+  const vocab = useVocab();
 
   return (
     <div className="summary-screen">
-      {/* Eyebrow + back chevron */}
-      <button
-        className="summary-header-back"
-        onClick={() => router.back()}
-        aria-label={t.common.back}
-      >
-        ‹
-      </button>
+      <header className="summary-header">
+        <button
+          type="button"
+          className="summary-header-back"
+          onClick={() => router.back()}
+          aria-label={t.common.back}
+        >
+          <ChevronLeft size={22} aria-hidden="true" />
+        </button>
+        <p className="summary-header-eyebrow">{cycleRangeText}</p>
+      </header>
 
-      {/* Headline + financials */}
       <SummaryHeadline
-        spent={formatCurrency(financials.totalExpenses)}
-        leftOver={formatCurrency(financials.amountLeft)}
-        vocab={vocab}
-        t={t}
+        headline={t.summary.headline(
+          vocab,
+          formatCurrency(financials.totalExpenses),
+          formatCurrency(financials.amountLeft),
+        )}
       />
 
-      {/* Stats row: Income / Spent / Left Over */}
       <SummaryStatRow
         income={formatCurrency(financials.baseIncome + financials.extraIncome)}
         spent={formatCurrency(financials.totalExpenses)}
@@ -69,28 +71,27 @@ export default function SummaryScreen({
         t={t}
       />
 
-      {/* Sparkline row (tappable) */}
-      <SummarySparklineRow
-        cycleId={cycle.id}
-        vocab={vocab}
-        t={t}
-      />
+      {/* Only drawn once there's actual history to draw -- a single closed
+          cycle is a dot, and zero is nothing at all rather than an invented
+          trend line. */}
+      {sparklinePoints.length > 0 && (
+        <SummarySparklineRow cycleId={cycleId} points={sparklinePoints} vocab={vocab} t={t} />
+      )}
 
-      {/* Goals section */}
-      <SummaryGoalsSection goals={goalsWithProgress} t={t} />
+      {goalsWithProgress.length > 0 && <SummaryGoalsSection goals={goalsWithProgress} t={t} />}
 
-      {/* Bills section */}
-      <SummaryBillsSection cycleId={cycle.id} t={t} />
+      {billsTotalCount > 0 && (
+        <SummaryBillsSection
+          paidCount={billsPaidCount}
+          totalCount={billsTotalCount}
+          lateCount={billsLateCount}
+          t={t}
+        />
+      )}
 
-      {/* Uncategorized warning (if any) */}
-      <SummaryUncategorizedStrip financials={financials} t={t} />
+      {uncategorized && <SummaryUncategorizedStrip warning={uncategorized} t={t} />}
 
-      {/* CTA row */}
-      <SummaryCta
-        cycleId={cycle.id}
-        vocab={vocab}
-        t={t}
-      />
+      <SummaryCta cycleId={cycleId} vocab={vocab} t={t} />
     </div>
   );
 }

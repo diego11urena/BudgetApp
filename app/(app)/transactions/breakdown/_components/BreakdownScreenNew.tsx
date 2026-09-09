@@ -1,105 +1,129 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import type { BudgetCycle } from "@/app/generated/prisma/client";
-import type { CycleFinancials } from "@/lib/cycle-financials";
-import type { PeriodVocab, Dictionary } from "@/lib/i18n/dictionary";
-import type { BudgetFrequency } from "@/lib/quincena-pace";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
+import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 interface BreakdownScreenNewProps {
-  cycle: BudgetCycle;
   state: "LIVE" | "CLOSED";
-  budgetFrequency: BudgetFrequency;
-  financials: CycleFinancials;
-  prevCycle: BudgetCycle | null;
-  nextCycle: BudgetCycle | null;
-  vocab: PeriodVocab;
-  t: Dictionary;
+  dateRangeLabel: string;
+  spent: number;
+  projected: number;
+  dayIndex: number;
+  totalDays: number;
+  comparisonAverage: number;
+  /** How many OTHER closed cycles fed comparisonAverage -- 0 means there's no history to compare against yet, so the CLOSED banner falls back to a plain spent line. */
+  comparisonCycleCount: number;
+  prevCycleId: string | null;
+  nextCycleId: string | null;
 }
 
+/**
+ * Root of the Breakdown screen, both states. Everything it needs arrives as
+ * plain strings/numbers -- the dictionary comes from LocaleProvider's
+ * useT()/useVocab(), never as a prop, since its templated strings are
+ * functions and React can't serialize those across the server/client
+ * boundary (see LocaleProvider's own doc comment).
+ */
 export default function BreakdownScreenNew({
-  cycle,
   state,
-  budgetFrequency,
-  financials,
-  prevCycle,
-  nextCycle,
-  vocab,
-  t,
+  dateRangeLabel,
+  spent,
+  projected,
+  dayIndex,
+  totalDays,
+  comparisonAverage,
+  comparisonCycleCount,
+  prevCycleId,
+  nextCycleId,
 }: BreakdownScreenNewProps) {
   const router = useRouter();
+  const t = useT();
+  const vocab = useVocab();
 
-  // Add incoming animation classes on mount.
+  // The incoming half of the Summary -> Breakdown takeover. Cleaned up on
+  // unmount (and once the animation has run) so these classes don't stay
+  // stuck on <html> and re-fire on every later page this session renders.
   useEffect(() => {
     const root = document.documentElement;
-    // Remove the outgoing animation class if it exists.
     root.classList.remove("takeover-out");
-    // Add incoming animations (wipe + fade in).
     root.classList.add("takeover-wipe-in", "takeover-in");
+    const done = () => root.classList.remove("takeover-wipe-in", "takeover-in");
+    const timer = window.setTimeout(done, 600);
+    return () => {
+      window.clearTimeout(timer);
+      done();
+    };
   }, []);
 
   return (
     <div className="breakdown-screen-v2">
-      {/* Header */}
-      <div className="breakdown-header">
+      <header className="breakdown-header">
         <button
+          type="button"
           className="breakdown-header-back"
           onClick={() => router.back()}
           aria-label={t.common.back}
         >
-          ‹
+          <ChevronLeft size={22} aria-hidden="true" />
         </button>
 
-        {state === "CLOSED" && <div className="breakdown-header-eyebrow">{cycle.periodStart.toLocaleDateString()}</div>}
+        <div className="breakdown-header-titles">
+          {state === "CLOSED" && (
+            <p className="breakdown-header-eyebrow">{t.breakdown.closedEyebrow(dateRangeLabel)}</p>
+          )}
+          <h1 className="breakdown-header-title">
+            {state === "LIVE" ? t.breakdown.headingLive(vocab, vocab.thisPeriod) : t.breakdown.headingClosed}
+          </h1>
+          {state === "LIVE" && (
+            <p className="breakdown-header-subline">{t.breakdown.sublineDay(dayIndex, totalDays)}</p>
+          )}
+        </div>
 
-        <h1 className="breakdown-header-title">{state === "LIVE" ? "This period" : "Where it went"}</h1>
+        <div className="breakdown-header-nav">
+          {state === "CLOSED" && prevCycleId && (
+            <button
+              type="button"
+              className="breakdown-header-chevron"
+              onClick={() => router.push(`/transactions/breakdown?cycle=${prevCycleId}`)}
+              aria-label={t.breakdown.prevCycleAria}
+            >
+              <ChevronLeft size={20} aria-hidden="true" />
+            </button>
+          )}
+          {state === "CLOSED" && nextCycleId && (
+            <button
+              type="button"
+              className="breakdown-header-chevron"
+              onClick={() => router.push(`/transactions/breakdown?cycle=${nextCycleId}`)}
+              aria-label={t.breakdown.nextCycleAria}
+            >
+              <ChevronRight size={20} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </header>
 
-        {state === "CLOSED" && nextCycle && (
-          <button
-            className="breakdown-header-next"
-            onClick={() => router.push(`/transactions/breakdown?cycle=${nextCycle.id}`)}
-            aria-label={t.breakdown.nextCycleAria}
-          >
-            ›
-          </button>
-        )}
-      </div>
+      <p className="breakdown-banner" role="status">
+        {state === "LIVE"
+          ? t.breakdown.bannerLive(vocab, dayIndex, totalDays, formatCurrency(spent), formatCurrency(projected))
+          : comparisonCycleCount > 0
+            ? t.breakdown.bannerClosed(formatCurrency(spent), formatCurrency(comparisonAverage))
+            : formatCurrency(spent)}
+      </p>
 
-      {/* Banner (state-dependent) */}
-      <div className="breakdown-banner">
-        {state === "LIVE" ? (
-          <div>Day X of Y · ${financials.totalExpenses.toFixed(2)} spent · on pace for $XXX</div>
-        ) : (
-          <div>Same point last cycle: ${financials.totalExpenses.toFixed(2)} vs your $XXX average</div>
-        )}
-      </div>
-
-      {/* Chapters */}
       <div className="breakdown-chapters">
-        <section className="breakdown-chapter">
-          <div className="breakdown-chapter-eyebrow">01</div>
-          <h2>{t.breakdown.chapter1Title}</h2>
-          <p>Heatmap (WIP)</p>
-        </section>
-
-        <section className="breakdown-chapter">
-          <div className="breakdown-chapter-eyebrow">02</div>
-          <h2>{t.breakdown.chapter2Title}</h2>
-          <p>Trend (WIP)</p>
-        </section>
-
-        <section className="breakdown-chapter">
-          <div className="breakdown-chapter-eyebrow">03</div>
-          <h2>{t.breakdown.chapter3Title}</h2>
-          <p>Fixed vs Flexible (WIP)</p>
-        </section>
-
-        <section className="breakdown-chapter">
-          <div className="breakdown-chapter-eyebrow">04</div>
-          <h2>{t.breakdown.chapter4Title}</h2>
-          <p>By Category (WIP)</p>
-        </section>
+        {[t.breakdown.chapter1Title, t.breakdown.chapter2Title, t.breakdown.chapter3Title, t.breakdown.chapter4Title].map(
+          (title, i) => (
+            <section className="breakdown-chapter" key={title}>
+              <p className="breakdown-chapter-eyebrow">{String(i + 1).padStart(2, "0")}</p>
+              <h2>{title}</h2>
+              <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>
+            </section>
+          ),
+        )}
       </div>
     </div>
   );

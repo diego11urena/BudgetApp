@@ -1,24 +1,8 @@
-import type { PeriodVocab, Dictionary } from "@/lib/i18n/dictionary";
-
-interface SummaryHeadlineProps {
-  spent: string;
-  leftOver: string;
-  vocab: PeriodVocab;
-  t: Dictionary;
-}
-
-export default function SummaryHeadline({
-  spent,
-  leftOver,
-  vocab,
-  t,
-}: SummaryHeadlineProps) {
+/** The Summary's one big line -- fully composed by the caller from t.summary.headline. */
+export default function SummaryHeadline({ headline }: { headline: string }) {
   return (
     <div className="summary-headline">
-      <h1>
-        You spent <span className="summary-headline-spent">{spent}</span>,
-        <span className="summary-headline-left-over">{leftOver}</span> left over.
-      </h1>
+      <h1>{headline}</h1>
     </div>
   );
 }

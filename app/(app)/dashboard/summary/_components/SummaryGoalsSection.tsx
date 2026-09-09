@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatCurrency } from "@/lib/format";
 import ProgressRing from "@/app/(app)/_components/charts/ProgressRing";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -33,9 +34,9 @@ export default function SummaryGoalsSection({ goals, t }: SummaryGoalsSectionPro
           <span>
             {t.summary.goalInProgress(
               goal.name,
-              `$${goal.savedSoFar.toFixed(2)}`,
+              formatCurrency(goal.savedSoFar),
               Math.min(100, (goal.savedSoFar / (goal.lifetimeTargetAmount || 1)) * 100),
-              `$${(goal.lifetimeTargetAmount || 0).toFixed(2)}`
+              formatCurrency(goal.lifetimeTargetAmount || 0)
             )}
           </span>
           <span className="summary-goals-chevron">›</span>

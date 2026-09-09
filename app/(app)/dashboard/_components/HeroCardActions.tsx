@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { justGotPaidAction, rolloverMonthlyCycleAction } from "../actions";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
-import { NewCycleIncomeSheet } from "./NewCycleIncomeSheet";
 import { LogPaycheckSheet } from "./LogPaycheckSheet";
 import { useToast } from "../../_components/ToastProvider";
 import { useSheet } from "../../_components/useSheet";
@@ -90,9 +89,13 @@ export function HeroCardActions({
         showToast(result.error);
         return;
       }
-      // TODO: Route to Summary screen by including cycle ID in response
-      // For now, just refresh to show the updated dashboard state.
+      // Straight to the Summary screen for the cycle that just closed --
+      // the redesign replaced the old CycleClosedCard modal with a real
+      // page, and this is where that flow lands now. refresh() first so
+      // Home is already up to date behind it (a back-navigation from
+      // Summary shouldn't show the cycle that just closed as still open).
       router.refresh();
+      router.push(`/dashboard/summary/${result.closedCycleId}`);
     } finally {
       setPending(false);
     }

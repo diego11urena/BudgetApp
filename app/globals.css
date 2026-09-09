@@ -4451,45 +4451,417 @@ button.line-item--link {
   text-decoration: none;
 }
 
+/* ===== Summary + Breakdown takeover transition =====
+   The @keyframes above were never bound to anything -- the classes
+   PageTransitionLink/BreakdownScreenNew toggle had no animation property
+   outside the prefers-reduced-motion overrides, so the transition was a
+   no-op. These are the rules that actually run them. */
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.takeover-out {
+  animation: takeover-out 150ms ease forwards;
+}
+
+.takeover-wipe-in {
+  animation: takeover-wipe-in 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.takeover-in {
+  animation: takeover-in 260ms ease-out;
+}
+
 /* ===== Summary Screen ===== */
-/* Placeholder for Summary-specific classes — see plan for breakdown. */
+.summary-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 1rem 2.5rem;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-header-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  margin-left: -0.25rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.summary-header-back:hover {
+  color: var(--color-text-primary);
+}
+
+.summary-header-eyebrow {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.summary-headline h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.summary-stat-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md, 0.75rem);
+}
+
+.summary-stat {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-stat-divider {
+  width: 1px;
+  background: var(--color-divider);
+  flex: 0 0 auto;
+}
+
+.summary-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-section-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.625rem;
+}
+
+/* Sparkline row */
+.summary-sparkline-row,
+.summary-bills-row,
+.summary-goals-completed,
+.summary-goals-in-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md, 0.75rem);
+  color: inherit;
+  text-decoration: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.summary-sparkline-row:hover,
+.summary-bills-row:hover,
+.summary-goals-completed:hover,
+.summary-goals-in-progress:hover {
+  background: var(--color-bg-secondary);
+}
+
+.summary-sparkline-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-sparkline-label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.summary-sparkline-chevron,
+.summary-bills-chevron,
+.summary-goals-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+/* Goals */
+.summary-goals-section,
+.summary-bills-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.summary-goals-icon {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.summary-goals-completed span:not(.summary-goals-icon),
+.summary-goals-in-progress span:not(.summary-goals-chevron) {
+  font-size: 0.9375rem;
+  min-width: 0;
+}
+
+/* Bills */
+.summary-bills-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.summary-bills-label {
+  font-size: 0.9375rem;
+}
+
+.summary-bills-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.summary-bills-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-success);
+  transition: width 200ms ease;
+}
+
+.summary-bills-late-tag {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+}
+
+/* Uncategorized warning strip */
+.summary-uncategorized-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-md, 0.75rem);
+}
+
+.summary-uncategorized-fix {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* CTA row */
+.summary-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.summary-cta-primary,
+.summary-cta-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.summary-cta-primary {
+  border: none;
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
+}
+
+.summary-cta-secondary {
+  border: 1.5px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text-primary);
+}
+
+/* ===== Shared chart primitives ===== */
+.sparkline {
+  display: block;
+  flex-shrink: 0;
+}
+
+.sparkline-empty {
+  width: 112px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--color-bg-secondary);
+  flex-shrink: 0;
+}
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.heatmap-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heatmap-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.heatmap-cell--selected {
+  outline: 2px solid var(--color-accent-green);
+  outline-offset: 1px;
+}
+
+.heatmap-cell--disabled {
+  opacity: 0.35;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.heatmap-legend-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.heatmap-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.trend-area-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.trend-chart-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.trend-endpoint-live .trend-endpoint-pulse {
+  animation: trend-pulse 1.8s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes trend-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    r: 5;
+  }
+  50% {
+    opacity: 0;
+    r: 9;
+  }
+}
 
 /* ===== Breakdown V2 (Heatmap, Trend, Fixed vs Flexible, By Category) ===== */
 .breakdown-screen-v2 {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: var(--color-bg);
-  color: var(--color-text-primary);
+  gap: 1.25rem;
+  padding: 1rem 1rem 2.5rem;
+  max-width: 32rem;
+  margin: 0 auto;
 }
 
 .breakdown-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem;
-  border-bottom: 1px solid var(--color-divider);
-  background: var(--color-card);
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .breakdown-header-back,
-.breakdown-header-next {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.5rem;
-  color: var(--color-text-primary);
-  padding: 0.5rem;
+.breakdown-header-chevron {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  background: none;
+  padding: 0.25rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
   flex-shrink: 0;
 }
 
+.breakdown-header-back {
+  margin-left: -0.25rem;
+}
+
 .breakdown-header-back:hover,
-.breakdown-header-next:hover {
-  opacity: 0.7;
+.breakdown-header-chevron:hover {
+  color: var(--color-text-primary);
+}
+
+.breakdown-header-titles {
+  flex: 1;
+  min-width: 0;
 }
 
 .breakdown-header-eyebrow {
@@ -4497,67 +4869,69 @@ button.line-item--link {
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  position: absolute;
-  top: 0.5rem;
-  left: 50%;
-  transform: translateX(-50%);
 }
 
 .breakdown-header-title {
-  flex: 1;
-  text-align: center;
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.breakdown-header-subline {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.15rem;
+}
+
+.breakdown-header-nav {
+  display: flex;
+  gap: 0.125rem;
+  flex-shrink: 0;
 }
 
 .breakdown-banner {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 0.75rem);
   background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-divider);
   font-size: 0.875rem;
   color: var(--color-text-secondary);
-  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .breakdown-chapters {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  padding: 2rem 1rem;
-  overflow-y: auto;
 }
 
 .breakdown-chapter {
-  position: relative;
   padding: 1.5rem 0;
   border-bottom: 1px solid var(--color-divider);
 }
 
 .breakdown-chapter:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .breakdown-chapter-eyebrow {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  color: var(--color-text-faint);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.25rem;
 }
 
 .breakdown-chapter h2 {
+  font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0 0 1rem 0;
-  color: var(--color-text-primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
 }
 
-.breakdown-chapter p {
+.breakdown-chapter-empty {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
-  margin: 0;
 }
-

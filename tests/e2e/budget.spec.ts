@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount, dismissCycleSummary } from "./helpers";
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -122,8 +122,7 @@ test.describe("Plan screen (Bills)", () => {
     await page.click('button:has-text("I just got paid")');
     await page.getByLabel("When did you get paid?").waitFor();
     await page.click('button:has-text("Yes, I got paid")');
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
 
     await page.goto("/plan");
     await page.waitForSelector(".dashboard-section");
@@ -142,8 +141,7 @@ test.describe("Plan screen (Bills)", () => {
     await page.click('button:has-text("I just got paid")');
     await page.getByLabel("When did you get paid?").waitFor();
     await page.click('button:has-text("Yes, I got paid")');
-    await expect(page.getByText("Quincena closed")).toBeVisible();
-    await page.click('button:has-text("Continue")');
+    await dismissCycleSummary(page);
 
     // The new active cycle carried the bill forward.
     await page.goto("/plan");

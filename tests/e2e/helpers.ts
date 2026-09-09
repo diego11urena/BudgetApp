@@ -169,3 +169,20 @@ export async function fillCategory(page: Page, name: string): Promise<void> {
   await select.selectOption({ label: "+ New category…" });
   await page.fill('input[placeholder="New category name"]', name);
 }
+
+/**
+ * Finishes a close-cycle flow, from just after the confirm ("Yes, I got
+ * paid" / "Yes, close this month") back to Home.
+ *
+ * The redesign replaced the old CycleClosedCard overlay -- a modal on top
+ * of Home, dismissed with "Continue" -- with a real Summary page at
+ * /dashboard/summary/{closedCycleId}, whose primary CTA is what returns to
+ * Home. Every spec that closes a cycle in passing goes through here rather
+ * than repeating the two navigations itself.
+ */
+export async function dismissCycleSummary(page: Page): Promise<void> {
+  await page.waitForURL(/\/dashboard\/summary\/[a-z0-9]+/, { timeout: 60_000, waitUntil: "commit" });
+  await page.click(".summary-cta-primary");
+  // Not /\/dashboard/ -- that matches the summary URL we're leaving.
+  await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 60_000, waitUntil: "commit" });
+}
