@@ -274,8 +274,6 @@ export const es: Dictionary = {
     top6Badge: "Top 6",
     tapToLogFirst: "Toca el botón + de abajo para registrar tu primera transacción.",
     whereItsGoing: "A dónde va",
-    breakdownTeaserTitle: "Desglose",
-    breakdownTeaserBody: (vocab) => `Mira cuándo y en qué se fue tu dinero ${vocab.thisPeriod}.`,
     recent: "Recientes",
     seeAll: "Ver todo",
     closeQuincena: {

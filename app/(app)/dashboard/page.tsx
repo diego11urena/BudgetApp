@@ -21,7 +21,6 @@ import { InsightsCard } from "./_components/InsightsCard";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { PaydayOverdueBanner } from "./_components/PaydayOverdueBanner";
 import { TransactionList } from "../_components/TransactionList";
-import BreakdownTeaser from "./_components/BreakdownTeaser";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
@@ -217,10 +216,6 @@ export default async function DashboardPage() {
           substitute for them (see the design system handoff's Home spec). */}
       <div className="dashboard-section dashboard-section--plain">
         <InsightsCard insights={insights} />
-      </div>
-
-      <div className="dashboard-section dashboard-section--plain">
-        <BreakdownTeaser t={t} vocab={resolveVocab(t, budgetFrequency)} />
       </div>
 
       <div className="dashboard-section">

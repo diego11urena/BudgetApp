@@ -272,8 +272,6 @@ export const en: Dictionary = {
     top6Badge: "Top 6",
     tapToLogFirst: "Tap the + button below to log your first transaction.",
     whereItsGoing: "Where it's going",
-    breakdownTeaserTitle: "Breakdown",
-    breakdownTeaserBody: (vocab) => `See when and where your money went ${vocab.thisPeriod}.`,
     recent: "Recent",
     seeAll: "See all",
     closeQuincena: {
