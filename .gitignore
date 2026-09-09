@@ -39,3 +39,8 @@ next-env.d.ts
 /blob-report
 
 /app/generated/prisma
+# Local env, including the production credentials `vercel env pull` writes
+# into .env.local. The template stays tracked -- it's how a new checkout
+# learns which variables it needs, and it holds placeholders only.
+.env*
+!.env.example
