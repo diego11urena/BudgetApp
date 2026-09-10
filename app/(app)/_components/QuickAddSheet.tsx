@@ -209,7 +209,7 @@ export function QuickAddSheet({
   const todayDate = formatCycleLabel(nowInPanama());
 
   // Amount, Merchant, Category, and Payment method cover the overwhelming
-  // majority of entries -- Date, "This is a bill", and the Note are real
+  // majority of entries -- Date, the Note, and "This is a bill" are real
   // but secondary, collapsed by default so logging a typical transaction
   // is a 4-field job instead of 7. Editing starts expanded: an edit is
   // often specifically to change one of the collapsed fields (the date,
@@ -611,6 +611,19 @@ export function QuickAddSheet({
               />
             </div>
 
+            <div className="field">
+              <label htmlFor={descriptionId}>{t.quickAdd.noteLabel}</label>
+              <input
+                id={descriptionId}
+                name="description"
+                type="text"
+                placeholder={t.quickAdd.notePlaceholder}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+
             {type === "EXPENSE" && (
               <div className="field">
                 <input type="hidden" name="recurring" value={recurring ? "true" : "false"} />
@@ -637,19 +650,6 @@ export function QuickAddSheet({
                 )}
               </div>
             )}
-
-            <div className="field">
-              <label htmlFor={descriptionId}>{t.quickAdd.noteLabel}</label>
-              <input
-                id={descriptionId}
-                name="description"
-                type="text"
-                placeholder={t.quickAdd.notePlaceholder}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={200}
-              />
-            </div>
           </>
         )}
 
