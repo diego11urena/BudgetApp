@@ -245,32 +245,69 @@ export async function linkOrCreateRecurringExpenseForTransaction(
     where: { categoryId: params.categoryId, name: { equals: trimmedName, mode: "insensitive" } },
   });
 
-  let recurringExpenseId: string;
   if (existing) {
-    recurringExpenseId = existing.id;
-    const hasSnapshot = await db.cycleRecurringExpense.findUnique({
-      where: { cycleId_recurringExpenseId: { cycleId: params.cycleId, recurringExpenseId } },
-    });
-    if (!hasSnapshot) {
-      await db.cycleRecurringExpense.create({
-        data: { cycleId: params.cycleId, recurringExpenseId, targetAmount: existing.amount },
-      });
-      await recomputeCategoryBudgetGoal(db, params.cycleId, params.categoryId);
-    }
-  } else {
-    const created = await createRecurringExpenseWithSnapshot(db, {
-      userId: params.userId,
-      categoryId: params.categoryId,
+    await linkTransactionToRecurringExpense(db, {
+      transactionId: params.transactionId,
+      recurringExpenseId: existing.id,
       cycleId: params.cycleId,
-      name: trimmedName,
-      amount: params.amount,
     });
-    recurringExpenseId = created.id;
+    return;
+  }
+
+  const created = await createRecurringExpenseWithSnapshot(db, {
+    userId: params.userId,
+    categoryId: params.categoryId,
+    cycleId: params.cycleId,
+    name: trimmedName,
+    amount: params.amount,
+  });
+
+  await db.cycleTransaction.update({
+    where: { id: params.transactionId },
+    data: { recurringExpenseId: created.id },
+  });
+}
+
+/**
+ * The explicit "link this transaction to THAT bill" primitive -- an id, not
+ * a name lookup. Used by linkOrCreateRecurringExpenseForTransaction's own
+ * existing-match branch above, and directly by the transaction sheet's
+ * "Which bill?" picker (see BillPicker.tsx) when the user picks a specific
+ * existing bill instead of typing a name to match against. Ensures this
+ * cycle's own CycleRecurringExpense snapshot exists first -- a bill defined
+ * in an earlier cycle, or simply not carried into this one, won't have one
+ * yet -- then points the transaction at it.
+ *
+ * Always adopts the bill's own category onto the transaction. For the
+ * name-match branch above the two already agree (the lookup is scoped to
+ * params.categoryId), so this is a no-op there; for an explicit pick it's
+ * the point -- the user directly choosing a bill IS them telling the app
+ * what this transaction was for, a stronger signal than whatever category
+ * it happened to be filed under (including no category at all, the common
+ * case for a first-time Gmail import -- see findMatchSuggestion's own doc
+ * comment on the same underlying gap).
+ */
+export async function linkTransactionToRecurringExpense(
+  db: Db,
+  params: { transactionId: string; recurringExpenseId: string; cycleId: string },
+): Promise<void> {
+  const recurringExpense = await db.recurringExpense.findUniqueOrThrow({
+    where: { id: params.recurringExpenseId },
+  });
+
+  const hasSnapshot = await db.cycleRecurringExpense.findUnique({
+    where: { cycleId_recurringExpenseId: { cycleId: params.cycleId, recurringExpenseId: params.recurringExpenseId } },
+  });
+  if (!hasSnapshot) {
+    await db.cycleRecurringExpense.create({
+      data: { cycleId: params.cycleId, recurringExpenseId: params.recurringExpenseId, targetAmount: recurringExpense.amount },
+    });
+    await recomputeCategoryBudgetGoal(db, params.cycleId, recurringExpense.categoryId);
   }
 
   await db.cycleTransaction.update({
     where: { id: params.transactionId },
-    data: { recurringExpenseId },
+    data: { recurringExpenseId: params.recurringExpenseId, expenseCategoryId: recurringExpense.categoryId },
   });
 }
 

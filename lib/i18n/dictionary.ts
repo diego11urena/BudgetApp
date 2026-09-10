@@ -252,6 +252,8 @@ export type Dictionary = {
     chooseCategoryError: string;
     tellUsWhatItWasForError: string;
     thisIsABill: string;
+    /** Label above BillPicker, shown only once the "This is a bill" checkbox is on -- an existing bill can be searched/picked here, or a new one named by typing, instead of the toggle only ever doing an exact name match. */
+    whichBillLabel: string;
     whatWasThisForPlaceholder: string;
     saving: string;
     save: string;
@@ -454,6 +456,8 @@ export type Dictionary = {
     fewerDetails: string;
     moreDetails: string;
     thisIsABill: string;
+    /** Label above BillPicker, shown only once the "This is a bill" checkbox is on. */
+    whichBillLabel: string;
     notePlaceholder: string;
     moveWarning: (vocab: PeriodVocab, rangeText: string) => string;
     moving: string;

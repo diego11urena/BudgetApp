@@ -7,6 +7,7 @@ import { categorizeTransactionAction, describeTransactionAction } from "../../_a
 import { formatCurrency } from "@/lib/format";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
+import { BillPicker, type BillOption } from "../../_components/BillPicker";
 import { useT } from "@/app/_components/LocaleProvider";
 
 /**
@@ -23,6 +24,7 @@ export function NeedsAttentionSheet({
   expenseCategoryNames,
   incomeCategoryNames,
   savingsCategoryNames,
+  existingBills,
   returnFocusTo = null,
   onClose,
 }: {
@@ -31,6 +33,8 @@ export function NeedsAttentionSheet({
   expenseCategoryNames: string[];
   incomeCategoryNames: string[];
   savingsCategoryNames: string[];
+  /** Feeds each EXPENSE row's own "Which bill?" picker, once its "This is a bill" checkbox is on. */
+  existingBills: BillOption[];
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
@@ -91,6 +95,7 @@ export function NeedsAttentionSheet({
             key={transaction.id}
             transaction={transaction}
             categoryNames={categoryNamesForType(transaction.type)}
+            existingBills={existingBills}
             onDone={() => handleDone(transaction.id)}
           />
         ))}
@@ -106,10 +111,12 @@ export function NeedsAttentionSheet({
 function NeedsAttentionRow({
   transaction,
   categoryNames,
+  existingBills,
   onDone,
 }: {
   transaction: NeedsAttentionTransaction;
   categoryNames: string[];
+  existingBills: BillOption[];
   onDone: () => void;
 }) {
   const t = useT().dashboard;
@@ -118,6 +125,14 @@ function NeedsAttentionRow({
   const [error, setError] = useState<string | null>(null);
   const [categoryValue, setCategoryValue] = useState("");
   const [recurring, setRecurring] = useState(false);
+  // Defaults to the row's own display name -- same
+  // create-a-new-bill-with-this-name default BillPicker/QuickAddSheet use,
+  // kept in sync here since this row builds its own FormData by hand
+  // rather than reading the native form on submit.
+  const [billSelection, setBillSelection] = useState<{ recurringExpenseId: string | null; billName: string }>({
+    recurringExpenseId: null,
+    billName: transaction.name,
+  });
   const [description, setDescription] = useState("");
 
   const label =
@@ -149,7 +164,11 @@ function NeedsAttentionRow({
       const fd = new FormData();
       fd.set("transactionId", transaction.id);
       fd.set("category", categoryValue.trim());
-      if (recurring) fd.set("recurring", "true");
+      if (recurring) {
+        fd.set("recurring", "true");
+        if (billSelection.recurringExpenseId) fd.set("recurringExpenseId", billSelection.recurringExpenseId);
+        fd.set("billName", billSelection.billName);
+      }
       const result = await categorizeTransactionAction(fd);
       if ("error" in result) {
         setPending(false);
@@ -194,14 +213,35 @@ function NeedsAttentionRow({
             />
           </div>
           {transaction.type === "EXPENSE" && categoryValue.trim() && (
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-              <input
-                type="checkbox"
-                checked={recurring}
-                onChange={(e) => setRecurring(e.target.checked)}
-              />
-              {t.thisIsABill}
-            </label>
+            <>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                <input
+                  type="checkbox"
+                  checked={recurring}
+                  onChange={(e) => {
+                    setRecurring(e.target.checked);
+                    // Reset to the row's own name each time the toggle
+                    // turns on -- a prior open/select shouldn't linger if
+                    // the user unchecked and re-checked it.
+                    if (e.target.checked) setBillSelection({ recurringExpenseId: null, billName: transaction.name });
+                  }}
+                />
+                {t.thisIsABill}
+              </label>
+              {recurring && (
+                <div className="categorize-imports-row-input">
+                  <label htmlFor={`needs-attention-bill-${transaction.id}`} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
+                    {t.whichBillLabel}
+                  </label>
+                  <BillPicker
+                    id={`needs-attention-bill-${transaction.id}`}
+                    bills={existingBills}
+                    defaultValue={transaction.name}
+                    onSelectionChange={setBillSelection}
+                  />
+                </div>
+              )}
+            </>
           )}
         </>
       )}

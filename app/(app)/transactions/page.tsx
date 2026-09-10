@@ -10,6 +10,7 @@ import type { CycleTransactionSummary } from "@/lib/cycle-financials";
 import { toCycleTransactionSummary, TRANSACTION_SELECT } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
 import { getOrderedCategoryNames } from "@/lib/category-order";
+import { getRecurringExpenseOptions } from "@/lib/recurring-expenses";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { TRANSACTION_TYPES } from "@/lib/transaction-type";
 import { TransactionList } from "../_components/TransactionList";
@@ -79,6 +80,7 @@ export default async function TransactionsPage({
     expenseCategoryNames,
     savingsCategoryNames,
     incomeCategoryNames,
+    existingBills,
     allCategories,
     recentCycles,
     budgetFrequency,
@@ -96,6 +98,7 @@ export default async function TransactionsPage({
       getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
       getOrderedCategoryNames(userId, cycle.id, "INCOME"),
+      getRecurringExpenseOptions(userId),
       // Filtered by id, not name -- a name alone can collide across types
       // (e.g. an "Other" Expense category and a distinct "Other" Income
       // one), so the filter dropdown's options need to stay unambiguous.
@@ -176,6 +179,7 @@ export default async function TransactionsPage({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
+          existingBills={existingBills}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
             q || type || category || cycleId

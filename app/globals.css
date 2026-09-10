@@ -2047,6 +2047,80 @@ button.line-item--link {
   font-weight: 600;
 }
 
+/* BillPicker -- "Which bill?" combobox on the transaction sheet's "This is
+   a bill" toggle. Mirrors .category-name-input's shape; adds a right-aligned
+   amount on each option since two bills can share similar names. */
+.bill-picker {
+  width: 100%;
+  min-width: 0;
+}
+
+.bill-picker-combobox {
+  position: relative;
+  width: 100%;
+}
+
+.bill-picker-combobox input {
+  width: 100%;
+}
+
+.bill-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: var(--z-dropdown);
+  max-height: 12rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-2);
+}
+
+.bill-picker-dropdown li + li {
+  margin-top: 0.125rem;
+}
+
+.bill-picker-dropdown button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  min-height: 44px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.bill-picker-dropdown button:hover,
+.bill-picker-dropdown button.is-active {
+  background: var(--color-bg-secondary);
+}
+
+.bill-picker-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-picker-option-amount {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .sheet-submit {
   width: 100%;
   margin-top: 0.5rem;

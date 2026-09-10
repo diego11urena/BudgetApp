@@ -5,6 +5,7 @@ import {
   carryForwardRecurringExpenses,
   closeCycleAndStartNext,
   linkOrCreateRecurringExpenseForTransaction,
+  linkTransactionToRecurringExpense,
   recomputeCategoryBudgetGoal,
   unlinkTransactionFromRecurringExpense,
 } from "./cycles";
@@ -368,6 +369,129 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
 
       const stillExists = await prisma.recurringExpense.findUnique({ where: { id: recurringExpense.id } });
       expect(stillExists).not.toBeNull();
+    });
+  });
+
+  describe("linkTransactionToRecurringExpense (the 'Which bill?' picker's explicit pick)", () => {
+    async function makeTransaction(cycleId: string, categoryId: string, name: string, amount: number, expenseCategoryId: string | null = categoryId) {
+      return prisma.cycleTransaction.create({
+        data: { cycleId, userId, type: "EXPENSE", name, amount, expenseCategoryId },
+      });
+    }
+
+    it("links an uncategorized transaction to an explicitly-picked bill and adopts the bill's category", async () => {
+      const billsCategory = await makeExpenseCategory("Software");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+
+      const claude = await prisma.recurringExpense.create({
+        data: { userId, categoryId: billsCategory.id, name: "Claude", amount: 20 },
+      });
+      await prisma.cycleRecurringExpense.create({
+        data: { cycleId: cycle.id, recurringExpenseId: claude.id, targetAmount: 20 },
+      });
+
+      // A first-time Gmail import with no category yet -- the exact shape
+      // that used to be invisible to auto-matching (see
+      // recurring-expense-matching.test.ts) and, before this feature,
+      // had no way to be manually linked either.
+      const tx = await makeTransaction(cycle.id, billsCategory.id, "Anthropic", 20, null);
+
+      await linkTransactionToRecurringExpense(prisma, {
+        transactionId: tx.id,
+        recurringExpenseId: claude.id,
+        cycleId: cycle.id,
+      });
+
+      const updated = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx.id } });
+      expect(updated.recurringExpenseId).toBe(claude.id);
+      expect(updated.expenseCategoryId).toBe(billsCategory.id);
+    });
+
+    it("re-categorizes a transaction away from a DIFFERENT category when explicitly linked", async () => {
+      const billsCategory = await makeExpenseCategory("Software");
+      const wrongCategory = await makeExpenseCategory("Groceries");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+
+      const claude = await prisma.recurringExpense.create({
+        data: { userId, categoryId: billsCategory.id, name: "Claude", amount: 20 },
+      });
+      await prisma.cycleRecurringExpense.create({
+        data: { cycleId: cycle.id, recurringExpenseId: claude.id, targetAmount: 20 },
+      });
+      const tx = await makeTransaction(cycle.id, wrongCategory.id, "Anthropic", 20);
+
+      await linkTransactionToRecurringExpense(prisma, {
+        transactionId: tx.id,
+        recurringExpenseId: claude.id,
+        cycleId: cycle.id,
+      });
+
+      const updated = await prisma.cycleTransaction.findUniqueOrThrow({ where: { id: tx.id } });
+      expect(updated.expenseCategoryId).toBe(billsCategory.id);
+    });
+
+    it("creates this cycle's own snapshot when linking to a bill that wasn't carried into it yet", async () => {
+      const billsCategory = await makeExpenseCategory("Software");
+      const olderCycle = await makeCycle(new Date(2026, 6, 3));
+      // Only one ACTIVE/DRAFT cycle per user is allowed (a partial unique
+      // index -- see schema.prisma), so the older one has to close first,
+      // same as every other multi-cycle test in this file.
+      await prisma.budgetCycle.update({ where: { id: olderCycle.id }, data: { status: "CLOSED" } });
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+
+      // Defined in an earlier cycle only -- no CycleRecurringExpense row for
+      // the CURRENT cycle yet.
+      const claude = await prisma.recurringExpense.create({
+        data: { userId, categoryId: billsCategory.id, name: "Claude", amount: 20 },
+      });
+      await prisma.cycleRecurringExpense.create({
+        data: { cycleId: olderCycle.id, recurringExpenseId: claude.id, targetAmount: 20 },
+      });
+
+      const tx = await makeTransaction(cycle.id, billsCategory.id, "Anthropic", 20);
+
+      await linkTransactionToRecurringExpense(prisma, {
+        transactionId: tx.id,
+        recurringExpenseId: claude.id,
+        cycleId: cycle.id,
+      });
+
+      const snapshot = await prisma.cycleRecurringExpense.findUnique({
+        where: { cycleId_recurringExpenseId: { cycleId: cycle.id, recurringExpenseId: claude.id } },
+      });
+      expect(snapshot?.targetAmount.toNumber()).toBe(20);
+
+      const goal = await prisma.cycleBudgetGoal.findUnique({
+        where: { cycleId_expenseCategoryId: { cycleId: cycle.id, expenseCategoryId: billsCategory.id } },
+      });
+      expect(goal?.targetAmount.toNumber()).toBe(20);
+    });
+
+    it("does not create a duplicate snapshot when one already exists this cycle", async () => {
+      const billsCategory = await makeExpenseCategory("Software");
+      const cycle = await makeCycle(new Date(2026, 7, 3));
+
+      const claude = await prisma.recurringExpense.create({
+        data: { userId, categoryId: billsCategory.id, name: "Claude", amount: 20 },
+      });
+      await prisma.cycleRecurringExpense.create({
+        data: { cycleId: cycle.id, recurringExpenseId: claude.id, targetAmount: 20 },
+      });
+      const tx = await makeTransaction(cycle.id, billsCategory.id, "Anthropic", 20);
+
+      await linkTransactionToRecurringExpense(prisma, {
+        transactionId: tx.id,
+        recurringExpenseId: claude.id,
+        cycleId: cycle.id,
+      });
+
+      const snapshots = await prisma.cycleRecurringExpense.findMany({
+        where: { cycleId: cycle.id, recurringExpenseId: claude.id },
+      });
+      expect(snapshots).toHaveLength(1);
+      // The pre-existing snapshot's own target survives untouched -- linking
+      // a transaction never overwrites what the bill is actually budgeted for.
+      expect(snapshots[0].targetAmount.toNumber()).toBe(20);
     });
   });
 });

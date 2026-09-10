@@ -1,5 +1,23 @@
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { signUpAndOnboard, openQuickAdd, openMoreDetails, fillCategory, fillAmount, dismissCycleSummary } from "./helpers";
+
+/**
+ * Seeds a CycleTransaction with no UI path to reach it -- a missing
+ * category only ever happens via Gmail import, the manual Add Transaction
+ * form always requires one (see resolveBillName's own doc comment) -- by
+ * running lib/prisma.ts in its own tsx process. Same pattern (and same
+ * reason it can't just be a direct import) as dashboard-banners.spec.ts's
+ * own copy of this helper.
+ */
+function seedTransaction(payload: { email: string; name: string; amount: number }) {
+  execFileSync(
+    "npx",
+    ["tsx", path.join(__dirname, "seed-transaction.ts"), JSON.stringify(payload)],
+    { cwd: path.join(__dirname, "..", ".."), stdio: "inherit" },
+  );
+}
 
 /** Clicks a sheet's submit button by its exact visible text, scoped to whichever sheet is currently open — same convention as categories.spec.ts. */
 async function clickSheetButton(page: Page, text: string) {
@@ -230,6 +248,66 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
       await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
       await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
     });
+  });
+
+  test("an uncategorized transaction that shares a word with a bill's name still gets suggested (the Claude/Anthropic fix)", async ({
+    page,
+  }) => {
+    const { email } = await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+
+    await page.goto("/plan");
+    await createRecurringExpense(page, { name: "Claude", amount: "20.00", category: "Software" });
+
+    // Simulates a first-time Gmail import: no learned-merchant category yet
+    // (see findLearnedCategoryId), and a merchant name that only shares the
+    // word "claude" with the bill's own name. Before this fix such a
+    // transaction was structurally invisible to matching -- the candidate
+    // query excluded anything with no category at all, regardless of name.
+    seedTransaction({ email, name: "Anthropic Claude", amount: 20 });
+
+    await page.goto("/plan");
+    await expect(page.locator(".recurring-expense-suggestion")).toBeVisible();
+    await expect(page.locator(".recurring-expense-suggestion")).toContainText("Anthropic Claude");
+    await page.locator(".recurring-expense-suggestion-actions").getByRole("button", { name: "Confirm" }).click();
+
+    // Confirming clears the suggestion and marks the bill paid -- if the
+    // confirm action still hard-rejected a null-category transaction (the
+    // other half of this bug), the suggestion would still be sitting there
+    // after the refresh below.
+    await expect(page.locator(".recurring-expense-suggestion")).toHaveCount(0);
+    await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
+    await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
+  });
+
+  test("the 'Which bill?' picker links a differently-named transaction to an existing bill instead of creating a duplicate", async ({
+    page,
+  }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+
+    await page.goto("/plan");
+    await createRecurringExpense(page, { name: "Claude", amount: "20.00", category: "Software" });
+
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "20.00");
+    await page.getByLabel("Merchant / name").fill("Anthropic");
+    await fillCategory(page, "Software");
+    await openMoreDetails(page);
+    await page.getByLabel("This is a bill").check();
+
+    // The exact-name path would create a NEW bill named "Anthropic" here --
+    // that's the bug. Search and pick the existing "Claude" bill instead.
+    await page.getByLabel("Which bill?").fill("cla");
+    await page.getByRole("button", { name: /Claude/ }).click();
+    await expect(page.getByLabel("Which bill?")).toHaveValue("Claude");
+
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+    await page.goto("/plan");
+    // Still exactly one bill -- no "Anthropic" duplicate -- and it's paid.
+    await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
+    await expect(page.locator(".recurring-expense-row-name")).toContainText("Claude");
+    await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
   });
 
   test("the toggle never appears for Income or Savings", async ({ page }) => {

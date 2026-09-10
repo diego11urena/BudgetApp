@@ -12,7 +12,7 @@ import {
   getUserBudgetFrequency,
 } from "@/lib/cycles";
 import { getCycleFinancials } from "@/lib/cycle-financials";
-import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
+import { getRecurringExpenseOptions, getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { TransactionList } from "../../_components/TransactionList";
@@ -63,12 +63,13 @@ export default async function CycleHistoryPage({
   // reorder chips slightly differently for a past cycle.
   const currentCycle = await getOrCreateDraftCycle(userId);
 
-  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, { previous, next }, budgetFrequency] =
+  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, existingBills, { previous, next }, budgetFrequency] =
     await Promise.all([
       getCycleFinancials(cycle.id),
       getOrderedCategoryNames(userId, currentCycle.id, "EXPENSE"),
       getOrderedCategoryNames(userId, currentCycle.id, "SAVINGS"),
       getOrderedCategoryNames(userId, currentCycle.id, "INCOME"),
+      getRecurringExpenseOptions(userId),
       getAdjacentCycles(userId, cycle),
       getUserBudgetFrequency(userId),
     ]);
@@ -196,6 +197,7 @@ export default async function CycleHistoryPage({
             expenseCategoryNames={expenseCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
             incomeCategoryNames={incomeCategoryNames}
+            existingBills={existingBills}
           />
         </div>
         <TransactionList
@@ -203,6 +205,7 @@ export default async function CycleHistoryPage({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
+          existingBills={existingBills}
           cycleStartDate={cycleStartDate}
           emptyMessage={t.history.empty2(resolveVocab(t, budgetFrequency))}
         />

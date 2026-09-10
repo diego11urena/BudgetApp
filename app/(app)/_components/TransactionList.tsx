@@ -12,6 +12,7 @@ import { CategoryIcon } from "@/lib/category-icons";
 import { useSheet } from "./useSheet";
 import { EmptyState } from "./EmptyState";
 import type { EditingTransaction } from "./QuickAddSheet";
+import type { BillOption } from "./BillPicker";
 import { useT, useVocab } from "../../_components/LocaleProvider";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
@@ -136,6 +137,7 @@ export function TransactionList({
   expenseCategoryNames,
   savingsCategoryNames,
   incomeCategoryNames,
+  existingBills,
   cycleStartDate,
   emptyMessage,
   groupByDate = false,
@@ -144,6 +146,7 @@ export function TransactionList({
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
   incomeCategoryNames: string[];
+  existingBills: BillOption[];
   /** "YYYY-MM-DD" — the current open cycle's periodStart, passed through to QuickAddSheet's Date field. Every row this list lets you edit belongs to that cycle (isEditable === false rows, from other cycles, never open the sheet at all). */
   cycleStartDate: string;
   emptyMessage?: string;
@@ -225,6 +228,7 @@ export function TransactionList({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
+          existingBills={existingBills}
           cycleStartDate={cycleStartDate}
           editingTransaction={editing}
           {...sheetProps}

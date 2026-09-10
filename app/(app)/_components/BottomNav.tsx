@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { CreditCard, Home, LayoutGrid, User, type LucideIcon } from "lucide-react";
 import { useSheet } from "./useSheet";
+import type { BillOption } from "./BillPicker";
 import { useT } from "@/app/_components/LocaleProvider";
 
 // BottomNav mounts in the app layout, on every page -- QuickAddSheet (its
@@ -38,11 +39,13 @@ export function BottomNav({
   expenseCategoryNames,
   savingsCategoryNames,
   incomeCategoryNames,
+  existingBills,
   cycleStartDate,
 }: {
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
   incomeCategoryNames: string[];
+  existingBills: BillOption[];
   cycleStartDate: string;
 }) {
   const pathname = usePathname();
@@ -96,6 +99,7 @@ export function BottomNav({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
+          existingBills={existingBills}
           cycleStartDate={cycleStartDate}
           {...sheetProps}
           onClose={() => setQuickAddType(null)}

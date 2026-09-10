@@ -9,6 +9,7 @@ import {
   getOrCreateDraftCycle,
   getUserBudgetFrequency,
   linkOrCreateRecurringExpenseForTransaction,
+  linkTransactionToRecurringExpense,
   unlinkTransactionFromRecurringExpense,
 } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
@@ -69,6 +70,44 @@ function parseTransactionFields(formData: FormData, t: Dictionary): { error: str
     return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
   }
   return parsed.data;
+}
+
+/**
+ * The "Which bill?" picker's explicit pick, shared by addTransactionAction
+ * and updateTransactionAction. A client-supplied id is never trusted
+ * outright -- verified against this user's own recurring expenses before
+ * either action does anything with it, same pattern
+ * confirmRecurringExpenseMatchAction already uses for the auto-suggestion
+ * confirm flow. Returns undefined (not an id) when the field is empty,
+ * meaning the toggle's exact-match-or-create fallback should run instead.
+ */
+async function resolvePickedRecurringExpenseId(
+  formData: FormData,
+  userId: string,
+  t: Dictionary,
+): Promise<{ error: string } | { id: string | undefined }> {
+  const picked = formData.get("recurringExpenseId");
+  if (typeof picked !== "string" || !picked) {
+    return { id: undefined };
+  }
+  const owned = await prisma.recurringExpense.findFirst({ where: { id: picked, userId } });
+  if (!owned) {
+    return { error: t.budget.errors.recurringExpenseNotFound };
+  }
+  return { id: owned.id };
+}
+
+/**
+ * What a NEW bill should be named if the "Which bill?" field wasn't used to
+ * pick an existing one -- the field's own typed text (which starts prefilled
+ * with the transaction's own name, but is independently editable; see
+ * BillPicker.tsx), falling back to the transaction's name if the field is
+ * somehow empty (defensive; the client always sends one when recurring is
+ * on).
+ */
+function resolveBillName(formData: FormData, transactionName: string): string {
+  const raw = formData.get("billName");
+  return typeof raw === "string" && raw.trim() ? raw.trim() : transactionName;
 }
 
 export const addTransactionAction = withActionErrorHandling(async function addTransactionAction(
@@ -144,6 +183,10 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
   // EXPENSE-only, matching the toggle's own visibility (see QuickAddSheet) —
   // there's no recurring-expense concept for INCOME/SAVINGS.
   const wantsRecurring = type === "EXPENSE" && formData.get("recurring") === "true";
+  const pickedRecurringExpense = wantsRecurring ? await resolvePickedRecurringExpenseId(formData, userId, t) : null;
+  if (pickedRecurringExpense && "error" in pickedRecurringExpense) {
+    return { error: pickedRecurringExpense.error };
+  }
 
   const created = await prisma.$transaction(async (tx) => {
     const createdTx = await tx.cycleTransaction.create({
@@ -165,13 +208,19 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
       select: { id: true },
     });
 
-    if (wantsRecurring) {
+    if (pickedRecurringExpense?.id) {
+      await linkTransactionToRecurringExpense(tx, {
+        transactionId: createdTx.id,
+        recurringExpenseId: pickedRecurringExpense.id,
+        cycleId: targetCycleId,
+      });
+    } else if (wantsRecurring) {
       await linkOrCreateRecurringExpenseForTransaction(tx, {
         userId,
         transactionId: createdTx.id,
         categoryId: expenseCategoryId,
         cycleId: targetCycleId,
-        name,
+        name: resolveBillName(formData, name),
         amount,
       });
     }
@@ -291,6 +340,11 @@ export const updateTransactionAction = withActionErrorHandling(async function up
   const linkedToWrongCategory =
     wasRecurring && wantsRecurring && existing.recurringExpense!.categoryId !== expenseCategoryId;
 
+  const pickedRecurringExpense = wantsRecurring ? await resolvePickedRecurringExpenseId(formData, userId, t) : null;
+  if (pickedRecurringExpense && "error" in pickedRecurringExpense) {
+    return { error: pickedRecurringExpense.error };
+  }
+
   await prisma.$transaction(async (tx) => {
     // Updates the existing row in place — balances are always derived live
     // from CycleTransaction, so there's no separate total to reconcile and
@@ -317,13 +371,22 @@ export const updateTransactionAction = withActionErrorHandling(async function up
       },
     });
 
-    if (!wasRecurring && wantsRecurring) {
+    if (pickedRecurringExpense?.id) {
+      // An explicit pick from the "Which bill?" picker always wins,
+      // regardless of whether this was already linked to a different bill
+      // (relinking) or not recurring at all yet.
+      await linkTransactionToRecurringExpense(tx, {
+        transactionId,
+        recurringExpenseId: pickedRecurringExpense.id,
+        cycleId: targetCycleId,
+      });
+    } else if (!wasRecurring && wantsRecurring) {
       await linkOrCreateRecurringExpenseForTransaction(tx, {
         userId,
         transactionId,
         categoryId: expenseCategoryId,
         cycleId: targetCycleId,
-        name,
+        name: resolveBillName(formData, name),
         amount,
       });
     } else if ((wasRecurring && !wantsRecurring) || linkedToWrongCategory) {
@@ -388,6 +451,10 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
   const wasRecurring = existing.recurringExpenseId !== null;
   const wantsRecurring =
     existing.type === "EXPENSE" && formData.get("recurring") === "true";
+  const pickedRecurringExpense = wantsRecurring ? await resolvePickedRecurringExpenseId(formData, userId, t) : null;
+  if (pickedRecurringExpense && "error" in pickedRecurringExpense) {
+    return { error: pickedRecurringExpense.error };
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.cycleTransaction.update({
@@ -395,13 +462,19 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
       data: { expenseCategoryId: category.id },
     });
 
-    if (!wasRecurring && wantsRecurring) {
+    if (pickedRecurringExpense?.id) {
+      await linkTransactionToRecurringExpense(tx, {
+        transactionId,
+        recurringExpenseId: pickedRecurringExpense.id,
+        cycleId: existing.cycleId,
+      });
+    } else if (!wasRecurring && wantsRecurring) {
       await linkOrCreateRecurringExpenseForTransaction(tx, {
         userId,
         transactionId,
         categoryId: category.id,
         cycleId: existing.cycleId,
-        name: existing.name,
+        name: resolveBillName(formData, existing.name),
         amount: existing.amount,
       });
     } else if (wasRecurring && !wantsRecurring) {

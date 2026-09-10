@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { findMatchSuggestion, type MatchCandidateTransaction } from "@/lib/recurring-expense-matching";
 import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
@@ -125,9 +126,21 @@ export async function getRecurringExpensesForCycle(
       where: { cycleId, recurringExpenseId: { in: recurringExpenseIds } },
       _sum: { amount: true },
     }),
+    // expenseCategoryId: null included alongside the bills' own categories --
+    // a brand-new Gmail-imported merchant this user has never categorized
+    // before lands with no category at all (see gmail-sync.ts's
+    // findLearnedCategoryId), and used to be structurally excluded from
+    // matching here regardless of how well its name matched a bill.
+    // findMatchSuggestion itself still refuses a candidate already sitting
+    // in a genuinely DIFFERENT category -- this only widens the pool to
+    // include the ones with no category yet.
     computeSuggestions
       ? prisma.cycleTransaction.findMany({
-          where: { cycleId, expenseCategoryId: { in: categoryIds }, recurringExpenseId: null },
+          where: {
+            cycleId,
+            recurringExpenseId: null,
+            OR: [{ expenseCategoryId: { in: categoryIds } }, { expenseCategoryId: null }],
+          },
           select: { id: true, name: true, amount: true, expenseCategoryId: true },
         })
       : Promise.resolve([]),
@@ -139,18 +152,28 @@ export async function getRecurringExpensesForCycle(
       .map((row) => [row.recurringExpenseId, row._sum.amount?.toNumber() ?? 0]),
   );
 
+  // Every bill's own candidate pool is its same-category transactions PLUS
+  // the shared uncategorized pool below -- findMatchSuggestion applies its
+  // own name/amount filtering per bill, so handing every bill the same
+  // uncategorized transactions is safe (an uncategorized transaction that
+  // matches nothing's name just never gets suggested for anything).
   const candidatesByCategory = new Map<string, MatchCandidateTransaction[]>();
+  const uncategorizedCandidates: MatchCandidateTransaction[] = [];
   for (const transaction of unlinkedTransactions) {
-    if (!transaction.expenseCategoryId) continue;
-    const list = candidatesByCategory.get(transaction.expenseCategoryId) ?? [];
-    list.push({
+    const candidate: MatchCandidateTransaction = {
       id: transaction.id,
       name: transaction.name,
       amount: transaction.amount.toNumber(),
       categoryId: transaction.expenseCategoryId,
       recurringExpenseId: null,
-    });
-    candidatesByCategory.set(transaction.expenseCategoryId, list);
+    };
+    if (transaction.expenseCategoryId) {
+      const list = candidatesByCategory.get(transaction.expenseCategoryId) ?? [];
+      list.push(candidate);
+      candidatesByCategory.set(transaction.expenseCategoryId, list);
+    } else {
+      uncategorizedCandidates.push(candidate);
+    }
   }
 
   const categoriesMap = new Map<string, CategoryWithRecurringExpenses>();
@@ -162,7 +185,7 @@ export async function getRecurringExpensesForCycle(
 
     let suggestedMatch: RecurringExpenseWithStatus["suggestedMatch"] = null;
     if (actual === 0) {
-      const candidates = candidatesByCategory.get(category.id) ?? [];
+      const candidates = [...(candidatesByCategory.get(category.id) ?? []), ...uncategorizedCandidates];
       const match = findMatchSuggestion(
         { id: recurringExpense.id, name: recurringExpense.name, amount: targetAmount, categoryId: category.id },
         candidates,
@@ -209,3 +232,34 @@ export async function getRecurringExpensesForCycle(
 
   return [...categoriesMap.values()];
 }
+
+export interface RecurringExpenseOption {
+  id: string;
+  name: string;
+  amount: number;
+}
+
+/**
+ * Every EXPENSE-category bill the user has ever defined (recurring or
+ * one-time, in any cycle) -- feeds the transaction sheet's "Which bill?"
+ * picker (see BillPicker.tsx), where a transaction can be linked to an
+ * existing bill by an explicit choice rather than only an exact name match
+ * (see linkTransactionToRecurringExpense in lib/cycles.ts). Deliberately
+ * not scoped to the current cycle: a bill defined in an earlier cycle, or
+ * one this cycle simply hasn't carried forward yet, is still something the
+ * user might want to link a transaction to -- linking re-establishes this
+ * cycle's own CycleRecurringExpense snapshot if one doesn't already exist.
+ *
+ * Wrapped in cache() for the same reason getOrderedCategoryNames is --
+ * every page that mounts a QuickAddSheet (layout.tsx for BottomNav's own
+ * mount, plus dashboard/transactions/history's own) fetches this once per
+ * request instead of once per mount.
+ */
+export const getRecurringExpenseOptions = cache(async (userId: string): Promise<RecurringExpenseOption[]> => {
+  const expenses = await prisma.recurringExpense.findMany({
+    where: { userId },
+    select: { id: true, name: true, amount: true },
+    orderBy: { name: "asc" },
+  });
+  return expenses.map((e) => ({ id: e.id, name: e.name, amount: e.amount.toNumber() }));
+});

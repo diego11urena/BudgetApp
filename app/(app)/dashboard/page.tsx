@@ -5,7 +5,7 @@ import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles, getUserBudge
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { generateInsights } from "@/lib/insights";
-import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
+import { getRecurringExpenseOptions, getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
@@ -49,6 +49,7 @@ export default async function DashboardPage() {
     expenseCategoryNames,
     savingsCategoryNames,
     incomeCategoryNames,
+    existingBills,
     recentCycles,
     // computeSuggestions: false -- Insights only needs paid/unpaid status
     // and dollar amounts, not this cycle's best-effort match suggestions
@@ -64,6 +65,7 @@ export default async function DashboardPage() {
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
     getOrderedCategoryNames(userId, cycle.id, "INCOME"),
+    getRecurringExpenseOptions(userId),
     getRecentCycles(userId),
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
@@ -141,6 +143,7 @@ export default async function DashboardPage() {
             expenseCategoryNames={expenseCategoryNames}
             incomeCategoryNames={incomeCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
+            existingBills={existingBills}
           />
         </div>
       )}
@@ -233,6 +236,7 @@ export default async function DashboardPage() {
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
+          existingBills={existingBills}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
       </div>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   createRecurringExpenseWithSnapshot,
   getOrCreateDraftCycle,
+  linkTransactionToRecurringExpense,
   recomputeCategoryBudgetGoal,
 } from "@/lib/cycles";
 import { getOrCreateCategory } from "@/lib/categories";
@@ -370,9 +371,15 @@ export const confirmRecurringExpenseMatchAction = withActionErrorHandling(async 
     return { error: t.budget.errors.missingRecurringExpense };
   }
 
-  // Ownership- and cycle-scoped: both rows must belong to this user, and
-  // must actually share a category, or a stale/tampered client payload
-  // could link a payment to an unrelated recurring expense.
+  // Ownership-scoped: both rows must belong to this user. The category
+  // check below allows the transaction to be uncategorized (null) -- see
+  // findMatchSuggestion's own doc comment for why an uncategorized
+  // candidate is a legitimate suggestion (a brand-new Gmail-imported
+  // merchant this user has never categorized before) -- but still rejects
+  // one already sitting in a genuinely DIFFERENT category, since only
+  // findMatchSuggestion itself is trusted to have proposed this pairing;
+  // a stale or tampered client payload could otherwise link a payment to
+  // an unrelated recurring expense.
   const [transaction, recurringExpense] = await Promise.all([
     prisma.cycleTransaction.findFirst({ where: { id: transactionId, cycle: { userId } } }),
     prisma.recurringExpense.findFirst({ where: { id: recurringExpenseId, userId } }),
@@ -383,13 +390,14 @@ export const confirmRecurringExpenseMatchAction = withActionErrorHandling(async 
   if (!recurringExpense) {
     return { error: t.budget.errors.recurringExpenseNotFound };
   }
-  if (transaction.expenseCategoryId !== recurringExpense.categoryId) {
+  if (transaction.expenseCategoryId !== null && transaction.expenseCategoryId !== recurringExpense.categoryId) {
     return { error: t.budget.errors.categoryMismatch };
   }
 
-  await prisma.cycleTransaction.update({
-    where: { id: transaction.id },
-    data: { recurringExpenseId: recurringExpense.id },
+  await linkTransactionToRecurringExpense(prisma, {
+    transactionId: transaction.id,
+    recurringExpenseId: recurringExpense.id,
+    cycleId: transaction.cycleId,
   });
 
   revalidateAppPages();

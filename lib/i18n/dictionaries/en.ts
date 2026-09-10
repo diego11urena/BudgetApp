@@ -242,6 +242,7 @@ export const en: Dictionary = {
     chooseCategoryError: "Choose or enter a category",
     tellUsWhatItWasForError: "Tell us what it was for",
     thisIsABill: "This is a bill",
+    whichBillLabel: "Which bill?",
     whatWasThisForPlaceholder: "Rent, lunch, gift…",
     saving: "Saving...",
     save: "Save",
@@ -435,6 +436,7 @@ export const en: Dictionary = {
     fewerDetails: "Fewer details",
     moreDetails: "More details",
     thisIsABill: "This is a bill",
+    whichBillLabel: "Which bill?",
     notePlaceholder: "What was this for?",
     moveWarning: (vocab, rangeText) =>
       `Changing this date will move this transaction to a different ${vocab.noun} (${rangeText}). Its totals and the totals for that ${vocab.noun} will be recalculated. Continue?`,

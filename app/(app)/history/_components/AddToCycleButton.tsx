@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 import { useSheet } from "../../_components/useSheet";
+import type { BillOption } from "../../_components/BillPicker";
 import { useT, useVocab } from "../../../_components/LocaleProvider";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
@@ -24,6 +25,7 @@ export function AddToCycleButton({
   expenseCategoryNames,
   savingsCategoryNames,
   incomeCategoryNames,
+  existingBills,
 }: {
   cycleId: string;
   /** "YYYY-MM-DD" — this cycle's periodStart, the new transaction's default date. */
@@ -31,6 +33,7 @@ export function AddToCycleButton({
   expenseCategoryNames: string[];
   savingsCategoryNames: string[];
   incomeCategoryNames: string[];
+  existingBills: BillOption[];
 }) {
   const [quickAddType, setQuickAddType] = useState<TxType | null>(null);
   const { sheetProps, setTrigger } = useSheet();
@@ -56,6 +59,7 @@ export function AddToCycleButton({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
+          existingBills={existingBills}
           cycleStartDate={cycleStartDate}
           targetCycleId={cycleId}
           {...sheetProps}
