@@ -76,7 +76,7 @@ export function computeSpendComparison(
 
   // "Lightest/heaviest since..." requires full history scan.
   let label: "lightest" | "heaviest" | null = null;
-  let sinceLabel: string | null = null;
+  const sinceLabel: string | null = null;
 
   if (allHistoricalSpends && allHistoricalSpends.length > 0) {
     // Compare current to the entire history pool.
