@@ -23,6 +23,11 @@ __pycache__/
 # Claude Code local settings
 .claude/settings.local.json
 
+# Agent-skill install artifacts (skill tooling, not app code)
+.claude/skills/
+.agents/
+skills-lock.json
+
 # Next.js
 /.next/
 /out/
