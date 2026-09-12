@@ -125,20 +125,53 @@ export function RecurringExpenseRow({
       .join(" · ");
     return (
       <div className={`recurring-expense-row recurring-expense-row--simplified ${isPaid ? "recurring-expense-row--paid" : ""}`}>
-        <button type="button" className="recurring-expense-row-main" {...editSheet.triggerProps}>
-          <span className="recurring-expense-row-indicator" aria-hidden="true">
-            {isPaid ? <Check size={16} /> : null}
-          </span>
-          <span className="recurring-expense-row-body">
-            <span className="recurring-expense-row-name">{expense.name}</span>
-            {meta && <span className="recurring-expense-row-meta">{meta}</span>}
-          </span>
-          <span className="recurring-expense-row-amount">{formatCurrency(expense.targetAmount)}</span>
-        </button>
-        {!isPaid && (
-          <button type="button" className="button button--chip" {...paymentSheet.triggerProps}>
-            {t.budget.record}
+        <div className="recurring-expense-row--simplified-top">
+          <button type="button" className="recurring-expense-row-main" {...editSheet.triggerProps}>
+            <span className="recurring-expense-row-indicator" aria-hidden="true">
+              {isPaid ? <Check size={16} /> : null}
+            </span>
+            <span className="recurring-expense-row-body">
+              <span className="recurring-expense-row-name">{expense.name}</span>
+              {meta && <span className="recurring-expense-row-meta">{meta}</span>}
+            </span>
+            <span className="recurring-expense-row-amount">{formatCurrency(expense.targetAmount)}</span>
           </button>
+          {/* A pending suggestion below takes over "how to settle this bill" --
+              Record still works, but leading with Confirm/Not this one avoids
+              putting two competing calls to action in front of the user. */}
+          {!isPaid && !showSuggestion && (
+            <button type="button" className="button button--chip" {...paymentSheet.triggerProps}>
+              {t.budget.record}
+            </button>
+          )}
+        </div>
+
+        {showSuggestion && (
+          <div className="recurring-expense-suggestion">
+            <p className="field-hint">
+              {t.budget.possibleMatch(expense.suggestedMatch!.name, formatCurrency(expense.suggestedMatch!.amount))}
+            </p>
+            <div className="recurring-expense-suggestion-actions">
+              <button
+                type="button"
+                className="button button--secondary button--small"
+                onClick={handleConfirmMatch}
+                disabled={confirmingMatch}
+              >
+                {confirmingMatch ? t.budget.confirming : t.budget.confirmMatch}
+              </button>
+              <button
+                type="button"
+                className="button button--secondary button--small"
+                onClick={() => {
+                  setDismissedMatch(true);
+                  if (expense.suggestedMatch) dismissMatch(expense.id, expense.suggestedMatch.transactionId);
+                }}
+              >
+                {t.budget.notThisOne}
+              </button>
+            </div>
+          </div>
         )}
 
         {editSheet.open && (

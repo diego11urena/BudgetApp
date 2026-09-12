@@ -296,8 +296,11 @@ test.describe("the 'This is a bill' toggle on a transaction", () => {
 
     // The exact-name path would create a NEW bill named "Anthropic" here --
     // that's the bug. Search and pick the existing "Claude" bill instead.
+    // Scoped to the dropdown itself -- the unscoped role/name alone also
+    // matches the "Claude" bill's own row on /plan, still in the DOM behind
+    // this sheet.
     await page.getByLabel("Which bill?").fill("cla");
-    await page.getByRole("button", { name: /Claude/ }).click();
+    await page.locator(".bill-picker-dropdown").getByRole("button", { name: /Claude/ }).click();
     await expect(page.getByLabel("Which bill?")).toHaveValue("Claude");
 
     await page.click('button:has-text("Log it")');

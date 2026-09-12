@@ -3316,16 +3316,27 @@ button.line-item--link {
    prop) -- a dot/check + one meta line instead of History/CategoryProgress
    Row's fuller not-started/partial/paid/paid-over/exceeded status chip. */
 .recurring-expense-row--simplified {
+  padding: 14px 0;
+}
+
+/* The name/amount + Record chip line -- its own flex row so a suggestion
+   box (a block-level sibling, see below) can stack underneath it instead
+   of being squeezed into the same row. */
+.recurring-expense-row--simplified-top {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 14px 0;
 }
 
 .recurring-expense-row--simplified .recurring-expense-row-main {
   flex: 1;
   min-width: 0;
   gap: 0.7rem;
+}
+
+.recurring-expense-row--simplified .recurring-expense-suggestion {
+  margin-top: var(--space-2);
+  margin-bottom: 0;
 }
 
 .recurring-expense-row-indicator {
