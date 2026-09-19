@@ -37,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // QuickAddSheet from any page — same three fetches dashboard/page.tsx
   // and transactions/page.tsx already each make independently.
   const cycle = await getOrCreateDraftCycle(userId);
-  const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, existingBills] = await Promise.all([
+  const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, recurringOptions] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
     getOrderedCategoryNames(userId, cycle.id, "INCOME"),
@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
-          existingBills={existingBills}
+          recurringOptions={recurringOptions}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
       </div>

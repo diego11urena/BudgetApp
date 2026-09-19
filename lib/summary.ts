@@ -1,4 +1,4 @@
-import type { CycleFinancials, CycleTransactionSummary, CategoryTotal } from "./cycle-financials";
+import type { CycleFinancials } from "./cycle-financials";
 import type { GoalWithProgress } from "./goals";
 import { computeSavedSoFar } from "./goals";
 
@@ -17,13 +17,6 @@ export interface SpendComparison {
   isLighter: boolean; // true = current is lower
   label: "lightest" | "heaviest" | null; // "lightest since {month}" or null
   sinceLabel: string | null; // e.g. "since May"
-}
-
-/** Bills on-time summary for the Summary screen. */
-export interface BillsOnTimeSummary {
-  paidCount: number;
-  totalCount: number;
-  lateCount: number;
 }
 
 /** Goal rows classified for Summary (completed vs. in-progress). */
@@ -125,23 +118,6 @@ export function classifyGoalRowsForSummary(
   }
 
   return { completed, inProgress };
-}
-
-/**
- * Bills paid on-time: scan recurring expenses and their linked transactions.
- * "On time" = transaction occurred on or before the due-day-resolved date.
- * Unpaid-at-close (not-started/partial) counts as late.
- *
- * Note: This is a stub that would need the actual recurring expense + transaction
- * link logic. For now, return empty stub counts until the caller provides full data.
- */
-export function computeBillsOnTimeSummary(
-  recurringExpenseCategories: CategoryTotal[],
-  cycleTransactions: CycleTransactionSummary[],
-  cycleEnd: Date
-): BillsOnTimeSummary {
-  // TODO: Implement once we have the recurring expense data and due-day resolution.
-  return { paidCount: 0, totalCount: 0, lateCount: 0 };
 }
 
 /**

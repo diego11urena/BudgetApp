@@ -10,7 +10,7 @@ import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import SummaryHeadline from "./SummaryHeadline";
 import SummaryStatRow from "./SummaryStatRow";
 import SummaryGoalsSection from "./SummaryGoalsSection";
-import SummaryBillsSection from "./SummaryBillsSection";
+import SummaryRecurringSection from "./SummaryRecurringSection";
 import SummarySparklineRow from "./SummarySparklineRow";
 import SummaryUncategorizedStrip from "./SummaryUncategorizedStrip";
 import SummaryCta from "./SummaryCta";
@@ -20,9 +20,9 @@ interface SummaryScreenProps {
   cycleRangeText: string;
   financials: CycleFinancials;
   goalsWithProgress: GoalWithProgress[];
-  billsPaidCount: number;
-  billsTotalCount: number;
-  billsLateCount: number;
+  scheduledPaidCount: number;
+  scheduledTotalCount: number;
+  scheduledLateCount: number;
   sparklinePoints: number[];
   uncategorized: UncategorizedWarning | null;
 }
@@ -32,9 +32,9 @@ export default function SummaryScreen({
   cycleRangeText,
   financials,
   goalsWithProgress,
-  billsPaidCount,
-  billsTotalCount,
-  billsLateCount,
+  scheduledPaidCount,
+  scheduledTotalCount,
+  scheduledLateCount,
   sparklinePoints,
   uncategorized,
 }: SummaryScreenProps) {
@@ -80,11 +80,11 @@ export default function SummaryScreen({
 
       {goalsWithProgress.length > 0 && <SummaryGoalsSection goals={goalsWithProgress} t={t} />}
 
-      {billsTotalCount > 0 && (
-        <SummaryBillsSection
-          paidCount={billsPaidCount}
-          totalCount={billsTotalCount}
-          lateCount={billsLateCount}
+      {scheduledTotalCount > 0 && (
+        <SummaryRecurringSection
+          paidCount={scheduledPaidCount}
+          totalCount={scheduledTotalCount}
+          lateCount={scheduledLateCount}
           t={t}
         />
       )}

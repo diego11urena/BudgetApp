@@ -10,7 +10,7 @@ import { useT } from "@/app/_components/LocaleProvider";
 
 /**
  * A deliberately minimal sheet — amount and payment method, pre-filled from
- * the recurring expense's own target but editable for the quincena a bill
+ * the recurring expense's own target but editable for the quincena an expense
  * came in slightly different than usual. Same shape as Goals'
  * ContributeSheet: name/category/type are never in question here. Payment
  * method is the same native <select> QuickAddSheet's own field uses,

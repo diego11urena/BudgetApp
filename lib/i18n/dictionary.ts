@@ -96,7 +96,7 @@ export type Dictionary = {
     trustLineMobile: string;
     alreadyHaveAccount: string;
     checklistSetup: string;
-    checklistBills: string;
+    checklistRecurring: string;
     checklistGmail: string;
     deviceLeftThisQuincena: (vocab: PeriodVocab) => string;
     deviceGroceries: string;
@@ -187,11 +187,13 @@ export type Dictionary = {
       question: string;
       explainer: (vocab: PeriodVocab) => string;
       untitled: string;
-      recurring: (dueDay: number | null) => string;
+      /** "Scheduled" (with its due day, when set) or "Ongoing" -- see RecurringExpenseEditSheet's own Scheduled/Ongoing choice. */
+      scheduleSummary: (hasFixedDate: boolean, dueDay: number | null) => string;
       removeAria: (name: string) => string;
       namePlaceholder: string;
       amountPlaceholder: string;
-      billNameAria: string;
+      nameAria: string;
+      hasFixedDateLabel: string;
       dueDayAria: string;
       dueDayOption: string;
       addButton: string;
@@ -200,8 +202,8 @@ export type Dictionary = {
       tipLabel: string;
       tipBody: string;
       saving: string;
-      continueWithBills: (count: number) => string;
-      continueNoBills: string;
+      continueWithItems: (count: number) => string;
+      continueNoItems: string;
       skip: string;
     };
     goal: {
@@ -233,7 +235,7 @@ export type Dictionary = {
     dateRange: (vocab: PeriodVocab, range: string) => string;
     heroFinalAvailable: string;
     heroSafeToSpend: string;
-    heroAvailableSummary: (left: string, pendingBills: string) => string;
+    heroAvailableSummary: (left: string, pendingScheduled: string) => string;
     heroDaysLeft: (n: number) => string;
     heroPacePerDay: (perDay: string) => string;
     heroLastDay: (amount: string) => string;
@@ -251,9 +253,9 @@ export type Dictionary = {
     chooseCategoryPlaceholder: string;
     chooseCategoryError: string;
     tellUsWhatItWasForError: string;
-    thisIsABill: string;
-    /** Label above BillPicker, shown only once the "This is a bill" checkbox is on -- an existing bill can be searched/picked here, or a new one named by typing, instead of the toggle only ever doing an exact name match. */
-    whichBillLabel: string;
+    isRecurringExpense: string;
+    /** Label above RecurringExpensePicker, shown only once the "This is a recurring expense" checkbox is on -- an existing one can be searched/picked here, or a new one named by typing, instead of the toggle only ever doing an exact name match. */
+    whichRecurringExpenseLabel: string;
     whatWasThisForPlaceholder: string;
     saving: string;
     save: string;
@@ -269,15 +271,15 @@ export type Dictionary = {
     statIncome: string;
     statSpent: string;
     statSaved: string;
-    statBillsLeft: string;
-    bills: string;
-    billsPaidOfTotal: (paid: number, total: number) => string;
+    statScheduledLeft: string;
+    scheduledLabel: string;
+    scheduledPaidOfTotal: (paid: number, total: number) => string;
     pendingAmount: (amount: string) => string;
     baseExtra: (base: string, extra: string) => string;
     thisQuincena: (vocab: PeriodVocab) => string;
     percentOfIncome: (percent: number) => string;
     goalsFunded: (n: number) => string;
-    billsUnpaid: (n: number, total: number) => string;
+    scheduledUnpaid: (n: number, total: number) => string;
     topCategoriesTitle: (vocab: PeriodVocab) => string;
     /** TopCategoriesChart's default title on a past/closed cycle's own page (History) -- "this quincena"/"this month" doesn't read correctly there, so this is the period-neutral fallback the component's own doc comment calls for. */
     topCategoriesTitlePlain: string;
@@ -414,10 +416,15 @@ export type Dictionary = {
   plan: {
     metaTitle: string;
     title: string;
-    bills: {
+    recurring: {
       title: string;
-      newBill: string;
+      addNew: string;
       empty: string;
+      /** Subsection heading above Scheduled items -- a real due date (Spotify, iCloud). */
+      scheduledHeading: string;
+      /** Subsection heading above Ongoing items -- recurs, but no set date (Panapass, a haircut). */
+      ongoingHeading: string;
+      /** Scheduled items only -- see summarizeRecurringExpenses's own doc comment. */
       paidOfTotal: (vocab: PeriodVocab, paid: string, total: string) => string;
     };
     goals: {
@@ -455,9 +462,9 @@ export type Dictionary = {
     noteLabel: string;
     fewerDetails: string;
     moreDetails: string;
-    thisIsABill: string;
-    /** Label above BillPicker, shown only once the "This is a bill" checkbox is on. */
-    whichBillLabel: string;
+    isRecurringExpense: string;
+    /** Label above RecurringExpensePicker, shown only once the "This is a recurring expense" checkbox is on. */
+    whichRecurringExpenseLabel: string;
     notePlaceholder: string;
     moveWarning: (vocab: PeriodVocab, rangeText: string) => string;
     moving: string;
@@ -499,13 +506,14 @@ export type Dictionary = {
       nameLabel: string;
       namePlaceholder: string;
       amountLabel: string;
+      /** Amount label when hasFixedDate is off (Ongoing) -- its own amount is a typical/estimated one, not an exact target, so the label says so. */
+      typicalAmountLabel: string;
       categoryLabel: string;
       categoryPlaceholder: string;
-      recurrenceLabel: string;
-      /** The BIWEEKLY option -- "every cycle," by definition (see lib/cycles.ts's shouldCarryForwardToCycle). Relabeled per the account's own budgetFrequency so it never says "quincena" for a monthly-cadence account. */
-      everyQuincena: (vocab: PeriodVocab) => string;
-      monthly: string;
-      oneTime: string;
+      /** "Repeats every cycle" checkbox -- independent of hasFixedDateLabel below (see EditableRecurringExpense's own doc comment: repeats vs. has-a-set-date are two separate axes, not one three-way choice). */
+      repeatsLabel: string;
+      /** "Has a set date" checkbox -- reveals dueDayLabel's own field when checked. */
+      hasFixedDateLabel: string;
       dueDayLabel: string;
       saving: string;
       save: string;
@@ -520,6 +528,10 @@ export type Dictionary = {
       paid: string;
       paidOverTarget: string;
       exceeded: string;
+      /** Ongoing item, at least one payment logged this cycle. */
+      logged: string;
+      /** Ongoing item, nothing logged yet this cycle. */
+      notLogged: string;
     };
     dueDay: (day: number) => string;
     record: string;
@@ -599,7 +611,7 @@ export type Dictionary = {
     back: string;
     closed: string;
     active: string;
-    bills: string;
+    recurring: string;
     transactions: string;
     empty2: (vocab: PeriodVocab) => string;
     addToQuincena: (vocab: PeriodVocab) => string;
@@ -756,7 +768,7 @@ export type Dictionary = {
    * Dictionary["insights"] through as a parameter instead. One templated
    * function per distinct sentence shape a rule can produce; dueSoonCandidate's
    * "due X" fragment is its own set of keys since it's composed into
-   * billDueSoon rather than a full sentence on its own.
+   * scheduledDueSoon rather than a full sentence on its own.
    */
   insights: {
     dueToday: string;
@@ -764,7 +776,8 @@ export type Dictionary = {
     dueInDays: (n: number) => string;
     wasDueYesterday: string;
     wasDueDaysAgo: (n: number) => string;
-    billDueSoon: (name: string, amount: string, dueText: string) => string;
+    /** Scheduled expenses only -- see dueSoonCandidate's own doc comment. */
+    scheduledDueSoon: (name: string, amount: string, dueText: string) => string;
     unpaidRecurring: (count: number, remaining: string) => string;
     duplicateCharge: (amount: string, name: string, date: string) => string;
     categoryAnomaly: (categoryName: string, amount: string) => string;
@@ -787,9 +800,10 @@ export type Dictionary = {
     goalsEyebrow: string;
     goalCompleted: (name: string) => string;
     goalInProgress: (name: string, amount: string, pct: number, target: string) => string;
-    billsEyebrow: string;
-    billsPaidOnTime: (paid: number, total: number) => string;
-    billsLateTag: (n: number) => string;
+    /** Scheduled expenses only -- see summarizeRecurringExpenses's own doc comment. */
+    scheduledEyebrow: string;
+    scheduledPaidOnTime: (paid: number, total: number) => string;
+    scheduledLateTag: (n: number) => string;
     uncategorizedWarning: (count: number, amount: string) => string;
     fixAction: string;
     ctaStart: (vocab: PeriodVocab) => string;
@@ -817,8 +831,12 @@ export type Dictionary = {
     smallMultiplesCaptionNow: string;
     /** Shown by chapters 02/03 when fewer than two periods exist to compare -- see the plan's insufficient-history degradation. */
     notEnoughHistory: (vocab: PeriodVocab) => string;
-    /** Chapter 02's legend label for the non-bills half of spending. */
+    /** Chapter 02's legend label for the fixed (recurring-linked) half of spending. */
+    fixedLabel: string;
+    /** Chapter 02's legend label for the other half of spending. */
     discretionaryLabel: string;
+    /** Chapter 01's inline tag on a row linked to a recurring expense. */
+    recurringTag: string;
     /** Chapter 04's average-tick tooltip. */
     categoryAverageTick: (amount: string) => string;
     prevCycleAria: string;

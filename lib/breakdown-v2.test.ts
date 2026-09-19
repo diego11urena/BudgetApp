@@ -235,14 +235,14 @@ describe("breakdown-v2", () => {
 
       expect(result[0]).toEqual({
         label: "Period 1",
-        bills: 100,
+        fixed: 100,
         discretionary: 50,
       });
     });
   });
 
   describe("computeFixedShareTrend", () => {
-    it("computes bills % over multiple periods", () => {
+    it("computes fixed % over multiple periods", () => {
       const cycles = [
         {
           financials: {
@@ -280,8 +280,8 @@ describe("breakdown-v2", () => {
 
       const result = computeFixedShareTrend(cycles);
 
-      expect(result.periods[0].billsPct).toBe(50);
-      expect(result.periods[1].billsPct).toBe(60);
+      expect(result.periods[0].fixedPct).toBe(50);
+      expect(result.periods[1].fixedPct).toBe(60);
       expect(result.oldPct).toBe(50);
       expect(result.newPct).toBe(60);
       expect(result.direction).toBe("rising");

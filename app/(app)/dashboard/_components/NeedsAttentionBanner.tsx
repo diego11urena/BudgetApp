@@ -2,7 +2,7 @@
 
 import { NeedsAttentionSheet } from "./NeedsAttentionSheet";
 import { useSheet } from "../../_components/useSheet";
-import type { BillOption } from "../../_components/BillPicker";
+import type { RecurringOption } from "../../_components/RecurringExpensePicker";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
 import { useT } from "@/app/_components/LocaleProvider";
 
@@ -11,13 +11,13 @@ export function NeedsAttentionBanner({
   expenseCategoryNames,
   incomeCategoryNames,
   savingsCategoryNames,
-  existingBills,
+  recurringOptions,
 }: {
   transactions: NeedsAttentionTransaction[];
   expenseCategoryNames: string[];
   incomeCategoryNames: string[];
   savingsCategoryNames: string[];
-  existingBills: BillOption[];
+  recurringOptions: RecurringOption[];
 }) {
   const t = useT().dashboard;
   const { open, triggerProps, sheetProps, close } = useSheet();
@@ -36,7 +36,7 @@ export function NeedsAttentionBanner({
           expenseCategoryNames={expenseCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
-          existingBills={existingBills}
+          recurringOptions={recurringOptions}
           {...sheetProps}
           onClose={close}
         />

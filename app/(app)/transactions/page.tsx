@@ -80,7 +80,7 @@ export default async function TransactionsPage({
     expenseCategoryNames,
     savingsCategoryNames,
     incomeCategoryNames,
-    existingBills,
+    recurringOptions,
     allCategories,
     recentCycles,
     budgetFrequency,
@@ -179,7 +179,7 @@ export default async function TransactionsPage({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
-          existingBills={existingBills}
+          recurringOptions={recurringOptions}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
           emptyMessage={
             q || type || category || cycleId

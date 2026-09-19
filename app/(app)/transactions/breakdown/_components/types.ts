@@ -17,7 +17,7 @@ export interface DayTransaction {
   amount: number;
   categoryName: string | null;
   /** Linked to a recurring expense — "fixed" in the chapter 02/03 sense. */
-  isBill: boolean;
+  isRecurring: boolean;
 }
 
 /** One category row in chapter 04, with its own trailing-period baseline. */

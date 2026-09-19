@@ -50,8 +50,8 @@ export async function BudgetBreakdownCard({
       {recurringExpenses.totalCount > 0 && (
         <div className="card-divider">
           <div className="progress-bar-label">
-            <span>{t.bills}</span>
-            <span>{t.billsPaidOfTotal(recurringExpenses.paidCount, recurringExpenses.totalCount)}</span>
+            <span>{t.scheduledLabel}</span>
+            <span>{t.scheduledPaidOfTotal(recurringExpenses.paidCount, recurringExpenses.totalCount)}</span>
           </div>
           {recurringExpenses.pendingAmount > 0 && (
             <p className="field-hint" style={{ marginTop: "0.5rem" }}>

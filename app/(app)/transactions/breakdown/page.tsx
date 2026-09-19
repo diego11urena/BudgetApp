@@ -118,7 +118,7 @@ export default async function BreakdownPage({
         name: tx.name,
         amount: tx.amount,
         categoryName: tx.categoryName,
-        isBill: tx.recurringExpenseId !== null,
+        isRecurring: tx.recurringExpenseId !== null,
       }));
   }
 

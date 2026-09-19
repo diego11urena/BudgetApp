@@ -45,11 +45,13 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
     getClosedCycles(userId, 6),
   ]);
 
-  // A bill still unpaid when the cycle closed counts as late -- the
-  // confirmed rule for this screen (it's in both the total and the late
-  // tally, never silently dropped).
-  const bills = summarizeRecurringExpenses(recurringExpenseCategories);
-  const billsLateCount = Math.max(bills.totalCount - bills.paidCount, 0);
+  // A Scheduled expense still unpaid when the cycle closed counts as late
+  // -- the confirmed rule for this screen (it's in both the total and the
+  // late tally, never silently dropped). Ongoing expenses are excluded
+  // entirely -- summarizeRecurringExpenses is Scheduled-only (see its own
+  // doc comment).
+  const scheduled = summarizeRecurringExpenses(recurringExpenseCategories);
+  const scheduledLateCount = Math.max(scheduled.totalCount - scheduled.paidCount, 0);
 
   // Oldest-first, so the sparkline reads left-to-right through time and
   // ends on this cycle. Whatever history exists is what gets drawn -- a
@@ -65,9 +67,9 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
       cycleRangeText={formatCycleRangeText(cycle, {}, budgetFrequency)}
       financials={financials}
       goalsWithProgress={goalsWithProgress}
-      billsPaidCount={bills.paidCount}
-      billsTotalCount={bills.totalCount}
-      billsLateCount={billsLateCount}
+      scheduledPaidCount={scheduled.paidCount}
+      scheduledTotalCount={scheduled.totalCount}
+      scheduledLateCount={scheduledLateCount}
       sparklinePoints={sparklinePoints}
       uncategorized={computeUncategorizedWarning(financials)}
     />

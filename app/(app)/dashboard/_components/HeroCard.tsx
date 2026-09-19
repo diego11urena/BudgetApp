@@ -17,7 +17,7 @@ export async function HeroCard({
   periodEnd = null,
   totalExpenses,
   closed = false,
-  pendingBills = 0,
+  pendingScheduled = 0,
   budgetFrequency,
 }: {
   amountLeft: number;
@@ -27,8 +27,8 @@ export async function HeroCard({
   totalExpenses: number;
   /** True for a past/closed cycle being viewed historically — swaps the label to "Final available," drops the days-left/per-day pace line (meaningless for a period that's already over), and hides "I just got paid" (that flow only ever closes *the* current open cycle). Defaults false so every active-cycle caller is unchanged. */
   closed?: boolean;
-  /** Sum of (targetAmount - actual), floored at 0, across this cycle's still-unpaid bills -- e.g. RecurringExpensesSummary.pendingAmount. Subtracted from amountLeft for the headline number (see below); defaults 0 (no adjustment) for callers that don't have it, e.g. History's closed-cycle view, where "safety margin" isn't a meaningful concept for a period that's already over. */
-  pendingBills?: number;
+  /** Sum of (targetAmount - actual), floored at 0, across this cycle's still-unpaid Scheduled recurring expenses only -- e.g. RecurringExpensesSummary.pendingAmount. Ongoing recurring expenses (no fixed date, an estimated amount) never contribute here (confirmed design decision -- see summarizeRecurringExpenses's own doc comment). Subtracted from amountLeft for the headline number (see below); defaults 0 (no adjustment) for callers that don't have it, e.g. History's closed-cycle view, where "safety margin" isn't a meaningful concept for a period that's already over. */
+  pendingScheduled?: number;
   /** The user's own pay-cadence setting -- only matters when periodEnd is null (an open cycle), where it decides whether the nominal end is derived via the ~15-day quincena formula or the ~30-day month one. A closed cycle's real periodEnd makes this irrelevant, but every caller passes it regardless so this component never has to guess. */
   budgetFrequency: BudgetFrequency;
 }) {
@@ -36,13 +36,13 @@ export async function HeroCard({
   const t = dict.dashboard;
   const vocab = resolveVocab(dict, budgetFrequency);
   // The hero number used to be raw amountLeft -- money that still includes
-  // whatever's sitting in unpaid bills (e.g. rent not paid yet). That reads
-  // as more spendable than it really is, and worst in the first half of
-  // every quincena, exactly when someone is most likely to overspend. This
-  // reserves unpaid bills off the headline instead, so the big number is
-  // never more optimistic than reality. See the Balboa fix list's batch
-  // 11.5, decision 1.
-  const safeToSpend = closed ? amountLeft : amountLeft - pendingBills;
+  // whatever's sitting in unpaid Scheduled recurring expenses (e.g. rent
+  // not paid yet). That reads as more spendable than it really is, and
+  // worst in the first half of every quincena, exactly when someone is
+  // most likely to overspend. This reserves those unpaid amounts off the
+  // headline instead, so the big number is never more optimistic than
+  // reality. See the Balboa fix list's batch 11.5, decision 1.
+  const safeToSpend = closed ? amountLeft : amountLeft - pendingScheduled;
   const isPositive = safeToSpend >= 0;
   const pace = closed
     ? null
@@ -61,9 +61,9 @@ export async function HeroCard({
       <p className={`hero-value ${isPositive ? "hero-value--good" : "hero-value--critical"}`}>
         {formatCurrency(safeToSpend)}
       </p>
-      {!closed && pendingBills > 0 && (
+      {!closed && pendingScheduled > 0 && (
         <p className="hero-subtitle">
-          {t.heroAvailableSummary(formatCurrency(amountLeft), formatCurrency(pendingBills))}
+          {t.heroAvailableSummary(formatCurrency(amountLeft), formatCurrency(pendingScheduled))}
         </p>
       )}
       {!closed && pace && (

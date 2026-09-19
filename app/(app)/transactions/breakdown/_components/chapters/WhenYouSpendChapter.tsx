@@ -55,7 +55,7 @@ export default function WhenYouSpendChapter({
                 <li key={row.id} className="breakdown-day-row">
                   <span className="breakdown-day-row-name">
                     {row.name}
-                    {row.isBill && <span className="breakdown-day-row-tag">{t.plan.bills.title}</span>}
+                    {row.isRecurring && <span className="breakdown-day-row-tag">{t.breakdown.recurringTag}</span>}
                   </span>
                   <span className="breakdown-day-row-meta">{row.categoryName ?? ""}</span>
                   <span className="breakdown-day-row-amount">{formatCurrency(row.amount)}</span>

@@ -18,7 +18,7 @@ import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxTyp
 import { useToast } from "./ToastProvider";
 import { Sheet } from "./Sheet";
 import { CurrencyInput } from "./CurrencyInput";
-import { BillPicker, type BillOption } from "./BillPicker";
+import { RecurringExpensePicker, type RecurringOption } from "./RecurringExpensePicker";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 export interface EditingTransaction {
@@ -47,7 +47,7 @@ export function QuickAddSheet({
   expenseCategoryNames,
   savingsCategoryNames,
   incomeCategoryNames,
-  existingBills,
+  recurringOptions,
   cycleStartDate,
   editingTransaction = null,
   targetCycleId,
@@ -61,8 +61,8 @@ export function QuickAddSheet({
   savingsCategoryNames: string[];
   /** Pre-ordered, same rule as expenseCategoryNames. */
   incomeCategoryNames: string[];
-  /** Every EXPENSE-category bill the user has ever defined -- feeds the "This is a bill" toggle's own "Which bill?" picker (see BillPicker.tsx), so an existing bill can be linked explicitly instead of only by an exact name match. Alphabetical, not scoped to the current cycle. */
-  existingBills: BillOption[];
+  /** Every EXPENSE-category recurring expense the user has ever defined -- feeds the "This is a recurring expense" toggle's own "Which recurring expense?" picker (see RecurringExpensePicker.tsx), so an existing one can be linked explicitly instead of only by an exact name match. Alphabetical, not scoped to the current cycle. */
+  recurringOptions: RecurringOption[];
   /** "YYYY-MM-DD" — the current cycle's periodStart, the Date field's minimum (can't log something before the quincena it's being logged into started). Ignored when isEditing or targetCycleId is set — both allow any past date. */
   cycleStartDate: string;
   /** Present -> the sheet edits (and can delete) this transaction instead of creating a new one. */
@@ -113,7 +113,7 @@ export function QuickAddSheet({
   const errorId = `${uid}-error`;
   const categoryId = `${uid}-category`;
   const paymentMethodId = `${uid}-payment-method`;
-  const billPickerId = `${uid}-bill-picker`;
+  const recurringPickerId = `${uid}-recurring-picker`;
 
   function categoryNamesForType(t: TxType): string[] {
     return t === "EXPENSE" ? expenseCategoryNames : t === "SAVINGS" ? savingsCategoryNames : incomeCategoryNames;
@@ -190,14 +190,15 @@ export function QuickAddSheet({
   const [recurring, setRecurring] = useState(
     editingTransaction ? editingTransaction.recurringExpenseId !== null : false,
   );
-  // The bill this transaction is ALREADY linked to, if any — looked up
-  // from existingBills by id rather than fetched separately, since the
-  // full list is already in hand. Drives BillPicker's own prefill so
-  // re-saving an already-linked transaction without touching the picker
-  // re-links to the SAME bill (see linkTransactionToRecurringExpense,
-  // which is idempotent) instead of falling through to create-new.
-  const linkedBill = editingTransaction?.recurringExpenseId
-    ? existingBills.find((b) => b.id === editingTransaction.recurringExpenseId)
+  // The recurring expense this transaction is ALREADY linked to, if any --
+  // looked up from recurringOptions by id rather than fetched separately,
+  // since the full list is already in hand. Drives RecurringExpensePicker's
+  // own prefill so re-saving an already-linked transaction without
+  // touching the picker re-links to the SAME one (see
+  // linkTransactionToRecurringExpense, which is idempotent) instead of
+  // falling through to create-new.
+  const linkedRecurringExpense = editingTransaction?.recurringExpenseId
+    ? recurringOptions.find((o) => o.id === editingTransaction.recurringExpenseId)
     : undefined;
   // Panama time, not the device's own local clock — a transaction date is
   // validated server-side against nowInPanama() regardless of where the
@@ -209,9 +210,9 @@ export function QuickAddSheet({
   const todayDate = formatCycleLabel(nowInPanama());
 
   // Amount, Merchant, Category, and Payment method cover the overwhelming
-  // majority of entries -- Date, the Note, and "This is a bill" are real
-  // but secondary, collapsed by default so logging a typical transaction
-  // is a 4-field job instead of 7. Editing starts expanded: an edit is
+  // majority of entries -- Date, the Note, and "This is a recurring
+  // expense" are real but secondary, collapsed by default so logging a
+  // typical transaction is a 4-field job instead of 7. Editing starts expanded: an edit is
   // often specifically to change one of the collapsed fields (the date,
   // most commonly), and a still-collapsed sheet would hide the very field
   // someone opened the sheet to fix.
@@ -633,18 +634,18 @@ export function QuickAddSheet({
                     checked={recurring}
                     onChange={(e) => setRecurring(e.target.checked)}
                   />
-                  {t.quickAdd.thisIsABill}
+                  {t.quickAdd.isRecurringExpense}
                 </label>
                 {recurring && (
                   <div style={{ marginTop: "0.5rem" }}>
-                    <label htmlFor={billPickerId} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
-                      {t.quickAdd.whichBillLabel}
+                    <label htmlFor={recurringPickerId} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
+                      {t.quickAdd.whichRecurringExpenseLabel}
                     </label>
-                    <BillPicker
-                      id={billPickerId}
-                      bills={existingBills}
-                      defaultValue={linkedBill?.name ?? name}
-                      defaultSelectedId={linkedBill?.id ?? null}
+                    <RecurringExpensePicker
+                      id={recurringPickerId}
+                      options={recurringOptions}
+                      defaultValue={linkedRecurringExpense?.name ?? name}
+                      defaultSelectedId={linkedRecurringExpense?.id ?? null}
                     />
                   </div>
                 )}

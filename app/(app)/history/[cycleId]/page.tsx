@@ -63,7 +63,7 @@ export default async function CycleHistoryPage({
   // reorder chips slightly differently for a past cycle.
   const currentCycle = await getOrCreateDraftCycle(userId);
 
-  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, existingBills, { previous, next }, budgetFrequency] =
+  const [financials, expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, recurringOptions, { previous, next }, budgetFrequency] =
     await Promise.all([
       getCycleFinancials(cycle.id),
       getOrderedCategoryNames(userId, currentCycle.id, "EXPENSE"),
@@ -163,7 +163,7 @@ export default async function CycleHistoryPage({
 
       {recurringExpenseCategories.length > 0 && (
         <div className="dashboard-section">
-          <h2 style={{ marginBottom: "0.5rem" }}>{t.history.bills}</h2>
+          <h2 style={{ marginBottom: "0.5rem" }}>{t.history.recurring}</h2>
           <div className="category-progress-list">
             {recurringExpenseCategories.map((category) => (
               <CategoryProgressRow
@@ -197,7 +197,7 @@ export default async function CycleHistoryPage({
             expenseCategoryNames={expenseCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
             incomeCategoryNames={incomeCategoryNames}
-            existingBills={existingBills}
+            recurringOptions={recurringOptions}
           />
         </div>
         <TransactionList
@@ -205,7 +205,7 @@ export default async function CycleHistoryPage({
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
-          existingBills={existingBills}
+          recurringOptions={recurringOptions}
           cycleStartDate={cycleStartDate}
           emptyMessage={t.history.empty2(resolveVocab(t, budgetFrequency))}
         />

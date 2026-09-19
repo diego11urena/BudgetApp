@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     expenseCategoryNames,
     savingsCategoryNames,
     incomeCategoryNames,
-    existingBills,
+    recurringOptions,
     recentCycles,
     // computeSuggestions: false -- Insights only needs paid/unpaid status
     // and dollar amounts, not this cycle's best-effort match suggestions
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
             expenseCategoryNames={expenseCategoryNames}
             incomeCategoryNames={incomeCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
-            existingBills={existingBills}
+            recurringOptions={recurringOptions}
           />
         </div>
       )}
@@ -170,9 +170,9 @@ export default async function DashboardPage() {
       />
 
       {/* A brand-new account otherwise has three half-empty cards below
-          (no top category, no recent activity, no bills/goals paid-count)
-          and nothing telling a first-time user what to actually do about
-          it -- see the Balboa fix list's batch 11.7. */}
+          (no top category, no recent activity, no recurring/goals
+          paid-count) and nothing telling a first-time user what to
+          actually do about it -- see the Balboa fix list's batch 11.7. */}
       {financials.transactions.length === 0 && recurringExpensesSummary.totalCount === 0 && goals.length === 0 && (
         <div className="dashboard-section dashboard-section--plain">
           <p className="banner banner--good" role="status">
@@ -187,7 +187,7 @@ export default async function DashboardPage() {
           periodStart={cycle.periodStart}
           periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
-          pendingBills={recurringExpensesSummary.pendingAmount}
+          pendingScheduled={recurringExpensesSummary.pendingAmount}
           budgetFrequency={budgetFrequency}
         />
       </div>
@@ -236,7 +236,7 @@ export default async function DashboardPage() {
           expenseCategoryNames={expenseCategoryNames}
           savingsCategoryNames={savingsCategoryNames}
           incomeCategoryNames={incomeCategoryNames}
-          existingBills={existingBills}
+          recurringOptions={recurringOptions}
           cycleStartDate={formatCycleLabel(cycle.periodStart)}
         />
       </div>

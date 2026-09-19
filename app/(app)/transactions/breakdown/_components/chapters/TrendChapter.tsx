@@ -6,7 +6,7 @@ import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import type { TrendPoint } from "@/lib/breakdown-v2";
 
 /**
- * Chapter 02 — bills vs discretionary, stacked, across the trailing
+ * Chapter 02 — fixed vs discretionary, stacked, across the trailing
  * periods. Needs at least two points to be a trend rather than a dot.
  */
 export default function TrendChapter({
@@ -30,8 +30,8 @@ export default function TrendChapter({
       <TrendAreaChart series={series} state={state} />
       <div className="breakdown-legend">
         <span className="breakdown-legend-item">
-          <span className="breakdown-legend-swatch" style={{ background: "var(--chart-bills)" }} />
-          {t.plan.bills.title} · {formatCurrency(latest.bills)}
+          <span className="breakdown-legend-swatch" style={{ background: "var(--chart-fixed)" }} />
+          {t.breakdown.fixedLabel} · {formatCurrency(latest.fixed)}
         </span>
         <span className="breakdown-legend-item">
           <span className="breakdown-legend-swatch" style={{ background: "var(--chart-discretionary)" }} />

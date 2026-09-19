@@ -70,11 +70,12 @@ export async function signUpAndOnboard(
   await page.click('button[type="submit"]');
   await page.waitForURL(/onboarding\/expenses/, { timeout: 60_000, waitUntil: "commit" });
 
-  // BillsStepForm seeds one example row ("Rent · $450.00 · due day 1") --
-  // removed here so this default flow still lands on a clean, bill-free
-  // account, matching what every other spec in this suite (not
-  // specifically testing bills) already assumes.
-  await page.click(".bills-step-row-remove");
+  // RecurringExpensesStepForm seeds one example row ("Rent · $450.00 ·
+  // due day 1") -- removed here so this default flow still lands on a
+  // clean, recurring-expense-free account, matching what every other spec
+  // in this suite (not specifically testing recurring expenses) already
+  // assumes.
+  await page.click(".expenses-step-row-remove");
   await page.click('button:has-text("Continue")');
   await page.waitForURL(/onboarding\/goal/, { timeout: 60_000, waitUntil: "commit" });
 
@@ -100,8 +101,8 @@ export async function openQuickAdd(
 }
 
 /**
- * Expands QuickAddSheet's "More details" disclosure (date, the bill
- * toggle, note) -- collapsed by default on create (amount, merchant,
+ * Expands QuickAddSheet's "More details" disclosure (date, note, the
+ * recurring-expense toggle) -- collapsed by default on create (amount, merchant,
  * category, and payment method alone cover most entries), already
  * expanded when editing an existing transaction. Safe to call either
  * way: a no-op if the fields are already visible.

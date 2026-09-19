@@ -1,11 +1,11 @@
 /**
- * TrendAreaChart: 320×110 stacked area chart (Bills/Discretionary over time).
+ * TrendAreaChart: 320×110 stacked area chart (Fixed/Discretionary over time).
  * Endpoint marker: pulsing ring+dot for LIVE, flag glyph for CLOSED.
  */
 
 interface TrendPoint {
   label: string;
-  bills: number;
+  fixed: number;
   discretionary: number;
 }
 
@@ -28,43 +28,43 @@ export default function TrendAreaChart({ series, state }: TrendAreaChartProps) {
   const graphWidth = width - 2 * padding;
   const graphHeight = height - 2 * padding;
 
-  // Find max for scaling (cumulative bills + discretionary).
+  // Find max for scaling (cumulative fixed + discretionary).
   let maxTotal = 0;
   for (const point of series) {
-    const total = point.bills + point.discretionary;
+    const total = point.fixed + point.discretionary;
     if (total > maxTotal) maxTotal = total;
   }
 
   if (maxTotal === 0) maxTotal = 1; // Avoid division by zero.
 
   // Compute path data for stacked areas.
-  let billsPath = `M ${padding} ${padding + graphHeight}`;
+  let fixedPath = `M ${padding} ${padding + graphHeight}`;
   let discretionaryPath = `M ${padding} ${padding + graphHeight}`;
 
   for (let i = 0; i < series.length; i++) {
     const x = padding + (i / (series.length - 1 || 1)) * graphWidth;
-    const billsY = padding + graphHeight - (series[i].bills / maxTotal) * graphHeight;
+    const fixedY = padding + graphHeight - (series[i].fixed / maxTotal) * graphHeight;
     const discretionaryY =
       padding +
       graphHeight -
-      ((series[i].bills + series[i].discretionary) / maxTotal) * graphHeight;
+      ((series[i].fixed + series[i].discretionary) / maxTotal) * graphHeight;
 
-    billsPath += ` L ${x} ${billsY}`;
+    fixedPath += ` L ${x} ${fixedY}`;
     discretionaryPath += ` L ${x} ${discretionaryY}`;
   }
 
-  billsPath += ` L ${padding + graphWidth} ${padding + graphHeight} Z`;
+  fixedPath += ` L ${padding + graphWidth} ${padding + graphHeight} Z`;
   discretionaryPath += ` L ${padding + graphWidth} ${padding + graphHeight} Z`;
 
   // Endpoint (last point).
   const lastIndex = series.length - 1;
   const endX = padding + (lastIndex / (lastIndex || 1)) * graphWidth;
-  const endBillsY =
-    padding + graphHeight - (series[lastIndex].bills / maxTotal) * graphHeight;
+  const endFixedY =
+    padding + graphHeight - (series[lastIndex].fixed / maxTotal) * graphHeight;
   const endTotalY =
     padding +
     graphHeight -
-    ((series[lastIndex].bills + series[lastIndex].discretionary) / maxTotal) *
+    ((series[lastIndex].fixed + series[lastIndex].discretionary) / maxTotal) *
       graphHeight;
 
   return (
@@ -74,10 +74,10 @@ export default function TrendAreaChart({ series, state }: TrendAreaChartProps) {
       height={height}
       viewBox={viewBox}
       preserveAspectRatio="none"
-      aria-label="Trend: Bills vs Discretionary"
+      aria-label="Trend: Fixed vs Discretionary"
     >
-      {/* Bills area (bottom) */}
-      <path d={billsPath} fill="var(--chart-bills)" opacity="0.7" />
+      {/* Fixed area (bottom) */}
+      <path d={fixedPath} fill="var(--chart-fixed)" opacity="0.7" />
 
       {/* Discretionary area (top) */}
       <path d={discretionaryPath} fill="var(--chart-discretionary)" opacity="0.7" />

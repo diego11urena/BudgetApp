@@ -15,9 +15,9 @@ import { useT, useBudgetFrequency } from "@/app/_components/LocaleProvider";
 /**
  * One row in Plan's Goals list. The design system handoff's action row is
  * Contribute/Edit/Remove, all three persistently visible -- a reversal of
- * this same session's earlier "match Bills' tap-the-row model" decision,
- * made deliberately by the new design spec (Bills itself keeps the
- * tap-to-edit model; Goals doesn't). Its own component (not inlined in
+ * this same session's earlier "match Recurring's tap-the-row model"
+ * decision, made deliberately by the new design spec (Recurring itself
+ * keeps the tap-to-edit model; Goals doesn't). Its own component (not inlined in
  * GoalsSection's map) because each row needs its own useSheet() call, and
  * hooks can't live inside a loop.
  */

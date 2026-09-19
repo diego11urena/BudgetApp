@@ -73,10 +73,10 @@ function parseTransactionFields(formData: FormData, t: Dictionary): { error: str
 }
 
 /**
- * The "Which bill?" picker's explicit pick, shared by addTransactionAction
- * and updateTransactionAction. A client-supplied id is never trusted
- * outright -- verified against this user's own recurring expenses before
- * either action does anything with it, same pattern
+ * The "Which recurring expense?" picker's explicit pick, shared by
+ * addTransactionAction and updateTransactionAction. A client-supplied id
+ * is never trusted outright -- verified against this user's own recurring
+ * expenses before either action does anything with it, same pattern
  * confirmRecurringExpenseMatchAction already uses for the auto-suggestion
  * confirm flow. Returns undefined (not an id) when the field is empty,
  * meaning the toggle's exact-match-or-create fallback should run instead.
@@ -98,15 +98,15 @@ async function resolvePickedRecurringExpenseId(
 }
 
 /**
- * What a NEW bill should be named if the "Which bill?" field wasn't used to
- * pick an existing one -- the field's own typed text (which starts prefilled
- * with the transaction's own name, but is independently editable; see
- * BillPicker.tsx), falling back to the transaction's name if the field is
- * somehow empty (defensive; the client always sends one when recurring is
- * on).
+ * What a NEW recurring expense should be named if the "Which recurring
+ * expense?" field wasn't used to pick an existing one -- the field's own
+ * typed text (which starts prefilled with the transaction's own name, but
+ * is independently editable; see RecurringExpensePicker.tsx), falling
+ * back to the transaction's name if the field is somehow empty (defensive;
+ * the client always sends one when the toggle is on).
  */
-function resolveBillName(formData: FormData, transactionName: string): string {
-  const raw = formData.get("billName");
+function resolveRecurringExpenseName(formData: FormData, transactionName: string): string {
+  const raw = formData.get("recurringExpenseName");
   return typeof raw === "string" && raw.trim() ? raw.trim() : transactionName;
 }
 
@@ -220,7 +220,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
         transactionId: createdTx.id,
         categoryId: expenseCategoryId,
         cycleId: targetCycleId,
-        name: resolveBillName(formData, name),
+        name: resolveRecurringExpenseName(formData, name),
         amount,
       });
     }
@@ -372,9 +372,9 @@ export const updateTransactionAction = withActionErrorHandling(async function up
     });
 
     if (pickedRecurringExpense?.id) {
-      // An explicit pick from the "Which bill?" picker always wins,
-      // regardless of whether this was already linked to a different bill
-      // (relinking) or not recurring at all yet.
+      // An explicit pick from the "Which recurring expense?" picker always
+      // wins, regardless of whether this was already linked to a different
+      // one (relinking) or not recurring at all yet.
       await linkTransactionToRecurringExpense(tx, {
         transactionId,
         recurringExpenseId: pickedRecurringExpense.id,
@@ -386,7 +386,7 @@ export const updateTransactionAction = withActionErrorHandling(async function up
         transactionId,
         categoryId: expenseCategoryId,
         cycleId: targetCycleId,
-        name: resolveBillName(formData, name),
+        name: resolveRecurringExpenseName(formData, name),
         amount,
       });
     } else if ((wasRecurring && !wantsRecurring) || linkedToWrongCategory) {
@@ -474,7 +474,7 @@ export const categorizeTransactionAction = withActionErrorHandling(async functio
         transactionId,
         categoryId: category.id,
         cycleId: existing.cycleId,
-        name: resolveBillName(formData, existing.name),
+        name: resolveRecurringExpenseName(formData, existing.name),
         amount: existing.amount,
       });
     } else if (wasRecurring && !wantsRecurring) {

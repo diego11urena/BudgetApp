@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireOnboardingStep } from "../_lib/getOnboardingState";
 import { StepProgress } from "../_components/StepProgress";
-import { BillsStepForm, BillsStepSkipButton } from "./_components/BillsStepForm";
+import { RecurringExpensesStepForm, RecurringExpensesStepSkipButton } from "./_components/RecurringExpensesStepForm";
 import { saveExpensesAction } from "./actions";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
@@ -36,6 +36,7 @@ export default async function ExpensesStepPage() {
   const initialItems = existing.map((e) => ({
     name: e.name,
     amount: e.amount.toString(),
+    hasFixedDate: e.hasFixedDate,
     dueDay: e.dueDay !== null ? String(e.dueDay) : "",
   }));
 
@@ -45,8 +46,8 @@ export default async function ExpensesStepPage() {
       <p className="onboarding-kicker">{t.onboarding.expenses.kicker}</p>
       <h1>{t.onboarding.expenses.question}</h1>
       <p className="field-hint">{t.onboarding.expenses.explainer(vocab)}</p>
-      <BillsStepForm action={saveExpensesAction} initialItems={initialItems} />
-      <BillsStepSkipButton action={saveExpensesAction} />
+      <RecurringExpensesStepForm action={saveExpensesAction} initialItems={initialItems} />
+      <RecurringExpensesStepSkipButton action={saveExpensesAction} />
     </div>
   );
 }

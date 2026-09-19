@@ -193,7 +193,7 @@ test.describe("managing categories", () => {
 
     await page.goto("/plan");
     await page.waitForSelector(".dashboard-section");
-    await page.click('button:has-text("+ New bill")');
+    await page.click('button:has-text("+ New")');
     const recurringNameField = page.getByLabel("Name");
     await recurringNameField.waitFor();
     await recurringNameField.fill("Spotify");

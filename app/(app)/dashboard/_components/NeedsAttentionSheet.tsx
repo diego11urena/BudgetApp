@@ -7,7 +7,7 @@ import { categorizeTransactionAction, describeTransactionAction } from "../../_a
 import { formatCurrency } from "@/lib/format";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
-import { BillPicker, type BillOption } from "../../_components/BillPicker";
+import { RecurringExpensePicker, type RecurringOption } from "../../_components/RecurringExpensePicker";
 import { useT } from "@/app/_components/LocaleProvider";
 
 /**
@@ -24,7 +24,7 @@ export function NeedsAttentionSheet({
   expenseCategoryNames,
   incomeCategoryNames,
   savingsCategoryNames,
-  existingBills,
+  recurringOptions,
   returnFocusTo = null,
   onClose,
 }: {
@@ -33,8 +33,8 @@ export function NeedsAttentionSheet({
   expenseCategoryNames: string[];
   incomeCategoryNames: string[];
   savingsCategoryNames: string[];
-  /** Feeds each EXPENSE row's own "Which bill?" picker, once its "This is a bill" checkbox is on. */
-  existingBills: BillOption[];
+  /** Feeds each EXPENSE row's own "Which recurring expense?" picker, once its "This is a recurring expense" checkbox is on. */
+  recurringOptions: RecurringOption[];
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
@@ -95,7 +95,7 @@ export function NeedsAttentionSheet({
             key={transaction.id}
             transaction={transaction}
             categoryNames={categoryNamesForType(transaction.type)}
-            existingBills={existingBills}
+            recurringOptions={recurringOptions}
             onDone={() => handleDone(transaction.id)}
           />
         ))}
@@ -111,12 +111,12 @@ export function NeedsAttentionSheet({
 function NeedsAttentionRow({
   transaction,
   categoryNames,
-  existingBills,
+  recurringOptions,
   onDone,
 }: {
   transaction: NeedsAttentionTransaction;
   categoryNames: string[];
-  existingBills: BillOption[];
+  recurringOptions: RecurringOption[];
   onDone: () => void;
 }) {
   const t = useT().dashboard;
@@ -126,12 +126,15 @@ function NeedsAttentionRow({
   const [categoryValue, setCategoryValue] = useState("");
   const [recurring, setRecurring] = useState(false);
   // Defaults to the row's own display name -- same
-  // create-a-new-bill-with-this-name default BillPicker/QuickAddSheet use,
-  // kept in sync here since this row builds its own FormData by hand
-  // rather than reading the native form on submit.
-  const [billSelection, setBillSelection] = useState<{ recurringExpenseId: string | null; billName: string }>({
+  // create-a-new-one-with-this-name default RecurringExpensePicker/
+  // QuickAddSheet use, kept in sync here since this row builds its own
+  // FormData by hand rather than reading the native form on submit.
+  const [recurringSelection, setRecurringSelection] = useState<{
+    recurringExpenseId: string | null;
+    recurringExpenseName: string;
+  }>({
     recurringExpenseId: null,
-    billName: transaction.name,
+    recurringExpenseName: transaction.name,
   });
   const [description, setDescription] = useState("");
 
@@ -166,8 +169,8 @@ function NeedsAttentionRow({
       fd.set("category", categoryValue.trim());
       if (recurring) {
         fd.set("recurring", "true");
-        if (billSelection.recurringExpenseId) fd.set("recurringExpenseId", billSelection.recurringExpenseId);
-        fd.set("billName", billSelection.billName);
+        if (recurringSelection.recurringExpenseId) fd.set("recurringExpenseId", recurringSelection.recurringExpenseId);
+        fd.set("recurringExpenseName", recurringSelection.recurringExpenseName);
       }
       const result = await categorizeTransactionAction(fd);
       if ("error" in result) {
@@ -223,21 +226,23 @@ function NeedsAttentionRow({
                     // Reset to the row's own name each time the toggle
                     // turns on -- a prior open/select shouldn't linger if
                     // the user unchecked and re-checked it.
-                    if (e.target.checked) setBillSelection({ recurringExpenseId: null, billName: transaction.name });
+                    if (e.target.checked) {
+                      setRecurringSelection({ recurringExpenseId: null, recurringExpenseName: transaction.name });
+                    }
                   }}
                 />
-                {t.thisIsABill}
+                {t.isRecurringExpense}
               </label>
               {recurring && (
                 <div className="categorize-imports-row-input">
-                  <label htmlFor={`needs-attention-bill-${transaction.id}`} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
-                    {t.whichBillLabel}
+                  <label htmlFor={`needs-attention-recurring-${transaction.id}`} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
+                    {t.whichRecurringExpenseLabel}
                   </label>
-                  <BillPicker
-                    id={`needs-attention-bill-${transaction.id}`}
-                    bills={existingBills}
+                  <RecurringExpensePicker
+                    id={`needs-attention-recurring-${transaction.id}`}
+                    options={recurringOptions}
                     defaultValue={transaction.name}
-                    onSelectionChange={setBillSelection}
+                    onSelectionChange={setRecurringSelection}
                   />
                 </div>
               )}

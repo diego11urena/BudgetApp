@@ -32,7 +32,7 @@ export default async function Home() {
 
   // Mobile's own compact stand-in for the three how-it-works cards -- "too
   // heavy for a phone screen" per the design handoff's own mobile spec.
-  const MOBILE_CHECKLIST = [t.checklistSetup, t.checklistBills, t.checklistGmail];
+  const MOBILE_CHECKLIST = [t.checklistSetup, t.checklistRecurring, t.checklistGmail];
 
   return (
     <div className="landing">

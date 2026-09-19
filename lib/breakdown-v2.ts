@@ -13,10 +13,10 @@ export interface DailySpend {
 /** Heatmap bucket (0-4, where 0 = no spend, 1-4 = percentile buckets). */
 export type HeatmapBucket = 0 | 1 | 2 | 3 | 4;
 
-/** Trend series point (a period's Bills/Discretionary split). */
+/** Trend series point (a period's Fixed/Discretionary split). */
 export interface TrendPoint {
   label: string;
-  bills: number;
+  fixed: number;
   discretionary: number;
 }
 
@@ -25,7 +25,7 @@ export type FixedShareDirection = "rising" | "falling" | "holding steady";
 
 /** Fixed-share trend result. */
 export interface FixedShareTrend {
-  periods: { billsPct: number; discretionaryPct: number; goalsPct: number }[];
+  periods: { fixedPct: number; discretionaryPct: number; goalsPct: number }[];
   direction: FixedShareDirection;
   oldPct: number;
   newPct: number;
@@ -165,45 +165,45 @@ export function computeTrendSeries(
   cycles: { financials: CycleFinancials; periodLabel?: string }[]
 ): TrendPoint[] {
   return cycles.map((cycle) => {
-    let bills = 0;
+    let fixed = 0;
     let discretionary = 0;
 
     for (const tx of cycle.financials.transactions) {
       const classification = classifyTransaction(tx);
       if (classification === "fixed") {
-        bills += tx.amount;
+        fixed += tx.amount;
       } else if (classification === "discretionary") {
         discretionary += tx.amount;
       }
-      // Goals don't contribute to bills or discretionary.
+      // Goals don't contribute to fixed or discretionary.
     }
 
     return {
       label: cycle.periodLabel ?? "",
-      bills,
+      fixed,
       discretionary,
     };
   });
 }
 
 /**
- * Fixed-share trend: last 6 periods' bills/discretionary/goals % of total spend.
+ * Fixed-share trend: last 6 periods' fixed/discretionary/goals % of total spend.
  * Direction = rising/falling if delta > 1.5pt, else holding steady.
  */
 export function computeFixedShareTrend(
   cycles: { financials: CycleFinancials }[]
 ): FixedShareTrend {
-  const periods: { billsPct: number; discretionaryPct: number; goalsPct: number }[] = [];
+  const periods: { fixedPct: number; discretionaryPct: number; goalsPct: number }[] = [];
 
   for (const cycle of cycles) {
-    let bills = 0;
+    let fixed = 0;
     let discretionary = 0;
     let goals = 0;
 
     for (const tx of cycle.financials.transactions) {
       const classification = classifyTransaction(tx);
       if (classification === "fixed") {
-        bills += tx.amount;
+        fixed += tx.amount;
       } else if (classification === "discretionary") {
         discretionary += tx.amount;
       } else {
@@ -211,12 +211,12 @@ export function computeFixedShareTrend(
       }
     }
 
-    const total = bills + discretionary + goals;
+    const total = fixed + discretionary + goals;
     if (total === 0) {
-      periods.push({ billsPct: 0, discretionaryPct: 0, goalsPct: 0 });
+      periods.push({ fixedPct: 0, discretionaryPct: 0, goalsPct: 0 });
     } else {
       periods.push({
-        billsPct: (bills / total) * 100,
+        fixedPct: (fixed / total) * 100,
         discretionaryPct: (discretionary / total) * 100,
         goalsPct: (goals / total) * 100,
       });
@@ -228,8 +228,8 @@ export function computeFixedShareTrend(
   let newPct = 0;
 
   if (periods.length >= 2) {
-    oldPct = periods[0].billsPct;
-    newPct = periods[periods.length - 1].billsPct;
+    oldPct = periods[0].fixedPct;
+    newPct = periods[periods.length - 1].fixedPct;
     const delta = newPct - oldPct;
     if (delta > 1.5) {
       direction = "rising";

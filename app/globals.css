@@ -245,10 +245,10 @@
      Now a warm taupe instead of a second cool gray. */
   --chart-other: #7a6a5c;
 
-  /* Summary + Breakdown chart colors — fixed semantic roles (Bills,
+  /* Summary + Breakdown chart colors — fixed semantic roles (Fixed,
      Discretionary, Goals) across chapters 02 and 03, distinct from
      --chart-cat-N which are per-category identity colors in chapter 04. */
-  --chart-bills: #17395c;
+  --chart-fixed: #17395c;
   --chart-discretionary: #2f8f8a;
   --chart-goal: var(--color-savings);
 
@@ -359,10 +359,10 @@
   --chart-other: #8a7a6a;
 
   /* Summary + Breakdown chart colors — dark-mode equivalents of light-mode
-     tokens above (bills/discretionary/goals are the same mapping across
+     tokens above (fixed/discretionary/goals are the same mapping across
      both themes per design spec; goals reuses --color-savings which already
      has its own dark value). */
-  --chart-bills: #7fb3e8;
+  --chart-fixed: #7fb3e8;
   --chart-discretionary: #4fb3ad;
   --chart-goal: var(--color-savings);
 
@@ -536,15 +536,15 @@ a {
   margin-top: 1.5rem;
 }
 
-/* Bills step -- added rows */
-.bills-step-list {
+/* Recurring step -- added rows */
+.expenses-step-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin: 1rem 0;
 }
 
-.bills-step-row {
+.expenses-step-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -554,7 +554,7 @@ a {
   box-shadow: var(--shadow-row);
 }
 
-.bills-step-row-name {
+.expenses-step-row-name {
   flex-shrink: 0;
   font-size: 0.9375rem;
   font-weight: 700;
@@ -564,7 +564,7 @@ a {
   white-space: nowrap;
 }
 
-.bills-step-row-meta {
+.expenses-step-row-meta {
   flex: 1;
   min-width: 0;
   font-size: 0.75rem;
@@ -574,14 +574,14 @@ a {
   white-space: nowrap;
 }
 
-.bills-step-row-amount {
+.expenses-step-row-amount {
   flex-shrink: 0;
   font-size: 0.9375rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.bills-step-row-remove {
+.expenses-step-row-remove {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
@@ -594,24 +594,24 @@ a {
   cursor: pointer;
 }
 
-.bills-step-row-remove:hover {
+.expenses-step-row-remove:hover {
   background: var(--color-bg-secondary-hover);
 }
 
-.bills-step-add {
+.expenses-step-add {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
-.bills-step-add-row {
+.expenses-step-add-row {
   display: flex;
   gap: 0.5rem;
 }
 
-.bills-step-add-row input,
-.bills-step-add-row select {
+.expenses-step-add-row input,
+.expenses-step-add-row select {
   flex: 1;
   min-height: 52px;
   padding: 0.6rem 0.8rem;
@@ -623,12 +623,12 @@ a {
   font-size: 0.9375rem;
 }
 
-.bills-step-add-button {
+.expenses-step-add-button {
   flex-shrink: 0;
   min-height: 52px;
 }
 
-.bills-step-suggestions {
+.expenses-step-suggestions {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -876,10 +876,10 @@ input[type="checkbox"]::before {
   white-space: nowrap;
 }
 
-/* Small navy-on-secondary-surface pill -- "+ Add goal", "+ New bill",
-   "Record" (a bill row's own inline action). 32px visual height per the
-   design system spec, invisibly padded to the app's 44px tap-target
-   minimum the same way .type-toggle-btn is. */
+/* Small navy-on-secondary-surface pill -- "+ Add goal", "+ New",
+   "Record" (a recurring-expense row's own inline action). 32px visual
+   height per the design system spec, invisibly padded to the app's 44px
+   tap-target minimum the same way .type-toggle-btn is. */
 .button--chip {
   position: relative;
   min-height: 32px;
@@ -2047,24 +2047,25 @@ button.line-item--link {
   font-weight: 600;
 }
 
-/* BillPicker -- "Which bill?" combobox on the transaction sheet's "This is
-   a bill" toggle. Mirrors .category-name-input's shape; adds a right-aligned
-   amount on each option since two bills can share similar names. */
-.bill-picker {
+/* RecurringExpensePicker -- "Which recurring expense?" combobox on the
+   transaction sheet's "This is a recurring expense" toggle. Mirrors
+   .category-name-input's shape; adds a right-aligned amount on each option
+   since two entries can share similar names. */
+.recurring-picker {
   width: 100%;
   min-width: 0;
 }
 
-.bill-picker-combobox {
+.recurring-picker-combobox {
   position: relative;
   width: 100%;
 }
 
-.bill-picker-combobox input {
+.recurring-picker-combobox input {
   width: 100%;
 }
 
-.bill-picker-dropdown {
+.recurring-picker-dropdown {
   position: absolute;
   top: calc(100% + 0.25rem);
   left: 0;
@@ -2081,11 +2082,11 @@ button.line-item--link {
   box-shadow: var(--elev-2);
 }
 
-.bill-picker-dropdown li + li {
+.recurring-picker-dropdown li + li {
   margin-top: 0.125rem;
 }
 
-.bill-picker-dropdown button {
+.recurring-picker-dropdown button {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2103,19 +2104,19 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.bill-picker-dropdown button:hover,
-.bill-picker-dropdown button.is-active {
+.recurring-picker-dropdown button:hover,
+.recurring-picker-dropdown button.is-active {
   background: var(--color-bg-secondary);
 }
 
-.bill-picker-option-name {
+.recurring-picker-option-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.bill-picker-option-amount {
+.recurring-picker-option-amount {
   flex-shrink: 0;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
@@ -2189,7 +2190,7 @@ button.line-item--link {
 }
 
 /* Severity dot -- red for a runway/over-budget concern, amber for an
-   unpaid-bill concern, silver for everything else (informational, not
+   unpaid-recurring concern, silver for everything else (informational, not
    something gone wrong). See lib/insights.ts's Insight.severity. */
 .insights-dot {
   flex-shrink: 0;
@@ -3082,11 +3083,11 @@ button.line-item--link {
   background: var(--color-button-bg);
 }
 
-/* Plan's Bills summary bar -- "N of M paid this quincena" + a progress
+/* The Recurring tab's own summary bar -- "N of M paid this quincena" + a progress
    bar, with the remaining dollar amount on the right. New derived values
    (see lib/recurring-expenses.ts's summarizeRecurringExpenses, already
    computed for the dashboard's own StatGrid). */
-.bills-summary-bar {
+.recurring-summary-bar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -3096,7 +3097,7 @@ button.line-item--link {
   margin-bottom: 1rem;
 }
 
-.bills-summary-bar-text {
+.recurring-summary-bar-text {
   flex: 1;
   min-width: 0;
 }
@@ -3104,18 +3105,18 @@ button.line-item--link {
 /* The generic .progress-bar-track's own fill color (--color-bg-secondary)
    would be invisible against this bar's identical background -- a subtle
    dark overlay instead, visible in both themes without a new token. */
-.bills-summary-bar .progress-bar-track {
+.recurring-summary-bar .progress-bar-track {
   background: rgba(16, 22, 28, 0.12);
 }
 
-.bills-summary-bar-count {
+.recurring-summary-bar-count {
   display: block;
   font-size: 0.875rem;
   font-weight: 700;
   margin-bottom: 0.4rem;
 }
 
-.bills-summary-bar-remaining {
+.recurring-summary-bar-remaining {
   flex-shrink: 0;
   font-family: var(--font-display);
   font-size: 1.0625rem;
@@ -3131,10 +3132,10 @@ button.line-item--link {
   gap: 1.1rem;
 }
 
-/* Same rhythm as .recurring-expense-list's own row gap -- Bills and Goals
+/* Same rhythm as .recurring-expense-list's own row gap -- Recurring and Goals
    are both single-entity-per-row lists on the same Plan screen, so
    nothing about their content justified Goals "breathing" more than
-   twice as much as Bills did. */
+   twice as much as Recurring did. */
 .goal-list {
   display: flex;
   flex-direction: column;
@@ -3209,10 +3210,26 @@ button.line-item--link {
   padding-left: calc(16px + var(--space-2));
 }
 
-/* Plan's flat bills list -- no chevron/category parent to nest under. */
+/* The Recurring tab's flat lists -- no chevron/category parent to nest under. */
 .recurring-expense-list--flat {
   padding-left: 0;
   margin-top: 0;
+}
+
+/* The Recurring tab's own Scheduled/Ongoing group headings -- same eyebrow
+   treatment as .summary-section-eyebrow, one step down from the section's
+   own h2, just enough separation to read as two lists within one section. */
+.recurring-subsection-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: var(--space-4) 0 0.625rem;
+}
+
+.recurring-subsection-heading:first-of-type {
+  margin-top: var(--space-3);
 }
 
 .recurring-expense-row {
@@ -3312,7 +3329,7 @@ button.line-item--link {
   color: var(--color-error);
 }
 
-/* Plan's simplified bill row (RecurringExpenseRow's simplifiedStatus
+/* The Recurring tab's simplified row (RecurringExpenseRow's simplifiedStatus
    prop) -- a dot/check + one meta line instead of History/CategoryProgress
    Row's fuller not-started/partial/paid/paid-over/exceeded status chip. */
 .recurring-expense-row--simplified {
@@ -3351,8 +3368,8 @@ button.line-item--link {
   color: var(--color-success);
 }
 
-/* The dot only shows for an unpaid bill (empty circle); a paid one swaps
-   to a check glyph and drops the dot's own fill -- the icon itself
+/* The dot only shows for an unsettled item (empty circle); a settled one
+   swaps to a check glyph and drops the dot's own fill -- the icon itself
    (rendered conditionally in the component) carries the color instead. */
 .recurring-expense-row--simplified .recurring-expense-row-indicator:has(svg) {
   width: auto;
@@ -4614,7 +4631,7 @@ button.line-item--link {
 
 /* Sparkline row */
 .summary-sparkline-row,
-.summary-bills-row,
+.summary-recurring-row,
 .summary-goals-completed,
 .summary-goals-in-progress {
   display: flex;
@@ -4633,7 +4650,7 @@ button.line-item--link {
 }
 
 .summary-sparkline-row:hover,
-.summary-bills-row:hover,
+.summary-recurring-row:hover,
 .summary-goals-completed:hover,
 .summary-goals-in-progress:hover {
   background: var(--color-bg-secondary);
@@ -4653,7 +4670,7 @@ button.line-item--link {
 }
 
 .summary-sparkline-chevron,
-.summary-bills-chevron,
+.summary-recurring-chevron,
 .summary-goals-chevron {
   margin-left: auto;
   flex-shrink: 0;
@@ -4662,7 +4679,7 @@ button.line-item--link {
 
 /* Goals */
 .summary-goals-section,
-.summary-bills-section {
+.summary-recurring-section {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -4679,8 +4696,8 @@ button.line-item--link {
   min-width: 0;
 }
 
-/* Bills */
-.summary-bills-content {
+/* Recurring (Summary screen) */
+.summary-recurring-content {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -4688,25 +4705,25 @@ button.line-item--link {
   gap: 0.5rem;
 }
 
-.summary-bills-label {
+.summary-recurring-label {
   font-size: 0.9375rem;
 }
 
-.summary-bills-track {
+.summary-recurring-track {
   height: 6px;
   border-radius: 999px;
   background: var(--color-bg-secondary);
   overflow: hidden;
 }
 
-.summary-bills-fill {
+.summary-recurring-fill {
   height: 100%;
   border-radius: 999px;
   background: var(--color-success);
   transition: width 200ms ease;
 }
 
-.summary-bills-late-tag {
+.summary-recurring-late-tag {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 700;
@@ -5030,7 +5047,7 @@ button.line-item--link {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--chart-bills);
+  color: var(--chart-fixed);
   background: var(--color-bg-secondary);
   border-radius: 999px;
   padding: 0.05rem 0.4rem;
@@ -5116,7 +5133,7 @@ button.line-item--link {
 .small-multiples-bar {
   flex: 1 1 0;
   display: flex;
-  flex-direction: column-reverse; /* bills at the base, goals on top */
+  flex-direction: column-reverse; /* fixed at the base, goals on top */
   border-radius: 3px;
   overflow: hidden;
   background: var(--color-bg-secondary);

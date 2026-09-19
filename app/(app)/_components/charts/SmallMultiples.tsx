@@ -1,10 +1,10 @@
 /**
- * SmallMultiples: 6 thin stacked bars showing Bills/Discretionary/Goals % over time.
+ * SmallMultiples: 6 thin stacked bars showing Fixed/Discretionary/Goals % over time.
  * Used in Breakdown chapter 03 (Fixed vs Flexible).
  */
 
 interface PeriodData {
-  billsPct: number;
+  fixedPct: number;
   discretionaryPct: number;
   goalsPct: number;
   label: string;
@@ -24,14 +24,14 @@ export default function SmallMultiples({ periods }: SmallMultiplesProps) {
       <div className="small-multiples-container">
         {periods.map((period, idx) => (
           <div key={idx} className="small-multiples-bar" style={{ minHeight: barHeight }}>
-            {/* Bills segment */}
+            {/* Fixed segment */}
             <div
               className="small-multiples-segment"
               style={{
-                height: `${period.billsPct}%`,
-                backgroundColor: "var(--chart-bills)",
+                height: `${period.fixedPct}%`,
+                backgroundColor: "var(--chart-fixed)",
               }}
-              title={`Bills: ${period.billsPct.toFixed(0)}%`}
+              title={`Fixed: ${period.fixedPct.toFixed(0)}%`}
             />
 
             {/* Discretionary segment */}
@@ -74,9 +74,9 @@ export default function SmallMultiples({ periods }: SmallMultiplesProps) {
         <div className="small-multiples-legend-item">
           <div
             className="small-multiples-legend-swatch"
-            style={{ backgroundColor: "var(--chart-bills)" }}
+            style={{ backgroundColor: "var(--chart-fixed)" }}
           />
-          <span>Bills</span>
+          <span>Fixed</span>
         </div>
         <div className="small-multiples-legend-item">
           <div

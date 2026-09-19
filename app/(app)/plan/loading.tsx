@@ -2,7 +2,7 @@ import { Skeleton } from "../../_components/Skeleton";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 
-/** Bespoke to the Plan layout (Goals + Bills merged): title, a couple of goal rows (ring + text shape), then a run of bill rows -- same order the real page renders in, so hydrating never visibly swaps the two sections. */
+/** Bespoke to the Plan layout (Goals + Recurring merged): title, a couple of goal rows (ring + text shape), then a run of recurring-expense rows -- same order the real page renders in, so hydrating never visibly swaps the two sections. */
 export default async function Loading() {
   const t = getDictionary(await getRequestLocale());
 
