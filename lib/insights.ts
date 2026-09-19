@@ -3,7 +3,6 @@ import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { addDays, nowInPanama, panamaDateParts, parseDateOnly } from "@/lib/pay-date";
 import { calendarDaysBetween, cycleEnd, type BudgetFrequency } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
-import { getRecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
 import type { GoalWithProgress } from "@/lib/goals";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import type { Dictionary, PeriodVocab } from "@/lib/i18n/dictionary";
@@ -14,7 +13,7 @@ export interface Insight {
   text: string;
   /** Present when this insight has a natural destination (e.g. the Plan tab) -- absent for insights with nothing to link to, which InsightsCard renders as plain text. */
   href?: string;
-  /** Drives InsightsCard's severity dot -- "critical" for runway/over-budget concerns, "warning" for unpaid-bill concerns, absent (neutral dot) for everything else (on-track, streaks, anomalies, goal progress -- informational, not something gone wrong). */
+  /** Drives InsightsCard's severity dot -- "critical" for runway/over-budget concerns, "warning" for unpaid-recurring concerns, absent (neutral dot) for everything else (on-track, streaks, anomalies, goal progress -- informational, not something gone wrong). */
   severity?: "critical" | "warning";
 }
 
@@ -68,7 +67,7 @@ function anomalyMinAverage(budgetFrequency: BudgetFrequency): number {
 const SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT = 60;
 /** How many days out (in either direction -- "due in N days" or "N days overdue") a MONTHLY recurring expense's own due day has to fall within, unpaid, before it's worth a dedicated call-out. */
 const DUE_SOON_WITHIN_DAYS = 3;
-/** unpaidRecurringCandidate doesn't fire before this fraction of the cycle has elapsed (unless a specific bill is already overdue -- see its own comment) -- every recurring expense is "unpaid" on day 1 by definition, so firing immediately is true but useless, and would occupy the #1 slot for the first half of every quincena. */
+/** unpaidRecurringCandidate doesn't fire before this fraction of the cycle has elapsed (unless a specific Scheduled expense is already overdue -- see its own comment) -- every recurring expense is "unpaid" on day 1 by definition, so firing immediately is true but useless, and would occupy the #1 slot for the first half of every quincena. */
 const UNPAID_RECURRING_MIN_PERCENT_ELAPSED = 0.5;
 /** goalContributionCandidate doesn't fire before this fraction of the cycle has elapsed -- a goal contribution logged anytime this cycle still counts, so there's nothing to flag until enough of the cycle has passed that "haven't moved it yet" actually means something. */
 const GOAL_CONTRIBUTION_MIN_PERCENT_ELAPSED = 0.6;
@@ -163,7 +162,7 @@ function cyclePhase(
   return { totalDays, elapsedDays, daysRemaining, percentElapsed: elapsedDays / totalDays };
 }
 
-/** How many days until (positive) or since (negative) a MONTHLY expense's dueDay falls this month -- null when dueDay doesn't exist in the current month (e.g. 31st in a 30-day month). Shared by dueSoonCandidate and unpaidRecurringCandidate's own overdue check. */
+/** How many days until (positive) or since (negative) a Scheduled expense's dueDay falls this month -- null when dueDay doesn't exist in the current month (e.g. 31st in a 30-day month). Shared by dueSoonCandidate and unpaidRecurringCandidate's own overdue check. */
 function daysUntilMonthlyDue(now: Date, dueDay: number): number | null {
   const { year, month } = panamaDateParts(now);
   const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
@@ -173,14 +172,14 @@ function daysUntilMonthlyDue(now: Date, dueDay: number): number | null {
 }
 
 /**
- * Names the single most urgent still-unpaid MONTHLY recurring expense whose
- * own due day falls within DUE_SOON_WITHIN_DAYS of today (including
+ * Names the single most urgent still-unpaid Scheduled recurring expense
+ * whose own due day falls within DUE_SOON_WITHIN_DAYS of today (including
  * already-overdue) -- dueDay has always been captured (see
  * RecurringExpenseEditSheet) but never surfaced anywhere a user just
  * glances at the list; this is the one place it actually changes what
  * someone does. Only ever names the single most urgent one (never a count,
  * unlike unpaidRecurringCandidate) since "which one, and when" is the whole
- * point. BIWEEKLY expenses have no fixed calendar day to compare against,
+ * point. Ongoing expenses have no fixed calendar day to compare against,
  * so they're not eligible here.
  */
 function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[], t: InsightsDictionary): Candidate | null {
@@ -188,9 +187,8 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
 
   for (const category of categories) {
     for (const expense of category.expenses) {
-      if (expense.frequency !== "MONTHLY" || expense.dueDay === null) continue;
-      const status = getRecurringExpensePaymentStatus(expense.actual, expense.targetAmount);
-      if (status !== "not-started" && status !== "partial") continue;
+      if (!expense.hasFixedDate || expense.dueDay === null) continue;
+      if (expense.status !== "not-started" && expense.status !== "partial") continue;
 
       const daysUntilDue = daysUntilMonthlyDue(now, expense.dueDay);
       if (daysUntilDue === null) continue; // e.g. dueDay 31 in a 30-day month -- nothing to compare this cycle.
@@ -215,7 +213,7 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
             : t.wasDueDaysAgo(Math.abs(best.daysUntilDue));
 
   return {
-    text: t.billDueSoon(best.name, formatCurrency(best.amount), dueText),
+    text: t.scheduledDueSoon(best.name, formatCurrency(best.amount), dueText),
     priority: PRIORITY.DUE_SOON,
     href: "/plan",
     severity: "warning",
@@ -223,14 +221,17 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
 }
 
 /**
- * Counts this cycle's recurring expenses still "not-started" or "partial"
- * (see lib/recurring-expense-status.ts) and sums what's left to pay on
- * each (target minus actual, floored at 0 -- a recurring expense already
- * paid past its target contributes nothing here). The highest-value gap
- * this rework closes: Insights previously had no idea Recurring Expenses
- * existed at all.
+ * Counts this cycle's Scheduled recurring expenses still "not-started" or
+ * "partial" (see lib/recurring-expense-status.ts) and sums what's left to
+ * pay on each (target minus actual, floored at 0 -- one already paid past
+ * its target contributes nothing here). Ongoing expenses are excluded
+ * entirely, same as every other recurring-expense dollar aggregate (see
+ * summarizeRecurringExpenses's own doc comment) -- their amount is an
+ * estimate, not a real target, so "$X left to pay" wouldn't mean the same
+ * thing for one. The highest-value gap this rework closes: Insights
+ * previously had no idea Recurring Expenses existed at all.
  *
- * Gated by UNPAID_RECURRING_MIN_PERCENT_ELAPSED unless a specific MONTHLY
+ * Gated by UNPAID_RECURRING_MIN_PERCENT_ELAPSED unless a specific Scheduled
  * expense's own due day has already passed -- every recurring expense is
  * "unpaid" by definition on day 1 of a cycle, so firing immediately is
  * true but useless (see dueSoonCandidate for the single-account version of
@@ -248,11 +249,11 @@ function unpaidRecurringCandidate(
   let hasOverdue = false;
   for (const category of categories) {
     for (const expense of category.expenses) {
-      const status = getRecurringExpensePaymentStatus(expense.actual, expense.targetAmount);
-      if (status === "not-started" || status === "partial") {
+      if (!expense.hasFixedDate) continue;
+      if (expense.status === "not-started" || expense.status === "partial") {
         count++;
         remaining += Math.max(expense.targetAmount - expense.actual, 0);
-        if (expense.frequency === "MONTHLY" && expense.dueDay !== null) {
+        if (expense.dueDay !== null) {
           const daysUntilDue = daysUntilMonthlyDue(now, expense.dueDay);
           if (daysUntilDue !== null && daysUntilDue <= 0) hasOverdue = true;
         }

@@ -40,20 +40,27 @@ export const getUserBudgetFrequency = cache(async (userId: string): Promise<Budg
 
 /**
  * Whether a recurring category's most recent budget target should carry
- * forward into a newly-created cycle. BIWEEKLY carries into every cycle —
- * once per cycle, by definition. MONTHLY carries into exactly the cycle(s)
- * whose date range actually contains an occurrence of dueDay -- for a
- * QUINCENAL cycle that's exactly one of the month's two cycles (matching
- * the old "which half of the month" behavior exactly); for a MONTHLY cycle
- * (spanning the whole month) it's every cycle, since any day 1-31 falls
- * inside a one-month span.
+ * forward into a newly-created cycle. No fixed date (Ongoing, or a SAVINGS
+ * goal's own recurring flag) carries into every cycle -- once per cycle,
+ * by definition. A fixed date (Scheduled) carries into exactly the
+ * cycle(s) whose date range actually contains an occurrence of dueDay --
+ * for a QUINCENAL cycle that's exactly one of the month's two cycles
+ * (matching the old "which half of the month" behavior exactly); for a
+ * MONTHLY cycle (spanning the whole month) it's every cycle, since any day
+ * 1-31 falls inside a one-month span.
+ *
+ * Shared by both RecurringExpense (hasFixedDate is a real column) and
+ * ExpenseCategory/SAVINGS goals (still on the older frequency enum,
+ * untouched by the Scheduled/Ongoing rework -- the Goals tab has no
+ * concept of individual recurring expenses) -- each caller normalizes its
+ * own shape to this one hasFixedDate boolean at the call site.
  */
 export function shouldCarryForwardToCycle(
-  rule: { frequency: "BIWEEKLY" | "MONTHLY"; dueDay: number | null },
+  rule: { hasFixedDate: boolean; dueDay: number | null },
   newCyclePeriodStart: Date,
   budgetFrequency: BudgetFrequency,
 ): boolean {
-  if (rule.frequency === "BIWEEKLY") return true;
+  if (!rule.hasFixedDate) return true;
   if (rule.dueDay === null) return false;
   return dueDayFallsWithinCycle(rule.dueDay, newCyclePeriodStart, budgetFrequency);
 }
@@ -112,7 +119,7 @@ export async function recomputeCategoryBudgetGoal(db: Db, cycleId: string, categ
  * Snapshots every one of a user's recurring (recurring: true) RecurringExpense
  * rows that should carry into a newly-created cycle (per
  * shouldCarryForwardToCycle, evaluated per-expense against its own
- * frequency/dueDay) into that cycle's CycleRecurringExpense rows, then
+ * hasFixedDate/dueDay) into that cycle's CycleRecurringExpense rows, then
  * recomputes each affected category's CycleBudgetGoal aggregate. Reused by
  * both closeCycleAndStartNext (normal "just got paid" flow) and
  * eraseAllCyclesAction — unlike the old CycleBudgetGoal-copying loop this
@@ -172,9 +179,10 @@ export async function createRecurringExpenseWithSnapshot(
     cycleId: string;
     name: string;
     amount: Prisma.Decimal | number | string;
-    frequency?: "BIWEEKLY" | "MONTHLY";
+    /** Scheduled (true, a real due date) vs Ongoing (false, the default -- recurs but no set date). */
+    hasFixedDate?: boolean;
     dueDay?: number | null;
-    /** Defaults true (the Prisma column's own default) -- false for a one-time bill that shouldn't carry into the next quincena. */
+    /** Defaults true (the Prisma column's own default) -- false for a one-time expense that shouldn't carry into the next quincena. */
     recurring?: boolean;
   },
 ) {
@@ -199,8 +207,8 @@ export async function createRecurringExpenseWithSnapshot(
       categoryId: params.categoryId,
       name: params.name,
       amount: params.amount,
-      frequency: params.frequency ?? "BIWEEKLY",
-      dueDay: params.frequency === "MONTHLY" ? (params.dueDay ?? null) : null,
+      hasFixedDate: params.hasFixedDate ?? false,
+      dueDay: params.hasFixedDate ? (params.dueDay ?? null) : null,
       recurring: params.recurring ?? true,
     },
   });
@@ -222,9 +230,10 @@ export async function createRecurringExpenseWithSnapshot(
  * OWN amount as the target -- not this transaction's amount, which might
  * be a one-off variation); no match creates a brand-new one instead,
  * using this transaction's own name/category/amount and defaulting to
- * BIWEEKLY (matching createRecurringExpenseWithSnapshot's own default --
- * refining frequency/due-day is a later, explicit edit, not this
- * same-moment action's job). Deliberately an exact match, not the fuzzy
+ * Ongoing, no fixed date (matching createRecurringExpenseWithSnapshot's own
+ * default -- turning it into a Scheduled item with a due day is a later,
+ * explicit edit, not this same-moment action's job). Deliberately an exact
+ * match, not the fuzzy
  * substring+10%-tolerance suggestion matcher used elsewhere -- this is a
  * same-moment user action, not a background suggestion, so a wrong
  * automatic link would be a real bug, not just an imperfect nudge.
@@ -269,21 +278,22 @@ export async function linkOrCreateRecurringExpenseForTransaction(
 }
 
 /**
- * The explicit "link this transaction to THAT bill" primitive -- an id, not
- * a name lookup. Used by linkOrCreateRecurringExpenseForTransaction's own
- * existing-match branch above, and directly by the transaction sheet's
- * "Which bill?" picker (see BillPicker.tsx) when the user picks a specific
- * existing bill instead of typing a name to match against. Ensures this
- * cycle's own CycleRecurringExpense snapshot exists first -- a bill defined
- * in an earlier cycle, or simply not carried into this one, won't have one
- * yet -- then points the transaction at it.
+ * The explicit "link this transaction to THAT recurring expense" primitive
+ * -- an id, not a name lookup. Used by
+ * linkOrCreateRecurringExpenseForTransaction's own existing-match branch
+ * above, and directly by the transaction sheet's "Which recurring
+ * expense?" picker (see RecurringExpensePicker.tsx) when the user picks a
+ * specific existing one instead of typing a name to match against.
+ * Ensures this cycle's own CycleRecurringExpense snapshot exists first --
+ * one defined in an earlier cycle, or simply not carried into this one,
+ * won't have one yet -- then points the transaction at it.
  *
- * Always adopts the bill's own category onto the transaction. For the
- * name-match branch above the two already agree (the lookup is scoped to
+ * Always adopts its own category onto the transaction. For the name-match
+ * branch above the two already agree (the lookup is scoped to
  * params.categoryId), so this is a no-op there; for an explicit pick it's
- * the point -- the user directly choosing a bill IS them telling the app
- * what this transaction was for, a stronger signal than whatever category
- * it happened to be filed under (including no category at all, the common
+ * the point -- the user directly choosing one IS them telling the app what
+ * this transaction was for, a stronger signal than whatever category it
+ * happened to be filed under (including no category at all, the common
  * case for a first-time Gmail import -- see findMatchSuggestion's own doc
  * comment on the same underlying gap).
  */
@@ -315,8 +325,8 @@ export async function linkTransactionToRecurringExpense(
  * The toggle's off-transition: unlinks one transaction without touching
  * the RecurringExpense definition itself -- other transactions, or past
  * cycles, may still reference it, so unlinking one payment must never
- * cascade into removing (or soft-deleting) the bill. Use the Recurring
- * Expenses tab's own Delete for that. Recomputing the aggregate here is a
+ * cascade into removing (or soft-deleting) it. Use the Recurring tab's
+ * own Delete for that. Recomputing the aggregate here is a
  * defensive no-op in practice (targets live on CycleRecurringExpense, not
  * on which transactions happen to be linked) but costs nothing and keeps
  * this consistent with every other operation that touches a category's
@@ -880,7 +890,8 @@ export async function closeCycleAndStartNext(
       });
 
       for (const goal of previousSavingsGoals) {
-        if (!shouldCarryForwardToCycle(goal.expenseCategory, created.periodStart, user.budgetFrequency)) continue;
+        const rule = { hasFixedDate: goal.expenseCategory.frequency === "MONTHLY", dueDay: goal.expenseCategory.dueDay };
+        if (!shouldCarryForwardToCycle(rule, created.periodStart, user.budgetFrequency)) continue;
 
         // upsert, not create: makes this idempotent against a retry of this
         // transaction, so a rule can never end up with two CycleBudgetGoal

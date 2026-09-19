@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getRecurringExpensePaymentStatus } from "./recurring-expense-status";
+import { getOngoingRecurringExpenseStatus, getRecurringExpensePaymentStatus } from "./recurring-expense-status";
 
 describe("getRecurringExpensePaymentStatus", () => {
   it("is not-started when nothing has been paid yet", () => {
@@ -20,5 +20,18 @@ describe("getRecurringExpensePaymentStatus", () => {
 
   it("is exceeded only once spend passes the shared 120% critical threshold", () => {
     expect(getRecurringExpensePaymentStatus(13, 9.99)).toBe("exceeded");
+  });
+});
+
+describe("getOngoingRecurringExpenseStatus", () => {
+  it("is not-logged when nothing has been paid yet", () => {
+    expect(getOngoingRecurringExpenseStatus(0)).toBe("not-logged");
+  });
+
+  it("is logged once anything at all has been paid, regardless of how it compares to the typical amount", () => {
+    // Deliberately far from any "typical" amount -- there's no target to
+    // compare against for an Ongoing item, so any positive actual counts.
+    expect(getOngoingRecurringExpenseStatus(0.01)).toBe("logged");
+    expect(getOngoingRecurringExpenseStatus(500)).toBe("logged");
   });
 });

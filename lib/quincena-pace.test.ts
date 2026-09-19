@@ -397,8 +397,8 @@ describe("dueDayFallsWithinCycle", () => {
   });
 
   // MONTHLY: every day 1-31 falls inside a single whole-month cycle --
-  // the behavior that actually motivated this rewrite (a MONTHLY-frequency
-  // bill must now carry into every monthly cycle, not just one bucket).
+  // the behavior that actually motivated this rewrite (a Scheduled
+  // recurring expense must now carry into every monthly cycle, not just one bucket).
   it("MONTHLY: an early-month dueDay falls within the cycle", () => {
     expect(dueDayFallsWithinCycle(3, panama(2026, 8, 16), "MONTHLY")).toBe(true);
   });

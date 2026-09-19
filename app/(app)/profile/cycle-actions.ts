@@ -81,7 +81,8 @@ export const eraseAllCyclesAction = withActionErrorHandling(async function erase
     for (const goal of latestGoalByCategory.values()) {
       // Same rule closing a cycle normally applies: a MONTHLY category only
       // carries into the cycle(s) whose date range actually contains its dueDay.
-      if (!shouldCarryForwardToCycle(goal.expenseCategory, now, user.budgetFrequency)) continue;
+      const rule = { hasFixedDate: goal.expenseCategory.frequency === "MONTHLY", dueDay: goal.expenseCategory.dueDay };
+      if (!shouldCarryForwardToCycle(rule, now, user.budgetFrequency)) continue;
       await tx.cycleBudgetGoal.create({
         data: { cycleId: cycle.id, expenseCategoryId: goal.expenseCategoryId, targetAmount: goal.targetAmount },
       });

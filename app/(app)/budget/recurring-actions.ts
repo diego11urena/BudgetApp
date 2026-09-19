@@ -21,7 +21,7 @@ import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 export type RecurringExpenseFormState = ActionResult | undefined;
 
-/** Name/amount/category/frequency/due-day, all in one sheet -- replaces the old "create a target, then separately set its frequency" two-step flow. */
+/** Name/amount/category/schedule, all in one sheet -- replaces the old "create a target, then separately set its schedule" two-step flow. */
 export const createRecurringExpenseAction = withActionErrorHandling(async function createRecurringExpenseAction(
   _prevState: RecurringExpenseFormState,
   formData: FormData,
@@ -37,7 +37,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
     name: formData.get("name"),
     amount: formData.get("amount"),
     categoryName: formData.get("categoryName"),
-    frequency: formData.get("frequency") || "BIWEEKLY",
+    hasFixedDate: formData.get("hasFixedDate") ?? undefined,
     dueDay: formData.get("dueDay") || undefined,
     recurring: formData.get("recurring") ?? undefined,
   });
@@ -48,7 +48,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
-  const { name, amount, categoryName, frequency, dueDay, recurring } = parsed.data;
+  const { name, amount, categoryName, hasFixedDate, dueDay, recurring } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
   const category = await getOrCreateCategory(prisma, userId, categoryName, "EXPENSE");
@@ -60,7 +60,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
       cycleId: cycle.id,
       name,
       amount,
-      frequency,
+      hasFixedDate,
       dueDay,
       recurring,
     });
@@ -106,7 +106,7 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
     name: formData.get("name"),
     amount: formData.get("amount"),
     categoryName: formData.get("categoryName"),
-    frequency: formData.get("frequency") || "BIWEEKLY",
+    hasFixedDate: formData.get("hasFixedDate") ?? undefined,
     dueDay: formData.get("dueDay") || undefined,
   });
   if (!parsed.success) {
@@ -116,7 +116,7 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
-  const { name, amount, categoryName, frequency, dueDay } = parsed.data;
+  const { name, amount, categoryName, hasFixedDate, dueDay } = parsed.data;
   const recurring = formData.get("recurring") !== "false";
 
   const category = await getOrCreateCategory(prisma, userId, categoryName, "EXPENSE");
@@ -130,8 +130,8 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
         name,
         amount,
         categoryId: category.id,
-        frequency,
-        dueDay: frequency === "MONTHLY" ? dueDay : null,
+        hasFixedDate,
+        dueDay: hasFixedDate ? (dueDay ?? null) : null,
         recurring,
       },
     });
@@ -292,7 +292,7 @@ export const restoreRecurringExpenseAction = withActionErrorHandling(async funct
 
 export type RecordPaymentResult = ActionResult<{ transactionId: string }> | undefined;
 
-/** Logs a real CycleTransaction for this cycle's payment of a recurring expense — amount pre-filled from the recurring expense's own amount but editable, so a bill that came in slightly different than usual is still recorded accurately. */
+/** Logs a real CycleTransaction for this cycle's payment of a recurring expense — amount pre-filled from the recurring expense's own amount but editable, so an expense that came in slightly different than usual is still recorded accurately. */
 export const recordRecurringExpensePaymentAction = withActionErrorHandling(async function recordRecurringExpensePaymentAction(
   _prevState: RecordPaymentResult,
   formData: FormData,

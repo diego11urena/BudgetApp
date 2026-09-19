@@ -3,6 +3,8 @@ export interface RecurringExpenseForMatching {
   name: string;
   amount: number;
   categoryId: string;
+  /** Scheduled (true) gates candidates on AMOUNT_TOLERANCE_FRACTION, same as always. Ongoing (false) skips that gate entirely -- its own amount is a typical/estimated one, not a real target to compare against, so name is the only signal that means anything (see namesLikelyMatch). */
+  hasFixedDate: boolean;
 }
 
 export interface MatchCandidateTransaction {
@@ -32,10 +34,10 @@ function significantTokens(name: string): Set<string> {
 
 /**
  * Two names "likely" refer to the same thing if either contains the other
- * whole (handles a clean bill name inside raw bank/Gmail text, e.g.
+ * whole (handles a clean recurring-expense name inside raw bank/Gmail text, e.g.
  * "spotify" inside "SPOTIFY *PREMIUM US", and the reverse), OR if they share
  * at least one significant word without either containing the other whole
- * (e.g. bill "Claude" and transaction "Anthropic Claude" -- "claude" is a
+ * (e.g. recurring expense "Claude" and transaction "Anthropic Claude" -- "claude" is a
  * shared word, but neither string contains the other). The word-overlap
  * check is a strict superset of what pure substring matching already
  * covered for single-word names, so this only ever makes a match MORE
@@ -56,21 +58,24 @@ function namesLikelyMatch(nameA: string, nameB: string): boolean {
  * Best-effort suggestion only -- never auto-links. Surfaced in the UI as
  * "Possible match: {name} {amount} · Confirm / Not this one," and confirming
  * calls confirmRecurringExpenseMatchAction. A candidate qualifies when its
- * amount is within AMOUNT_TOLERANCE_FRACTION of the recurring expense's own
- * amount, its name shares a substring or a significant word with the
- * recurring expense's name (see namesLikelyMatch), it's not already linked
- * to any recurring expense, and it's EITHER in the same category as this
- * recurring expense OR not yet categorized at all -- a brand-new
- * Gmail-imported merchant this user has never categorized before lands with
- * no category (see gmail-sync.ts's findLearnedCategoryId, which only
- * resolves one from an exact prior name match), and used to be structurally
- * invisible to matching no matter how well its name matched; it's still
- * left alone if it's already sitting in a DIFFERENT real category, since
- * that's a genuine signal it's something else. Ties are broken by closest
- * amount. Pure and DB-free so this is unit-testable without a database --
- * the caller is responsible for fetching the candidate pool (this cycle's
- * transactions with no recurringExpenseId set yet, in the recurring
- * expense's own category or with none at all).
+ * name shares a substring or a significant word with the recurring
+ * expense's name (see namesLikelyMatch), it's not already linked to any
+ * recurring expense, it's EITHER in the same category as this recurring
+ * expense OR not yet categorized at all -- a brand-new Gmail-imported
+ * merchant this user has never categorized before lands with no category
+ * (see gmail-sync.ts's findLearnedCategoryId, which only resolves one from
+ * an exact prior name match), and used to be structurally invisible to
+ * matching no matter how well its name matched; it's still left alone if
+ * it's already sitting in a DIFFERENT real category, since that's a
+ * genuine signal it's something else -- and, for a Scheduled expense only,
+ * its amount is within AMOUNT_TOLERANCE_FRACTION of the recurring
+ * expense's own amount (an Ongoing expense's own amount is a typical/
+ * estimated one, not a real target, so no amount gate applies -- name is
+ * the only signal that means anything there). Ties are broken by closest
+ * amount either way. Pure and DB-free so this is unit-testable without a
+ * database -- the caller is responsible for fetching the candidate pool
+ * (this cycle's transactions with no recurringExpenseId set yet, in the
+ * recurring expense's own category or with none at all).
  */
 export function findMatchSuggestion(
   recurringExpense: RecurringExpenseForMatching,
@@ -91,7 +96,7 @@ export function findMatchSuggestion(
     if (!namesLikelyMatch(nameA, nameB)) continue;
 
     const diff = Math.abs(candidate.amount - recurringExpense.amount);
-    if (diff > tolerance) continue;
+    if (recurringExpense.hasFixedDate && diff > tolerance) continue;
 
     if (diff < bestDiff) {
       best = candidate;

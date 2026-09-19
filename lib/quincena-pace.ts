@@ -106,7 +106,7 @@ export function nextCycleStart(periodStart: Date, frequency: BudgetFrequency): D
 }
 
 /**
- * Whether a given day-of-month (a recurring bill's dueDay) has an
+ * Whether a given day-of-month (a Scheduled recurring expense's dueDay) has an
  * occurrence falling within [periodStart, cycleEnd(periodStart, frequency)]
  * (inclusive both ends). Checks the day's occurrence in periodStart's own
  * month and the following month -- the only two months a cycle of at most
@@ -121,7 +121,7 @@ export function nextCycleStart(periodStart: Date, frequency: BudgetFrequency): D
  * for a QUINCENAL cycle (~15 days) a given day-of-month still falls inside
  * exactly one of the month's two cycles, reproducing the old behavior
  * exactly; for a MONTHLY cycle (spanning the whole month) every day 1-31
- * falls inside it, so a MONTHLY-frequency bill now correctly carries into
+ * falls inside it, so a Scheduled recurring expense now correctly carries into
  * every cycle -- the only sane behavior once a cycle IS the month.
  */
 export function dueDayFallsWithinCycle(dueDay: number, periodStart: Date, frequency: BudgetFrequency): boolean {

@@ -52,10 +52,9 @@ export const incomeStepSchema = z
 export const budgetLineItemSchema = z.object({
   name: z.string().trim().min(1).max(100),
   targetAmount: decimalString,
-  // Only meaningful for a MONTHLY recurring expense (see
-  // RecurringExpense.dueDay's own schema comment) -- onboarding's bills
-  // step collects it as plain display metadata regardless of frequency,
-  // same as every other dueDay call site already treats it.
+  /** Scheduled (true, a real due date -- Spotify, iCloud) vs Ongoing (false, the default -- recurs but no set date, e.g. Panapass, a haircut). See RecurringExpense's own schema comment. A genuine boolean, not the FormData string-literal pattern other schemas here use -- this arrives via itemsJson's own JSON.parse, which already restores real booleans. */
+  hasFixedDate: z.boolean().optional(),
+  // Only meaningful when hasFixedDate is true -- see RecurringExpense.dueDay's own schema comment.
   dueDay: z.coerce.number().int().min(1).max(31).optional(),
 });
 

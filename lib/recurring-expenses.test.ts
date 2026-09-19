@@ -34,9 +34,21 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     });
   }
 
-  async function makeRecurringExpenseWithSnapshot(categoryId: string, cycleId: string, name: string, amount: number) {
+  // hasFixedDate: true (Scheduled) by default -- these tests are about
+  // generic recurring-expense aggregation (paid-count, pending amount),
+  // which only has real stakes for Scheduled items (see
+  // summarizeRecurringExpenses's own doc comment: Ongoing items are
+  // excluded from every total it returns). The dedicated Ongoing-exclusion
+  // test below overrides this explicitly.
+  async function makeRecurringExpenseWithSnapshot(
+    categoryId: string,
+    cycleId: string,
+    name: string,
+    amount: number,
+    hasFixedDate = true,
+  ) {
     const recurringExpense = await prisma.recurringExpense.create({
-      data: { userId, categoryId, name, amount },
+      data: { userId, categoryId, name, amount, hasFixedDate },
     });
     await prisma.cycleRecurringExpense.create({
       data: { cycleId, recurringExpenseId: recurringExpense.id, targetAmount: amount },
@@ -165,6 +177,26 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
 
     expect(summary.totalCount).toBe(2);
     expect(summary.paidCount).toBe(1);
+    expect(summary.pendingAmount).toBeCloseTo(15.99);
+  });
+
+  it("excludes Ongoing items from every summarizeRecurringExpenses total, but still lists them in expenses[]", async () => {
+    const category = await makeExpenseCategory("Subscriptions");
+    const cycle = await makeCycle(new Date(2026, 7, 3));
+    // Scheduled, unpaid -- counts toward every total.
+    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Netflix", 15.99, true);
+    // Ongoing, unpaid -- an estimate, not a real target, so it must never
+    // appear in totalCount/paidCount/pendingAmount (see
+    // summarizeRecurringExpenses's own doc comment), even though it's a
+    // perfectly real row the Recurring tab still shows.
+    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Panapass", 20, false);
+
+    const categories = await getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false });
+    const summary = summarizeRecurringExpenses(categories);
+
+    expect(categories[0].expenses).toHaveLength(2);
+    expect(summary.totalCount).toBe(1);
+    expect(summary.totalTarget).toBeCloseTo(15.99);
     expect(summary.pendingAmount).toBeCloseTo(15.99);
   });
 });

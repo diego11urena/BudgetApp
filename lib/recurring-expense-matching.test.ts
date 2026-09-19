@@ -6,6 +6,7 @@ const spotify: RecurringExpenseForMatching = {
   name: "Spotify",
   amount: 9.99,
   categoryId: "cat-subscriptions",
+  hasFixedDate: true,
 };
 
 function candidate(overrides: Partial<MatchCandidateTransaction>): MatchCandidateTransaction {
@@ -31,6 +32,7 @@ describe("findMatchSuggestion", () => {
       name: "Netflix Premium",
       amount: 15.99,
       categoryId: "cat-subscriptions",
+      hasFixedDate: true,
     };
     const result = findMatchSuggestion(netflix, [candidate({ name: "Netflix", amount: 15.99 })]);
     expect(result?.id).toBe("tx-1");
@@ -80,10 +82,11 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
     name: "Claude",
     amount: 20,
     categoryId: "cat-software",
+    hasFixedDate: true,
   };
 
   it("matches on a shared significant word when neither name contains the other whole", () => {
-    // The exact case this was added for: bill "Claude", transaction
+    // The exact case this was added for: recurring expense "Claude", transaction
     // "Anthropic Claude" -- "anthropic claude" DOES contain "claude" as a
     // substring too, but this fixture also proves the word-overlap path
     // works standalone (see the next test for a case substring can't touch).
@@ -96,13 +99,14 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
   it("matches via a shared word even with decorative punctuation on both sides", () => {
     // "software-claude" contains "claude" as a whole substring already, so
     // use fixtures where NEITHER string contains the other -- e.g. a
-    // two-word bill name against differently-ordered/decorated transaction
+    // two-word recurring-expense name against differently-ordered/decorated transaction
     // text, which pure substring-in-either-direction could never catch.
     const netflix: RecurringExpenseForMatching = {
       id: "re-prime",
       name: "Amazon Prime",
       amount: 14.99,
       categoryId: "cat-subscriptions",
+      hasFixedDate: true,
     };
     const result = findMatchSuggestion(netflix, [
       candidate({ name: "PRIME VIDEO*AMZN", amount: 14.99, categoryId: "cat-subscriptions" }),
@@ -115,7 +119,7 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
     // far too short/generic to mean anything -- MIN_SIGNIFICANT_TOKEN_LENGTH
     // filters it out, so this must not match.
     const result = findMatchSuggestion(
-      { id: "re-us", name: "US Bank", amount: 5, categoryId: "cat-fees" },
+      { id: "re-us", name: "US Bank", amount: 5, categoryId: "cat-fees", hasFixedDate: true },
       [candidate({ name: "Bus Pass", amount: 5, categoryId: "cat-fees" })],
     );
     expect(result).toBeNull();
@@ -141,10 +145,48 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
 
   it("still refuses a candidate already sitting in a DIFFERENT real category", () => {
     // Not-yet-categorized (null) is a fair candidate; already filed under
-    // something else is still a real signal it's not this bill.
+    // something else is still a real signal it's not this recurring expense.
     const result = findMatchSuggestion(claude, [
       candidate({ name: "Anthropic Claude", amount: 20, categoryId: "cat-travel" }),
     ]);
     expect(result).toBeNull();
+  });
+});
+
+describe("findMatchSuggestion -- Ongoing items skip the amount-tolerance gate", () => {
+  // Panapass: recurs, but no fixed date and no exact target -- its own
+  // amount is a typical/estimated one (see RecurringExpenseForMatching's
+  // own doc comment). A real toll payment can land far outside the 10%
+  // AMOUNT_TOLERANCE_FRACTION a Scheduled item is held to.
+  const panapass: RecurringExpenseForMatching = {
+    id: "re-panapass",
+    name: "Panapass",
+    amount: 20,
+    categoryId: "cat-transport",
+    hasFixedDate: false,
+  };
+
+  it("matches an Ongoing item even when the amount is far outside AMOUNT_TOLERANCE_FRACTION", () => {
+    // $8 vs. a $20 typical amount is a 60% swing -- well past the 10%
+    // tolerance a Scheduled item would be held to (see the parallel
+    // "does not match when the amount is outside the tolerance band" test
+    // above, which asserts the opposite for a Scheduled expense).
+    const result = findMatchSuggestion(panapass, [candidate({ name: "Panapass", amount: 8, categoryId: "cat-transport" })]);
+    expect(result?.id).toBe("tx-1");
+  });
+
+  it("still requires a name match -- dropping the amount gate never makes name matching optional", () => {
+    const result = findMatchSuggestion(panapass, [
+      candidate({ name: "METRO BELLA VISTA 4730PANAMA PA", amount: 20, categoryId: "cat-transport" }),
+    ]);
+    expect(result).toBeNull();
+  });
+
+  it("still breaks ties by closest amount among multiple Ongoing-eligible candidates", () => {
+    const result = findMatchSuggestion(panapass, [
+      candidate({ id: "tx-far", name: "Panapass", amount: 2, categoryId: "cat-transport" }),
+      candidate({ id: "tx-close", name: "Panapass", amount: 18, categoryId: "cat-transport" }),
+    ]);
+    expect(result?.id).toBe("tx-close");
   });
 });

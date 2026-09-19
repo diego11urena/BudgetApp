@@ -16,32 +16,32 @@ describe("shouldCarryForwardToCycle", () => {
   // QUINCENAL regression safety -- reproduces exactly the old
   // quincenaForDay bucket-comparison behavior via the new date-range-
   // containment check (dueDayFallsWithinCycle).
-  // PanaPass: fixed amount, BIWEEKLY -> must appear in every single cycle.
-  it("PanaPass (BIWEEKLY) carries into a cycle starting in the first quincena", () => {
-    const rule = { frequency: "BIWEEKLY" as const, dueDay: null };
+  // PanaPass: fixed amount, Ongoing (no fixed date) -> must appear in every single cycle.
+  it("PanaPass (Ongoing) carries into a cycle starting in the first quincena", () => {
+    const rule = { hasFixedDate: false, dueDay: null };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 3), "QUINCENAL")).toBe(true);
   });
 
-  it("PanaPass (BIWEEKLY) carries into a cycle starting in the second quincena too", () => {
-    const rule = { frequency: "BIWEEKLY" as const, dueDay: null };
+  it("PanaPass (Ongoing) carries into a cycle starting in the second quincena too", () => {
+    const rule = { hasFixedDate: false, dueDay: null };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 20), "QUINCENAL")).toBe(true);
   });
 
-  it("PanaPass (BIWEEKLY) carries in regardless of dueDay being set", () => {
-    // Frequency alone decides for BIWEEKLY -- dueDay is a MONTHLY-only concept.
-    const rule = { frequency: "BIWEEKLY" as const, dueDay: 5 };
+  it("PanaPass (Ongoing) carries in regardless of dueDay being set", () => {
+    // hasFixedDate alone decides when false -- dueDay is a Scheduled-only concept.
+    const rule = { hasFixedDate: false, dueDay: 5 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 20), "QUINCENAL")).toBe(true);
   });
 
-  // Gym: fixed amount, MONTHLY, due near month-end (dueDay 28) -> must show
+  // Gym: fixed amount, Scheduled, due near month-end (dueDay 28) -> must show
   // up ONLY in the second quincena of each month, never the first.
-  it("Gym (MONTHLY, dueDay 28) does NOT carry into a cycle starting in the first quincena", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 28 };
+  it("Gym (Scheduled, dueDay 28) does NOT carry into a cycle starting in the first quincena", () => {
+    const rule = { hasFixedDate: true, dueDay: 28 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 3), "QUINCENAL")).toBe(false);
   });
 
-  it("Gym (MONTHLY, dueDay 28) DOES carry into a cycle starting in the second quincena", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 28 };
+  it("Gym (Scheduled, dueDay 28) DOES carry into a cycle starting in the second quincena", () => {
+    const rule = { hasFixedDate: true, dueDay: 28 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 20), "QUINCENAL")).toBe(true);
   });
 
@@ -51,20 +51,20 @@ describe("shouldCarryForwardToCycle", () => {
   // cycle boundary itself lands on the canonical 1st/16th anchor (see the
   // "an edited payday" test below for the case where they deliberately
   // diverge, and why the new behavior is the correct one).
-  it("a MONTHLY rule due on the 15th (boundary) carries only into the first quincena", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 15 };
+  it("a Scheduled rule due on the 15th (boundary) carries only into the first quincena", () => {
+    const rule = { hasFixedDate: true, dueDay: 15 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 1), "QUINCENAL")).toBe(true);
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 16), "QUINCENAL")).toBe(false);
   });
 
-  it("a MONTHLY rule due on the 16th carries only into the second quincena", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 16 };
+  it("a Scheduled rule due on the 16th carries only into the second quincena", () => {
+    const rule = { hasFixedDate: true, dueDay: 16 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 1), "QUINCENAL")).toBe(false);
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 16), "QUINCENAL")).toBe(true);
   });
 
-  it("a MONTHLY rule with no dueDay set never carries forward (safe default)", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: null };
+  it("a Scheduled rule with no dueDay set never carries forward (safe default)", () => {
+    const rule = { hasFixedDate: true, dueDay: null };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 3), "QUINCENAL")).toBe(false);
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 20), "QUINCENAL")).toBe(false);
   });
@@ -74,38 +74,38 @@ describe("shouldCarryForwardToCycle", () => {
   // cycle's REAL date range actually contains dueDay's occurrence. For an
   // edited/irregular payday (fully supported -- see EditPayInfoSheet) that
   // isn't the canonical 1st/16th, this could get it wrong: a cycle running
-  // Aug10-Aug24 for a dueDay-16 bill genuinely covers that bill's due date,
+  // Aug10-Aug24 for a dueDay-16 expense genuinely covers that expense's due date,
   // and now correctly carries it forward, even though Aug10's own
   // day-of-month "bucket" (first half) used to disagree with dueDay 16's
   // bucket (second half).
   it("an edited (non-canonical) payday correctly carries in a dueDay its actual date range covers", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 16 };
+    const rule = { hasFixedDate: true, dueDay: 16 };
     // Cycle range Aug10-Aug24 genuinely contains Aug16.
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 10), "QUINCENAL")).toBe(true);
   });
 
-  // MONTHLY cadence -- a single cycle spans the whole month, so BIWEEKLY
+  // MONTHLY cadence -- a single cycle spans the whole month, so Ongoing
   // still carries into every cycle (once per cycle, by definition) and a
-  // MONTHLY-frequency rule now carries into every cycle too, regardless of
+  // Scheduled rule now carries into every cycle too, regardless of
   // which day of the month its dueDay is -- the behavior that motivated
   // replacing the old two-bucket check with real date containment.
-  it("MONTHLY cadence: PanaPass (BIWEEKLY) still carries into a monthly cycle", () => {
-    const rule = { frequency: "BIWEEKLY" as const, dueDay: null };
+  it("MONTHLY cadence: PanaPass (Ongoing) still carries into a monthly cycle", () => {
+    const rule = { hasFixedDate: false, dueDay: null };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 16), "MONTHLY")).toBe(true);
   });
 
-  it("MONTHLY cadence: Gym (MONTHLY, dueDay 28) carries into the one monthly cycle that contains it", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 28 };
+  it("MONTHLY cadence: Gym (Scheduled, dueDay 28) carries into the one monthly cycle that contains it", () => {
+    const rule = { hasFixedDate: true, dueDay: 28 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 16), "MONTHLY")).toBe(true);
   });
 
-  it("MONTHLY cadence: a MONTHLY rule due early in the month still carries in", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: 3 };
+  it("MONTHLY cadence: a Scheduled rule due early in the month still carries in", () => {
+    const rule = { hasFixedDate: true, dueDay: 3 };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 16), "MONTHLY")).toBe(true);
   });
 
-  it("MONTHLY cadence: a MONTHLY rule with no dueDay set still never carries forward", () => {
-    const rule = { frequency: "MONTHLY" as const, dueDay: null };
+  it("MONTHLY cadence: a Scheduled rule with no dueDay set still never carries forward", () => {
+    const rule = { hasFixedDate: true, dueDay: null };
     expect(shouldCarryForwardToCycle(rule, panama(2026, 8, 16), "MONTHLY")).toBe(false);
   });
 });
