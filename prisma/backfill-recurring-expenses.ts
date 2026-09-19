@@ -51,7 +51,7 @@ async function main() {
           name: category.name,
           amount: latestGoal.targetAmount,
           recurring: category.recurring,
-          frequency: category.frequency,
+          hasFixedDate: category.frequency === "MONTHLY",
           dueDay: category.dueDay,
         },
       });

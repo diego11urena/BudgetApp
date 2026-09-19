@@ -372,11 +372,24 @@ model CycleBudgetGoal {
   @@index([cycleId])
 }
 
-// An individual recurring bill/subscription definition living inside an
+// An individual recurring/one-time expense definition living inside an
 // EXPENSE category (e.g. category "Subscriptions" contains RecurringExpense
 // rows "Spotify," "Netflix," "iCloud"). Never used for SAVINGS categories --
 // the Goals tab keeps using ExpenseCategory.recurring/frequency/dueDay
 // directly, untouched by this model.
+//
+// Two independent axes, not one three-way enum: `recurring` (does it carry
+// into the next cycle at all -- unrelated to scheduling) and `hasFixedDate`
+// (does it land on a specific day, or does it just recur "eventually").
+// The Recurring tab (app/(app)/plan) surfaces hasFixedDate as "Scheduled"
+// (Spotify, iCloud -- a real due date) vs "Ongoing" (Panapass, a haircut --
+// recurs, but no set date and amount is a typical/estimated one, not an
+// exact target). Replaces the old three-way `frequency` (BIWEEKLY/MONTHLY)
+// encoding, which forced every no-set-date item into BIWEEKLY and had no
+// way to say "this recurs but isn't on a schedule." See
+// prisma/migrations/<see latest>_replace_recurring_expense_frequency_with_has_fixed_date
+// for the backfill this replaced it with (hasFixedDate = old frequency ==
+// MONTHLY, verified lossless against both dev and production data first).
 model RecurringExpense {
   id         String          @id @default(cuid())
   userId     String
@@ -389,16 +402,21 @@ model RecurringExpense {
   // Whether closeCycleAndStartNext auto-carries this recurring expense
   // into the next cycle -- same semantics as ExpenseCategory.recurring
   // today, just scoped per recurring expense instead of per category.
-  recurring Boolean            @default(true)
-  frequency RecurringFrequency @default(BIWEEKLY)
-  // Only meaningful when frequency is MONTHLY (see shouldCarryForwardToCycle
-  // in lib/cycles.ts, which is the only current reader). Intentionally NOT
-  // used for anything display-side yet -- no due-soon indicator, no
-  // sorting by due date, no reminder. Captured because the carry-forward
-  // logic needs it now; building on top of it is a deliberate later step,
-  // not a gap to "fix."
+  // Independent of hasFixedDate below: a one-time expense can still have
+  // (or not have) a known date.
+  recurring Boolean @default(true)
+  // "Scheduled" (true) vs "Ongoing" (false) -- see the model doc comment.
+  // Only meaningful together with dueDay: hasFixedDate=false always means
+  // dueDay=null (see shouldCarryForwardToCycle in lib/cycles.ts, the only
+  // carry-forward reader -- hasFixedDate=false carries into every cycle,
+  // same as old frequency=BIWEEKLY; hasFixedDate=true carries only into
+  // the cycle containing dueDay, same as old frequency=MONTHLY).
+  hasFixedDate Boolean @default(false)
+  // Day-of-month, only ever set when hasFixedDate is true. Drives
+  // shouldCarryForwardToCycle, the Recurring tab's due-day display, and
+  // Insights' due-soon nudge (Scheduled items only -- see lib/insights.ts).
   dueDay    Int?
-  createdAt DateTime           @default(now())
+  createdAt DateTime @default(now())
 
   cycleSnapshots CycleRecurringExpense[]
   transactions   CycleTransaction[]
