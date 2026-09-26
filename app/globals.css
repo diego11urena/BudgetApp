@@ -68,9 +68,16 @@
      -bg variant (e.g. --color-success-bg), the originals fell short of
      the 4.5:1 AA text-contrast minimum -- as low as 3.16:1 for warning
      text on warning-bg. Dark mode's equivalents (below) already clear
-     6:1+ unchanged. */
+     6:1+ unchanged.
+     --color-warning: the design system's newer handoff moves this from
+     brown (#8d5f15) to orange (literal spec #c2571a) so it no longer
+     collides with --color-savings's new gold -- but #c2571a only clears
+     3.99:1 on white and 3.99:1 on the new --color-warning-bg, short of
+     the same 4.5:1 floor the rest of this block already holds itself to.
+     Darkened to #b55118 (same hue/saturation, lower lightness): clears
+     ~4.7:1 on white and ~4.5:1 on --color-warning-bg. */
   --color-success: #1a754e;
-  --color-warning: #8d5f15;
+  --color-warning: #b55118;
   --color-error: #ba372a;
   /* Status colors tuned for a navy fill specifically (the hero card, and
      anywhere else a status needs to sit on the signal color rather than
@@ -87,13 +94,25 @@
   /* A savings contribution is still a minus on the transaction row (money
      left the spendable balance) but isn't spending — this keeps it from
      reading identically to an Expense row at a glance. Everything tied to
-     savings or goals (this, the Savings category tag/icon, the donut
-     chart's savings slice, both goal-progress rings) shares this one
-     color, so the concept reads as one thread through the whole app. */
-  --color-savings: #3568d4;
+     savings or goals (this, the Savings category tag/icon, both
+     goal-progress rings) shares this one color, so the concept reads as
+     one thread through the whole app. (The donut chart this comment used
+     to mention was deleted along with BreakdownScreen.tsx/PieChart.tsx --
+     see git history -- and the current design system explicitly rules out
+     donut/pie charts anywhere in the app.)
+     Was blue (#3568d4); the newer handoff moves savings/goals to gold
+     everywhere (literal spec #b3781a). That literal value only clears
+     3.74:1 as text on white, short of this file's 4.5:1 floor -- darkened
+     to #9d6917 (same hue/saturation, lower lightness), which clears
+     ~4.7:1. Dark mode's value (below) is the handoff's literal spec,
+     unchanged -- it already clears 7:1+. */
+  --color-savings: #9d6917;
   --color-on-accent: #ffffff;
   --color-success-bg: rgba(26, 117, 78, 0.16);
-  --color-warning-bg: rgba(141, 95, 21, 0.15);
+  /* Literal handoff spec (#fcefe7) -- unlike --color-warning itself, this
+     is a background tint, not text, so it isn't subject to the same
+     4.5:1 floor. */
+  --color-warning-bg: #fcefe7;
   --color-error-bg: rgba(186, 55, 42, 0.15);
   /* Soft diffuse shadows are the primary depth cue (not hairline borders)
      — tinted off text-primary's own hue rather than pure black. */
@@ -219,16 +238,22 @@
      --color-savings, not this categorical set — a real status match
      ("this went somewhere good"), consistent with --color-savings's role
      everywhere else (see the comment on that var above). */
-  /* 1-6 now match the Balboa design system's fixed "Where it's going"
-     categorical order exactly (navy, teal, plum, amber, purple, silver);
-     7-8 are carried over from the previous palette (still distinct from
-     1-6 and from --color-error) purely as overflow slots for a
-     category-grouped pie with more than 6 categories -- see
-     lib/paycheck-breakdown.ts's assignCategoryColorIndexes. */
+  /* 1-6 match the Balboa design system's fixed "Where it's going"
+     categorical order exactly (navy, teal, plum, green, purple, silver) --
+     TopCategoriesChart.tsx is the only live consumer and only ever indexes
+     1-6 ((index % 6) + 1). Slot 4 was amber/gold until the newer handoff
+     moved savings/goals to gold everywhere: reusing gold here too would've
+     made a savings-colored bar in "Where it's going" read as a goal, so
+     the handoff explicitly drops gold from this list in favor of green.
+     7-8 are unused leftovers from the deleted paycheck-breakdown pie
+     chart (lib/paycheck-breakdown.ts, removed alongside this change --
+     see git history) and are kept only so a category count above 6 still
+     resolves to *some* value if this ever grows past 6 rows; no current
+     call site reaches them. */
   --chart-cat-1: #17395c;
   --chart-cat-2: #2f8f8a;
   --chart-cat-3: #7c3f66;
-  --chart-cat-4: #b3781a;
+  --chart-cat-4: #4a6b4f;
   --chart-cat-5: #5b4a8f;
   --chart-cat-6: #8b93a0;
   --chart-cat-7: #c9612a;
@@ -308,7 +333,11 @@
   --color-text-faint: #6b7889;
   --color-primary-hover: #3b7cc4;
   --color-success: #45b083;
-  --color-warning: #d59a3c;
+  /* Handoff's literal spec (#e07a3f, orange, was #d59a3c/brown-gold) --
+     clears 6.3:1+ on --color-bg and 5.5:1+ on the new --color-warning-bg
+     below unchanged, so unlike the light-mode value above this needed no
+     darkening. */
+  --color-warning: #e07a3f;
   --color-error: #e06a5c;
   /* --color-error against --color-hero-bg (#14304f) clears 3:1+ for the
      large/bold hero figure already, so unlike the light-derived value
@@ -316,10 +345,14 @@
      -- kept anyway as a distinct token in case a future navy surface
      needs more contrast than the base --color-error gives. */
   --color-error-on-dark: #ffb3b5;
-  --color-savings: #6f9bf0;
+  /* Handoff's literal spec (#d59a3c, gold, was #6f9bf0/blue) -- clears
+     6.7:1+ on --color-card and --color-bg unchanged, so this needed no
+     darkening either. */
+  --color-savings: #d59a3c;
   --color-on-accent: #ffffff;
   --color-success-bg: #12291f;
-  --color-warning-bg: #2b2113;
+  /* Handoff's literal spec, unchanged (was #2b2113). */
+  --color-warning-bg: #2e1a10;
   --color-error-bg: #2b1614;
   --shadow-color: rgba(0, 0, 0, 0.3);
   --color-button-bg: #2f6cb0;
@@ -337,13 +370,16 @@
 
   /* design doc's dark chart series, slotted into the same fixed
      categorical order light mode uses (see the light-mode comment on
-     --chart-cat-1). 7-8 stay this session's own overflow-slot hexes
-     (the design doc's table only defines 6) -- lightened just enough to
-     stay legible on the new, darker --color-card. */
+     --chart-cat-1) -- slot 4 is green here too, for the same
+     gold-now-means-savings reason as light mode. 7-8 stay this session's
+     own overflow-slot hexes (the design doc's table only defines 6, and
+     no live call site reaches past 6 -- see the light-mode comment) --
+     lightened just enough to stay legible on the new, darker
+     --color-card. */
   --chart-cat-1: #7fb3e8;
   --chart-cat-2: #4fb3ad;
   --chart-cat-3: #b06693;
-  --chart-cat-4: #d59a3c;
+  --chart-cat-4: #6f9e75;
   --chart-cat-5: #8a79c8;
   --chart-cat-6: #6b7889;
   --chart-cat-7: #e0895a;
