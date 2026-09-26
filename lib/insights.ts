@@ -1,5 +1,5 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
-import { formatCurrency, formatFriendlyDate } from "@/lib/format";
+import { formatCurrency, formatCycleRangeLabel, formatFriendlyDate } from "@/lib/format";
 import { addDays, nowInPanama, panamaDateParts, parseDateOnly } from "@/lib/pay-date";
 import { calendarDaysBetween, cycleEnd, type BudgetFrequency } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
@@ -281,6 +281,14 @@ function unpaidRecurringCandidate(
  * error rather than two real purchases. Only ever reports the first
  * qualifying pair found -- "is there a duplicate at all" is the question,
  * not an exhaustive audit.
+ *
+ * The window is inclusive of DUPLICATE_CHARGE_WITHIN_DAYS itself (a 3-day
+ * gap still flags), so the two transactions often don't share a calendar
+ * day -- the message says so honestly (a date range via duplicateChargeRange)
+ * rather than naming only the later transaction's date and implying both
+ * charges landed on it, which used to read as flatly wrong whenever the
+ * gap was more than zero days (see the Miguel Brugiatti bug report: a
+ * "Sep 25" duplicate whose two real charges were 3 days apart).
  */
 function duplicateChargeCandidate(current: CycleFinancials, t: InsightsDictionary): Candidate | null {
   const gmailTransactions = current.transactions.filter(
@@ -297,9 +305,18 @@ function duplicateChargeCandidate(current: CycleFinancials, t: InsightsDictionar
       if (!nameA || nameA !== nameB) continue;
       if (Math.abs(calendarDaysBetween(a.occurredAt, b.occurredAt)) > DUPLICATE_CHARGE_WITHIN_DAYS) continue;
 
+      const earlier = a.occurredAt < b.occurredAt ? a : b;
       const later = a.occurredAt > b.occurredAt ? a : b;
+      const sameDay = calendarDaysBetween(earlier.occurredAt, later.occurredAt) === 0;
+      const text = sameDay
+        ? t.duplicateCharge(formatCurrency(a.amount), a.name, formatFriendlyDate(later.occurredAt))
+        : t.duplicateChargeRange(
+            formatCurrency(a.amount),
+            a.name,
+            formatCycleRangeLabel(earlier.occurredAt, later.occurredAt),
+          );
       return {
-        text: t.duplicateCharge(formatCurrency(a.amount), a.name, formatFriendlyDate(later.occurredAt)),
+        text,
         priority: PRIORITY.DUPLICATE_CHARGE,
         href: `/transactions?q=${encodeURIComponent(a.name)}`,
       };

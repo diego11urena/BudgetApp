@@ -780,6 +780,8 @@ export type Dictionary = {
     scheduledDueSoon: (name: string, amount: string, dueText: string) => string;
     unpaidRecurring: (count: number, remaining: string) => string;
     duplicateCharge: (amount: string, name: string, date: string) => string;
+    /** Same rule as duplicateCharge, but the two transactions don't share a calendar day -- names the true date range (e.g. "Aug 8 – Aug 9") instead of implying a single shared date. */
+    duplicateChargeRange: (amount: string, name: string, dateRange: string) => string;
     categoryAnomaly: (categoryName: string, amount: string) => string;
     categoryDelta: (categoryName: string, amount: string) => string;
     overBudget: (amount: string, days: number) => string;

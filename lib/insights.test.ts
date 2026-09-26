@@ -722,7 +722,7 @@ describe("generateInsights", () => {
   });
 
   describe("duplicate-charge rule (N6)", () => {
-    it("flags two same-merchant, same-amount Gmail imports within 3 days of each other", () => {
+    it("flags two same-merchant, same-amount Gmail imports a day apart, naming the true date range (not a single shared date)", () => {
       const current = makeFinancials({
         transactions: [
           makeTransaction({
@@ -741,8 +741,73 @@ describe("generateInsights", () => {
       });
       const insights = generateInsights(current, [], makeExtras());
       const match = insights.find((i) => i.text.includes("duplicate"));
-      expect(match?.text).toBe("Two charges of $28.50 from Super 99 on Aug 9, 2026 — duplicate?");
+      expect(match?.text).toBe("Two charges of $28.50 from Super 99 between Aug 8 – Aug 9 — duplicate?");
       expect(match?.href).toBe(`/transactions?q=${encodeURIComponent("Super 99")}`);
+    });
+
+    it("flags two same-merchant, same-amount Gmail imports on the SAME calendar day, naming that one date (not a range)", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-08")!,
+          }),
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-08")!,
+          }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      const match = insights.find((i) => i.text.includes("duplicate"));
+      expect(match?.text).toBe("Two charges of $28.50 from Super 99 on Aug 8, 2026 — duplicate?");
+    });
+
+    it("still flags at exactly the 3-day boundary, naming the true range", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-06")!,
+          }),
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-09")!,
+          }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      const match = insights.find((i) => i.text.includes("duplicate"));
+      expect(match?.text).toBe("Two charges of $28.50 from Super 99 between Aug 6 – Aug 9 — duplicate?");
+    });
+
+    it("does not flag two Gmail charges 4 days apart -- just past the 3-day window", () => {
+      const current = makeFinancials({
+        transactions: [
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-05")!,
+          }),
+          makeTransaction({
+            name: "Super 99",
+            amount: 28.5,
+            importSource: "GMAIL",
+            occurredAt: parseDateOnly("2026-08-09")!,
+          }),
+        ],
+      });
+      const insights = generateInsights(current, [], makeExtras());
+      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
     });
 
     it("does not flag two manual entries, even matching on name/amount/date", () => {

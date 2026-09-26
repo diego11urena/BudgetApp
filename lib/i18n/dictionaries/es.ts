@@ -751,6 +751,7 @@ export const es: Dictionary = {
     unpaidRecurring: (count, remaining) =>
       `${count} ${plural(count, "cuenta recurrente no se ha", "cuentas recurrentes no se han")} pagado todavía este ciclo (${remaining} restante).`,
     duplicateCharge: (amount, name, date) => `Dos cargos de ${amount} de ${name} el ${date} — ¿duplicado?`,
+    duplicateChargeRange: (amount, name, dateRange) => `Dos cargos de ${amount} de ${name} entre ${dateRange} — ¿duplicado?`,
     categoryAnomaly: (categoryName, amount) => `El gasto en ${categoryName} subió ${amount} respecto a tu promedio reciente.`,
     categoryDelta: (categoryName, amount) => `El gasto en ${categoryName} subió ${amount} respecto al ciclo anterior.`,
     overBudget: (amount, days) =>
