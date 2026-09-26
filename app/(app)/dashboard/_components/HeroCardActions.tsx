@@ -134,7 +134,7 @@ export function HeroCardActions({
           </div>
         )
       ) : isMonthly ? (
-        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div className="hero-actions">
           <button
             type="button"
             className="hero-action-link"

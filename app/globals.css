@@ -1559,6 +1559,7 @@ button.line-item--link {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   padding-top: 0.75rem;
@@ -1598,6 +1599,30 @@ button.line-item--link {
 .hero-action-link:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* MONTHLY's two hero actions as one unit, side by side -- flex-shrink: 0
+   keeps the pair intact so .hero-pace-row's flex algorithm can't squeeze
+   it below the combined width of its two non-shrinking buttons (which
+   used to force the second button onto its own line). If the pair truly
+   can't sit alongside .hero-pace's text, .hero-pace-row's own flex-wrap
+   above drops this whole group under the pace text first, onto its own
+   full-width line. max-width: 100% then caps THIS element to whatever
+   width that line actually has -- without it, flex-shrink: 0 makes this
+   element render at its full natural (unshrinkable) content width
+   regardless of the line's real available space once nothing else is
+   sharing that line to constrain it, overflowing the card. Capping the
+   width is what lets flex-wrap below (a last resort if the two buttons
+   alone still don't fit even a full card-width line) actually engage --
+   a flex-wrap child only reflows onto multiple lines once its own
+   container has a bounded width to overflow in the first place. */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 /* Cycle-closed celebratory summary — shown once right after "I just got paid" */
