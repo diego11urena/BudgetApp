@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   classifyTransaction,
+  computeBiggestTransactions,
+  computeCashFlowBreakdown,
   computeDailySpendBuckets,
   computeHeatmapPercentileBuckets,
   pickDefaultSelectedDay,
   computeTransactionsForDay,
-  computeTrendSeries,
-  computeFixedShareTrend,
   computeCategoryRollingAverage,
   computeLiveBanner,
 } from "./breakdown-v2";
@@ -150,37 +150,42 @@ describe("breakdown-v2", () => {
   });
 
   describe("pickDefaultSelectedDay", () => {
-    it("returns highest-spend day", () => {
+    it("CLOSED: returns the most recent day with spend, even when an earlier day spent more", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01T05:00:00.000Z"), total: 100 },
-        { date: new Date("2026-08-02T05:00:00.000Z"), total: 300 },
-        { date: new Date("2026-08-03T05:00:00.000Z"), total: 200 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 300 }, // biggest, but not most recent
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 0 },
+        { date: new Date("2026-08-03T05:00:00.000Z"), total: 100 }, // most recent with spend
       ];
 
-      const result = pickDefaultSelectedDay(dailyTotals);
+      const result = pickDefaultSelectedDay(dailyTotals, "CLOSED", new Date("2026-08-05T00:00:00.000Z"));
 
-      expect(result?.toISOString().split("T")[0]).toBe("2026-08-02");
+      expect(result?.toISOString().split("T")[0]).toBe("2026-08-03");
     });
 
-    it("returns null when all days are zero", () => {
+    it("CLOSED: returns null when the whole period is zero", () => {
       const dailyTotals = [
         { date: new Date("2026-08-01T05:00:00.000Z"), total: 0 },
         { date: new Date("2026-08-02T05:00:00.000Z"), total: 0 },
       ];
 
-      expect(pickDefaultSelectedDay(dailyTotals)).toBeNull();
+      expect(pickDefaultSelectedDay(dailyTotals, "CLOSED", new Date("2026-08-05T00:00:00.000Z"))).toBeNull();
     });
 
-    it("ignores zero-spend days", () => {
+    it("LIVE: always returns today, regardless of which day spent the most", () => {
       const dailyTotals = [
-        { date: new Date("2026-08-01T05:00:00.000Z"), total: 0 },
-        { date: new Date("2026-08-02T05:00:00.000Z"), total: 100 },
-        { date: new Date("2026-08-03T05:00:00.000Z"), total: 0 },
+        { date: new Date("2026-08-01T05:00:00.000Z"), total: 300 },
+        { date: new Date("2026-08-02T05:00:00.000Z"), total: 0 }, // today, $0 spent so far
       ];
 
-      const result = pickDefaultSelectedDay(dailyTotals);
+      const result = pickDefaultSelectedDay(dailyTotals, "LIVE", new Date("2026-08-02T18:00:00.000Z"));
 
       expect(result?.toISOString().split("T")[0]).toBe("2026-08-02");
+    });
+
+    it("LIVE: returns null if today somehow isn't in dailyTotals", () => {
+      const dailyTotals = [{ date: new Date("2026-08-01T05:00:00.000Z"), total: 100 }];
+
+      expect(pickDefaultSelectedDay(dailyTotals, "LIVE", new Date("2026-09-01T00:00:00.000Z"))).toBeNull();
     });
   });
 
@@ -209,123 +214,110 @@ describe("breakdown-v2", () => {
     });
   });
 
-  describe("computeTrendSeries", () => {
-    it("splits spend by fixed vs discretionary", () => {
-      const cycles = [
-        {
-          periodLabel: "Period 1",
-          financials: {
-            transactions: [
-              {
-                type: "EXPENSE",
-                amount: 100,
-                recurringExpenseId: "rec-1",
-              } as CycleTransactionSummary,
-              {
-                type: "EXPENSE",
-                amount: 50,
-                recurringExpenseId: null,
-              } as CycleTransactionSummary,
-            ],
-          } as CycleFinancials,
-        },
-      ];
+  describe("computeCashFlowBreakdown", () => {
+    const financials = (overrides: Partial<CycleFinancials>): CycleFinancials =>
+      ({
+        baseIncome: 800,
+        extraIncome: 0,
+        totalExpenses: 0,
+        totalSavings: 0,
+        amountLeft: 0,
+        transactions: [],
+        categoryTotals: [],
+        topCategories: [],
+        ...overrides,
+      }) as CycleFinancials;
 
-      const result = computeTrendSeries(cycles);
+    it("holds the identity income = fixed + everythingElse + saved + leftover when not overspent", () => {
+      const result = computeCashFlowBreakdown(
+        financials({
+          totalSavings: 100,
+          transactions: [
+            { type: "EXPENSE", amount: 150, recurringExpenseId: "rec-1", categoryName: "Rent" } as CycleTransactionSummary,
+            { type: "EXPENSE", amount: 200, recurringExpenseId: null, categoryName: "Dining" } as CycleTransactionSummary,
+            { type: "SAVINGS", amount: 100, recurringExpenseId: null, categoryName: "Emergency Fund" } as CycleTransactionSummary,
+          ],
+        }),
+      );
 
-      expect(result[0]).toEqual({
-        label: "Period 1",
-        fixed: 100,
-        discretionary: 50,
+      expect(result).toEqual({
+        income: 800,
+        fixed: 150,
+        everythingElse: 200,
+        saved: 100,
+        savedGoals: ["Emergency Fund"],
+        leftover: 350, // 800 - 150 - 200 - 100
       });
+      expect(result.fixed + result.everythingElse + result.saved + result.leftover).toBe(result.income);
+    });
+
+    it("clamps leftover to 0 when overspent, rather than going negative -- the four parts then sum to MORE than income by design (spec: leftover clamped >= 0, not a negative Leftover)", () => {
+      const result = computeCashFlowBreakdown(
+        financials({
+          totalSavings: 0,
+          transactions: [{ type: "EXPENSE", amount: 900, recurringExpenseId: null, categoryName: "Dining" } as CycleTransactionSummary],
+        }),
+      );
+
+      expect(result.leftover).toBe(0);
+      expect(result.fixed + result.everythingElse + result.saved + result.leftover).toBeGreaterThan(result.income);
+    });
+
+    it("dedupes savedGoals in first-seen order", () => {
+      const result = computeCashFlowBreakdown(
+        financials({
+          totalSavings: 150,
+          transactions: [
+            { type: "SAVINGS", amount: 50, recurringExpenseId: null, categoryName: "Japan trip" } as CycleTransactionSummary,
+            { type: "SAVINGS", amount: 50, recurringExpenseId: null, categoryName: "Emergency Fund" } as CycleTransactionSummary,
+            { type: "SAVINGS", amount: 50, recurringExpenseId: null, categoryName: "Japan trip" } as CycleTransactionSummary,
+          ],
+        }),
+      );
+
+      expect(result.savedGoals).toEqual(["Japan trip", "Emergency Fund"]);
     });
   });
 
-  describe("computeFixedShareTrend", () => {
-    it("computes fixed % over multiple periods", () => {
-      const cycles = [
-        {
-          financials: {
-            transactions: [
-              {
-                type: "EXPENSE",
-                amount: 50,
-                recurringExpenseId: "rec-1",
-              } as CycleTransactionSummary,
-              {
-                type: "EXPENSE",
-                amount: 50,
-                recurringExpenseId: null,
-              } as CycleTransactionSummary,
-            ],
-          } as CycleFinancials,
-        },
-        {
-          financials: {
-            transactions: [
-              {
-                type: "EXPENSE",
-                amount: 60,
-                recurringExpenseId: "rec-1",
-              } as CycleTransactionSummary,
-              {
-                type: "EXPENSE",
-                amount: 40,
-                recurringExpenseId: null,
-              } as CycleTransactionSummary,
-            ],
-          } as CycleFinancials,
-        },
-      ];
+  describe("computeBiggestTransactions", () => {
+    const tx = (id: string, amount: number, opts: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary =>
+      ({
+        id,
+        name: id,
+        amount,
+        categoryName: null,
+        occurredAt: new Date("2026-08-05T15:00:00.000Z"),
+        type: "EXPENSE",
+        recurringExpenseId: null,
+        ...opts,
+      }) as CycleTransactionSummary;
 
-      const result = computeFixedShareTrend(cycles);
+    it("excludes fixed (recurring-linked) and SAVINGS transactions", () => {
+      const result = computeBiggestTransactions([
+        tx("rent", 500, { recurringExpenseId: "rec-1" }),
+        tx("goal", 400, { type: "SAVINGS" }),
+        tx("dinner", 60),
+      ]);
 
-      expect(result.periods[0].fixedPct).toBe(50);
-      expect(result.periods[1].fixedPct).toBe(60);
-      expect(result.oldPct).toBe(50);
-      expect(result.newPct).toBe(60);
-      expect(result.direction).toBe("rising");
+      expect(result.map((r) => r.id)).toEqual(["dinner"]);
     });
 
-    it("marks as holding steady when delta < 1.5pt", () => {
-      const cycles = [
-        {
-          financials: {
-            transactions: [
-              {
-                type: "EXPENSE",
-                amount: 50,
-                recurringExpenseId: "rec-1",
-              } as CycleTransactionSummary,
-              {
-                type: "EXPENSE",
-                amount: 50,
-                recurringExpenseId: null,
-              } as CycleTransactionSummary,
-            ],
-          } as CycleFinancials,
-        },
-        {
-          financials: {
-            transactions: [
-              {
-                type: "EXPENSE",
-                amount: 51,
-                recurringExpenseId: "rec-1",
-              } as CycleTransactionSummary,
-              {
-                type: "EXPENSE",
-                amount: 49,
-                recurringExpenseId: null,
-              } as CycleTransactionSummary,
-            ],
-          } as CycleFinancials,
-        },
-      ];
+    it("sorts descending by amount and respects limit", () => {
+      const result = computeBiggestTransactions(
+        [tx("a", 10), tx("b", 50), tx("c", 30), tx("d", 40)],
+        { limit: 2 },
+      );
 
-      const result = computeFixedShareTrend(cycles);
+      expect(result.map((r) => r.id)).toEqual(["b", "d"]);
+    });
 
-      expect(result.direction).toBe("holding steady");
+    it("respects excludeDate", () => {
+      const result = computeBiggestTransactions([
+        tx("same-day", 500, { occurredAt: new Date("2026-08-05T20:00:00.000Z") }),
+        tx("other-day", 60, { occurredAt: new Date("2026-08-06T15:00:00.000Z") }),
+      ], { excludeDate: "2026-08-05" });
+
+      expect(result.map((r) => r.id)).toEqual(["other-day"]);
     });
   });
 

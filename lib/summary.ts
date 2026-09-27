@@ -16,7 +16,13 @@ export interface SpendComparison {
   deltaAmount: number;
   isLighter: boolean; // true = current is lower
   label: "lightest" | "heaviest" | null; // "lightest since {month}" or null
-  sinceLabel: string | null; // e.g. "since May"
+  /**
+   * The historical cycle's periodStart backing `label` -- a raw Date, not
+   * a pre-formatted string, since this app's convention is that
+   * locale-dependent formatting happens client-side (see
+   * lib/format.ts's formatMonthLabel). Null whenever `label` is null.
+   */
+  sincePeriodStart: Date | null;
 }
 
 /** Goal rows classified for Summary (completed vs. in-progress). */
@@ -49,15 +55,16 @@ export function computeSparklineSeries(
 
 /**
  * Spend comparison: "$47 less than your last three quincenas — your lightest since May."
- * Requires recentSpends (trailing N prior periods), and scans further back in history for
- * the "lightest/heaviest since" context.
+ * Requires recentSpends (trailing N prior periods), and scans further back in history
+ * (allHistoricalSpends, paired with each period's own periodStart) for the
+ * "lightest/heaviest since" context.
  *
  * Degrades: returns all-null when recentSpends.length < 2 (insufficient history).
  */
 export function computeSpendComparison(
   current: number,
   recentSpends: number[],
-  allHistoricalSpends?: number[]
+  allHistoricalSpends?: { amount: number; periodStart: Date }[]
 ): Partial<SpendComparison> | null {
   if (recentSpends.length < 2) {
     return null; // Insufficient data — omit subcopy entirely.
@@ -69,22 +76,24 @@ export function computeSpendComparison(
 
   // "Lightest/heaviest since..." requires full history scan.
   let label: "lightest" | "heaviest" | null = null;
-  const sinceLabel: string | null = null;
+  let sincePeriodStart: Date | null = null;
 
   if (allHistoricalSpends && allHistoricalSpends.length > 0) {
-    // Compare current to the entire history pool.
-    const minSpend = Math.min(...allHistoricalSpends);
-    const maxSpend = Math.max(...allHistoricalSpends);
+    // The single lightest/heaviest historical entry -- its own periodStart
+    // is what "since {month}" refers to, not just the bare min/max amount.
+    const minEntry = allHistoricalSpends.reduce((min, entry) => (entry.amount < min.amount ? entry : min));
+    const maxEntry = allHistoricalSpends.reduce((max, entry) => (entry.amount > max.amount ? entry : max));
 
-    if (current <= minSpend && current < avgRecent) {
+    if (current <= minEntry.amount && current < avgRecent) {
       label = "lightest";
-      // sinceLabel would be computed from cycle.periodStart dates — caller provides context.
-    } else if (current >= maxSpend && current > avgRecent) {
+      sincePeriodStart = minEntry.periodStart;
+    } else if (current >= maxEntry.amount && current > avgRecent) {
       label = "heaviest";
+      sincePeriodStart = maxEntry.periodStart;
     }
   }
 
-  return { deltaAmount, isLighter, label, sinceLabel };
+  return { deltaAmount, isLighter, label, sincePeriodStart };
 }
 
 /**

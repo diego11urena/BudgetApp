@@ -765,15 +765,14 @@ export const es: Dictionary = {
   },
 
   summary: {
-    headline: (vocab, spent, leftOver) =>
-      `Gastaste ${spent}, ${leftOver} restante.`,
-    subcopyDelta: (vocab, amount) =>
-      `${amount} menos que tus últimas tres ${vocab.nounPlural}`,
-    subcopyLightestSince: (vocab, month) =>
-      `la más baja desde ${month}`,
+    headlinePrefix: (vocab, spent) => `Gastaste ${spent} y `,
+    headlineSavedFragment: (saved) => `ahorraste ${saved}.`,
+    subcopyDelta: (vocab, amount, isLighter) =>
+      `${amount} ${isLighter ? "menos" : "más"} que tus últimas tres ${vocab.nounPlural}`,
+    subcopyLightestSince: (vocab, label, month) =>
+      `tu ${label === "lightest" ? "más baja" : "más alta"} desde ${month}`,
     statIncome: "Ingreso",
     statSpent: "Gastado",
-    statLeftOver: "Restante",
     sparklineLabel: (vocab, n) =>
       `Últimas ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
     goalsEyebrow: "Metas",
@@ -781,14 +780,19 @@ export const es: Dictionary = {
     goalInProgress: (name, amount, pct, target) =>
       `${name} · +${amount} · ${pct.toFixed(0)}% de ${target}`,
     scheduledEyebrow: "Programados",
-    scheduledPaidOnTime: (paid, total) =>
-      `${paid} de ${total} pagados a tiempo`,
-    scheduledLateTag: (n) => `${n} ${n === 1 ? "atrasado" : "atrasados"}`,
     uncategorizedWarning: (count, amount) =>
       `${count} ${count === 1 ? "transacción sin" : "transacciones sin"} categoría (${amount})`,
     fixAction: "Arreglar",
     ctaStart: (vocab) => `Comenzar ${vocab.nextPeriod}`,
     seeFullBreakdown: "Ver desglose completo",
+  },
+
+  recurringFulfillment: {
+    chargedOnTime: (chargedCount, total) => `${chargedCount} de ${total} cobrados a tiempo`,
+    allChargedOnTime: "Todos cobrados a tiempo",
+    missing: (name) => `${name} aún no aparece`,
+    upcoming: (name, date) => `${name} vence ${date}`,
+    ongoingLogged: (names, live) => `${names} registrado${live ? " hasta ahora" : ""}`,
   },
 
   breakdown: {
@@ -800,26 +804,32 @@ export const es: Dictionary = {
       `Día ${day} de ${total} · ${spent} gastado · en camino a ${projected}`,
     bannerClosed: (spent, avg) =>
       `Mismo punto en el ciclo anterior: ${spent} vs tu ${avg} promedio`,
-    chapter1Title: "Cuándo gastas",
-    chapter2Title: "La tendencia",
-    chapter3Title: "Fijo vs flexible, en el tiempo",
-    chapter4Title: "Por categoría",
-    noSpending: "Sin gastos",
-    viewAllN: (n) => `Ver las ${n}`,
-    fixedShareRising: (vocab) => `Tu gasto fijo está aumentando.`,
-    fixedShareFalling: (vocab) => `Tu gasto fijo está disminuyendo.`,
-    fixedShareSteady: (vocab) => `Tu gasto fijo se mantiene estable.`,
-    fixedShareSubcopy: (oldPct, newPct) =>
-      `${oldPct.toFixed(0)}% hace seis ${oldPct === 1 ? "período" : "períodos"}, ${newPct.toFixed(0)}% ahora`,
-    smallMultiplesCaptionOldest: (vocab, n) =>
-      `Hace ${n} ${vocab.nounPlural}`,
-    smallMultiplesCaptionNow: "Ahora",
-    notEnoughHistory: (vocab) =>
-      `Aún no hay suficiente historial — esto se llena después de algunas ${vocab.nounPlural} más.`,
+
+    chapter1Title: "Flujo de dinero",
+    chapter1Takeaway: "A dónde fue tu pago.",
+    cashFlowIncomeLine: (amount, dateRange) => `${amount} entraron ${dateRange}.`,
     fixedLabel: "Fijo",
     discretionaryLabel: "Todo lo demás",
+    savedLabel: "Ahorrado",
+    savedGoalsList: (names) => `Va hacia ${names}`,
+    leftoverLabel: "Restante",
+
+    chapter2Title: "Recurrentes",
+    chapter2Takeaway: (vocab) => `Cómo les fue a tus gastos recurrentes ${vocab.thisPeriod}.`,
+
+    chapter3Title: "Por categoría",
+    chapter3Takeaway: (dateRange) => `${dateRange} vs tu promedio.`,
+    categoryUsual: (amount) => `Tu promedio: ${amount}`,
+    categoryNew: "Nuevo este período",
+
+    chapter4Title: "Cuándo gastas",
+
+    chapter5Title: "Las compras más grandes",
+    chapter5Takeaway: "Las compras individuales que más se destacaron.",
+
+    noSpending: "Sin gastos",
+    viewAllN: (n) => `Ver las ${n}`,
     recurringTag: "Recurrente",
-    categoryAverageTick: (amount) => `Tu promedio: ${amount}`,
     prevCycleAria: "Ciclo anterior",
     nextCycleAria: "Próximo ciclo",
   },

@@ -107,6 +107,20 @@ export function startOfDay(date: Date): Date {
 }
 
 /**
+ * Resolves a Scheduled recurring expense's dueDay (1-31) to a real Date in
+ * the current Panama-calendar month -- null when that day doesn't exist
+ * this month (e.g. dueDay 31 in a 30-day month). Extracted from
+ * lib/insights.ts's own daysUntilMonthlyDue (still there, now a thin
+ * wrapper) so lib/recurring-fulfillment.ts's summarizeRecurringFulfillment
+ * can share the exact same due-date math instead of reimplementing it.
+ */
+export function resolveMonthlyDueDate(now: Date, dueDay: number): Date | null {
+  const { year, month } = panamaDateParts(now);
+  const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
+  return parseDateOnly(dueDateStr);
+}
+
+/**
  * Parses "YYYY-MM-DD" into a Panama-midnight-anchored Date, rejecting
  * anything malformed or calendar-invalid (e.g. Feb 30, which JS would
  * otherwise silently roll over into Mar 2). No range check — callers

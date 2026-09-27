@@ -792,20 +792,20 @@ export type Dictionary = {
   };
 
   summary: {
-    headline: (vocab: PeriodVocab, spent: string, leftOver: string) => string;
-    subcopyDelta: (vocab: PeriodVocab, amount: string) => string;
-    subcopyLightestSince: (vocab: PeriodVocab, month: string) => string;
+    /** "You spent $594 and " -- the caller wraps headlineSavedFragment's return in the gold span, see SummaryHeadline.tsx. Split in two (not one opaque sentence) so the gold coloring doesn't have to fight EN/ES word order. */
+    headlinePrefix: (vocab: PeriodVocab, spent: string) => string;
+    /** "saved $297." -- see headlinePrefix. */
+    headlineSavedFragment: (saved: string) => string;
+    subcopyDelta: (vocab: PeriodVocab, amount: string, isLighter: boolean) => string;
+    subcopyLightestSince: (vocab: PeriodVocab, label: "lightest" | "heaviest", month: string) => string;
     statIncome: string;
     statSpent: string;
-    statLeftOver: string;
     sparklineLabel: (vocab: PeriodVocab, n: number) => string;
     goalsEyebrow: string;
     goalCompleted: (name: string) => string;
     goalInProgress: (name: string, amount: string, pct: number, target: string) => string;
-    /** Scheduled expenses only -- see summarizeRecurringExpenses's own doc comment. */
+    /** The Recurring card's section header -- its content is now RecurringFulfillmentCard, shared with Breakdown's chapter 02 (see recurringFulfillment above). */
     scheduledEyebrow: string;
-    scheduledPaidOnTime: (paid: number, total: number) => string;
-    scheduledLateTag: (n: number) => string;
     uncategorizedWarning: (count: number, amount: string) => string;
     fixAction: string;
     ctaStart: (vocab: PeriodVocab) => string;
@@ -819,30 +819,57 @@ export type Dictionary = {
     sublineDay: (day: number, total: number) => string;
     bannerLive: (vocab: PeriodVocab, day: number, total: number, spent: string, projected: string) => string;
     bannerClosed: (spent: string, avg: string) => string;
+
+    /** Chapter 01 -- Cash flow. */
     chapter1Title: string;
+    chapter1Takeaway: string;
+    cashFlowIncomeLine: (amount: string, dateRange: string) => string;
+    /** Cash-flow legend label for the fixed (recurring-linked) segment -- also reused as the Recurring chapter/section's swatch label, so the two can't drift apart. */
+    fixedLabel: string;
+    /** Cash-flow legend label for the discretionary segment. */
+    discretionaryLabel: string;
+    /** Cash-flow legend label for the goals segment -- never used for unallocated money, see leftoverLabel. */
+    savedLabel: string;
+    /** Subline under the tappable Saved row naming which goals this period's contributions went to. */
+    savedGoalsList: (names: string) => string;
+    /** Cash-flow legend label for the truly-unallocated remainder (income - fixed - everythingElse - saved, clamped >= 0). */
+    leftoverLabel: string;
+
+    /** Chapter 02 -- Recurring (Scheduled/Ongoing fulfillment, no progress bar -- see recurringFulfillment below and Summary's own scheduledEyebrow section, which DOES show a bar). */
     chapter2Title: string;
+    chapter2Takeaway: (vocab: PeriodVocab) => string;
+
+    /** Chapter 03 -- By category. */
     chapter3Title: string;
+    chapter3Takeaway: (dateRange: string) => string;
+    /** A category row's "Usual: $X" line -- mean of the last 6 closed periods. */
+    categoryUsual: (amount: string) => string;
+    /** Shown instead of categoryUsual when a category has no prior-period history. */
+    categoryNew: string;
+
+    /** Chapter 04 -- When you spend (the heatmap; moved here from slot 01). */
     chapter4Title: string;
+
+    /** Chapter 05 -- Biggest transactions (new). */
+    chapter5Title: string;
+    chapter5Takeaway: string;
+
     noSpending: string;
     viewAllN: (n: number) => string;
-    fixedShareRising: (vocab: PeriodVocab) => string;
-    fixedShareFalling: (vocab: PeriodVocab) => string;
-    fixedShareSteady: (vocab: PeriodVocab) => string;
-    fixedShareSubcopy: (oldPct: number, newPct: number) => string;
-    smallMultiplesCaptionOldest: (vocab: PeriodVocab, n: number) => string;
-    smallMultiplesCaptionNow: string;
-    /** Shown by chapters 02/03 when fewer than two periods exist to compare -- see the plan's insufficient-history degradation. */
-    notEnoughHistory: (vocab: PeriodVocab) => string;
-    /** Chapter 02's legend label for the fixed (recurring-linked) half of spending. */
-    fixedLabel: string;
-    /** Chapter 02's legend label for the other half of spending. */
-    discretionaryLabel: string;
-    /** Chapter 01's inline tag on a row linked to a recurring expense. */
+    /** Chapter 04's inline tag on a row linked to a recurring expense. */
     recurringTag: string;
-    /** Chapter 04's average-tick tooltip. */
-    categoryAverageTick: (amount: string) => string;
     prevCycleAria: string;
     nextCycleAria: string;
+  };
+
+  /** Shared by Summary's Recurring section and Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's own doc comment for why this is one function/copy source instead of two. */
+  recurringFulfillment: {
+    chargedOnTime: (chargedCount: number, total: number) => string;
+    allChargedOnTime: string;
+    missing: (name: string) => string;
+    upcoming: (name: string, date: string) => string;
+    /** live=true appends "so far" -- an in-progress cycle's Ongoing list can only ever grow, never be final the way a closed cycle's is. */
+    ongoingLogged: (names: string, live: boolean) => string;
   };
 
   validations: {

@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import type { GoalWithProgress } from "@/lib/goals";
-import type { UncategorizedWarning } from "@/lib/summary";
+import type { SpendComparison, UncategorizedWarning } from "@/lib/summary";
+import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
 import { formatCurrency } from "@/lib/format";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import SummaryHeadline from "./SummaryHeadline";
+import SummaryContextLine from "./SummaryContextLine";
 import SummaryStatRow from "./SummaryStatRow";
 import SummaryGoalsSection from "./SummaryGoalsSection";
 import SummaryRecurringSection from "./SummaryRecurringSection";
@@ -20,9 +22,8 @@ interface SummaryScreenProps {
   cycleRangeText: string;
   financials: CycleFinancials;
   goalsWithProgress: GoalWithProgress[];
-  scheduledPaidCount: number;
-  scheduledTotalCount: number;
-  scheduledLateCount: number;
+  recurringFulfillment: RecurringFulfillment;
+  comparison: Partial<SpendComparison> | null;
   sparklinePoints: number[];
   uncategorized: UncategorizedWarning | null;
 }
@@ -32,9 +33,8 @@ export default function SummaryScreen({
   cycleRangeText,
   financials,
   goalsWithProgress,
-  scheduledPaidCount,
-  scheduledTotalCount,
-  scheduledLateCount,
+  recurringFulfillment,
+  comparison,
   sparklinePoints,
   uncategorized,
 }: SummaryScreenProps) {
@@ -56,18 +56,14 @@ export default function SummaryScreen({
         <p className="summary-header-eyebrow">{cycleRangeText}</p>
       </header>
 
-      <SummaryHeadline
-        headline={t.summary.headline(
-          vocab,
-          formatCurrency(financials.totalExpenses),
-          formatCurrency(financials.amountLeft),
-        )}
-      />
+      <SummaryHeadline spent={formatCurrency(financials.totalExpenses)} saved={formatCurrency(financials.totalSavings)} t={t} vocab={vocab} />
+
+      <SummaryContextLine comparison={comparison} t={t} vocab={vocab} />
 
       <SummaryStatRow
         income={formatCurrency(financials.baseIncome + financials.extraIncome)}
         spent={formatCurrency(financials.totalExpenses)}
-        leftOver={formatCurrency(financials.amountLeft)}
+        saved={formatCurrency(financials.totalSavings)}
         t={t}
       />
 
@@ -80,13 +76,8 @@ export default function SummaryScreen({
 
       {goalsWithProgress.length > 0 && <SummaryGoalsSection goals={goalsWithProgress} t={t} />}
 
-      {scheduledTotalCount > 0 && (
-        <SummaryRecurringSection
-          paidCount={scheduledPaidCount}
-          totalCount={scheduledTotalCount}
-          lateCount={scheduledLateCount}
-          t={t}
-        />
+      {recurringFulfillment.scheduled.total > 0 && (
+        <SummaryRecurringSection fulfillment={recurringFulfillment} t={t} />
       )}
 
       {uncategorized && <SummaryUncategorizedStrip warning={uncategorized} t={t} />}

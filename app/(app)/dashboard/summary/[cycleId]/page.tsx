@@ -4,12 +4,23 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getClosedCycles, getUserBudgetFrequency, formatCycleRangeText } from "@/lib/cycles";
-import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
+import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
+import { summarizeRecurringFulfillment } from "@/lib/recurring-fulfillment";
 import { getGoalsWithProgress } from "@/lib/goals";
-import { computeUncategorizedWarning } from "@/lib/summary";
+import { computeSpendComparison, computeUncategorizedWarning } from "@/lib/summary";
 import SummaryScreen from "../_components/SummaryScreen";
 
 export const metadata: Metadata = { title: "Summary" };
+
+/**
+ * How many closed cycles to fetch for the sparkline (6) and the "your
+ * lightest/heaviest since {month}" context line (12, a wider window --
+ * the sparkline is meant to be a compact recent-trend glance, while the
+ * "since when" superlative reads oddly if it can only ever look back
+ * half a year).
+ */
+const SPARKLINE_DEPTH = 6;
+const COMPARISON_HISTORY_DEPTH = 12;
 
 /**
  * The end-of-cycle Summary, reached after closing a cycle and from
@@ -42,24 +53,36 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
     getCycleFinancials(cycle.id),
     getGoalsWithProgress(userId, cycle.id),
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
-    getClosedCycles(userId, 6),
+    getClosedCycles(userId, COMPARISON_HISTORY_DEPTH),
   ]);
 
-  // A Scheduled expense still unpaid when the cycle closed counts as late
-  // -- the confirmed rule for this screen (it's in both the total and the
-  // late tally, never silently dropped). Ongoing expenses are excluded
-  // entirely -- summarizeRecurringExpenses is Scheduled-only (see its own
-  // doc comment).
-  const scheduled = summarizeRecurringExpenses(recurringExpenseCategories);
-  const scheduledLateCount = Math.max(scheduled.totalCount - scheduled.paidCount, 0);
+  // Shared with Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's
+  // own doc comment for why the two screens read from one function.
+  const recurringFulfillment = summarizeRecurringFulfillment(recurringExpenseCategories, new Date());
+
+  // Newest-first (getClosedCycles' own order) -- exactly what
+  // computeSpendComparison wants for recentSpends (trailing N prior
+  // periods, most recent first).
+  const closedFinancials = closedCycles.map((c) => ({
+    financials: summarizeCycleFinancials(c.incomeEntries, c.transactions),
+    periodStart: c.periodStart,
+  }));
+  const comparison = computeSpendComparison(
+    financials.totalExpenses,
+    closedFinancials.slice(0, 3).map((c) => c.financials.totalExpenses),
+    closedFinancials.map((c) => ({ amount: c.financials.totalExpenses, periodStart: c.periodStart })),
+  );
 
   // Oldest-first, so the sparkline reads left-to-right through time and
   // ends on this cycle. Whatever history exists is what gets drawn -- a
   // brand-new account with one closed cycle gets a single dot, not a
-  // fabricated trend.
-  const sparklinePoints = [...closedCycles]
+  // fabricated trend. Only the most recent SPARKLINE_DEPTH of the wider
+  // comparison-history fetch -- the sparkline itself stays a compact
+  // recent-trend glance, not the full COMPARISON_HISTORY_DEPTH window.
+  const sparklinePoints = closedFinancials
+    .slice(0, SPARKLINE_DEPTH)
     .reverse()
-    .map((c) => summarizeCycleFinancials(c.incomeEntries, c.transactions).totalExpenses);
+    .map((c) => c.financials.totalExpenses);
 
   return (
     <SummaryScreen
@@ -67,9 +90,8 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
       cycleRangeText={formatCycleRangeText(cycle, {}, budgetFrequency)}
       financials={financials}
       goalsWithProgress={goalsWithProgress}
-      scheduledPaidCount={scheduled.paidCount}
-      scheduledTotalCount={scheduled.totalCount}
-      scheduledLateCount={scheduledLateCount}
+      recurringFulfillment={recurringFulfillment}
+      comparison={comparison}
       sparklinePoints={sparklinePoints}
       uncategorized={computeUncategorizedWarning(financials)}
     />

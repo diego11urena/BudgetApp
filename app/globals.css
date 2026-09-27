@@ -230,14 +230,6 @@
      and .toast so the same number isn't duplicated in two places. */
   --bottom-nav-clearance: 5rem;
 
-  /* Paycheck Breakdown pie chart — a fixed categorical order for expense
-     category slices (lib/paycheck-breakdown.ts hashes a category's id to
-     one of these 8, so a category's color never shifts just because
-     another category's amount changed rank). Savings/Remaining/Other are
-     their own fixed buckets, not "series 9/10/11". Savings uses
-     --color-savings, not this categorical set — a real status match
-     ("this went somewhere good"), consistent with --color-savings's role
-     everywhere else (see the comment on that var above). */
   /* 1-6 match the Balboa design system's fixed "Where it's going"
      categorical order exactly (navy, teal, plum, green, purple, silver) --
      TopCategoriesChart.tsx is the only live consumer and only ever indexes
@@ -271,11 +263,35 @@
   --chart-other: #7a6a5c;
 
   /* Summary + Breakdown chart colors — fixed semantic roles (Fixed,
-     Discretionary, Goals) across chapters 02 and 03, distinct from
-     --chart-cat-N which are per-category identity colors in chapter 04. */
+     Discretionary, Goals), distinct from --chart-cat-N which are
+     per-category identity colors in chapter 03 (By category). --chart-fixed
+     itself stays navy here and is NOT the Cash-flow chapter's Fixed
+     segment color (see --flow-fixed below) -- this token's one surviving
+     consumer is chapter 04's "Fixed" tag on a recurring-linked day-detail
+     row (.breakdown-day-row-tag), an unrelated small-caps text use that
+     the design handoff never asked to change. */
   --chart-fixed: #17395c;
   --chart-discretionary: #2f8f8a;
   --chart-goal: var(--color-savings);
+  /* Chapter 01's Cash-flow bar/legend Fixed segment, and the Recurring
+     swatch (chapter 02 + Summary's Recurring section) -- deliberately a
+     lighter blue than --chart-fixed's navy, matching the design handoff's
+     literal spec, so Fixed doesn't visually compete with navy's other job
+     as this app's one brand/action color everywhere else on the same
+     screen. Non-text swatch/fill use only (3:1 non-text contrast, not
+     this file's usual 4.5:1 text floor) -- both values clear that easily
+     against --color-bg and --color-bg-secondary. Dark value is
+     --chart-fixed's own existing dark blue, unchanged -- the handoff's
+     dark "Fixed" spec already matches it exactly. */
+  --flow-fixed: #4a83c0;
+  /* By-category's bars (chapter 03) -- deliberately NOT --chart-discretionary:
+     the design handoff is explicit these bars must stay neutral (they
+     don't encode fixed vs. discretionary, just relative size). Light
+     value reuses --color-silver's hex directly (a bar fill, not text, so
+     --color-silver's own "below AA for small text" caveat doesn't apply
+     here); dark value is distinct from --color-silver's dark value so the
+     two don't collide against this mode's darker card surface. */
+  --chart-neutral-bar: #8b93a0;
 
   /* Heatmap 5-step percentile buckets: 0 = no spend, 1-4 = 25th/50th/75th
      percentile splits over non-zero days. */
@@ -401,6 +417,11 @@
   --chart-fixed: #7fb3e8;
   --chart-discretionary: #4fb3ad;
   --chart-goal: var(--color-savings);
+  /* Same value as --chart-fixed's dark blue -- the handoff's dark "Fixed"
+     spec already matches it exactly, unlike light mode (see light block's
+     comment). */
+  --flow-fixed: #7fb3e8;
+  --chart-neutral-bar: #6b7a8d;
 
   /* Heatmap 5-step percentile buckets — dark-mode scale. */
   --heatmap-0: #243444;
@@ -4644,6 +4665,12 @@ button.line-item--link {
   text-wrap: balance;
 }
 
+/* The "$297" fragment only -- see SummaryHeadline's own doc comment for
+   why this is a separate span rather than the whole sentence. */
+.summary-headline-saved {
+  color: var(--color-savings);
+}
+
 .summary-stat-row {
   display: flex;
   align-items: stretch;
@@ -4679,6 +4706,17 @@ button.line-item--link {
   font-size: 1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.summary-stat-value--saved {
+  color: var(--color-savings);
+}
+
+/* The comparison context line, between the headline and the stat row --
+   "$47 less than your last three quincenas — your lightest since May." */
+.summary-context-line {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
 }
 
 .summary-section-eyebrow {
@@ -4757,53 +4795,42 @@ button.line-item--link {
   min-width: 0;
 }
 
-/* Recurring (Summary screen) */
+/* Recurring (Summary screen) -- the row's own content is now
+   RecurringFulfillmentCard, shared with Breakdown's chapter 02 (see
+   app/(app)/_components/RecurringFulfillmentCard.tsx and its CSS above,
+   ".recurring-fulfillment-*"). This wrapper just keeps the content
+   stretched to fill the tappable row alongside the chevron. */
 .summary-recurring-content {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
-.summary-recurring-label {
-  font-size: 0.9375rem;
-}
-
-.summary-recurring-track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-bg-secondary);
-  overflow: hidden;
-}
-
-.summary-recurring-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--color-success);
-  transition: width 200ms ease;
-}
-
-.summary-recurring-late-tag {
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-warning);
-  background: var(--color-warning-bg);
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-}
-
-/* Uncategorized warning strip */
+/* Uncategorized warning strip -- deliberately neutral (ink text on
+   --color-bg-secondary, a plain gray dot), not the warning-orange
+   treatment other "needs attention" surfaces use. The design spec calls
+   this out explicitly: an uncategorized transaction is a note ("you
+   haven't sorted this yet"), not an alarm the way an unpaid bill or an
+   over-budget category is -- reusing --color-warning here would put it
+   in the same visual register as those genuine problems. */
 .summary-uncategorized-strip {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  color: var(--color-warning);
-  background: var(--color-warning-bg);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 0.75rem);
+}
+
+.summary-uncategorized-strip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-silver);
+  flex-shrink: 0;
 }
 
 .summary-uncategorized-fix {
@@ -4913,35 +4940,7 @@ button.line-item--link {
   border-radius: 3px;
 }
 
-.trend-area-chart {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.trend-chart-empty {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
-.trend-endpoint-live .trend-endpoint-pulse {
-  animation: trend-pulse 1.8s ease-in-out infinite;
-  transform-origin: center;
-}
-
-@keyframes trend-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-    r: 5;
-  }
-  50% {
-    opacity: 0;
-    r: 9;
-  }
-}
-
-/* ===== Breakdown V2 (Heatmap, Trend, Fixed vs Flexible, By Category) ===== */
+/* ===== Breakdown V2 (Cash flow, Recurring, By category, When you spend, Biggest transactions) ===== */
 .breakdown-screen-v2 {
   display: flex;
   flex-direction: column;
@@ -5025,9 +5024,18 @@ button.line-item--link {
   flex-direction: column;
 }
 
+/* 44px between chapters, per the design spec -- 2.75rem top+bottom padding
+   plus the 1px divider between chapters reads as that gap; the first
+   chapter doesn't need top padding (the banner above it already provides
+   breathing room), and the last chapter drops its bottom padding/divider
+   the same way it always did. */
 .breakdown-chapter {
-  padding: 1.5rem 0;
+  padding: 2.75rem 0;
   border-bottom: 1px solid var(--color-divider);
+}
+
+.breakdown-chapter:first-child {
+  padding-top: 0;
 }
 
 .breakdown-chapter:last-child {
@@ -5035,25 +5043,43 @@ button.line-item--link {
   padding-bottom: 0;
 }
 
-.breakdown-chapter-eyebrow {
+.breakdown-chapter-kicker {
+  font-family: var(--font-display);
   font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   color: var(--color-text-faint);
-  letter-spacing: 0.08em;
   margin-bottom: 0.25rem;
 }
 
-.breakdown-chapter h2 {
+.breakdown-chapter-title {
   font-family: var(--font-display);
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.375rem;
+}
+
+.breakdown-chapter-takeaway {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.875rem;
 }
 
 .breakdown-chapter-empty {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+}
+
+/* Chapter 01's plain income line ("$891.45 came in Aug 16–31.") -- sits
+   above the cash-flow bar itself, distinct from the chapter's own
+   takeaway line above it. */
+.breakdown-chapter-lede {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  margin-bottom: 0.875rem;
 }
 
 /* ----- Chapter 01: the selected day's own transactions ----- */
@@ -5129,88 +5155,211 @@ button.line-item--link {
   white-space: nowrap;
 }
 
-/* ----- Chapter 02/03 shared: legends and captions ----- */
-.breakdown-legend,
-.small-multiples-legend {
+/* ----- Chapter 01: Cash flow bar + legend ----- */
+.cash-flow-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.625rem;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
+  height: 14px;
+  border-radius: 999px;
+  /* Unfilled remainder = Leftover -- deliberately no segment drawn for it,
+     see CashFlowChapter's own comment. */
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+  margin-bottom: 0.875rem;
 }
 
-.breakdown-legend-item,
-.small-multiples-legend-item {
-  display: inline-flex;
+.cash-flow-bar-segment {
+  height: 100%;
+}
+
+.cash-flow-bar-segment--fixed {
+  background: var(--flow-fixed);
+}
+
+.cash-flow-bar-segment--discretionary {
+  background: var(--chart-discretionary);
+}
+
+.cash-flow-bar-segment--saved {
+  background: var(--chart-goal);
+}
+
+.cash-flow-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  list-style: none;
+}
+
+.cash-flow-legend-row {
+  display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
-.breakdown-legend-swatch,
-.small-multiples-legend-swatch {
+.cash-flow-legend-row--tappable {
+  cursor: pointer;
+}
+
+.cash-flow-legend-amount {
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cash-flow-legend-swatch {
   width: 10px;
   height: 10px;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
-.breakdown-chapter-headline {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.15rem;
+.cash-flow-legend-swatch--fixed {
+  background: var(--flow-fixed);
 }
 
-.breakdown-chapter-subcopy {
+.cash-flow-legend-swatch--discretionary {
+  background: var(--chart-discretionary);
+}
+
+.cash-flow-legend-swatch--saved {
+  background: var(--chart-goal);
+}
+
+/* Leftover: outlined, no fill -- the one swatch in this legend that isn't
+   a solid color, matching "truly unallocated" (there's nothing to color
+   in, unlike the other three which are real spending categories). */
+.cash-flow-legend-swatch--leftover {
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+}
+
+.cash-flow-legend-sublabel {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-left: 1.5rem;
+}
+
+/* ----- Chapter 02 + Summary's Recurring section: shared fulfillment card ----- */
+.recurring-fulfillment-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recurring-fulfillment-row {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+}
+
+.recurring-fulfillment-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+  /* Same color family as chapter 01's Fixed segment -- these are the
+     items that make up that segment's number, per the design spec's
+     color-consistency rule. */
+  background: var(--flow-fixed);
+}
+
+.recurring-fulfillment-status {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  /* --color-success, not a separate --status-ok token -- its dark value
+     already equals the design spec's literal "on track" dark hex, and its
+     light value was already darkened from that same literal for the same
+     4.5:1-text reason the rest of this file's success/warning/error trio
+     was (see --color-warning's own comment). */
+  color: var(--color-success);
+}
+
+.recurring-fulfillment-subline {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  margin-bottom: 0.875rem;
 }
 
-.breakdown-small-multiples-captions,
-.small-multiples-captions {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 0.375rem;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
+.recurring-fulfillment-divider {
+  border-top: 1px solid var(--color-divider);
+  margin: 0.125rem 0;
 }
 
-/* ----- Chapter 03: small multiples ----- */
-.small-multiples,
-.small-multiples-container {
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  width: 100%;
-}
-
-.small-multiples {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.small-multiples-bar {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column-reverse; /* fixed at the base, goals on top */
+/* 6px bar per the design spec, overriding ProgressBar's own default. */
+.recurring-fulfillment-progress .progress-bar-track,
+.recurring-fulfillment-progress .progress-bar-fill {
+  height: 6px;
   border-radius: 3px;
-  overflow: hidden;
+}
+
+/* ----- Chapter 05: Biggest transactions ----- */
+.biggest-transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.biggest-transaction-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.biggest-transaction-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
   background: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
-.small-multiples-segment {
-  width: 100%;
+.biggest-transaction-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.small-multiples-caption-start,
-.small-multiples-caption-end {
+.biggest-transaction-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biggest-transaction-meta {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
 }
 
-/* ----- Chapter 04: category bars with an average tick ----- */
+.biggest-transaction-trailing {
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.biggest-transaction-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.biggest-transaction-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* ----- Chapter 03: category bars, each with a "Usual: $X" line ----- */
 .breakdown-category-list {
   display: flex;
   flex-direction: column;
@@ -5248,31 +5397,19 @@ button.line-item--link {
   overflow: hidden;
 }
 
+/* --chart-neutral-bar, not --chart-discretionary -- the design spec is
+   explicit these bars must stay neutral (relative size only, no fixed/
+   flex encoding). Replaces the old average-tick mark (see git history):
+   the "Usual: $X" text line below now carries that comparison instead. */
 .breakdown-category-fill {
   height: 100%;
   border-radius: 999px;
-  background: var(--chart-discretionary);
+  background: var(--chart-neutral-bar);
 }
 
-/* The trailing-period average, drawn ON the track so "more than usual" is
-   readable at a glance. overflow:hidden on the track clips it at 100%,
-   which is why the chapter scales its bars against the tick too. */
-.breakdown-category-tick {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--color-text-primary);
-  opacity: 0.55;
-  transform: translateX(-1px);
+.breakdown-category-usual {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
-/* Endpoint markers on the trend chart (see TrendAreaChart). */
-.trend-endpoint-closed {
-  fill: var(--color-text-primary);
-}
-
-.trend-endpoint-pulse {
-  fill: var(--chart-discretionary);
-}

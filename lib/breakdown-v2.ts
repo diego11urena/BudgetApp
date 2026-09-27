@@ -13,24 +13,6 @@ export interface DailySpend {
 /** Heatmap bucket (0-4, where 0 = no spend, 1-4 = percentile buckets). */
 export type HeatmapBucket = 0 | 1 | 2 | 3 | 4;
 
-/** Trend series point (a period's Fixed/Discretionary split). */
-export interface TrendPoint {
-  label: string;
-  fixed: number;
-  discretionary: number;
-}
-
-/** Fixed-share trend direction. */
-export type FixedShareDirection = "rising" | "falling" | "holding steady";
-
-/** Fixed-share trend result. */
-export interface FixedShareTrend {
-  periods: { fixedPct: number; discretionaryPct: number; goalsPct: number }[];
-  direction: FixedShareDirection;
-  oldPct: number;
-  newPct: number;
-}
-
 /** Live/CLOSED banner data. */
 export interface BannerData {
   spent: number;
@@ -133,20 +115,29 @@ export function computeHeatmapPercentileBuckets(dailyTotals: DailySpend[]): Map<
 }
 
 /**
- * Pick the default selected day for the heatmap:
- * highest-spend day (ties broken by most recent); null if all zero.
+ * Pick the default selected day for the heatmap and, downstream, the day
+ * computeBiggestTransactions excludes so chapters 04 and 05 never repeat
+ * the same purchase. CLOSED: the most recent day with any spend (not the
+ * highest-spend day -- that was this function's old rule, but "most
+ * recent" is what the design spec calls for and what a closed period's
+ * default panel should show). LIVE: always today, even if today is $0 --
+ * a day-in-progress panel showing yesterday's spend instead would be
+ * confusing mid-cycle. Null only when the whole period is zero (CLOSED)
+ * or today somehow isn't in dailyTotals at all (shouldn't happen --
+ * computeDailySpendBuckets always fills every day in range).
  */
-export function pickDefaultSelectedDay(dailyTotals: DailySpend[]): Date | null {
+export function pickDefaultSelectedDay(dailyTotals: DailySpend[], state: "LIVE" | "CLOSED", now: Date): Date | null {
   if (dailyTotals.length === 0) return null;
 
-  let maxDay: DailySpend | null = null;
-  for (const day of dailyTotals) {
-    if (day.total > 0 && (!maxDay || day.total > maxDay.total)) {
-      maxDay = day;
-    }
+  if (state === "LIVE") {
+    const todayLabel = formatCycleLabel(now);
+    return dailyTotals.find((day) => formatCycleLabel(day.date) === todayLabel)?.date ?? null;
   }
 
-  return maxDay?.date ?? null;
+  for (let i = dailyTotals.length - 1; i >= 0; i--) {
+    if (dailyTotals[i].total > 0) return dailyTotals[i].date;
+  }
+  return null;
 }
 
 /**
@@ -155,90 +146,6 @@ export function pickDefaultSelectedDay(dailyTotals: DailySpend[]): Date | null {
 export function computeTransactionsForDay(transactions: CycleTransactionSummary[], date: Date): CycleTransactionSummary[] {
   const dayStr = formatCycleLabel(date);
   return transactions.filter((tx) => formatCycleLabel(tx.occurredAt) === dayStr);
-}
-
-/**
- * Trend series: last 5-6 periods + "Now" (current, possibly-partial cycle),
- * splitting each by fixed vs discretionary via classifyTransaction.
- */
-export function computeTrendSeries(
-  cycles: { financials: CycleFinancials; periodLabel?: string }[]
-): TrendPoint[] {
-  return cycles.map((cycle) => {
-    let fixed = 0;
-    let discretionary = 0;
-
-    for (const tx of cycle.financials.transactions) {
-      const classification = classifyTransaction(tx);
-      if (classification === "fixed") {
-        fixed += tx.amount;
-      } else if (classification === "discretionary") {
-        discretionary += tx.amount;
-      }
-      // Goals don't contribute to fixed or discretionary.
-    }
-
-    return {
-      label: cycle.periodLabel ?? "",
-      fixed,
-      discretionary,
-    };
-  });
-}
-
-/**
- * Fixed-share trend: last 6 periods' fixed/discretionary/goals % of total spend.
- * Direction = rising/falling if delta > 1.5pt, else holding steady.
- */
-export function computeFixedShareTrend(
-  cycles: { financials: CycleFinancials }[]
-): FixedShareTrend {
-  const periods: { fixedPct: number; discretionaryPct: number; goalsPct: number }[] = [];
-
-  for (const cycle of cycles) {
-    let fixed = 0;
-    let discretionary = 0;
-    let goals = 0;
-
-    for (const tx of cycle.financials.transactions) {
-      const classification = classifyTransaction(tx);
-      if (classification === "fixed") {
-        fixed += tx.amount;
-      } else if (classification === "discretionary") {
-        discretionary += tx.amount;
-      } else {
-        goals += tx.amount;
-      }
-    }
-
-    const total = fixed + discretionary + goals;
-    if (total === 0) {
-      periods.push({ fixedPct: 0, discretionaryPct: 0, goalsPct: 0 });
-    } else {
-      periods.push({
-        fixedPct: (fixed / total) * 100,
-        discretionaryPct: (discretionary / total) * 100,
-        goalsPct: (goals / total) * 100,
-      });
-    }
-  }
-
-  let direction: FixedShareDirection = "holding steady";
-  let oldPct = 0;
-  let newPct = 0;
-
-  if (periods.length >= 2) {
-    oldPct = periods[0].fixedPct;
-    newPct = periods[periods.length - 1].fixedPct;
-    const delta = newPct - oldPct;
-    if (delta > 1.5) {
-      direction = "rising";
-    } else if (delta < -1.5) {
-      direction = "falling";
-    }
-  }
-
-  return { periods, direction, oldPct, newPct };
 }
 
 /**
@@ -282,12 +189,18 @@ export function computeSameDayIndexAverage(
 }
 
 /**
- * Category rolling average: trailing-N average of a category's total spend.
+ * Category rolling average ("Usual: $X" on chapter 03's By-category rows):
+ * trailing-N average of a category's total spend. Default 6, not 4 --
+ * matches HISTORY_DEPTH, the same "last 6 closed periods" window every
+ * other history-dependent figure on this page uses (the sparkline,
+ * chapter 03's own "vs your usual" framing). Callers should still pass
+ * their own history-depth constant explicitly rather than rely on this
+ * default, so the two stay obviously in sync at the call site.
  */
 export function computeCategoryRollingAverage(
   categoryId: string,
   cycles: { financials: CycleFinancials }[],
-  trailingN: number = 4
+  trailingN: number = 6
 ): number {
   if (cycles.length === 0) return 0;
 
@@ -315,4 +228,86 @@ export function computeLiveBanner(
 ): BannerData {
   const projected = dayIndex > 0 ? Math.round((spent / dayIndex) * totalDays * 100) / 100 : 0;
   return { spent, projected, dayIndex, totalDays };
+}
+
+/** Chapter 01's cash-flow split: income = fixed + everythingElse + saved + leftover. */
+export interface CashFlowBreakdown {
+  income: number;
+  fixed: number;
+  everythingElse: number;
+  saved: number;
+  /** Distinct SAVINGS-category names touched this period, first-seen order -- feeds the tappable Saved row's subline ("Emergency Fund · Japan trip"). */
+  savedGoals: string[];
+  /**
+   * income - fixed - everythingElse - saved, clamped to >= 0. When the
+   * period is overspent (fixed+everythingElse+saved > income) the four
+   * parts no longer sum back to income -- that's the clamp working as
+   * spec'd ("Leftover clamped >= 0"), not a bug: there's nothing left to
+   * call "leftover," and the alternative (a negative Leftover) would be
+   * a stranger number to show than the shortfall just not appearing here.
+   */
+  leftover: number;
+}
+
+/**
+ * Computes chapter 01's Cash-flow split for one cycle. Reuses
+ * classifyTransaction (the same fixed/discretionary/goals rule chapters
+ * 02/03 and computeBiggestTransactions below all share) rather than
+ * introducing a second classification path.
+ */
+export function computeCashFlowBreakdown(financials: CycleFinancials): CashFlowBreakdown {
+  const income = financials.baseIncome + financials.extraIncome;
+  let fixed = 0;
+  let everythingElse = 0;
+  const savedGoals: string[] = [];
+  const seenGoals = new Set<string>();
+
+  for (const tx of financials.transactions) {
+    const classification = classifyTransaction(tx);
+    if (classification === "fixed") {
+      fixed += tx.amount;
+    } else if (classification === "discretionary") {
+      everythingElse += tx.amount;
+    } else if (tx.categoryName && !seenGoals.has(tx.categoryName)) {
+      seenGoals.add(tx.categoryName);
+      savedGoals.push(tx.categoryName);
+    }
+  }
+
+  const saved = financials.totalSavings;
+  const leftover = Math.max(0, income - fixed - everythingElse - saved);
+
+  return { income, fixed, everythingElse, saved, savedGoals, leftover };
+}
+
+/** One row in chapter 05's "Biggest transactions" list. */
+export interface BiggestTransactionRow {
+  id: string;
+  name: string;
+  categoryName: string | null;
+  amount: number;
+  occurredAt: Date;
+}
+
+/**
+ * Top-N discretionary transactions by amount ("the single purchases that
+ * stood out"). classifyTransaction === "discretionary" excludes fixed
+ * (recurring-linked) items AND goal transfers in the same pass -- the
+ * spec asks for both exclusions, and they're already one rule, not two.
+ * excludeDate (formatCycleLabel-style "YYYY-MM-DD", typically chapter 04's
+ * own default-selected day) keeps this chapter from repeating a purchase
+ * chapter 04's day panel already shows.
+ */
+export function computeBiggestTransactions(
+  transactions: CycleTransactionSummary[],
+  options: { excludeDate?: string | null; limit?: number } = {}
+): BiggestTransactionRow[] {
+  const { excludeDate = null, limit = 5 } = options;
+
+  return transactions
+    .filter((tx) => classifyTransaction(tx) === "discretionary")
+    .filter((tx) => excludeDate === null || formatCycleLabel(tx.occurredAt) !== excludeDate)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit)
+    .map((tx) => ({ id: tx.id, name: tx.name, categoryName: tx.categoryName, amount: tx.amount, occurredAt: tx.occurredAt }));
 }

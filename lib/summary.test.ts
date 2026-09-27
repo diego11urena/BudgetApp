@@ -47,7 +47,7 @@ describe("summary", () => {
         deltaAmount: 75, // 575 - 500
         isLighter: true,
         label: null,
-        sinceLabel: null,
+        sincePeriodStart: null,
       });
     });
 
@@ -57,18 +57,34 @@ describe("summary", () => {
         deltaAmount: -125, // 575 - 700
         isLighter: false,
         label: null,
-        sinceLabel: null,
+        sincePeriodStart: null,
       });
     });
 
-    it("marks as lightest when below all historical", () => {
-      const result = computeSpendComparison(400, [550, 600], [450, 500, 550, 600, 700]);
+    it("marks as lightest when below all historical, naming that period's own periodStart", () => {
+      const lightestStart = new Date("2026-03-01T05:00:00.000Z");
+      const result = computeSpendComparison(400, [550, 600], [
+        { amount: 450, periodStart: new Date("2026-01-01T05:00:00.000Z") },
+        { amount: 500, periodStart: new Date("2026-02-01T05:00:00.000Z") },
+        { amount: 550, periodStart: lightestStart },
+        { amount: 600, periodStart: new Date("2026-04-01T05:00:00.000Z") },
+        { amount: 700, periodStart: new Date("2026-05-01T05:00:00.000Z") },
+      ]);
       expect(result?.label).toBe("lightest");
+      // 400 is below every historical entry, so the "lightest" one on record is 450 -- not the current period.
+      expect(result?.sincePeriodStart).toEqual(new Date("2026-01-01T05:00:00.000Z"));
     });
 
-    it("marks as heaviest when above all historical", () => {
-      const result = computeSpendComparison(800, [550, 600], [450, 500, 550, 600, 700]);
+    it("marks as heaviest when above all historical, naming that period's own periodStart", () => {
+      const result = computeSpendComparison(800, [550, 600], [
+        { amount: 450, periodStart: new Date("2026-01-01T05:00:00.000Z") },
+        { amount: 500, periodStart: new Date("2026-02-01T05:00:00.000Z") },
+        { amount: 550, periodStart: new Date("2026-03-01T05:00:00.000Z") },
+        { amount: 600, periodStart: new Date("2026-04-01T05:00:00.000Z") },
+        { amount: 700, periodStart: new Date("2026-05-01T05:00:00.000Z") },
+      ]);
       expect(result?.label).toBe("heaviest");
+      expect(result?.sincePeriodStart).toEqual(new Date("2026-05-01T05:00:00.000Z"));
     });
   });
 

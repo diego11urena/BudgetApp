@@ -10,16 +10,18 @@ import {
 } from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import {
+  computeBiggestTransactions,
+  computeCashFlowBreakdown,
   computeCategoryRollingAverage,
   computeDailySpendBuckets,
-  computeFixedShareTrend,
   computeHeatmapPercentileBuckets,
   computeLiveBanner,
   computeSameDayIndexAverage,
   computeTransactionsForDay,
-  computeTrendSeries,
   pickDefaultSelectedDay,
 } from "@/lib/breakdown-v2";
+import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
+import { summarizeRecurringFulfillment } from "@/lib/recurring-fulfillment";
 import { calendarDaysBetween, cycleEnd as resolveCycleEnd } from "@/lib/quincena-pace";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { formatCycleRangeLabel } from "@/lib/format";
@@ -28,7 +30,7 @@ import type { DayTransaction } from "./_components/types";
 
 export const metadata: Metadata = { title: "Breakdown" };
 
-/** How many periods the trend/fixed-share chapters look back over. */
+/** How many closed periods chapter 03's "Usual: $X" line and the CLOSED banner's comparison average look back over. */
 const HISTORY_DEPTH = 6;
 
 /**
@@ -68,10 +70,14 @@ export default async function BreakdownPage({
   }
   const state: "LIVE" | "CLOSED" = cycleIdParam ? "CLOSED" : "LIVE";
 
-  const [budgetFrequency, financials, closedCycles] = await Promise.all([
+  const [budgetFrequency, financials, closedCycles, recurringExpenseCategories] = await Promise.all([
     getUserBudgetFrequency(userId),
     getCycleFinancials(cycle.id),
     getClosedCycles(userId, HISTORY_DEPTH),
+    // computeSuggestions: false -- Breakdown only reads status/hasFixedDate/dueDay
+    // (see summarizeRecurringFulfillment), never the match-suggestion machinery
+    // Plan's own picker UI needs.
+    getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
   ]);
 
   // A closed cycle has a real periodEnd; an open one is still calendar-derived
@@ -88,7 +94,7 @@ export default async function BreakdownPage({
 
   const banner = computeLiveBanner(financials.totalExpenses, dayIndex, totalDays);
 
-  // ---- Chapter 01: when you spend -------------------------------------
+  // ---- Chapter 04: when you spend -------------------------------------
   const dailyTotals = computeDailySpendBuckets(financials.transactions, cycle.periodStart, periodEnd);
   const buckets = computeHeatmapPercentileBuckets(dailyTotals);
   const todayLabel = formatCycleLabel(new Date());
@@ -103,7 +109,7 @@ export default async function BreakdownPage({
       disabled: state === "LIVE" && label > todayLabel,
     };
   });
-  const defaultSelected = pickDefaultSelectedDay(dailyTotals);
+  const defaultSelected = pickDefaultSelectedDay(dailyTotals, state, new Date());
   const selectedDayDefault = defaultSelected ? formatCycleLabel(defaultSelected) : null;
   // Only the days that actually have something to show, so a 31-day cycle
   // doesn't ship 31 empty arrays to the client.
@@ -122,7 +128,22 @@ export default async function BreakdownPage({
       }));
   }
 
-  // ---- Chapters 02-04: trailing history -------------------------------
+  // ---- Chapter 05: biggest transactions --------------------------------
+  // Excludes whichever day chapter 04 just defaulted to, so the two
+  // chapters never repeat the same purchase (see pickDefaultSelectedDay's
+  // own doc comment).
+  const biggestTransactions = computeBiggestTransactions(financials.transactions, {
+    excludeDate: selectedDayDefault,
+    limit: 5,
+  });
+
+  // ---- Chapter 01: cash flow -------------------------------------------
+  const cashFlow = computeCashFlowBreakdown(financials);
+
+  // ---- Chapter 02: recurring --------------------------------------------
+  const recurringFulfillment = summarizeRecurringFulfillment(recurringExpenseCategories, new Date());
+
+  // ---- Trailing history (chapter 03's "usual" + CLOSED's comparison average) ----
   // Oldest first, ending on the cycle being viewed, so every series reads
   // left-to-right through time. The viewed cycle is excluded from the
   // history half so it can't appear twice.
@@ -132,24 +153,18 @@ export default async function BreakdownPage({
       financials: summarizeCycleFinancials(c.incomeEntries, c.transactions),
       periodStart: c.periodStart,
     }));
-  const seriesInput = [...history].reverse().concat([{ financials, periodStart: cycle.periodStart }]);
 
-  const trendSeries = computeTrendSeries(
-    seriesInput.map((c) => ({ financials: c.financials, periodLabel: formatCycleLabel(c.periodStart) })),
-  );
-  const fixedShare = computeFixedShareTrend(seriesInput);
-
-  // ---- Chapter 04: by category ----------------------------------------
+  // ---- Chapter 03: by category ------------------------------------------
   // Rolling average wants most-recent-first; a category with no prior-period
-  // data gets null rather than a misleading 0 tick.
+  // data gets null rather than a misleading 0 usual.
   const categories = financials.categoryTotals.slice(0, 8).map((ct) => {
-    const rolling = history.length > 0 ? computeCategoryRollingAverage(ct.categoryId, history) : 0;
+    const rolling = history.length > 0 ? computeCategoryRollingAverage(ct.categoryId, history, HISTORY_DEPTH) : 0;
     return {
       categoryId: ct.categoryId,
       categoryName: ct.categoryName,
       categoryIcon: ct.categoryIcon,
       amount: ct.amount,
-      rollingAverage: history.length > 0 && rolling > 0 ? rolling : null,
+      usualAmount: history.length > 0 && rolling > 0 ? rolling : null,
     };
   });
 
@@ -164,10 +179,12 @@ export default async function BreakdownPage({
     comparisonAverage = computeSameDayIndexAverage(history, totalDays);
   }
 
+  const dateRangeLabel = formatCycleRangeLabel(cycle.periodStart, periodEnd);
+
   return (
     <BreakdownScreenNew
       state={state}
-      dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, periodEnd)}
+      dateRangeLabel={dateRangeLabel}
       spent={banner.spent}
       projected={banner.projected ?? 0}
       dayIndex={dayIndex}
@@ -179,8 +196,9 @@ export default async function BreakdownPage({
       heatmapDays={heatmapDays}
       selectedDayDefault={selectedDayDefault}
       transactionsByDay={transactionsByDay}
-      trendSeries={trendSeries}
-      fixedShare={fixedShare}
+      cashFlow={cashFlow}
+      recurringFulfillment={recurringFulfillment}
+      biggestTransactions={biggestTransactions}
       categories={categories}
       historyCount={history.length}
     />

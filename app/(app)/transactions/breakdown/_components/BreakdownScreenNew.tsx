@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
-import type { FixedShareTrend, TrendPoint } from "@/lib/breakdown-v2";
+import type { BiggestTransactionRow, CashFlowBreakdown } from "@/lib/breakdown-v2";
+import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
 import type { CategoryRow, DayTransaction, HeatmapDayData } from "./types";
-import WhenYouSpendChapter from "./chapters/WhenYouSpendChapter";
-import TrendChapter from "./chapters/TrendChapter";
-import FixedFlexChapter from "./chapters/FixedFlexChapter";
+import CashFlowChapter from "./chapters/CashFlowChapter";
+import RecurringChapter from "./chapters/RecurringChapter";
 import ByCategoryChapter from "./chapters/ByCategoryChapter";
+import WhenYouSpendChapter from "./chapters/WhenYouSpendChapter";
+import BiggestTransactionsChapter from "./chapters/BiggestTransactionsChapter";
 
 interface BreakdownScreenNewProps {
   state: "LIVE" | "CLOSED";
@@ -27,8 +29,9 @@ interface BreakdownScreenNewProps {
   heatmapDays: HeatmapDayData[];
   selectedDayDefault: string | null;
   transactionsByDay: Record<string, DayTransaction[]>;
-  trendSeries: TrendPoint[];
-  fixedShare: FixedShareTrend;
+  cashFlow: CashFlowBreakdown;
+  recurringFulfillment: RecurringFulfillment;
+  biggestTransactions: BiggestTransactionRow[];
   categories: CategoryRow[];
   /** Closed periods available for comparison, excluding the one being viewed. */
   historyCount: number;
@@ -55,8 +58,9 @@ export default function BreakdownScreenNew({
   heatmapDays,
   selectedDayDefault,
   transactionsByDay,
-  trendSeries,
-  fixedShare,
+  cashFlow,
+  recurringFulfillment,
+  biggestTransactions,
   categories,
 }: BreakdownScreenNewProps) {
   const router = useRouter();
@@ -136,8 +140,29 @@ export default function BreakdownScreenNew({
 
       <div className="breakdown-chapters">
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-eyebrow">01</p>
-          <h2>{t.breakdown.chapter1Title}</h2>
+          <p className="breakdown-chapter-kicker">01</p>
+          <h2 className="breakdown-chapter-title">{t.breakdown.chapter1Title}</h2>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter1Takeaway}</p>
+          <CashFlowChapter cashFlow={cashFlow} incomeLine={t.breakdown.cashFlowIncomeLine(formatCurrency(cashFlow.income), dateRangeLabel)} />
+        </section>
+
+        <section className="breakdown-chapter">
+          <p className="breakdown-chapter-kicker">02</p>
+          <h2 className="breakdown-chapter-title">{t.breakdown.chapter2Title}</h2>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter2Takeaway(vocab)}</p>
+          <RecurringChapter fulfillment={recurringFulfillment} live={state === "LIVE"} />
+        </section>
+
+        <section className="breakdown-chapter">
+          <p className="breakdown-chapter-kicker">03</p>
+          <h2 className="breakdown-chapter-title">{t.breakdown.chapter3Title}</h2>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(dateRangeLabel)}</p>
+          <ByCategoryChapter categories={categories} />
+        </section>
+
+        <section className="breakdown-chapter">
+          <p className="breakdown-chapter-kicker">04</p>
+          <h2 className="breakdown-chapter-title">{t.breakdown.chapter4Title}</h2>
           <WhenYouSpendChapter
             days={heatmapDays}
             defaultSelected={selectedDayDefault}
@@ -146,21 +171,10 @@ export default function BreakdownScreenNew({
         </section>
 
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-eyebrow">02</p>
-          <h2>{t.breakdown.chapter2Title}</h2>
-          <TrendChapter series={trendSeries} state={state} />
-        </section>
-
-        <section className="breakdown-chapter">
-          <p className="breakdown-chapter-eyebrow">03</p>
-          <h2>{t.breakdown.chapter3Title}</h2>
-          <FixedFlexChapter fixedShare={fixedShare} />
-        </section>
-
-        <section className="breakdown-chapter">
-          <p className="breakdown-chapter-eyebrow">04</p>
-          <h2>{t.breakdown.chapter4Title}</h2>
-          <ByCategoryChapter categories={categories} />
+          <p className="breakdown-chapter-kicker">05</p>
+          <h2 className="breakdown-chapter-title">{t.breakdown.chapter5Title}</h2>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter5Takeaway}</p>
+          <BiggestTransactionsChapter rows={biggestTransactions} />
         </section>
       </div>
     </div>

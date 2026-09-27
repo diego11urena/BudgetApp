@@ -1,6 +1,6 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import { formatCurrency, formatCycleRangeLabel, formatFriendlyDate } from "@/lib/format";
-import { addDays, nowInPanama, panamaDateParts, parseDateOnly } from "@/lib/pay-date";
+import { addDays, nowInPanama, resolveMonthlyDueDate } from "@/lib/pay-date";
 import { calendarDaysBetween, cycleEnd, type BudgetFrequency } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
 import type { GoalWithProgress } from "@/lib/goals";
@@ -164,9 +164,7 @@ function cyclePhase(
 
 /** How many days until (positive) or since (negative) a Scheduled expense's dueDay falls this month -- null when dueDay doesn't exist in the current month (e.g. 31st in a 30-day month). Shared by dueSoonCandidate and unpaidRecurringCandidate's own overdue check. */
 function daysUntilMonthlyDue(now: Date, dueDay: number): number | null {
-  const { year, month } = panamaDateParts(now);
-  const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
-  const dueDate = parseDateOnly(dueDateStr);
+  const dueDate = resolveMonthlyDueDate(now, dueDay);
   if (!dueDate) return null;
   return calendarDaysBetween(now, dueDate);
 }

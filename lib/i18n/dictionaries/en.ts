@@ -756,15 +756,14 @@ export const en: Dictionary = {
   },
 
   summary: {
-    headline: (vocab, spent, leftOver) =>
-      `You spent ${spent}, ${leftOver} left over.`,
-    subcopyDelta: (vocab, amount) =>
-      `${amount} less than your last three ${vocab.nounPlural}`,
-    subcopyLightestSince: (vocab, month) =>
-      `your lightest since ${month}`,
+    headlinePrefix: (vocab, spent) => `You spent ${spent} and `,
+    headlineSavedFragment: (saved) => `saved ${saved}.`,
+    subcopyDelta: (vocab, amount, isLighter) =>
+      `${amount} ${isLighter ? "less" : "more"} than your last three ${vocab.nounPlural}`,
+    subcopyLightestSince: (vocab, label, month) =>
+      `your ${label} since ${month}`,
     statIncome: "Income",
     statSpent: "Spent",
-    statLeftOver: "Left over",
     sparklineLabel: (vocab, n) =>
       `Last ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
     goalsEyebrow: "Goals",
@@ -772,14 +771,19 @@ export const en: Dictionary = {
     goalInProgress: (name, amount, pct, target) =>
       `${name} · +${amount} · ${pct.toFixed(0)}% of ${target}`,
     scheduledEyebrow: "Scheduled",
-    scheduledPaidOnTime: (paid, total) =>
-      `${paid} of ${total} paid on time`,
-    scheduledLateTag: (n) => `${n} ${n === 1 ? "late" : "late"}`,
     uncategorizedWarning: (count, amount) =>
       `${count} ${count === 1 ? "transaction" : "transactions"} without a category (${amount})`,
     fixAction: "Fix",
     ctaStart: (vocab) => `Start ${vocab.nextPeriod}`,
     seeFullBreakdown: "See full breakdown",
+  },
+
+  recurringFulfillment: {
+    chargedOnTime: (chargedCount, total) => `${chargedCount} of ${total} charged on time`,
+    allChargedOnTime: "All charged on time",
+    missing: (name) => `${name} hasn't shown up yet`,
+    upcoming: (name, date) => `${name} is due ${date}`,
+    ongoingLogged: (names, live) => `${names} logged${live ? " so far" : ""}`,
   },
 
   breakdown: {
@@ -791,25 +795,32 @@ export const en: Dictionary = {
       `Day ${day} of ${total} · ${spent} spent · on pace for ${projected}`,
     bannerClosed: (spent, avg) =>
       `Same point last cycle: ${spent} vs your ${avg} average`,
-    chapter1Title: "When you spend",
-    chapter2Title: "The trend",
-    chapter3Title: "Fixed vs flexible, over time",
-    chapter4Title: "By category",
-    noSpending: "No spending",
-    viewAllN: (n) => `View all ${n}`,
-    fixedShareRising: (vocab) => `Your fixed share is rising.`,
-    fixedShareFalling: (vocab) => `Your fixed share is falling.`,
-    fixedShareSteady: (vocab) => `Your fixed share is holding steady.`,
-    fixedShareSubcopy: (oldPct, newPct) =>
-      `${oldPct.toFixed(0)}% six ${oldPct === 1 ? "period" : "periods"} ago, ${newPct.toFixed(0)}% now`,
-    smallMultiplesCaptionOldest: (vocab, n) =>
-      `${n} ${vocab.nounPlural} ago`,
-    smallMultiplesCaptionNow: "Now",
-    notEnoughHistory: (vocab) => `Not enough history yet — this fills in after a few more ${vocab.nounPlural}.`,
+
+    chapter1Title: "Cash flow",
+    chapter1Takeaway: "Where the paycheck went.",
+    cashFlowIncomeLine: (amount, dateRange) => `${amount} came in ${dateRange}.`,
     fixedLabel: "Fixed",
     discretionaryLabel: "Everything else",
+    savedLabel: "Saved",
+    savedGoalsList: (names) => `Going to ${names}`,
+    leftoverLabel: "Leftover",
+
+    chapter2Title: "Recurring",
+    chapter2Takeaway: (vocab) => `How this ${vocab.noun}'s recurring items did.`,
+
+    chapter3Title: "By category",
+    chapter3Takeaway: (dateRange) => `${dateRange} vs your usual.`,
+    categoryUsual: (amount) => `Usual: ${amount}`,
+    categoryNew: "New this period",
+
+    chapter4Title: "When you spend",
+
+    chapter5Title: "Biggest transactions",
+    chapter5Takeaway: "The single purchases that stood out.",
+
+    noSpending: "No spending",
+    viewAllN: (n) => `View all ${n}`,
     recurringTag: "Recurring",
-    categoryAverageTick: (amount) => `Your usual: ${amount}`,
     prevCycleAria: "Previous cycle",
     nextCycleAria: "Next cycle",
   },

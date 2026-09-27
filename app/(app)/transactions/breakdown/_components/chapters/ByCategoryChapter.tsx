@@ -5,10 +5,16 @@ import { useT } from "@/app/_components/LocaleProvider";
 import type { CategoryRow } from "../types";
 
 /**
- * Chapter 04 — this period's categories as bars, each with a tick marking
- * its own trailing-period average, so "is this a lot for me?" is answerable
- * without leaving the row. Adapted from TopCategoriesChart's .bar-chart
- * pattern rather than inventing a second one.
+ * Chapter 03 — this period's categories as bars, sorted biggest-to-
+ * smallest (categories arrives pre-sorted from page.tsx's own
+ * categoryTotals), each with a "Usual: $X" line (mean of the last 6
+ * closed periods) instead of the tick-mark this chapter used to draw on
+ * the bar itself -- the design spec calls for text here, not a second
+ * mark competing with the bar's own length for attention. Bars are
+ * neutral (--chart-neutral-bar): unlike chapter 01's cash-flow segments,
+ * these deliberately don't encode fixed vs. discretionary, just relative
+ * size. Adapted from TopCategoriesChart's .bar-chart pattern rather than
+ * inventing a second one.
  */
 export default function ByCategoryChapter({ categories }: { categories: CategoryRow[] }) {
   const t = useT();
@@ -17,10 +23,7 @@ export default function ByCategoryChapter({ categories }: { categories: Category
     return <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>;
   }
 
-  // Bars scale against the biggest of anything drawn -- including the
-  // average ticks, so a tick above this period's spend stays on the bar
-  // instead of overflowing it.
-  const max = Math.max(...categories.map((c) => Math.max(c.amount, c.rollingAverage ?? 0)), 1);
+  const max = Math.max(...categories.map((c) => c.amount), 1);
 
   return (
     <ul className="breakdown-category-list">
@@ -32,14 +35,10 @@ export default function ByCategoryChapter({ categories }: { categories: Category
           <span className="breakdown-category-amount">{formatCurrency(cat.amount)}</span>
           <div className="breakdown-category-track">
             <div className="breakdown-category-fill" style={{ width: `${(cat.amount / max) * 100}%` }} />
-            {cat.rollingAverage !== null && (
-              <span
-                className="breakdown-category-tick"
-                style={{ left: `${(cat.rollingAverage / max) * 100}%` }}
-                title={t.breakdown.categoryAverageTick(formatCurrency(cat.rollingAverage))}
-              />
-            )}
           </div>
+          <span className="breakdown-category-usual">
+            {cat.usualAmount !== null ? t.breakdown.categoryUsual(formatCurrency(cat.usualAmount)) : t.breakdown.categoryNew}
+          </span>
         </li>
       ))}
     </ul>
