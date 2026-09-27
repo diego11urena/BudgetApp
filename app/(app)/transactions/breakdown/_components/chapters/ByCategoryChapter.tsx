@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
 import { useT } from "@/app/_components/LocaleProvider";
+import { CategoryIcon } from "@/lib/category-icons";
 import type { CategoryRow } from "../types";
 
 /**
@@ -29,16 +31,28 @@ export default function ByCategoryChapter({ categories }: { categories: Category
     <ul className="breakdown-category-list">
       {categories.map((cat) => (
         <li key={cat.categoryId} className="breakdown-category-row">
-          <span className="breakdown-category-label">
-            {cat.categoryIcon && <span aria-hidden="true">{cat.categoryIcon}</span>} {cat.categoryName}
-          </span>
-          <span className="breakdown-category-amount">{formatCurrency(cat.amount)}</span>
-          <div className="breakdown-category-track">
-            <div className="breakdown-category-fill" style={{ width: `${(cat.amount / max) * 100}%` }} />
-          </div>
-          <span className="breakdown-category-usual">
-            {cat.usualAmount !== null ? t.breakdown.categoryUsual(formatCurrency(cat.usualAmount)) : t.breakdown.categoryNew}
-          </span>
+          {/* display:contents (see CSS) -- the Link itself isn't a grid
+              item, its children are, so wrapping the row in one doesn't
+              break .breakdown-category-row's grid layout. */}
+          <Link href={`/transactions?category=${cat.categoryId}`} className="breakdown-category-link">
+            <span className="breakdown-category-label">
+              <CategoryIcon
+                name={cat.categoryName}
+                icon={cat.categoryIcon}
+                className="breakdown-category-icon"
+                size={16}
+                aria-hidden="true"
+              />
+              {cat.categoryName}
+            </span>
+            <span className="breakdown-category-amount">{formatCurrency(cat.amount)}</span>
+            <div className="breakdown-category-track">
+              <div className="breakdown-category-fill" style={{ width: `${(cat.amount / max) * 100}%` }} />
+            </div>
+            <span className="breakdown-category-usual">
+              {cat.usualAmount !== null ? t.breakdown.categoryUsual(formatCurrency(cat.usualAmount)) : t.breakdown.categoryNew}
+            </span>
+          </Link>
         </li>
       ))}
     </ul>

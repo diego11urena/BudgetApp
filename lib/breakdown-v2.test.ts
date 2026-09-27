@@ -42,13 +42,13 @@ describe("breakdown-v2", () => {
       expect(classifyTransaction(tx)).toBe("discretionary");
     });
 
-    it("classifies INCOME as discretionary (fallback)", () => {
+    it("classifies INCOME as its own category, not discretionary", () => {
       const tx: CycleTransactionSummary = {
         type: "INCOME",
         recurringExpenseId: null,
       } as CycleTransactionSummary;
 
-      expect(classifyTransaction(tx)).toBe("discretionary");
+      expect(classifyTransaction(tx)).toBe("income");
     });
   });
 
@@ -277,6 +277,23 @@ describe("breakdown-v2", () => {
 
       expect(result.savedGoals).toEqual(["Japan trip", "Emergency Fund"]);
     });
+
+    it("never counts INCOME transactions as everythingElse (regression: extra income used to leak into spending via classifyTransaction's old discretionary fallback)", () => {
+      const result = computeCashFlowBreakdown(
+        financials({
+          extraIncome: 200,
+          totalSavings: 0,
+          transactions: [
+            { type: "INCOME", amount: 200, recurringExpenseId: null, categoryName: "Bonus" } as CycleTransactionSummary,
+            { type: "EXPENSE", amount: 50, recurringExpenseId: null, categoryName: "Dining" } as CycleTransactionSummary,
+          ],
+        }),
+      );
+
+      expect(result.everythingElse).toBe(50);
+      // Also never treated as a "goal" -- it shouldn't show up in the tappable Saved row's subline either.
+      expect(result.savedGoals).toEqual([]);
+    });
   });
 
   describe("computeBiggestTransactions", () => {
@@ -292,10 +309,15 @@ describe("breakdown-v2", () => {
         ...opts,
       }) as CycleTransactionSummary;
 
-    it("excludes fixed (recurring-linked) and SAVINGS transactions", () => {
+    it("excludes fixed (recurring-linked), SAVINGS, and INCOME transactions", () => {
       const result = computeBiggestTransactions([
         tx("rent", 500, { recurringExpenseId: "rec-1" }),
         tx("goal", 400, { type: "SAVINGS" }),
+        // Regression: a paycheck/extra-income row is not "the biggest
+        // transaction" even though it's this list's largest amount by
+        // far -- classifyTransaction used to fall INCOME through to
+        // "discretionary" here (see its own doc comment).
+        tx("paycheck", 2000, { type: "INCOME" }),
         tx("dinner", 60),
       ]);
 

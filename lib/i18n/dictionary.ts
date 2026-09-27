@@ -820,9 +820,9 @@ export type Dictionary = {
     bannerLive: (vocab: PeriodVocab, day: number, total: number, spent: string, projected: string) => string;
     bannerClosed: (spent: string, avg: string) => string;
 
-    /** Chapter 01 -- Cash flow. */
+    /** Chapter 01 -- Cash flow. LIVE/CLOSED read differently ("...went" vs "...has gone so far"), per the design spec's screen 2 vs screen 3 copy. */
     chapter1Title: string;
-    chapter1Takeaway: string;
+    chapter1Takeaway: (state: "LIVE" | "CLOSED") => string;
     cashFlowIncomeLine: (amount: string, dateRange: string) => string;
     /** Cash-flow legend label for the fixed (recurring-linked) segment -- also reused as the Recurring chapter/section's swatch label, so the two can't drift apart. */
     fixedLabel: string;
@@ -837,11 +837,11 @@ export type Dictionary = {
 
     /** Chapter 02 -- Recurring (Scheduled/Ongoing fulfillment, no progress bar -- see recurringFulfillment below and Summary's own scheduledEyebrow section, which DOES show a bar). */
     chapter2Title: string;
-    chapter2Takeaway: (vocab: PeriodVocab) => string;
+    chapter2Takeaway: (vocab: PeriodVocab, state: "LIVE" | "CLOSED") => string;
 
-    /** Chapter 03 -- By category. */
+    /** Chapter 03 -- By category. CLOSED reads the literal date range; LIVE reads "This {period}" instead (vocab.thisPeriod). */
     chapter3Title: string;
-    chapter3Takeaway: (dateRange: string) => string;
+    chapter3Takeaway: (vocab: PeriodVocab, dateRange: string, state: "LIVE" | "CLOSED") => string;
     /** A category row's "Usual: $X" line -- mean of the last 6 closed periods. */
     categoryUsual: (amount: string) => string;
     /** Shown instead of categoryUsual when a category has no prior-period history. */
@@ -849,10 +849,16 @@ export type Dictionary = {
 
     /** Chapter 04 -- When you spend (the heatmap; moved here from slot 01). */
     chapter4Title: string;
+    /** Day panel header -- "AUG 31 · LAST DAY · $18.40" (CLOSED, when the selected day happens to be the period's actual last day) or "TODAY · AUG 27 · $24.00" (LIVE, when it's today). Neither qualifier applies to some other day the user tapped -- see dayPanelHeaderPlain. */
+    dayPanelHeaderToday: (date: string, total: string) => string;
+    dayPanelHeaderLastDay: (date: string, total: string) => string;
+    /** Same header, no qualifier -- any day that's neither today nor the period's last day. */
+    dayPanelHeaderPlain: (date: string, total: string) => string;
+    viewTransactions: string;
 
     /** Chapter 05 -- Biggest transactions (new). */
     chapter5Title: string;
-    chapter5Takeaway: string;
+    chapter5Takeaway: (state: "LIVE" | "CLOSED") => string;
 
     noSpending: string;
     viewAllN: (n: number) => string;
@@ -864,6 +870,10 @@ export type Dictionary = {
 
   /** Shared by Summary's Recurring section and Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's own doc comment for why this is one function/copy source instead of two. */
   recurringFulfillment: {
+    /** The row label before the "N of M charged" status -- distinct from Summary's own section eyebrow, which now says "Recurring" (the container), not "Scheduled" (one of the two groups inside it). */
+    scheduledLabel: string;
+    /** The row label before the Ongoing subline. */
+    ongoingLabel: string;
     chargedOnTime: (chargedCount: number, total: number) => string;
     allChargedOnTime: string;
     missing: (name: string) => string;

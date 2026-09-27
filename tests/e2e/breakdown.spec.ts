@@ -58,11 +58,14 @@ test.describe("Breakdown", () => {
     await expect(categories.first()).toContainText("New this period");
 
     // 04 — the heatmap is drawn, and (LIVE) today is preselected with its
-    // own transactions listed under it.
+    // own transactions listed under it. Header reads "Today · {date} ·
+    // {total}" for the LIVE default-selected day.
     await expect(page.locator(".heatmap-grid")).toBeVisible();
     await expect(page.locator(".heatmap-cell--selected")).toHaveCount(1);
     await expect(page.locator(".breakdown-day-row-name")).toHaveCount(2);
-    await expect(page.locator(".breakdown-day-detail-total")).toHaveText("$165.00");
+    const dayHeader = page.locator(".breakdown-day-detail-header");
+    await expect(dayHeader).toContainText("Today");
+    await expect(dayHeader).toContainText("$165.00");
 
     // 05 — biggest transactions excludes whichever day chapter 04 defaulted
     // to; both logged transactions happened today (LIVE's default day), so

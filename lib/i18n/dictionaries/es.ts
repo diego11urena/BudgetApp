@@ -779,7 +779,7 @@ export const es: Dictionary = {
     goalCompleted: (name) => `${name} · completada ✓`,
     goalInProgress: (name, amount, pct, target) =>
       `${name} · +${amount} · ${pct.toFixed(0)}% de ${target}`,
-    scheduledEyebrow: "Programados",
+    scheduledEyebrow: "Recurrentes",
     uncategorizedWarning: (count, amount) =>
       `${count} ${count === 1 ? "transacción sin" : "transacciones sin"} categoría (${amount})`,
     fixAction: "Arreglar",
@@ -788,6 +788,8 @@ export const es: Dictionary = {
   },
 
   recurringFulfillment: {
+    scheduledLabel: "Programados",
+    ongoingLabel: "Continuos",
     chargedOnTime: (chargedCount, total) => `${chargedCount} de ${total} cobrados a tiempo`,
     allChargedOnTime: "Todos cobrados a tiempo",
     missing: (name) => `${name} aún no aparece`,
@@ -806,26 +808,39 @@ export const es: Dictionary = {
       `Mismo punto en el ciclo anterior: ${spent} vs tu ${avg} promedio`,
 
     chapter1Title: "Flujo de dinero",
-    chapter1Takeaway: "A dónde fue tu pago.",
+    chapter1Takeaway: (state) => (state === "LIVE" ? "A dónde ha ido tu pago hasta ahora." : "A dónde fue tu pago."),
     cashFlowIncomeLine: (amount, dateRange) => `${amount} entraron ${dateRange}.`,
-    fixedLabel: "Fijo",
+    // Handoff's propio vocabulario ES explícito para esta pantalla: "Fijos" (plural), "Sobrante" (no "Restante").
+    fixedLabel: "Fijos",
     discretionaryLabel: "Todo lo demás",
     savedLabel: "Ahorrado",
     savedGoalsList: (names) => `Va hacia ${names}`,
-    leftoverLabel: "Restante",
+    leftoverLabel: "Sobrante",
 
     chapter2Title: "Recurrentes",
-    chapter2Takeaway: (vocab) => `Cómo les fue a tus gastos recurrentes ${vocab.thisPeriod}.`,
+    chapter2Takeaway: (vocab, state) =>
+      state === "LIVE"
+        ? `Cómo les está yendo a tus gastos recurrentes ${vocab.thisPeriod}.`
+        : `Cómo les fue a tus gastos recurrentes ${vocab.thisPeriod}.`,
 
     chapter3Title: "Por categoría",
-    chapter3Takeaway: (dateRange) => `${dateRange} vs tu promedio.`,
-    categoryUsual: (amount) => `Tu promedio: ${amount}`,
-    categoryNew: "Nuevo este período",
+    chapter3Takeaway: (vocab, dateRange, state) =>
+      `${state === "LIVE" ? capitalize(vocab.thisPeriod) : dateRange} vs tu promedio.`,
+    // Handoff's propio vocabulario ES explícito: "Habitual: $X" (no "Tu promedio: $X" -- ese término se reserva para el título del capítulo/línea de comparación general).
+    categoryUsual: (amount) => `Habitual: ${amount}`,
+    categoryNew: "Nuevo este periodo",
 
     chapter4Title: "Cuándo gastas",
+    dayPanelHeaderToday: (date, total) => `Hoy · ${date} · ${total}`,
+    dayPanelHeaderLastDay: (date, total) => `${date} · Último día · ${total}`,
+    dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,
+    viewTransactions: "Ver transacciones →",
 
     chapter5Title: "Las compras más grandes",
-    chapter5Takeaway: "Las compras individuales que más se destacaron.",
+    chapter5Takeaway: (state) =>
+      state === "LIVE"
+        ? "Las compras individuales que más se destacan hasta ahora."
+        : "Las compras individuales que más se destacaron.",
 
     noSpending: "Sin gastos",
     viewAllN: (n) => `Ver las ${n}`,

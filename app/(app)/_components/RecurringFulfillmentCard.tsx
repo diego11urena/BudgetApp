@@ -43,30 +43,34 @@ export default function RecurringFulfillmentCard({
 
   return (
     <div className="recurring-fulfillment-card">
-      <div className="recurring-fulfillment-row">
-        <span className="recurring-fulfillment-swatch" aria-hidden="true" />
-        <div className="recurring-fulfillment-content">
-          <p className="recurring-fulfillment-status">{t.recurringFulfillment.chargedOnTime(scheduled.chargedOnTime, scheduled.total)}</p>
-          {showProgressBar && (
-            <div className="recurring-fulfillment-progress">
-              <ProgressBar current={scheduled.chargedOnTime} target={scheduled.total} colorState="good" />
-            </div>
-          )}
-          <p className="recurring-fulfillment-subline">{exceptionText}</p>
+      <div className="recurring-fulfillment-group">
+        <div className="recurring-fulfillment-row">
+          <span className="recurring-fulfillment-swatch" aria-hidden="true" />
+          <span className="recurring-fulfillment-label">{t.recurringFulfillment.scheduledLabel}</span>
+          <span className="recurring-fulfillment-status">{t.recurringFulfillment.chargedOnTime(scheduled.chargedOnTime, scheduled.total)}</span>
         </div>
+        {showProgressBar && (
+          <div className="recurring-fulfillment-progress">
+            <ProgressBar current={scheduled.chargedOnTime} target={scheduled.total} colorState="good" />
+          </div>
+        )}
+        <p className="recurring-fulfillment-subline">{exceptionText}</p>
       </div>
 
       {ongoing.loggedNames.length > 0 && (
         <>
           <div className="recurring-fulfillment-divider" />
-          <div className="recurring-fulfillment-row">
-            <span className="recurring-fulfillment-swatch" aria-hidden="true" />
-            <p className="recurring-fulfillment-subline">
-              {t.recurringFulfillment.ongoingLogged(
-                new Intl.ListFormat(locale === "es" ? "es" : "en", { style: "long", type: "conjunction" }).format(ongoing.loggedNames),
-                live
-              )}
-            </p>
+          <div className="recurring-fulfillment-group">
+            <div className="recurring-fulfillment-row">
+              <span className="recurring-fulfillment-swatch" aria-hidden="true" />
+              <span className="recurring-fulfillment-label">{t.recurringFulfillment.ongoingLabel}</span>
+              <span className="recurring-fulfillment-status recurring-fulfillment-status--muted">
+                {t.recurringFulfillment.ongoingLogged(
+                  new Intl.ListFormat(locale === "es" ? "es" : "en", { style: "long", type: "conjunction" }).format(ongoing.loggedNames),
+                  live
+                )}
+              </span>
+            </div>
           </div>
         </>
       )}

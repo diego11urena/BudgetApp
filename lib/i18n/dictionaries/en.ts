@@ -770,7 +770,7 @@ export const en: Dictionary = {
     goalCompleted: (name) => `${name} · completed ✓`,
     goalInProgress: (name, amount, pct, target) =>
       `${name} · +${amount} · ${pct.toFixed(0)}% of ${target}`,
-    scheduledEyebrow: "Scheduled",
+    scheduledEyebrow: "Recurring",
     uncategorizedWarning: (count, amount) =>
       `${count} ${count === 1 ? "transaction" : "transactions"} without a category (${amount})`,
     fixAction: "Fix",
@@ -779,6 +779,8 @@ export const en: Dictionary = {
   },
 
   recurringFulfillment: {
+    scheduledLabel: "Scheduled",
+    ongoingLabel: "Ongoing",
     chargedOnTime: (chargedCount, total) => `${chargedCount} of ${total} charged on time`,
     allChargedOnTime: "All charged on time",
     missing: (name) => `${name} hasn't shown up yet`,
@@ -797,7 +799,7 @@ export const en: Dictionary = {
       `Same point last cycle: ${spent} vs your ${avg} average`,
 
     chapter1Title: "Cash flow",
-    chapter1Takeaway: "Where the paycheck went.",
+    chapter1Takeaway: (state) => (state === "LIVE" ? "Where the paycheck has gone so far." : "Where the paycheck went."),
     cashFlowIncomeLine: (amount, dateRange) => `${amount} came in ${dateRange}.`,
     fixedLabel: "Fixed",
     discretionaryLabel: "Everything else",
@@ -806,17 +808,23 @@ export const en: Dictionary = {
     leftoverLabel: "Leftover",
 
     chapter2Title: "Recurring",
-    chapter2Takeaway: (vocab) => `How this ${vocab.noun}'s recurring items did.`,
+    chapter2Takeaway: (vocab, state) =>
+      `How this ${vocab.noun}'s recurring items ${state === "LIVE" ? "are doing" : "did"}.`,
 
     chapter3Title: "By category",
-    chapter3Takeaway: (dateRange) => `${dateRange} vs your usual.`,
+    chapter3Takeaway: (vocab, dateRange, state) => `${state === "LIVE" ? capitalize(vocab.thisPeriod) : dateRange} vs your usual.`,
     categoryUsual: (amount) => `Usual: ${amount}`,
     categoryNew: "New this period",
 
     chapter4Title: "When you spend",
+    dayPanelHeaderToday: (date, total) => `Today · ${date} · ${total}`,
+    dayPanelHeaderLastDay: (date, total) => `${date} · Last day · ${total}`,
+    dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,
+    viewTransactions: "View transactions →",
 
     chapter5Title: "Biggest transactions",
-    chapter5Takeaway: "The single purchases that stood out.",
+    chapter5Takeaway: (state) =>
+      state === "LIVE" ? "The single purchases that stand out so far." : "The single purchases that stood out.",
 
     noSpending: "No spending",
     viewAllN: (n) => `View all ${n}`,

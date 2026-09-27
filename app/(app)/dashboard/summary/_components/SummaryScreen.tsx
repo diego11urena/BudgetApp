@@ -53,7 +53,11 @@ export default function SummaryScreen({
         >
           <ChevronLeft size={22} aria-hidden="true" />
         </button>
-        <p className="summary-header-eyebrow">{cycleRangeText}</p>
+        {/* Summary only ever shows a closed cycle (there's no LIVE variant
+            of this screen) -- reusing Breakdown's own closedEyebrow
+            template ("{range} · closed") rather than a duplicate key,
+            per the design spec's literal kicker "AUG 16 – AUG 31 · CLOSED". */}
+        <p className="summary-header-eyebrow">{t.breakdown.closedEyebrow(cycleRangeText)}</p>
       </header>
 
       <SummaryHeadline spent={formatCurrency(financials.totalExpenses)} saved={formatCurrency(financials.totalSavings)} t={t} vocab={vocab} />

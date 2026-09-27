@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { useT, useLocale } from "@/app/_components/LocaleProvider";
 import type { CashFlowBreakdown } from "@/lib/breakdown-v2";
@@ -46,6 +47,7 @@ export default function CashFlowChapter({ cashFlow, incomeLine }: { cashFlow: Ca
             <span className="cash-flow-legend-swatch cash-flow-legend-swatch--saved" aria-hidden="true" />
             <span>{t.breakdown.savedLabel}</span>
             <span className="cash-flow-legend-amount">{formatCurrency(saved)}</span>
+            <ChevronRight size={16} className="cash-flow-legend-chevron" aria-hidden="true" />
           </Link>
           {savedGoals.length > 0 && (
             <span className="cash-flow-legend-sublabel">

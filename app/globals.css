@@ -4678,10 +4678,13 @@ button.line-item--link {
   color: var(--color-text-primary);
 }
 
+/* Uppercase to match Breakdown's own kicker (.breakdown-header-eyebrow) --
+   both now render the same composed phrase ("{range} · closed"). */
 .summary-header-eyebrow {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--color-text-secondary);
-  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .summary-headline h1 {
@@ -5004,7 +5007,7 @@ button.line-item--link {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding: 1rem 1rem 2.5rem;
+  padding: 1rem 1.25rem 2.5rem;
   max-width: 32rem;
   margin: 0 auto;
 }
@@ -5078,28 +5081,33 @@ button.line-item--link {
   font-variant-numeric: tabular-nums;
 }
 
+/* 44px between chapters, per the design spec -- each chapter is its own
+   card now (see .breakdown-chapter below), not a divided flat section, so
+   the gap is a real flex gap rather than padding-plus-divider. */
 .breakdown-chapters {
   display: flex;
   flex-direction: column;
+  gap: 2.75rem;
 }
 
-/* 44px between chapters, per the design spec -- 2.75rem top+bottom padding
-   plus the 1px divider between chapters reads as that gap; the first
-   chapter doesn't need top padding (the banner above it already provides
-   breathing room), and the last chapter drops its bottom padding/divider
-   the same way it always did. */
+/* Each chapter is its own elevated card -- radius 20 (--radius-lg),
+   18px padding, --color-card background. --shadow-card's own light value
+   already matches the design spec's literal shadow number
+   (0 4px 18px rgba(16,22,28,.07)) exactly, so it's reused directly here
+   rather than a duplicate literal; dark mode drops the shadow entirely
+   (targeted override below, not a change to --shadow-card itself, which
+   other cards still use their own dark shadow) -- "elevation is color,
+   not shadow" once a surface already separates by --color-card vs
+   --color-bg. */
 .breakdown-chapter {
-  padding: 2.75rem 0;
-  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: 1.125rem;
+  box-shadow: var(--shadow-card);
 }
 
-.breakdown-chapter:first-child {
-  padding-top: 0;
-}
-
-.breakdown-chapter:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+:root[data-theme="dark"] .breakdown-chapter {
+  box-shadow: none;
 }
 
 .breakdown-chapter-kicker {
@@ -5149,19 +5157,36 @@ button.line-item--link {
 }
 
 .breakdown-day-detail-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
   margin-bottom: 0.5rem;
 }
 
-.breakdown-day-detail-total {
+/* "AUG 31 · LAST DAY · $18.40" / "TODAY · AUG 27 · $24.00" -- one kicker-
+   style line (uppercase, letter-spaced, faint), matching this file's other
+   kicker treatments rather than a two-column split. */
+.breakdown-day-detail-header {
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
   font-variant-numeric: tabular-nums;
+}
+
+.breakdown-day-view-all {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent-green);
+  text-decoration: none;
+}
+
+.breakdown-day-view-all:hover {
+  background: var(--color-bg-secondary);
 }
 
 .breakdown-day-list {
@@ -5245,8 +5270,11 @@ button.line-item--link {
 .cash-flow-legend {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 0.625rem;
+  /* 13px, muted (--color-text-secondary) -- the amount itself overrides
+     back to ink+700 below, since only the label half is muted. */
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
   list-style: none;
 }
 
@@ -5254,16 +5282,44 @@ button.line-item--link {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  border-radius: var(--radius-sm);
 }
 
+/* The Saved row alone is a tappable pill (--surface-2 bg, hover a step
+   darker) with its own chevron -- the other three rows are plain legend
+   entries, per the design spec ("The Saved row is a tappable pill-row").
+   -0.5rem/-0.375rem insets pull the pill's own padding back out to the
+   legend's edges so it doesn't visually indent relative to the plain rows
+   above/below it. */
 .cash-flow-legend-row--tappable {
   cursor: pointer;
+  background: var(--color-bg-secondary);
+  padding: 0.5rem 0.625rem;
+  margin: -0.5rem -0.625rem;
+}
+
+.cash-flow-legend-row--tappable:hover {
+  background: var(--color-bg-secondary-hover);
+}
+
+.cash-flow-legend-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 
 .cash-flow-legend-amount {
   margin-left: auto;
+  color: var(--color-text-primary);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* Overridden by .cash-flow-legend-chevron's own margin-left:auto on the
+   tappable row -- the amount there sits before the chevron instead of
+   being the row's last (auto-margined) element. */
+.cash-flow-legend-row--tappable .cash-flow-legend-amount {
+  margin-left: 0;
 }
 
 .cash-flow-legend-swatch {
@@ -5293,11 +5349,15 @@ button.line-item--link {
   border: 1.5px solid var(--color-border);
 }
 
+/* 11px, faint (--color-text-faint) -- a lighter tier than the legend's
+   own 13px muted labels, since this is redundant detail (which goals),
+   not the primary label. */
 .cash-flow-legend-sublabel {
   display: block;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  margin-left: 1.5rem;
+  width: 100%;
+  font-size: 0.6875rem;
+  color: var(--color-text-faint);
+  margin-top: 0.125rem;
 }
 
 /* ----- Chapter 02 + Summary's Recurring section: shared fulfillment card ----- */
@@ -5307,17 +5367,22 @@ button.line-item--link {
   gap: 0.75rem;
 }
 
+.recurring-fulfillment-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
 .recurring-fulfillment-row {
   display: flex;
-  gap: 0.625rem;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .recurring-fulfillment-swatch {
   width: 10px;
   height: 10px;
   border-radius: 2px;
-  margin-top: 0.3rem;
   flex-shrink: 0;
   /* Same color family as chapter 01's Fixed segment -- these are the
      items that make up that segment's number, per the design spec's
@@ -5325,9 +5390,18 @@ button.line-item--link {
   background: var(--flow-fixed);
 }
 
+/* "Scheduled" / "Ongoing" -- the label half of the row, left-aligned next
+   to the swatch. The status/logged-names text (below) is the right half,
+   pushed there by its own margin-left:auto. */
+.recurring-fulfillment-label {
+  font-size: 0.9375rem;
+}
+
 .recurring-fulfillment-status {
+  margin-left: auto;
   font-weight: 700;
   font-size: 0.9375rem;
+  text-align: right;
   /* --color-success, not a separate --status-ok token -- its dark value
      already equals the design spec's literal "on track" dark hex, and its
      light value was already darkened from that same literal for the same
@@ -5336,9 +5410,25 @@ button.line-item--link {
   color: var(--color-success);
 }
 
-.recurring-fulfillment-subline {
+/* Ongoing's own status half ("Panapass and haircut logged") is plain
+   13px muted text, not the bold status-ok green Scheduled's "N of M
+   charged" gets -- there's no target to be "on track" against here (see
+   lib/recurring-expense-status.ts's OngoingRecurringExpenseStatus doc
+   comment: an Ongoing item's own amount is an estimate, not a number to
+   hit or miss). */
+.recurring-fulfillment-status--muted {
+  font-weight: 400;
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
+}
+
+/* 17px -- aligns with the label text past the swatch (10px + the row's
+   own 0.5rem/8px gap comes close; the extra sliver matches the design
+   spec's literal indent). */
+.recurring-fulfillment-subline {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  margin-left: 1.0625rem;
 }
 
 .recurring-fulfillment-divider {
@@ -5398,7 +5488,7 @@ button.line-item--link {
 
 .biggest-transaction-meta {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-faint);
 }
 
 .biggest-transaction-trailing {
@@ -5415,7 +5505,7 @@ button.line-item--link {
 
 .biggest-transaction-date {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-faint);
 }
 
 /* ----- Chapter 03: category bars, each with a "Usual: $X" line ----- */
@@ -5432,12 +5522,36 @@ button.line-item--link {
   gap: 0.25rem 0.75rem;
 }
 
+/* display:contents -- the <Link> exists for the tap target ("Rows tap ->
+   category transactions") and its own hover/focus states, but its
+   children still need to be direct grid items of .breakdown-category-row
+   above for the 1fr/auto column split and the track/usual's
+   grid-column:1/-1 to keep working. */
+.breakdown-category-link {
+  display: contents;
+  color: inherit;
+  text-decoration: none;
+}
+
+.breakdown-category-link:hover .breakdown-category-label,
+.breakdown-category-link:focus-visible .breakdown-category-label {
+  text-decoration: underline;
+}
+
 .breakdown-category-label {
   font-size: 0.875rem;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Same convention as TopCategoriesChart's .bar-chart-icon -- a plain
+   inline SVG (currentColor, no override) with a small gap before the
+   category name. */
+.breakdown-category-icon {
+  margin-right: 0.4rem;
+  vertical-align: -3px;
 }
 
 .breakdown-category-amount {
@@ -5450,7 +5564,7 @@ button.line-item--link {
 .breakdown-category-track {
   grid-column: 1 / -1;
   position: relative;
-  height: 8px;
+  height: 10px;
   border-radius: 999px;
   background: var(--color-bg-secondary);
   overflow: hidden;
@@ -5469,6 +5583,6 @@ button.line-item--link {
 .breakdown-category-usual {
   grid-column: 1 / -1;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-faint);
 }
 

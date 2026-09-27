@@ -1,8 +1,8 @@
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
 import { addDays, formatCycleLabel } from "./pay-date";
 
-/** Transaction classification for chapters 02 and 03. */
-export type TransactionCategory = "fixed" | "discretionary" | "goals";
+/** Transaction classification for the cash-flow model and its consumers. */
+export type TransactionCategory = "fixed" | "discretionary" | "goals" | "income";
 
 /** A day's spend total for heatmap rendering. */
 export interface DailySpend {
@@ -23,12 +23,23 @@ export interface BannerData {
 }
 
 /**
- * Classify a transaction as fixed, discretionary, or goals.
- * The ONE place this rule lives — all chapter 02/03 aggregators call through it.
+ * Classify a transaction for the cash-flow model. The ONE place this rule
+ * lives — every aggregator that needs fixed/discretionary/goals/income
+ * calls through it, instead of each re-deriving its own version.
  *
- * Rule: SAVINGS → goals; EXPENSE + recurringExpenseId != null → fixed; else discretionary.
+ * Rule: INCOME → income; SAVINGS → goals; EXPENSE + recurringExpenseId
+ * != null → fixed; every other EXPENSE → discretionary. INCOME used to
+ * fall through to "discretionary" here (a fallback convenient for this
+ * function's original two callers, both of which pre-filtered to EXPENSE
+ * transactions before ever calling this) -- computeCashFlowBreakdown and
+ * computeBiggestTransactions don't pre-filter, so that fallback silently
+ * counted extra income as spending (see git history for the bug report:
+ * "Biggest transactions" showing an income row). Explicit "income" now,
+ * so a caller that forgets to exclude it gets a visibly wrong bucket to
+ * debug instead of a plausible-looking wrong number.
  */
 export function classifyTransaction(tx: CycleTransactionSummary): TransactionCategory {
+  if (tx.type === "INCOME") return "income";
   if (tx.type === "SAVINGS") return "goals";
   if (tx.type === "EXPENSE" && tx.recurringExpenseId) return "fixed";
   return "discretionary";
@@ -268,10 +279,11 @@ export function computeCashFlowBreakdown(financials: CycleFinancials): CashFlowB
       fixed += tx.amount;
     } else if (classification === "discretionary") {
       everythingElse += tx.amount;
-    } else if (tx.categoryName && !seenGoals.has(tx.categoryName)) {
+    } else if (classification === "goals" && tx.categoryName && !seenGoals.has(tx.categoryName)) {
       seenGoals.add(tx.categoryName);
       savedGoals.push(tx.categoryName);
     }
+    // "income" isn't spending or saving -- already counted in `income` above (financials.baseIncome + extraIncome).
   }
 
   const saved = financials.totalSavings;
@@ -292,10 +304,13 @@ export interface BiggestTransactionRow {
 /**
  * Top-N discretionary transactions by amount ("the single purchases that
  * stood out"). classifyTransaction === "discretionary" excludes fixed
- * (recurring-linked) items AND goal transfers in the same pass -- the
- * spec asks for both exclusions, and they're already one rule, not two.
- * excludeDate (formatCycleLabel-style "YYYY-MM-DD", typically chapter 04's
- * own default-selected day) keeps this chapter from repeating a purchase
+ * (recurring-linked) items, goal transfers, AND income in the same pass --
+ * the spec only asks for the first two, but a purchase list showing a
+ * paycheck as its "biggest transaction" would be its own kind of wrong
+ * (see classifyTransaction's own doc comment for the bug this used to be
+ * before "income" became its own classification). excludeDate
+ * (formatCycleLabel-style "YYYY-MM-DD", typically chapter 04's own
+ * default-selected day) keeps this chapter from repeating a purchase
  * chapter 04's day panel already shows.
  */
 export function computeBiggestTransactions(

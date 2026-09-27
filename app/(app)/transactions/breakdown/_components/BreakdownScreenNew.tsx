@@ -142,21 +142,21 @@ export default function BreakdownScreenNew({
         <section className="breakdown-chapter">
           <p className="breakdown-chapter-kicker">01</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter1Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter1Takeaway}</p>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter1Takeaway(state)}</p>
           <CashFlowChapter cashFlow={cashFlow} incomeLine={t.breakdown.cashFlowIncomeLine(formatCurrency(cashFlow.income), dateRangeLabel)} />
         </section>
 
         <section className="breakdown-chapter">
           <p className="breakdown-chapter-kicker">02</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter2Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter2Takeaway(vocab)}</p>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter2Takeaway(vocab, state)}</p>
           <RecurringChapter fulfillment={recurringFulfillment} live={state === "LIVE"} />
         </section>
 
         <section className="breakdown-chapter">
           <p className="breakdown-chapter-kicker">03</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter3Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(dateRangeLabel)}</p>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(vocab, dateRangeLabel, state)}</p>
           <ByCategoryChapter categories={categories} />
         </section>
 
@@ -167,13 +167,14 @@ export default function BreakdownScreenNew({
             days={heatmapDays}
             defaultSelected={selectedDayDefault}
             transactionsByDay={transactionsByDay}
+            state={state}
           />
         </section>
 
         <section className="breakdown-chapter">
           <p className="breakdown-chapter-kicker">05</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter5Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter5Takeaway}</p>
+          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter5Takeaway(state)}</p>
           <BiggestTransactionsChapter rows={biggestTransactions} />
         </section>
       </div>
