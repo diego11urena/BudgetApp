@@ -294,12 +294,29 @@
   --chart-neutral-bar: #8b93a0;
 
   /* Heatmap 5-step percentile buckets: 0 = no spend, 1-4 = 25th/50th/75th
-     percentile splits over non-zero days. */
+     percentile splits over non-zero days. Design spec's literal "neutral
+     gray-blue" ramp -- deliberately not the fixed/savings/warning blue
+     family, since this counts all spending regardless of category. */
   --heatmap-0: #eef0f3;
-  --heatmap-1: #cfe0f2;
-  --heatmap-2: #9dc0e4;
-  --heatmap-3: #5b8fc9;
-  --heatmap-4: #17395c;
+  --heatmap-1: #d9dfe6;
+  --heatmap-2: #b8c2cd;
+  --heatmap-3: #8e9aa8;
+  --heatmap-4: #5f6b79;
+  /* Each cell's date-number text, one per bucket above. Spec's literal
+     split is "ink on the first three, white on the last two" -- but
+     measured (WCAG relative-luminance formula) against each bucket's own
+     background, that split only clears 2.86:1 on bucket 3 (#8e9aa8),
+     well short of the 4.5:1 floor this file holds itself to elsewhere.
+     Ink actually clears 6.36:1 there, so the ink/white boundary shifts one
+     bucket later than the spec's literal wording -- bucket 4 is the only
+     one still light enough to need white. See the dark-mode block for the
+     same fix, moved one bucket earlier there instead (that ramp goes dark
+     -> light as the bucket number rises, this one goes light -> dark). */
+  --heatmap-text-0: var(--color-text-primary);
+  --heatmap-text-1: var(--color-text-primary);
+  --heatmap-text-2: var(--color-text-primary);
+  --heatmap-text-3: var(--color-text-primary);
+  --heatmap-text-4: #ffffff;
 }
 
 /* Full second theme, not a filter -- attribute-based (not
@@ -424,11 +441,22 @@
   --chart-neutral-bar: #6b7a8d;
 
   /* Heatmap 5-step percentile buckets — dark-mode scale. */
-  --heatmap-0: #243444;
-  --heatmap-1: #1e3552;
-  --heatmap-2: #2f5c8c;
-  --heatmap-3: #4a83c0;
-  --heatmap-4: #7fb3e8;
+  /* Design spec's literal dark ramp (was this file's own blue heat ramp). */
+  --heatmap-0: #23303f;
+  --heatmap-1: #2e3b4a;
+  --heatmap-2: #435265;
+  --heatmap-3: #62748a;
+  --heatmap-4: #98a9bd;
+  /* Same fix as the light-mode block, mirrored: spec's literal split
+     ("light text on the first three, near-black on the last two") only
+     clears 3.96:1 on bucket 3 (#62748a) -- white clears 4.79:1 there
+     instead, so the boundary moves one bucket earlier here (this ramp
+     goes dark -> light as the bucket rises, opposite of light mode's). */
+  --heatmap-text-0: #96a3b4;
+  --heatmap-text-1: #c3ccd6;
+  --heatmap-text-2: #e8eef5;
+  --heatmap-text-3: #ffffff;
+  --heatmap-text-4: #0b1117;
 
   /* Elevation is color, not shadow, in dark mode -- cards separate from
      the page via --color-card/--color-divider rather than a visible drop
@@ -4895,28 +4923,59 @@ button.line-item--link {
   gap: 0.75rem;
 }
 
+/* M/T/W/T/F/S/S above the grid, one label per column -- same 7-col
+   template and gap as .heatmap-week below so the letters line up with
+   their actual columns. */
+.heatmap-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.heatmap-weekday-label {
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-faint);
+}
+
 .heatmap-grid {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .heatmap-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 6px;
 }
 
 .heatmap-cell {
   aspect-ratio: 1;
   border: none;
-  border-radius: 4px;
+  border-radius: 7px;
   padding: 0;
+  /* The date number sits at the cell's own bottom-right corner. */
+  position: relative;
 }
 
+/* Ink, not the accent-green this used before -- matches the design
+   spec's literal "2px ink outline, 2px offset" (a plain marker calling
+   out the selected day, not a link/action affordance). */
 .heatmap-cell--selected {
-  outline: 2px solid var(--color-accent-green);
-  outline-offset: 1px;
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.heatmap-cell-date {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .heatmap-cell--disabled {
