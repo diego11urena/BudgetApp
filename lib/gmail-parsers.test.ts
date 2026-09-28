@@ -4,6 +4,7 @@ import {
   purchaseNotificationParser,
   yappyReceivedParser,
   yappySentParser,
+  yappyPaidParser,
 } from "./gmail-parsers";
 
 // The exact real sample provided by the user (Banco General, Panama).
@@ -116,6 +117,11 @@ const YAPPY_RECEIVED_BODY =
   "Yappy-logoTe enviaron por Yappy$1.00 Enviado porJuan P.****-4820Fecha\t11 ago 2026 03:25 p. m.\t   Mensaje\tDevolucion   Confirmación\tFCXDZ-79530470\t Estamos aquí para ayudarte.";
 const YAPPY_SENT_BODY =
   "Yappy-logoEnviaste por Yappy$1.00 Enviado aJuan Perez69264820Fecha\t11 ago 2026 03:25 p. m.\t   Mensaje\t   Confirmación\tMIBYK-08548568\t Estamos aquí para ayudarte.";
+// The exact real sample a user reported (business/QR payment, a separate
+// Yappy template from "Enviaste ... Enviado a" above) -- no masked phone
+// number after the name, since there's no contact to mask.
+const YAPPY_PAID_BODY =
+  "Yappy-logo\nPagaste por Yappy\n$10.50 \n\nPagado a\n\n\nCuisinebyma\n\nFecha    27 sept 2026 05:32 p. m.       Mensaje           Confirmación    GGFMU-26962456     \n\nEstamos aquí para ayudarte.";
 
 describe("yappyReceivedParser", () => {
   it("matches and extracts an INCOME transaction from a real 'Te enviaron por Yappy' email", () => {
@@ -175,6 +181,36 @@ describe("yappySentParser", () => {
     expect(yappySentParser.match(YAPPY_RECEIVED_BODY)).toBe(false);
     expect(yappySentParser.match("Your statement is ready.")).toBe(false);
     expect(yappySentParser.extract("Your statement is ready.")).toBeNull();
+  });
+
+  it("does not match the 'Pagaste/Pagado a' business-payment template either -- that's yappyPaidParser's own", () => {
+    expect(yappySentParser.match(YAPPY_PAID_BODY)).toBe(false);
+  });
+});
+
+describe("yappyPaidParser", () => {
+  it("matches and extracts an EXPENSE transaction from a real 'Pagaste por Yappy' (business/QR payment) email", () => {
+    expect(yappyPaidParser.match(YAPPY_PAID_BODY)).toBe(true);
+    expect(yappyPaidParser.extract(YAPPY_PAID_BODY)).toEqual({
+      type: "EXPENSE",
+      amount: "10.50",
+      merchant: "Cuisinebyma",
+      paymentMethod: "YAPPY",
+      description: null,
+    });
+  });
+
+  it("extracts a filled-in Mensaje too, same as the other Yappy templates", () => {
+    const bodyWithMessage =
+      "Yappy-logo\nPagaste por Yappy\n$5.00\n\nPagado a\n\nCorner Store\n\nFecha 12 sept 2026 09:00 a. m. Mensaje Propina Confirmación ABCDE-33333333 Estamos aquí para ayudarte.";
+    expect(yappyPaidParser.extract(bodyWithMessage)?.description).toBe("Propina");
+  });
+
+  it("does not match a P2P 'Enviaste'/'Te enviaron' email or an unrelated body", () => {
+    expect(yappyPaidParser.match(YAPPY_SENT_BODY)).toBe(false);
+    expect(yappyPaidParser.match(YAPPY_RECEIVED_BODY)).toBe(false);
+    expect(yappyPaidParser.match("Your statement is ready.")).toBe(false);
+    expect(yappyPaidParser.extract("Your statement is ready.")).toBeNull();
   });
 });
 

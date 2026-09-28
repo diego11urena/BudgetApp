@@ -173,6 +173,42 @@ export const yappySentParser: EmailParser = {
   },
 };
 
+// "Pagaste por Yappy $10.50 Pagado a Cuisinebyma Fecha ..." — a separate
+// template from yappySentParser's "Enviaste ... Enviado a" above, confirmed
+// against a real user-reported email: paying a business/QR code has no
+// masked phone number or account digits running into the name (there's no
+// contact to mask), unlike a P2P send to a saved contact. Both templates
+// are live at once -- this is an addition, not a replacement, and
+// yappySentParser above is untouched. Group 1 = amount, group 2 = payee's
+// name.
+const YAPPY_PAID_PATTERN =
+  /Pagaste por Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Pagado a\s*(.+?)Fecha/;
+
+export const yappyPaidParser: EmailParser = {
+  name: "yappy-paid",
+  match(body) {
+    return YAPPY_PAID_PATTERN.test(normalizeWhitespace(body));
+  },
+  extract(body) {
+    const normalized = normalizeWhitespace(body);
+    const match = normalized.match(YAPPY_PAID_PATTERN);
+    const rawAmount = match?.[1];
+    const merchant = match?.[2] ? cleanYappyName(match[2]) : "";
+    if (!rawAmount || !merchant) return null;
+
+    const amount = rawAmount.replace(/,/g, "");
+    if (!decimalString.safeParse(amount).success) return null;
+
+    return {
+      type: "EXPENSE",
+      amount,
+      merchant,
+      paymentMethod: "YAPPY",
+      description: extractYappyMessage(normalized),
+    };
+  },
+};
+
 /**
  * Tried in order; the first parser whose match() returns true wins. Adding
  * support for another email template (a reversal, an ATM withdrawal, an
@@ -183,6 +219,7 @@ export const parsers: EmailParser[] = [
   purchaseNotificationParser,
   yappyReceivedParser,
   yappySentParser,
+  yappyPaidParser,
 ];
 
 // Any legitimate bank/Yappy notification this app parses is a short,
