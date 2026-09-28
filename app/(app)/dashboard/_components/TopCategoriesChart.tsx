@@ -1,6 +1,6 @@
 import type { CategoryTotal } from "@/lib/cycle-financials";
 import { formatCurrency } from "@/lib/format";
-import { CategoryIcon } from "@/lib/category-icons";
+import { categoryColorVar } from "@/lib/category-colors";
 import { EmptyState } from "../../_components/EmptyState";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
@@ -42,28 +42,23 @@ export async function TopCategoriesChart({
         {badge && <span className="chart-badge">{badge}</span>}
       </div>
       <div className="bar-chart">
-        {categories.map((category, index) => (
+        {categories.map((category) => (
           <div className="bar-chart-row" key={category.categoryId}>
-            <span className="bar-chart-label">
-              <CategoryIcon
-                name={category.categoryName}
-                icon={category.categoryIcon}
-                className="bar-chart-icon"
-                size={16}
-                aria-hidden="true"
-              />
-              {category.categoryName}
-            </span>
+            {/* No icon: the spec's row is label / bar / amount on a
+                76px 1fr 62px grid, and screens/01 draws it that way. An
+                icon in a 76px column left the longer category names
+                ellipsed down to almost nothing. */}
+            <span className="bar-chart-label">{category.categoryName}</span>
             <div className="bar-chart-track">
               <div
                 className="bar-chart-fill"
                 style={{
                   width: `${(category.amount / maxAmount) * 100}%`,
-                  // Position-based, not a per-category identity color --
-                  // "Where it's going" is always the top 6 for THIS cycle,
-                  // so row 1 is always the categorical palette's first hue
-                  // regardless of which category happens to be biggest.
-                  background: `var(--chart-cat-${(index % 6) + 1})`,
+                  // Per-category identity, not position. The palette rule
+                  // is "Fixed per category (not per rank)", so Food is the
+                  // same pink here as in Breakdown's donut -- which is the
+                  // whole point of the two screens sharing a palette.
+                  background: categoryColorVar(category.categoryName),
                 }}
               />
             </div>

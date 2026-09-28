@@ -81,6 +81,9 @@ export function PayAndBudgetFrequencyRows({
             </button>
           ))}
         </div>
+        {/* Unconditional, unlike Budget frequency's hint below -- this one
+            says what the control means, not why it's constrained. */}
+        <span className="field-hint">{t.profile.payFrequencyHint}</span>
       </div>
 
       <div className="line-item profile-theme-row">

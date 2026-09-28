@@ -108,6 +108,16 @@ export default async function ProfilePage({
           <span>{t.profile.manageCategories}</span>
           <ChevronRight size={18} aria-hidden="true" />
         </Link>
+      </div>
+
+      {/* Preferences is its own card between Your data and Account, per
+          the Profile spec -- these four rows used to sit at the bottom of
+          Your data, which lumped "things you can change about the app"
+          in with "places your data lives". Same components and the same
+          optimistic behavior; only the grouping and the row layout
+          change. */}
+      <p className="profile-section-label">{t.profile.preferences}</p>
+      <div className="dashboard-section">
         <ThemeRow initialTheme={initialTheme} />
         <LanguageRow initialLocale={initialLocale} />
         <PayAndBudgetFrequencyRows

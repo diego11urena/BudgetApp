@@ -357,7 +357,7 @@ export const es: Dictionary = {
   transactions: {
     metaTitle: "Actividad",
     title: "Actividad",
-    seeWhereItWent: "Desglose",
+    seeWhereItWent: "Mira a dónde se fue",
     count: (n) => `${n} ${plural(n, "transacción", "transacciones")}`,
     noMatch: "Ninguna transacción coincide con tu búsqueda.",
     noneYet: "Aún no hay transacciones registradas.",
@@ -602,6 +602,8 @@ export const es: Dictionary = {
     gmailError: "No se pudo conectar Gmail — por favor intenta de nuevo.",
     gmailRateLimited: "Demasiados intentos — espera un minuto e intenta de nuevo.",
     yourData: "Tus datos",
+    preferences: "Preferencias",
+    payFrequencyHint: "Con qué frecuencia te pagan.",
     pastQuincenas: (vocab) => `${capitalize(vocab.nounPlural)} ${vocab.noun === "mes" ? "pasados" : "pasadas"}`,
     manageCategories: "Administrar categorías",
     account: "Cuenta",

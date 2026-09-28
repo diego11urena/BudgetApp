@@ -18,7 +18,7 @@ test.describe("Breakdown", () => {
     await expect(page.locator(".transaction-row", { hasText: "Transport" })).toBeVisible();
 
     await page.goto("/transactions");
-    await page.click('a:has-text("Breakdown")');
+    await page.click(".transaction-breakdown-cta");
     await page.waitForURL(/\/transactions\/breakdown/, { waitUntil: "commit" });
 
     // The crash this screen used to die with: passing the Dictionary across
@@ -186,7 +186,9 @@ test.describe("Breakdown", () => {
     await page.goto("/history");
     await page.locator("a[href^='/history/']").first().click();
     await page.waitForURL(/\/history\/[a-z0-9]+/, { waitUntil: "commit" });
-    await page.click('a:has-text("Breakdown")');
+    // History's own link into Breakdown, not Activity's CTA -- a different
+    // component on a different screen, so it has its own class.
+    await page.click("a[href^='/transactions/breakdown?cycle=']");
     await page.waitForURL(/\/transactions\/breakdown\?cycle=/, { waitUntil: "commit" });
 
     await expect(page.getByText("We hit a snag")).toHaveCount(0);

@@ -58,7 +58,7 @@ export async function StatGrid({
       </div>
       <div className="stat-tile">
         <span className="stat-tile-label">{t.statScheduledLeft}</span>
-        <span className="stat-tile-value stat-tile-value--warning">
+        <span className="stat-tile-value stat-tile-value--recurring">
           {formatCurrency(recurringExpenses.pendingAmount)}
         </span>
         <span className="stat-tile-sub">{t.scheduledUnpaid(unpaidCount, recurringExpenses.totalCount)}</span>

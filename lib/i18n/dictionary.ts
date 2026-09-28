@@ -626,6 +626,10 @@ export type Dictionary = {
     gmailError: string;
     gmailRateLimited: string;
     yourData: string;
+    /** Section label over the Theme/Language/Pay/Budget card (Profile spec's PREFERENCES group). */
+    preferences: string;
+    /** Always-on hint under the Pay frequency control -- unlike the Budget frequency hint, which only appears in the monthly-locked state. */
+    payFrequencyHint: string;
     pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
     account: string;

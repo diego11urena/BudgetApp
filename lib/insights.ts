@@ -13,8 +13,19 @@ export interface Insight {
   text: string;
   /** Present when this insight has a natural destination (e.g. the Plan tab) -- absent for insights with nothing to link to, which InsightsCard renders as plain text. */
   href?: string;
-  /** Drives InsightsCard's severity dot -- "critical" for runway/over-budget concerns, "warning" for unpaid-recurring concerns, absent (neutral dot) for everything else (on-track, streaks, anomalies, goal progress -- informational, not something gone wrong). */
-  severity?: "critical" | "warning";
+  /**
+   * Drives InsightsCard's severity dot -- "critical" for runway/over-budget
+   * concerns, "recurring" for unpaid/due-soon recurring items, absent
+   * (neutral dot) for everything else (on-track, streaks, anomalies, goal
+   * progress -- informational, not something gone wrong).
+   *
+   * "recurring", not "warning": the design system gives this dot the
+   * recurring gold and reserves warning orange for uncategorized spend
+   * alone, so naming it after the concern it represents keeps the dot's
+   * color from drifting back to orange the next time someone reads the
+   * type name literally.
+   */
+  severity?: "critical" | "recurring";
 }
 
 /** A rule's raw output before the priority sort picks the final 3 -- never returned directly, see generateInsights. */
@@ -22,7 +33,7 @@ interface Candidate {
   text: string;
   priority: number;
   href?: string;
-  severity?: "critical" | "warning";
+  severity?: "critical" | "recurring";
 }
 
 /**
@@ -214,7 +225,7 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
     text: t.scheduledDueSoon(best.name, formatCurrency(best.amount), dueText),
     priority: PRIORITY.DUE_SOON,
     href: "/plan",
-    severity: "warning",
+    severity: "recurring",
   };
 }
 
@@ -265,7 +276,7 @@ function unpaidRecurringCandidate(
     text: t.unpaidRecurring(count, formatCurrency(remaining)),
     priority: PRIORITY.UNPAID_RECURRING,
     href: "/plan",
-    severity: "warning",
+    severity: "recurring",
   };
 }
 

@@ -85,8 +85,10 @@ export function RecurringSection({
               {t.plan.recurring.paidOfTotal(vocab, String(summary.paidCount), String(summary.totalCount))}
             </span>
             <div className="progress-bar-track">
+              {/* Color comes from .recurring-summary-bar .progress-bar-fill
+                  (gold) rather than a --navy modifier -- see that rule. */}
               <div
-                className="progress-bar-fill progress-bar-fill--navy"
+                className="progress-bar-fill"
                 style={{ width: `${(summary.paidCount / summary.totalCount) * 100}%` }}
               />
             </div>

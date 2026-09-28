@@ -1292,12 +1292,42 @@ button.line-item--link {
   opacity: 0.6;
 }
 
-/* System/Light/Dark segmented control (Profile > Your data > Theme). Not
-   a .button--chip row since these three options are mutually exclusive
-   state, not independent actions -- a single pill-shaped track with one
-   active segment reads that way at a glance. */
+/* A Profile > Preferences row. Not a .button--chip row, since each set of
+   options is mutually exclusive state rather than independent actions --
+   a single pill-shaped track with one active segment reads that way at a
+   glance.
+   The Profile spec stacks these ("15px/600 label on top, full-width
+   segmented control below ... optional 12px faint hint under the
+   control") rather than putting the control inline to the right: at four
+   options ("Once a month" / "Biweekly") an inline track squeezed the
+   label to an ellipsis on a narrow phone. Overrides .line-item's own
+   row direction. */
 .profile-theme-row {
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 14px 0;
+}
+
+.profile-theme-row .line-item-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* Full-width track, options sharing it equally -- inline-flex + auto
+   widths would leave the track only as wide as its longest label. */
+.profile-theme-row .theme-picker {
+  display: flex;
+  width: 100%;
+}
+
+.profile-theme-row .theme-picker-option {
+  flex: 1;
+}
+
+.profile-theme-row .field-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
 }
 
 /* DESIGN.md S6 Segmented control: 40px pill track --surface-2, 3px inset
@@ -2020,6 +2050,16 @@ button.line-item--link {
   color: var(--color-warning);
 }
 
+/* The "Bills left" / recurring-pending tile. DESIGN.md S1 lists "Bills
+   left stat" under Recurring gold, and reserves --color-warning for
+   uncategorized only ("Warning (uncategorized)"). HANDOFF's Home section
+   calls this figure orange in passing, but DESIGN.md wins on color and
+   HANDOFF's own Monthly section agrees with it ("Bills left + bills
+   insight dot are gold (recurring)"), so orange was the outlier. */
+.stat-tile-value--recurring {
+  color: var(--color-recurring);
+}
+
 .stat-tile-sub {
   font-size: 0.75rem;
   color: var(--color-text-faint);
@@ -2400,9 +2440,12 @@ button.line-item--link {
   padding-top: 0;
 }
 
-/* Severity dot -- red for a runway/over-budget concern, amber for an
-   unpaid-recurring concern, silver for everything else (informational, not
-   something gone wrong). See lib/insights.ts's Insight.severity. */
+/* Severity dot -- red for a runway/over-budget concern, recurring gold
+   for an unpaid/due-soon recurring item, silver for everything else
+   (informational, not something gone wrong). See lib/insights.ts's
+   Insight.severity. DESIGN.md S1 lists the "bills insight dot" under
+   Recurring, so this is gold rather than the warning orange it used to
+   be -- orange now means uncategorized and nothing else. */
 .insights-dot {
   flex-shrink: 0;
   width: 6px;
@@ -2415,8 +2458,8 @@ button.line-item--link {
   background: var(--color-error);
 }
 
-.insights-dot--warning {
-  background: var(--color-warning);
+.insights-dot--recurring {
+  background: var(--color-recurring);
 }
 
 .insights-text {
@@ -2604,21 +2647,27 @@ button.line-item--link {
 }
 
 /* Top categories horizontal bar chart */
+/* Home's "Where it's going" (HANDOFF Tab 1 item 5): six rows, grid
+   76px 1fr 62px, 11px gap, 13px label, 8px pill bar on a --surface-2
+   track, 13px/700 tabular amount right-aligned. The bar shrank from 20px
+   to 8px and became a pill -- at 20px it read as a chart in its own
+   right, competing with the donut on Breakdown; the spec wants it as a
+   quiet magnitude cue under the number that actually carries the value. */
 .bar-chart {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 11px;
 }
 
 .bar-chart-row {
   display: grid;
-  grid-template-columns: 7rem 1fr auto;
+  grid-template-columns: 76px 1fr 62px;
   align-items: center;
-  gap: 0.75rem;
+  gap: 11px;
 }
 
 .bar-chart-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2626,21 +2675,25 @@ button.line-item--link {
 
 .bar-chart-track {
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-xs);
-  height: 20px;
+  border-radius: var(--radius-pill);
+  height: 8px;
 }
 
+/* No background here -- the fill's color is the category's own, set
+   inline from lib/category-colors.ts, so that Food is the same pink in
+   this chart and in Breakdown's donut (DESIGN.md: "Used identically in
+   Home 'Where it's going' bars and the Breakdown 'By category' donut"). */
 .bar-chart-fill {
-  height: 20px;
-  max-height: 24px;
+  height: 8px;
   min-width: 4px;
-  border-radius: var(--radius-xs);
-  background: var(--color-primary-green);
+  border-radius: var(--radius-pill);
 }
 
 .bar-chart-value {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
   white-space: nowrap;
 }
 
@@ -3327,13 +3380,25 @@ button.line-item--link {
   margin-bottom: 0.4rem;
 }
 
+/* Gold, not warning orange: this is the remaining RECURRING amount, and
+   DESIGN.md S1 puts every recurring figure on --color-recurring while
+   reserving orange for uncategorized. Same correction as the Home stat
+   tile and the insights dot. */
 .recurring-summary-bar-remaining {
   flex-shrink: 0;
   font-family: var(--font-display);
   font-size: 1.0625rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: var(--color-warning);
+  color: var(--color-recurring);
+}
+
+/* "6px progress bar (track --border, gold --recurring fill)" -- the
+   generic ProgressBar colors itself from a good/warning/critical
+   colorState, none of which describes "how many recurring items have
+   been charged"; that is a completion count, not a traffic light. */
+.recurring-summary-bar .progress-bar-fill {
+  background: var(--color-recurring);
 }
 
 /* Recurring Expenses & Goals rows */
@@ -3567,6 +3632,13 @@ button.line-item--link {
   margin-bottom: 0;
 }
 
+/* Both states are gold. HANDOFF Tab 3 spells the list out as "8px gold
+   (--recurring) dot" for unpaid and "gold 16px check" for paid, and
+   DESIGN.md S1 puts "unpaid-bill dots" and "paid-bill check" under
+   Recurring -- so this is one color across the pair, not orange-for-
+   unpaid/green-for-paid. Settled vs unsettled is carried by the shape
+   (filled dot vs check glyph) instead, which also survives being
+   colour-blind to gold. */
 .recurring-expense-row-indicator {
   flex-shrink: 0;
   width: 8px;
@@ -3575,8 +3647,8 @@ button.line-item--link {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--color-warning);
-  color: var(--color-success);
+  background: var(--color-recurring);
+  color: var(--color-recurring);
 }
 
 /* The dot only shows for an unsettled item (empty circle); a settled one
