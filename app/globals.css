@@ -1300,36 +1300,56 @@ button.line-item--link {
   flex-wrap: wrap;
 }
 
+/* DESIGN.md S6 Segmented control: 40px pill track --surface-2, 3px inset
+   + 3px gap; active = --surface pill + accent 13/700 with its own small
+   shadow; inactive 13/600 muted; disabled faint and not-allowed. */
 .theme-picker {
   display: inline-flex;
   padding: 3px;
   border-radius: var(--radius-pill);
   background: var(--color-bg-secondary);
-  gap: 2px;
+  gap: 3px;
 }
 
 .theme-picker-option {
-  min-height: 32px;
+  /* 34px + the track's 3px inset top and bottom = the spec's 40px. */
+  min-height: 34px;
   padding: 0 0.75rem;
   border: none;
   border-radius: var(--radius-pill);
   background: none;
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .theme-picker-option:disabled {
-  cursor: default;
-  opacity: 0.7;
+  /* not-allowed, not `default` -- the disabled Biweekly option when pay
+     is monthly is a rule the user can act on (change pay frequency), so
+     it should read as blocked rather than inert. */
+  cursor: not-allowed;
+  color: var(--color-text-faint);
 }
 
+/* The spec's literal active shadow, not --elev-1: this one is a tight
+   1px lift meant to read at 34px against --surface-2, where --elev-1's
+   softer 3px blur effectively disappears. */
 .theme-picker-option.is-active {
   background: var(--color-card);
+  color: var(--color-accent-green);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(16, 22, 28, 0.12);
+}
+
+/* Dark mode gives the active pill its own lighter surface and drops back
+   to ink text -- --color-accent-green is already the light blue here, and
+   blue-on-blue would lose the selected state. */
+:root[data-theme="dark"] .theme-picker-option.is-active {
+  background: #33465c;
   color: var(--color-text-primary);
-  box-shadow: var(--elev-1);
 }
 
 .back-link {
@@ -1960,13 +1980,18 @@ button.line-item--link {
   gap: 10px;
 }
 
+/* DESIGN.md S6 Stat card: surface, radius 18, padding 16; label 13
+   muted, figure 22/800 in its meaning color, sub 12 faint. The radius
+   stays on --radius-lg (20px) rather than becoming an off-scale 18px
+   literal -- S4's own radius scale gives cards "18-20", so 20 is inside
+   the stated range and the scale keeps one card step instead of two. */
 .stat-tile {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: 16px;
   box-shadow: var(--shadow-card);
 }
 
@@ -5331,16 +5356,18 @@ button.line-item--link {
   height: 100%;
 }
 
+/* The three --flow-* aliases, not the underlying meaning tokens -- see
+   their definition block for why the aliases exist. */
 .cash-flow-bar-segment--fixed {
   background: var(--flow-fixed);
 }
 
 .cash-flow-bar-segment--discretionary {
-  background: var(--chart-discretionary);
+  background: var(--flow-flex);
 }
 
 .cash-flow-bar-segment--saved {
-  background: var(--chart-goal);
+  background: var(--flow-saved);
 }
 
 .cash-flow-legend {
@@ -5374,8 +5401,22 @@ button.line-item--link {
   margin: -0.5rem -0.625rem;
 }
 
-.cash-flow-legend-row--tappable:hover {
+/* :active, never :hover -- DESIGN.md S5 is explicit that this is a mobile
+   product with no hover states anywhere, and a hover-only affordance on a
+   touch device is simply invisible. The focus ring is the keyboard half
+   of the same rule. */
+.cash-flow-legend-row--tappable:active {
   background: var(--color-bg-secondary-hover);
+}
+
+.cash-flow-legend-row--tappable:focus-visible {
+  outline: none;
+  border: 1.5px solid var(--color-accent-green);
+  box-shadow: 0 0 0 4px rgba(23, 57, 92, 0.1);
+}
+
+:root[data-theme="dark"] .cash-flow-legend-row--tappable:focus-visible {
+  box-shadow: 0 0 0 4px rgba(127, 179, 232, 0.18);
 }
 
 .cash-flow-legend-chevron {
@@ -5398,10 +5439,11 @@ button.line-item--link {
   margin-left: 0;
 }
 
+/* 9px, radius 3 (DESIGN.md S6's literal legend swatch). */
 .cash-flow-legend-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
   flex-shrink: 0;
 }
 
@@ -5410,19 +5452,22 @@ button.line-item--link {
 }
 
 .cash-flow-legend-swatch--discretionary {
-  background: var(--chart-discretionary);
+  background: var(--flow-flex);
 }
 
 .cash-flow-legend-swatch--saved {
-  background: var(--chart-goal);
+  background: var(--flow-saved);
 }
 
 /* Leftover: outlined, no fill -- the one swatch in this legend that isn't
    a solid color, matching "truly unallocated" (there's nothing to color
-   in, unlike the other three which are real spending categories). */
+   in, unlike the other three which are real spending categories). Its own
+   token rather than --color-border: this is a decorative 1.5px outline at
+   9px square, not an input border, so it keeps the design system's
+   literal value instead of --color-border's darkened-for-1.4.11 one. */
 .cash-flow-legend-swatch--leftover {
   background: transparent;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--flow-leftover-outline);
 }
 
 /* 11px, faint (--color-text-faint) -- a lighter tier than the legend's
@@ -5455,13 +5500,15 @@ button.line-item--link {
   gap: 0.5rem;
 }
 
+/* 9px, radius 3 -- same swatch geometry as the Cash-flow legend, since
+   DESIGN.md S6 describes both with the same numbers. */
 .recurring-fulfillment-swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
   flex-shrink: 0;
-  /* Same color family as chapter 01's Fixed segment -- these are the
-     items that make up that segment's number, per the design spec's
+  /* Same color as chapter 01's Fixed segment -- these are the items that
+     make up that segment's number, per the design spec's
      color-consistency rule. */
   background: var(--flow-fixed);
 }
@@ -5469,14 +5516,19 @@ button.line-item--link {
 /* "Scheduled" / "Ongoing" -- the label half of the row, left-aligned next
    to the swatch. The status/logged-names text (below) is the right half,
    pushed there by its own margin-left:auto. */
+/* 14px/600 (DESIGN.md S6's "label 14/600"). */
 .recurring-fulfillment-label {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
+/* 13px/700 gold, tabular (DESIGN.md S6's "right `N of N charged on time`
+   13/700 gold"). */
 .recurring-fulfillment-status {
   margin-left: auto;
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
   text-align: right;
   /* Gold, not green. DESIGN.md S6 spells this row out as "right `N of N
      charged on time` / `N of N logged` 13/700 gold", and S1 reserves
@@ -5596,81 +5648,260 @@ button.line-item--link {
   color: var(--color-text-faint);
 }
 
-/* ----- Chapter 03: category bars, each with a "Usual: $X" line ----- */
-.breakdown-category-list {
+/* ----- Chapter 03: the By-category donut -----
+   The only donut in the product (the acceptance criteria allow exactly
+   this one and no other pie/donut/area chart). Replaces the neutral bar
+   list this chapter used to draw -- bars couldn't carry the per-category
+   palette meaningfully, since a bar's length already encodes size and a
+   second encoding on the same mark just competed with it. */
+.category-donut {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 1rem;
+}
+
+/* The centre block is absolutely positioned over the ring, so the figure
+   needs to be the positioning context. */
+.category-donut-figure {
+  position: relative;
+  align-self: center;
+  width: 220px;
+  max-width: 100%;
+}
+
+.category-donut-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 180ms per the spec, on the two properties selection actually changes.
+   cursor:pointer only -- there is deliberately no :hover rule here (this
+   is a mobile product); the legend row below is the keyboard-reachable
+   affordance for the same selection. */
+.category-donut-slice {
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.category-donut-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  /* Never swallow a tap meant for the ring behind it. */
+  pointer-events: none;
+  text-align: center;
+}
+
+.category-donut-centre-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.category-donut-centre-value {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* Capped so a long comparison ("36% · $38.00 over usual") wraps inside
+   the donut's hole instead of running under the ring. */
+.category-donut-centre-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  max-width: 120px;
+  text-wrap: pretty;
+}
+
+.category-donut-legend {
+  display: flex;
+  flex-direction: column;
   list-style: none;
 }
 
-.breakdown-category-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.25rem 0.75rem;
+/* Negative side margins so the selected row's fill bleeds to the card's
+   padding edge while the text still lines up with everything above it.
+   min-height 44px is the real tap target even though the visual row is
+   shorter. */
+.category-donut-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 -10px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 180ms ease;
 }
 
-/* display:contents -- the <Link> exists for the tap target ("Rows tap ->
-   category transactions") and its own hover/focus states, but its
-   children still need to be direct grid items of .breakdown-category-row
-   above for the 1fr/auto column split and the track/usual's
-   grid-column:1/-1 to keep working. */
-.breakdown-category-link {
-  display: contents;
-  color: inherit;
-  text-decoration: none;
+.category-donut-legend-row.is-selected {
+  background: var(--color-bg-secondary);
 }
 
-.breakdown-category-link:hover .breakdown-category-label,
-.breakdown-category-link:focus-visible .breakdown-category-label {
-  text-decoration: underline;
+.category-donut-legend-row:active {
+  background: var(--color-bg-secondary-hover);
 }
 
-.breakdown-category-label {
-  font-size: 0.875rem;
+.category-donut-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.category-donut-legend-text {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  flex: 1;
+}
+
+.category-donut-legend-name {
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Same convention as TopCategoriesChart's .bar-chart-icon -- a plain
-   inline SVG (currentColor, no override) with a small gap before the
-   category name. */
-.breakdown-category-icon {
-  margin-right: 0.4rem;
-  vertical-align: -3px;
-}
-
-.breakdown-category-amount {
-  font-size: 0.875rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.breakdown-category-track {
-  grid-column: 1 / -1;
-  position: relative;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--color-bg-secondary);
-  overflow: hidden;
-}
-
-/* --chart-neutral-bar, not --chart-discretionary -- the design spec is
-   explicit these bars must stay neutral (relative size only, no fixed/
-   flex encoding). Replaces the old average-tick mark (see git history):
-   the "Usual: $X" text line below now carries that comparison instead. */
-.breakdown-category-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--chart-neutral-bar);
-}
-
-.breakdown-category-usual {
-  grid-column: 1 / -1;
+.category-donut-legend-usual {
   font-size: 0.75rem;
   color: var(--color-text-faint);
 }
 
+.category-donut-legend-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.category-donut-legend-amount {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.category-donut-legend-share {
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-donut-slice,
+  .category-donut-legend-row {
+    transition: none;
+  }
+}
+
+
+/* ----- Explainer bubble (DESIGN.md S6) -----
+   A disclosure, not a tooltip: --primary fill, 13px white copy, radius
+   14, and a 10px rotated square under the ⓘ acting as the caret. Used by
+   onboarding step 2 to explain Scheduled vs Ongoing. */
+.explainer {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+}
+
+/* 24px visual, padded out to the 44px minimum hit area via the negative
+   margin trick rather than by growing the circle itself. */
+.explainer-toggle {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.explainer-toggle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.explainer-toggle.is-open {
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
+}
+
+.explainer-toggle:active {
+  background: var(--color-bg-secondary-hover);
+}
+
+.explainer-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(23, 57, 92, 0.1);
+}
+
+:root[data-theme="dark"] .explainer-toggle:focus-visible {
+  box-shadow: 0 0 0 4px rgba(127, 179, 232, 0.18);
+}
+
+.explainer-bubble {
+  position: relative;
+  margin-top: 10px;
+  padding: 0.75rem 0.875rem;
+  border-radius: 14px;
+  background: var(--color-button-bg);
+  color: var(--color-on-accent);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* The caret: a 10px square rotated 45deg, half-buried under the bubble's
+   top edge so only the point shows. Inherits the bubble's own background
+   so the two can never drift apart. */
+.explainer-bubble::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 7px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+/* Dark mode lifts the fill off --primary (which is a brighter blue here)
+   to the design system's own #243444, so the bubble reads as a raised
+   surface rather than as a second primary button. */
+:root[data-theme="dark"] .explainer-toggle.is-open,
+:root[data-theme="dark"] .explainer-bubble {
+  background: #243444;
+  color: var(--color-text-primary);
+}

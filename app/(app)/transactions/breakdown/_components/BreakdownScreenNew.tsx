@@ -157,7 +157,7 @@ export default function BreakdownScreenNew({
           <p className="breakdown-chapter-kicker">03</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter3Title}</h2>
           <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(vocab, dateRangeLabel, state)}</p>
-          <ByCategoryChapter categories={categories} />
+          <ByCategoryChapter categories={categories} state={state} />
         </section>
 
         <section className="breakdown-chapter">

@@ -846,6 +846,22 @@ export type Dictionary = {
     categoryUsual: (amount: string) => string;
     /** Shown instead of categoryUsual when a category has no prior-period history. */
     categoryNew: string;
+    /** The donut's resting centre: an uppercase kicker over the period's spend total. */
+    donutCenterLabel: string;
+    /** Under that total -- "7 categories", or "so far · 6 categories" mid-cycle. */
+    donutCategoryCount: (count: number, state: "LIVE" | "CLOSED") => string;
+    /**
+     * The donut's centre once a slice is selected: always the slice's
+     * share of the period, then how it compares with that category's
+     * usual. Four mutually exclusive endings, so each is its own key
+     * rather than one template with a sign -- ES needs different
+     * agreement for "over"/"under" than a shared suffix would allow.
+     */
+    donutShareOverUsual: (share: string, amount: string) => string;
+    donutShareUnderUsual: (share: string, amount: string) => string;
+    donutShareSameAsUsual: (share: string) => string;
+    /** No prior-period baseline for this category -- share only, no comparison. */
+    donutShareNew: (share: string) => string;
 
     /** Chapter 04 -- When you spend (the heatmap; moved here from slot 01). */
     chapter4Title: string;

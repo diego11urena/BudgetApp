@@ -34,8 +34,15 @@ test.describe("Breakdown", () => {
 
     await expect(page.locator(".breakdown-chapter")).toHaveCount(5);
 
-    // No leftover pie/donut/area-chart remnant from the pre-rework version.
-    await expect(page.locator('[class*="trend-area-chart"], [class*="small-multiples"], [class*="pie"], [class*="donut"]')).toHaveCount(0);
+    // "No pie/donut/area chart remains in Summary or Breakdown OTHER THAN
+    // the By category donut" -- so this guards the deleted charts and any
+    // stray pie, while .category-donut-* is the one permitted exception
+    // and is asserted positively in chapter 03 below.
+    await expect(
+      page.locator(
+        '[class*="trend-area-chart"], [class*="small-multiples"], [class*="pie"], [class*="donut"]:not([class*="category-donut"])',
+      ),
+    ).toHaveCount(0);
 
     // 01 — cash flow: both logged transactions are discretionary (no
     // recurring link, no goal), so everythingElse = $165, fixed/saved = $0,
@@ -50,8 +57,9 @@ test.describe("Breakdown", () => {
     // rather than erroring.
     await expect(page.locator(".recurring-fulfillment-card")).toBeVisible();
 
-    // 03 — a bar per category, biggest first, each new (no prior history).
-    const categories = page.locator(".breakdown-category-row");
+    // 03 — the By-category donut: one legend row per category, biggest
+    // first, each new (no prior history).
+    const categories = page.locator(".category-donut-legend-row");
     await expect(categories).toHaveCount(2);
     await expect(categories.first()).toContainText("Groceries");
     await expect(categories.first()).toContainText("$120.00");
@@ -73,6 +81,48 @@ test.describe("Breakdown", () => {
     // as designed, not a bug (see lib/breakdown-v2's pickDefaultSelectedDay).
     await expect(page.locator(".biggest-transaction-row")).toHaveCount(0);
     await expect(page.locator(".breakdown-chapter").nth(4).getByText("No spending")).toBeVisible();
+  });
+
+  test("chapter 03's donut selects on tap and clears when the same row is tapped again", async ({ page }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "120.00");
+    await fillCategory(page, "Groceries");
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".transaction-row", { hasText: "Groceries" })).toBeVisible();
+
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "40.00");
+    await fillCategory(page, "Transport");
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".transaction-row", { hasText: "Transport" })).toBeVisible();
+
+    await page.goto("/transactions/breakdown");
+    await expect(page.getByText("We hit a snag")).toHaveCount(0);
+
+    const centre = page.locator(".category-donut-centre");
+    const groceries = page.locator(".category-donut-legend-row", { hasText: "Groceries" });
+
+    // Resting state: the period total and the category count, not a slice.
+    await expect(centre).toContainText("$160.00");
+    await expect(centre).toContainText("2 categories");
+    await expect(groceries).toHaveAttribute("aria-pressed", "false");
+
+    // Tap selects: the centre swaps to that slice, and its share is 75%
+    // ($120 of $160) -- no prior period, so it reads "new this period".
+    await groceries.click();
+    await expect(groceries).toHaveAttribute("aria-pressed", "true");
+    await expect(centre).toContainText("Groceries");
+    await expect(centre).toContainText("$120.00");
+    await expect(centre).toContainText("75%");
+
+    // Tapping the selected row again clears it, rather than being a
+    // one-way selection the user can't undo.
+    await groceries.click();
+    await expect(groceries).toHaveAttribute("aria-pressed", "false");
+    await expect(centre).toContainText("$160.00");
+    await expect(centre).toContainText("2 categories");
   });
 
   test("a brand-new cycle with no spending says so instead of erroring", async ({ page }) => {
@@ -119,7 +169,7 @@ test.describe("Breakdown", () => {
     await page.goto("/transactions/breakdown");
     await expect(page.getByText("We hit a snag")).toHaveCount(0);
 
-    const coffeeRow = page.locator(".breakdown-category-row", { hasText: "Coffee" });
+    const coffeeRow = page.locator(".category-donut-legend-row", { hasText: "Coffee" });
     await expect(coffeeRow).toContainText("$80.00");
     await expect(coffeeRow).toContainText("Usual: $10.00");
     await expect(coffeeRow).not.toContainText("New this period");

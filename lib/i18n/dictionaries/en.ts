@@ -815,6 +815,15 @@ export const en: Dictionary = {
     chapter3Takeaway: (vocab, dateRange, state) => `${state === "LIVE" ? capitalize(vocab.thisPeriod) : dateRange} vs your usual.`,
     categoryUsual: (amount) => `Usual: ${amount}`,
     categoryNew: "New this period",
+    donutCenterLabel: "Spent",
+    donutCategoryCount: (count, state) =>
+      state === "LIVE"
+        ? `so far · ${count} ${count === 1 ? "category" : "categories"}`
+        : `${count} ${count === 1 ? "category" : "categories"}`,
+    donutShareOverUsual: (share, amount) => `${share} · ${amount} over usual`,
+    donutShareUnderUsual: (share, amount) => `${share} · ${amount} under usual`,
+    donutShareSameAsUsual: (share) => `${share} · same as usual`,
+    donutShareNew: (share) => `${share} · new this period`,
 
     chapter4Title: "When you spend",
     dayPanelHeaderToday: (date, total) => `Today · ${date} · ${total}`,

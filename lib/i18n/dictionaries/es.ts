@@ -829,6 +829,15 @@ export const es: Dictionary = {
     // Handoff's propio vocabulario ES explícito: "Habitual: $X" (no "Tu promedio: $X" -- ese término se reserva para el título del capítulo/línea de comparación general).
     categoryUsual: (amount) => `Habitual: ${amount}`,
     categoryNew: "Nuevo este periodo",
+    donutCenterLabel: "Gastado",
+    donutCategoryCount: (count, state) =>
+      state === "LIVE"
+        ? `hasta ahora · ${count} ${count === 1 ? "categoría" : "categorías"}`
+        : `${count} ${count === 1 ? "categoría" : "categorías"}`,
+    donutShareOverUsual: (share, amount) => `${share} · ${amount} más de lo habitual`,
+    donutShareUnderUsual: (share, amount) => `${share} · ${amount} menos de lo habitual`,
+    donutShareSameAsUsual: (share) => `${share} · igual que lo habitual`,
+    donutShareNew: (share) => `${share} · nuevo este periodo`,
 
     chapter4Title: "Cuándo gastas",
     dayPanelHeaderToday: (date, total) => `Hoy · ${date} · ${total}`,
