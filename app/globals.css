@@ -58,6 +58,11 @@
      make it read as --color-text-secondary again and lose the third
      hierarchy tier the design calls for. */
   --color-text-faint: #a8b0ba;
+  /* The `>` affordance on tappable rows (DESIGN.md S2 `--chevron`). A
+     decorative glyph that always sits beside a real text label, never the
+     sole carrier of meaning, so it is held to no contrast floor of its
+     own -- same reasoning as --color-text-faint above. */
+  --color-chevron: #c3c9d1;
   /* Hover/pressed on a navy fill where a literal color swap is wanted
      (e.g. outlined buttons on a navy surface) rather than the opacity
      trick .button:hover uses. */
@@ -69,9 +74,10 @@
      the 4.5:1 AA text-contrast minimum -- as low as 3.16:1 for warning
      text on warning-bg. Dark mode's equivalents (below) already clear
      6:1+ unchanged.
-     --color-warning: the design system's newer handoff moves this from
-     brown (#8d5f15) to orange (literal spec #c2571a) so it no longer
-     collides with --color-savings's new gold -- but #c2571a only clears
+     --color-warning: the design system moves this from brown (#8d5f15)
+     to orange (literal spec #c2571a) so it stays distinct from
+     --color-recurring's gold, which sits near the old brown and now
+     carries a completely different meaning -- but #c2571a only clears
      3.99:1 on white and 3.99:1 on the new --color-warning-bg, short of
      the same 4.5:1 floor the rest of this block already holds itself to.
      Darkened to #b55118 (same hue/saturation, lower lightness): clears
@@ -96,19 +102,40 @@
      reading identically to an Expense row at a glance. Everything tied to
      savings or goals (this, the Savings category tag/icon, both
      goal-progress rings) shares this one color, so the concept reads as
-     one thread through the whole app. (The donut chart this comment used
-     to mention was deleted along with BreakdownScreen.tsx/PieChart.tsx --
-     see git history -- and the current design system explicitly rules out
-     donut/pie charts anywhere in the app.)
-     Was blue (#3568d4); the newer handoff moves savings/goals to gold
-     everywhere (literal spec #b3781a). That literal value only clears
-     3.74:1 as text on white, short of this file's 4.5:1 floor -- darkened
-     to #9d6917 (same hue/saturation, lower lightness), which clears
-     ~4.7:1. Dark mode's value (below) is the handoff's literal spec,
-     unchanged -- it already clears 7:1+. */
-  --color-savings: #9d6917;
+     one thread through the whole app.
+     Back to the design system's literal blue (DESIGN.md S1: "Savings /
+     goals #3568d4 / #6f9bf0"). An intermediate handoff had briefly moved
+     savings to gold and this token carried #9d6917 for it; the final
+     DESIGN.md + HANDOFF.md + screens/18 all agree savings is blue and
+     GOLD BELONGS TO RECURRING (see --color-recurring below), so the two
+     swap back. No darkening needed: #3568d4 clears 5.14:1 on --color-bg,
+     4.66:1 on --color-savings-bg and 4.51:1 on --color-bg-secondary, all
+     over this file's 4.5:1 text floor. */
+  --color-savings: #3568d4;
+  /* Soft savings tint (DESIGN.md S1 "Soft backgrounds for meaning
+     blocks: savings #eef4ff / #152238") -- the completed-goal block on
+     Summary and onboarding step 3's projection card. Background only, so
+     not subject to the 4.5:1 text floor; --color-savings on top of it
+     clears 4.66:1 regardless. */
+  --color-savings-bg: #eef4ff;
+  /* Recurring = Scheduled + Ongoing, and the Cash-flow bar's "Fixed"
+     segment -- one gold for the whole concept (DESIGN.md S1). This is the
+     gold that used to sit on --color-savings; it moved here, it did not
+     disappear. The spec's literal #b3781a only clears 3.74:1 as text on
+     white, short of this file's 4.5:1 floor, and it IS text (the "7 of 8
+     charged on time" count is 13px/700 gold) -- darkened to #9d6917 (same
+     hue/saturation, lower lightness) which clears 4.70:1 on --color-bg.
+     The gold PROGRESS BAR sits on a --color-bg-secondary track where this
+     value reaches 4.12:1; that's a non-text fill held to WCAG 1.4.11's
+     3:1, so it passes on the applicable bar. Dark mode's value (below) is
+     the spec literal, unchanged -- it already clears 6.7:1+. */
+  --color-recurring: #9d6917;
   --color-on-accent: #ffffff;
-  --color-success-bg: rgba(26, 117, 78, 0.16);
+  /* DESIGN.md S1's literal income tint (#e8f2ec) -- was a 16%-alpha wash
+     of --color-success, which shifted with whatever sat behind it; the
+     spec wants one opaque value (income category chips, income blocks).
+     Background only, not held to the text floor. */
+  --color-success-bg: #e8f2ec;
   /* Literal handoff spec (#fcefe7) -- unlike --color-warning itself, this
      is a background tint, not text, so it isn't subject to the same
      4.5:1 floor. */
@@ -230,26 +257,48 @@
      and .toast so the same number isn't duplicated in two places. */
   --bottom-nav-clearance: 5rem;
 
-  /* 1-6 match the Balboa design system's fixed "Where it's going"
-     categorical order exactly (navy, teal, plum, green, purple, silver) --
-     TopCategoriesChart.tsx is the only live consumer and only ever indexes
-     1-6 ((index % 6) + 1). Slot 4 was amber/gold until the newer handoff
-     moved savings/goals to gold everywhere: reusing gold here too would've
-     made a savings-colored bar in "Where it's going" read as a goal, so
-     the handoff explicitly drops gold from this list in favor of green.
-     7-8 are unused leftovers from the deleted paycheck-breakdown pie
-     chart (lib/paycheck-breakdown.ts, removed alongside this change --
-     see git history) and are kept only so a category count above 6 still
-     resolves to *some* value if this ever grows past 6 rows; no current
-     call site reaches them. */
-  --chart-cat-1: #17395c;
-  --chart-cat-2: #2f8f8a;
-  --chart-cat-3: #7c3f66;
-  --chart-cat-4: #4a6b4f;
-  --chart-cat-5: #5b4a8f;
-  --chart-cat-6: #8b93a0;
-  --chart-cat-7: #c9612a;
-  --chart-cat-8: #4a6b4f;
+  /* Category palette -- DESIGN.md "Category palette". These are keyed to
+     the CATEGORY, not to its rank: "Fixed per category (not per rank).
+     Used identically in Home 'Where it's going' bars and the Breakdown
+     'By category' donut + legend." Food is the same pink whether it is
+     the biggest row or the smallest, so the two screens agree at a
+     glance. The hues are picked to stay clear of the four meaning colors
+     (income green, savings blue, recurring gold, everything-else teal) so
+     a category bar can never be misread as one of those.
+     These are just the values; the category-name -> token mapping that
+     makes them per-category rather than per-rank lands with the shared
+     components (phase 2) and is consumed by Home's "Where it's going"
+     bars and the By-category donut. --chart-cat-N below is the older
+     rank-indexed set, kept alive until that mapping replaces it. */
+  --cat-food: #a8506f;
+  --cat-transport: #6c5bb0;
+  --cat-shopping: #b0654c;
+  --cat-subscriptions: #5f6f84;
+  --cat-home: #7e6a57;
+  --cat-health: #93699a;
+  --cat-other: #a8b0ba;
+  /* User-created categories draw from this extra ramp in creation order,
+     then cycle (DESIGN.md: "avoid anything reading as green, blue, gold
+     or teal"). */
+  --cat-extra-1: #8a6d3b;
+  --cat-extra-2: #5d7a8c;
+  --cat-extra-3: #9c5f7f;
+  --cat-extra-4: #6f6a9c;
+
+  /* Legacy rank-indexed slots -- TopCategoriesChart.tsx is the only live
+     consumer ((index % 6) + 1). Repointed at the named palette above so
+     it already draws from the right family; it still colors by RANK, not
+     by category, which the phase-3 Home rework fixes by switching it to
+     lib/category-colors.ts. 7-8 are overflow only; no call site reaches
+     them. */
+  --chart-cat-1: var(--cat-food);
+  --chart-cat-2: var(--cat-transport);
+  --chart-cat-3: var(--cat-shopping);
+  --chart-cat-4: var(--cat-subscriptions);
+  --chart-cat-5: var(--cat-home);
+  --chart-cat-6: var(--cat-health);
+  --chart-cat-7: var(--cat-extra-1);
+  --chart-cat-8: var(--cat-extra-2);
   --chart-savings: var(--color-savings);
   /* Was #d8dce0 -- only 1.38:1 against white (needs 3:1). Also a cool
      gray, same hue family as --chart-other below; the two are now
@@ -273,17 +322,24 @@
   --chart-fixed: #17395c;
   --chart-discretionary: #2f8f8a;
   --chart-goal: var(--color-savings);
-  /* Chapter 01's Cash-flow bar/legend Fixed segment, and the Recurring
-     swatch (chapter 02 + Summary's Recurring section) -- deliberately a
-     lighter blue than --chart-fixed's navy, matching the design handoff's
-     literal spec, so Fixed doesn't visually compete with navy's other job
-     as this app's one brand/action color everywhere else on the same
-     screen. Non-text swatch/fill use only (3:1 non-text contrast, not
-     this file's usual 4.5:1 text floor) -- both values clear that easily
-     against --color-bg and --color-bg-secondary. Dark value is
-     --chart-fixed's own existing dark blue, unchanged -- the handoff's
-     dark "Fixed" spec already matches it exactly. */
-  --flow-fixed: #4a83c0;
+  /* The three Cash-flow segments (chapter 01), which DESIGN.md S6 fixes in
+     this order: Fixed -> Everything else -> Saved, with Leftover as the
+     unfilled track. Each is an ALIAS of the meaning color, never a
+     parallel value -- that is exactly what the acceptance criterion
+     "Fixed/Everything else/Saved colors match between Cash flow bar,
+     legend, Recurring swatches and Summary" asks for, and an alias makes
+     it true by construction instead of by matching hexes by hand.
+     --flow-fixed was a standalone light blue (#4a83c0) while gold was
+     parked on savings; now that gold has moved to --color-recurring it
+     points there, which is also what makes chapter 02's Recurring
+     swatches and chapter 01's Fixed segment the same color. */
+  --flow-fixed: var(--color-recurring);
+  --flow-flex: var(--chart-discretionary);
+  --flow-saved: var(--color-savings);
+  /* Leftover has no fill -- DESIGN.md S1 gives it an outlined swatch
+     (1.5px #c3c9d1 light / #3a4a5c dark) and shows it in the bar as empty
+     track. This is that outline color. */
+  --flow-leftover-outline: #c3c9d1;
   /* By-category's bars (chapter 03) -- deliberately NOT --chart-discretionary:
      the design handoff is explicit these bars must stay neutral (they
      don't encode fixed vs. discretionary, just relative size). Light
@@ -339,7 +395,13 @@
   --color-bg-secondary: #1c2836;
   --color-card: #151f2b;
   --color-nav-bg: rgba(11, 17, 23, 0.94);
-  --color-bg-secondary-hover: #243444;
+  /* DESIGN.md S2 gives --surface-2-pressed as #223044; HANDOFF.md's
+     dark-mode table says #243444 for the same token. DESIGN.md is the
+     stated tiebreaker ("if anything in HANDOFF.md disagrees, this file
+     wins"), and HANDOFF's own Cash-flow spec independently writes the
+     pressed Saved row as #223044 -- so #243444 is the outlier. */
+  --color-bg-secondary-hover: #223044;
+  --color-chevron: #4a5768;
   --color-primary-green: #2f6cb0;
   /* Darkened for contrast as text (.toast-action) on the toast's light
      surface in dark mode (background: var(--color-text-primary), which
@@ -378,10 +440,16 @@
      -- kept anyway as a distinct token in case a future navy surface
      needs more contrast than the base --color-error gives. */
   --color-error-on-dark: #ffb3b5;
-  /* Handoff's literal spec (#d59a3c, gold, was #6f9bf0/blue) -- clears
-     6.7:1+ on --color-card and --color-bg unchanged, so this needed no
-     darkening either. */
-  --color-savings: #d59a3c;
+  /* Back to the design system's literal dark blue (DESIGN.md S1), for the
+     same reason as the light-mode value: savings is blue, gold is
+     recurring. Clears 6.89:1 on --color-bg, 6.04:1 on --color-card and
+     5.78:1 on --color-savings-bg, so no darkening needed. */
+  --color-savings: #6f9bf0;
+  --color-savings-bg: #152238;
+  /* The gold, now on its own concept. Spec literal, unchanged -- clears
+     7.70:1 on --color-bg and 6.74:1 on --color-card, so unlike the light
+     value this needed no darkening. */
+  --color-recurring: #d59a3c;
   --color-on-accent: #ffffff;
   --color-success-bg: #12291f;
   /* Handoff's literal spec, unchanged (was #2b2113). */
@@ -401,22 +469,28 @@
   --color-hero-kicker: #8fb2d6;
   --color-hero-sub: #a9c2db;
 
-  /* design doc's dark chart series, slotted into the same fixed
-     categorical order light mode uses (see the light-mode comment on
-     --chart-cat-1) -- slot 4 is green here too, for the same
-     gold-now-means-savings reason as light mode. 7-8 stay this session's
-     own overflow-slot hexes (the design doc's table only defines 6, and
-     no live call site reaches past 6 -- see the light-mode comment) --
-     lightened just enough to stay legible on the new, darker
-     --color-card. */
-  --chart-cat-1: #7fb3e8;
-  --chart-cat-2: #4fb3ad;
-  --chart-cat-3: #b06693;
-  --chart-cat-4: #6f9e75;
-  --chart-cat-5: #8a79c8;
-  --chart-cat-6: #6b7889;
-  --chart-cat-7: #e0895a;
-  --chart-cat-8: #7a9c80;
+  /* Category palette, dark variants -- DESIGN.md "Category palette".
+     Same per-category keying as light mode (see that block's comment). */
+  --cat-food: #c46b8a;
+  --cat-transport: #8a79c8;
+  --cat-shopping: #c9826b;
+  --cat-subscriptions: #7d8fa3;
+  --cat-home: #9c8672;
+  --cat-health: #b58bb8;
+  --cat-other: #4a5768;
+  --cat-extra-1: #a88a57;
+  --cat-extra-2: #7b98aa;
+  --cat-extra-3: #ba7d9d;
+  --cat-extra-4: #8d88ba;
+
+  --chart-cat-1: var(--cat-food);
+  --chart-cat-2: var(--cat-transport);
+  --chart-cat-3: var(--cat-shopping);
+  --chart-cat-4: var(--cat-subscriptions);
+  --chart-cat-5: var(--cat-home);
+  --chart-cat-6: var(--cat-health);
+  --chart-cat-7: var(--cat-extra-1);
+  --chart-cat-8: var(--cat-extra-2);
   --chart-savings: var(--color-savings);
   /* Was #3a4149 -- only 1.70:1 against --color-card, and its own stroke
      (--color-border, formerly --color-card) used to be literally the
@@ -434,10 +508,12 @@
   --chart-fixed: #7fb3e8;
   --chart-discretionary: #4fb3ad;
   --chart-goal: var(--color-savings);
-  /* Same value as --chart-fixed's dark blue -- the handoff's dark "Fixed"
-     spec already matches it exactly, unlike light mode (see light block's
-     comment). */
-  --flow-fixed: #7fb3e8;
+  /* Aliases, same as light mode -- see that block's comment for why these
+     are aliases rather than parallel hexes. */
+  --flow-fixed: var(--color-recurring);
+  --flow-flex: var(--chart-discretionary);
+  --flow-saved: var(--color-savings);
+  --flow-leftover-outline: #3a4a5c;
   --chart-neutral-bar: #6b7a8d;
 
   /* Heatmap 5-step percentile buckets — dark-mode scale. */
@@ -5402,12 +5478,13 @@ button.line-item--link {
   font-weight: 700;
   font-size: 0.9375rem;
   text-align: right;
-  /* --color-success, not a separate --status-ok token -- its dark value
-     already equals the design spec's literal "on track" dark hex, and its
-     light value was already darkened from that same literal for the same
-     4.5:1-text reason the rest of this file's success/warning/error trio
-     was (see --color-warning's own comment). */
-  color: var(--color-success);
+  /* Gold, not green. DESIGN.md S6 spells this row out as "right `N of N
+     charged on time` / `N of N logged` 13/700 gold", and S1 reserves
+     green for income alone ("Nothing else is green"). This was
+     --color-success back when gold was parked on --color-savings and a
+     gold status here would have read as a goal; now that gold means
+     recurring, the count, the swatch and the bar are all one color. */
+  color: var(--color-recurring);
 }
 
 /* Ongoing's own status half ("Panapass and haircut logged") is plain
@@ -5441,6 +5518,17 @@ button.line-item--link {
 .recurring-fulfillment-progress .progress-bar-fill {
   height: 6px;
   border-radius: 3px;
+}
+
+/* "6px gold bar on --surface-2" (DESIGN.md S6). ProgressBar colors itself
+   from a colorState prop whose palette is the good/warning/critical
+   traffic light -- none of which applies here: a recurring item that has
+   not been charged yet is not an error, it is just not charged yet. The
+   fill is overridden to the one recurring color instead so the bar, the
+   swatch and the count all agree. Track stays --color-bg-secondary, which
+   is what ProgressBar already draws. */
+.recurring-fulfillment-progress .progress-bar-fill {
+  background: var(--color-recurring);
 }
 
 /* ----- Chapter 05: Biggest transactions ----- */
