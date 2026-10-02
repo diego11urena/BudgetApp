@@ -455,7 +455,27 @@
   /* Handoff's literal spec, unchanged (was #2b2113). */
   --color-warning-bg: #2e1a10;
   --color-error-bg: #2b1614;
+  /* "Elevation is color, not shadow" -- in dark, surfaces separate by
+     their own fill and a 1px divider, not by a drop shadow, which on a
+     near-black page is invisible at best and a grey smear at worst. So
+     every ELEVATION token goes to none here, once, instead of thirty
+     call sites each needing a dark override.
+     The two exceptions the design system names explicitly are the FAB
+     and the primary button: both float above everything and keep a
+     shadow, tinted off the dark-mode primary rather than off black. */
   --shadow-color: rgba(0, 0, 0, 0.3);
+  --elev-1: none;
+  --elev-2: none;
+  --elev-3: none;
+  --shadow-card: none;
+  --shadow-row: none;
+  /* The hero keeps its separation from --color-hero-border instead. */
+  --shadow-hero: none;
+  --shadow-cta: 0 8px 20px rgba(47, 108, 176, 0.45);
+  --shadow-fab: 0 8px 20px rgba(47, 108, 176, 0.45);
+  /* Deeper than light mode's 0.45: a 45%-black scrim over an already
+     near-black page barely separates the sheet from what's behind it. */
+  --color-scrim: rgba(0, 0, 0, 0.6);
   --color-button-bg: #2f6cb0;
   --gradient-brand: #2f6cb0;
   --color-accent-bg: rgba(127, 179, 232, 0.16);
@@ -2212,8 +2232,12 @@ button.line-item--link {
   padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
   /* Same tier as --elev-3 (the overlay level this and .cycle-closed-card
      both sit at) but with the Y offset negated -- a sheet is anchored to
-     the bottom of the screen, so its shadow has to fall upward, not down. */
+     the bottom of the screen, so its shadow has to fall upward, not down.
+     In dark it resolves to none (--shadow-color is still a real value,
+     but --elev-3 is none there) and the 1px top border below takes over,
+     which is what the design system asks a sheet to separate with. */
   box-shadow: 0 -12px 32px var(--shadow-color);
+  border-top: 1px solid transparent;
   transform: translateY(100%);
   transition: transform 0.22s ease;
 }
@@ -4127,13 +4151,26 @@ button.line-item--link {
   margin-top: 1rem;
 }
 
+/* Shimmers BETWEEN two surfaces rather than fading its own opacity. The
+   design system describes dark skeletons as "#1c2836 shimmering to
+   #243444", which is exactly --color-bg-secondary to its pressed step --
+   so animating the two tokens is both the spec's behaviour and correct in
+   light mode for free (#eef0f3 -> #e2e6eb).
+   Opacity was the wrong channel here: against a near-black page a 45%
+   skeleton doesn't read as shimmering, it reads as disappearing. */
 @keyframes skeleton-pulse {
   0%,
   100% {
-    opacity: 1;
+    background-color: var(--color-bg-secondary);
   }
   50% {
-    opacity: 0.45;
+    background-color: var(--color-bg-secondary-hover);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
   }
 }
 
@@ -5479,10 +5516,6 @@ button.line-item--link {
   box-shadow: var(--shadow-card);
 }
 
-:root[data-theme="dark"] .breakdown-chapter {
-  box-shadow: none;
-}
-
 .breakdown-chapter-kicker {
   font-family: var(--font-display);
   font-size: 0.75rem;
@@ -6289,3 +6322,9 @@ button.line-item--link {
   cursor: pointer;
   min-height: 44px;
 }
+
+/* A sheet separates from the scrim by a hairline here, not a shadow. */
+:root[data-theme="dark"] .sheet {
+  border-top-color: var(--color-divider);
+}
+
