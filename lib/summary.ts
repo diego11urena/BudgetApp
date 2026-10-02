@@ -1,6 +1,5 @@
 import type { CycleFinancials } from "./cycle-financials";
 import type { GoalWithProgress } from "./goals";
-import { computeSavedSoFar } from "./goals";
 
 /** Series point for the 6-period sparkline — label + spent amount. */
 export interface SparklinePoint {

@@ -29,6 +29,58 @@ const csp = [
   "upgrade-insecure-requests",
 ].join("; ");
 
+/**
+ * `next dev` against the production database is a real incident this repo
+ * has already had: `vercel env pull` writes production credentials into
+ * `.env.local`, and Next loads `.env.local` at HIGHER precedence than
+ * `.env`. So a developer who set `.env` to localhost still gets
+ * production, with nothing in the output saying so -- and `npm run dev`
+ * is how you click around signing up users and closing cycles.
+ *
+ * The E2E suite already refuses to start in that situation
+ * (tests/e2e/global-setup.ts). This is the same guard for the dev server,
+ * which had none. A warning rather than a throw, deliberately: pointing
+ * dev at a remote database is occasionally legitimate (debugging a
+ * staging dataset), so this makes it impossible to do BY ACCIDENT without
+ * making it impossible to do on purpose.
+ *
+ * Fix, when it fires: put the local DATABASE_URL in
+ * `.env.development.local`, which outranks `.env.local` for `next dev`.
+ */
+const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal", "postgres", "db"]);
+
+function warnIfDevPointsAtRemoteDatabase(): void {
+  if (process.env.NODE_ENV !== "development") return;
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return;
+
+  let host: string;
+  try {
+    host = new URL(raw).hostname;
+  } catch {
+    return;
+  }
+  if (LOCAL_DB_HOSTS.has(host)) return;
+
+  console.warn(
+    [
+      "",
+      "  \x1b[41m\x1b[97m  WARNING  \x1b[0m  next dev is pointed at a NON-LOCAL database",
+      "",
+      `  host: ${host}`,
+      "",
+      "  Anything you click in the browser -- signing up, logging a",
+      "  transaction, closing a cycle -- writes to that database.",
+      "",
+      "  If that isn't what you want, put your local DATABASE_URL in",
+      "  .env.development.local (it outranks .env.local for next dev).",
+      "",
+    ].join("\n"),
+  );
+}
+
+warnIfDevPointsAtRemoteDatabase();
+
 const nextConfig: NextConfig = {
   async headers() {
     return [

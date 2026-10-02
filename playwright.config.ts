@@ -46,7 +46,16 @@ export default defineConfig({
   // waiting to be served. Warming the routes up front doesn't help --
   // unauthenticated requests redirect at middleware without ever building
   // the real route. Fewer workers does.
-  workers: 2,
+  // CI: 2, for the 4-vCPU contention described above.
+  // Local: 1. Two workers against a cold `next dev` was a measured source
+  // of false failures -- single specs failing and moving around between
+  // runs (goals, then transaction, then pay-budget-frequency), every one
+  // passing in isolation and all 54 passing serially. The tests were fine;
+  // they were being starved while Turbopack compiled routes on demand.
+  // A full serial run is ~6.8m against ~4.1m parallel, which is a cheap
+  // price for a result worth believing -- and a suite you have to re-run
+  // to trust isn't doing its job.
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? "github" : "list",
   // A bit more slack in CI specifically, on top of the worker cap above —
   // belt and suspenders against the same contention, not a substitute for
@@ -79,6 +88,16 @@ export default defineConfig({
   // dev server: a route's first-ever Turbopack compile under `next dev` can
   // take several seconds, which reads as flakiness in a test suite rather
   // than the one-time dev-mode cost it actually is.
+  //
+  // Locally this stays on `next dev`, and must: `next start` serves over
+  // plain HTTP on localhost, where Auth.js issues its `__Secure-`-prefixed
+  // session cookie and the browser then refuses to store it. Signup
+  // appears to succeed and lands straight back on `/`, so every spec that
+  // needs a session fails. (Tried it; that is exactly what happens. CI
+  // gets away with the production build because its own environment
+  // terminates TLS in front of the server.) The local answer to the
+  // compile contention is one worker, not a different server -- see the
+  // `workers` setting above.
   webServer: {
     command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
     url: "http://localhost:3000",
