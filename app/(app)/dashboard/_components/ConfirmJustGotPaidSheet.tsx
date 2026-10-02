@@ -36,19 +36,32 @@ export function ConfirmJustGotPaidSheet({
   onCancel,
   returnFocusTo = null,
   title,
+  kicker,
   body,
   whenLabel,
   confirmLabel,
   cancelLabel,
+  summaryRows,
+  warning,
 }: {
   onConfirm: (payDate: string) => void;
   onCancel: () => void;
   returnFocusTo?: HTMLElement | null;
   title?: string;
+  /** Uppercase line above the title -- the close sheet names the period and how far through it the user is. */
+  kicker?: string;
   body?: string;
   whenLabel?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /**
+   * What the period is being closed WITH -- income, spent, saved,
+   * leftover. Shown above the date field so the decision is made against
+   * the actual numbers rather than from memory.
+   */
+  summaryRows?: Array<{ label: string; value: string; tone?: "saved" }>;
+  /** Shown when something about the period looks unfinished (e.g. an expected paycheck was never logged). */
+  warning?: { text: string; actionLabel: string; onAction: () => void } | null;
 }) {
   const t = useT().dashboard;
   const vocab = useVocab();
@@ -102,6 +115,7 @@ export function ConfirmJustGotPaidSheet({
   return (
     <Sheet
       visible={visible}
+      kicker={kicker}
       title={title ?? t.closeQuincena.title(vocab)}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleCancel}
@@ -111,6 +125,28 @@ export function ConfirmJustGotPaidSheet({
       <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
         {body ?? t.closeQuincena.body(vocab)}
       </p>
+      {summaryRows && summaryRows.length > 0 && (
+        <dl className="close-summary">
+          {summaryRows.map((row) => (
+            <div key={row.label} className="close-summary-row">
+              <dt>{row.label}</dt>
+              <dd className={row.tone === "saved" ? "close-summary-value close-summary-value--saved" : "close-summary-value"}>
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {warning && (
+        <div className="close-warning">
+          <span>{warning.text}</span>
+          <button type="button" className="close-warning-action" onClick={warning.onAction}>
+            {warning.actionLabel}
+          </button>
+        </div>
+      )}
+
       <div className="field">
         <label htmlFor={dateId}>{whenLabel ?? t.closeQuincena.whenPaid}</label>
         <input

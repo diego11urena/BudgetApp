@@ -33,6 +33,7 @@ function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): Cycl
 function makeFinancials(overrides: Partial<CycleFinancials> = {}): CycleFinancials {
   return {
     baseIncome: 2000,
+    paycheckCount: 1,
     extraIncome: 0,
     totalExpenses: 0,
     totalSavings: 0,

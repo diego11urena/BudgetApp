@@ -26,6 +26,8 @@ export interface SheetProps {
    * in that case instead.
    */
   title?: ReactNode;
+  /** Uppercase kicker above the title -- the design system's sheet header pattern ("PAYCHECK 2 OF 2", "SEP 1 - SEP 30 · DAY 13 OF 30"). */
+  kicker?: ReactNode;
   /** Overrides the title <h2>'s default centered/1rem-below spacing -- a few sheets use a tighter margin above body copy that immediately follows the heading. */
   titleStyle?: CSSProperties;
   /** The dialog's accessible name when there's no `title` to point aria-labelledby at. Ignored (aria-labelledby wins) when `title` is set. */
@@ -58,6 +60,7 @@ export interface SheetProps {
 export function Sheet({
   visible,
   title,
+  kicker,
   titleStyle,
   ariaLabel,
   onClose,
@@ -92,6 +95,7 @@ export function Sheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet-handle" {...handleProps} />
+        {kicker && <p className="sheet-kicker">{kicker}</p>}
         {title && (
           <h2 id={headingId} style={titleStyle ?? DEFAULT_TITLE_STYLE}>
             {title}

@@ -42,6 +42,8 @@ export interface CycleTransactionSummary {
 
 export interface CycleFinancials {
   baseIncome: number;
+  /** How many paychecks have been logged into this cycle (not their sum -- see baseIncome). */
+  paycheckCount: number;
   extraIncome: number;
   totalExpenses: number;
   totalSavings: number;
@@ -139,6 +141,11 @@ export function summarizeCycleFinancials(
   rawTransactions: TransactionLike[],
 ): CycleFinancials {
   const baseIncome = incomeEntries.reduce((sum, entry) => sum + entry.netAmount.toNumber(), 0);
+  // How many paychecks have actually been logged into this cycle. Distinct
+  // from baseIncome, which is their sum: a monthly budgeter paid twice a
+  // month needs the COUNT to know whether the month is still waiting on
+  // one (see lib/paycheck-schedule.ts and Home's hero).
+  const paycheckCount = incomeEntries.length;
 
   const transactions: CycleTransactionSummary[] = rawTransactions.map((tx) =>
     toCycleTransactionSummary(tx),
@@ -179,6 +186,7 @@ export function summarizeCycleFinancials(
 
   return {
     baseIncome,
+    paycheckCount,
     extraIncome,
     totalExpenses,
     totalSavings,

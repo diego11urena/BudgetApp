@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, TRANSACTION_SELECT, type CycleFinancials } from "@/lib/cycle-financials";
-import type { BudgetCycle, CycleIncomeEntry, Prisma, PrismaClient } from "@/app/generated/prisma/client";
+import type { BudgetCycle, CycleIncomeEntry, IncomeFrequency, Prisma, PrismaClient } from "@/app/generated/prisma/client";
 import {
   addDays,
   FIRST_CYCLE_BACKDATE_FLOOR_DAYS,
@@ -36,6 +36,17 @@ export { formatCycleLabel, parsePayDate };
 export const getUserBudgetFrequency = cache(async (userId: string): Promise<BudgetFrequency> => {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { budgetFrequency: true } });
   return user.budgetFrequency;
+});
+
+/**
+ * How often the user is actually PAID, which is a separate question from
+ * how they budget (see getUserBudgetFrequency above and the
+ * payFrequency/budgetFrequency split on User). Together the two decide how
+ * many paychecks a cycle expects -- see lib/paycheck-schedule.ts.
+ */
+export const getUserPayFrequency = cache(async (userId: string): Promise<IncomeFrequency> => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { payFrequency: true } });
+  return user.payFrequency;
 });
 
 /**

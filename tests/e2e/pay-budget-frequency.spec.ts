@@ -61,11 +61,20 @@ test.describe("pay/budget frequency combination lock", () => {
   test("Monthly pay + Monthly budget: one paycheck belongs to the cycle, closed separately", async ({ page }) => {
     await signUpAndOnboard(page, { payFrequency: "MONTHLY", netQuincenaAmount: "2400" });
 
-    // MONTHLY budget's two-explicit-action UI (same as the Biweekly-pay +
-    // Monthly-budget case in monthly-budget.spec.ts) -- proves budgetFrequency
-    // really was forced to MONTHLY server-side, not just in the picker.
-    await expect(page.locator(".hero-action-link", { hasText: "I just got paid" })).toBeVisible();
-    await expect(page.locator(".hero-action-link", { hasText: "Close this month" })).toBeVisible();
+    // A once-a-month earner expects exactly ONE paycheck per cycle, and
+    // onboarding already logged it -- so there is nothing for "I just got
+    // paid" to add and closing is the only action, all month long. (The
+    // Biweekly-pay + Monthly-budget case in monthly-budget.spec.ts is the
+    // contrast: it expects two, so it shows both actions until the second
+    // lands.) Its presence at all still proves budgetFrequency really was
+    // forced to MONTHLY server-side, not just in the picker.
+    await expect(page.locator(".hero-action-link", { hasText: "I just got paid" })).toHaveCount(0);
+    await expect(page.locator(".hero-actions--single .hero-action-link")).toHaveText("Close this cycle");
+    // No "both paychecks in" line either -- there was only ever one.
+    await expect(page.locator(".hero-paychecks-in")).toHaveCount(0);
+    await expect(page.locator(".stat-tile").first()).toContainText("1 paycheck");
+    // And no second-paycheck countdown in the pace line.
+    await expect(page.locator(".hero-pace")).not.toContainText("2nd paycheck");
 
     // The one paycheck from onboarding is already this cycle's income --
     // close the month without logging anything further.
@@ -79,8 +88,10 @@ test.describe("pay/budget frequency combination lock", () => {
     await expect(paychecksSheet.getByText("$2,400.00")).toBeVisible();
     await page.click('button:has-text("Close")');
 
-    await page.locator(".hero-action-link", { hasText: "Close this month" }).click();
-    await expect(page.getByText("Close this month?")).toBeVisible();
+    await page.locator(".hero-actions--single .hero-action-link").click();
+    // The close sheet names the month and shows what it is closing with.
+    await expect(page.locator(".sheet-kicker")).toContainText("Day");
+    await expect(page.locator(".close-summary-row")).toHaveCount(4);
     await page.click('button:has-text("Yes, close this month")');
     await dismissCycleSummary(page);
     await page.waitForLoadState("networkidle");

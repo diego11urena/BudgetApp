@@ -5,6 +5,7 @@ import { logPaycheckAction } from "../actions";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
+import { formatCurrency } from "@/lib/format";
 import { useT } from "@/app/_components/LocaleProvider";
 
 // Based on Panama time, not the device's own local clock -- same as
@@ -28,10 +29,24 @@ export function LogPaycheckSheet({
   onDone,
   onCancel,
   returnFocusTo = null,
+  paycheckNumber,
+  expectedPaychecks,
+  usualAmount,
+  currentIncome,
+  periodName,
 }: {
   onDone: () => void;
   onCancel: () => void;
   returnFocusTo?: HTMLElement | null;
+  /** Which paycheck this is (1-based) -- drives the "Paycheck 2 of 2" kicker. */
+  paycheckNumber: number;
+  expectedPaychecks: number;
+  /** The user's usual paycheck, used to prefill the amount. 0 when unknown, in which case nothing is prefilled. */
+  usualAmount: number;
+  /** Income already logged into this cycle, for the preview strip's "before" figure. */
+  currentIncome: number;
+  /** The period's own name ("September"), for the preview strip. */
+  periodName: string;
 }) {
   const t = useT().dashboard;
   const [visible, setVisible] = useState(false);
@@ -41,7 +56,12 @@ export function LogPaycheckSheet({
   // accidental submit-without-typing surfaces "must be positive" (matches
   // what's on screen) rather than a confusing "invalid format" error for
   // a field that visibly already shows a validly-formatted "0.00".
-  const [amount, setAmount] = useState("0.00");
+  // Prefilled from the usual paycheck rather than starting at zero: the
+  // second paycheck of a month is almost always the same as the first, so
+  // zero asks the user to retype a number the app already knows. The
+  // helper line under the field says it is a prefill, so an unusual month
+  // reads as something to correct rather than something already committed.
+  const [amount, setAmount] = useState(() => (usualAmount > 0 ? usualAmount.toFixed(2) : "0.00"));
   const [payDate, setPayDate] = useState(() => formatCycleLabel(nowInPanama()));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +70,7 @@ export function LogPaycheckSheet({
   const dateId = `${uid}-date`;
   const errorId = `${uid}-error`;
 
+  const amountNumber = Number(amount) || 0;
   const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
   const maxDate = formatCycleLabel(nowInPanama());
 
@@ -95,6 +116,7 @@ export function LogPaycheckSheet({
   return (
     <Sheet
       visible={visible}
+      kicker={t.logPaycheck.kicker(paycheckNumber, expectedPaychecks)}
       title={t.logPaycheck.title}
       titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
       onClose={handleCancel}
@@ -129,6 +151,7 @@ export function LogPaycheckSheet({
             onValueChange={setAmount}
             className="sheet-amount-input"
           />
+          {usualAmount > 0 && <span className="field-hint">{t.logPaycheck.prefilledHint}</span>}
         </div>
 
         <div className="field">
@@ -149,6 +172,19 @@ export function LogPaycheckSheet({
             }}
           />
         </div>
+
+        {/* What this paycheck does to the month's income, before it is
+            committed -- the one number the user is actually deciding
+            about is the total, not the entry. */}
+        {amountNumber > 0 && (
+          <p className="paycheck-preview">
+            {t.logPaycheck.preview(
+              periodName,
+              formatCurrency(currentIncome),
+              formatCurrency(currentIncome + amountNumber),
+            )}
+          </p>
+        )}
 
         {error && (
           <p id={errorId} className="error-text" role="alert">

@@ -252,6 +252,26 @@ export type Dictionary = {
     heroSafeToSpend: string;
     heroAvailableSummary: (left: string, pendingScheduled: string) => string;
     heroDaysLeft: (n: number) => string;
+    /** Replaces heroDaysLeft once a monthly cycle has reached or passed its last day. */
+    heroPeriodEnded: (vocab: PeriodVocab) => string;
+    /**
+     * Appended to the pace line for a monthly budgeter paid twice a month,
+     * while the second paycheck is still outstanding. A countdown in days,
+     * not a date -- a date makes the reader do the subtraction the line
+     * exists to save them.
+     */
+    heroSecondPaycheckIn: (days: number) => string;
+    /** Replaces the two hero actions once every expected paycheck is logged. */
+    heroBothPaychecksIn: (total: string) => string;
+    /** Hero action, two-up state: closes the cycle without logging anything. */
+    heroCloseCycle: string;
+    /** Hero action, single state: names the period being closed ("Close September"). */
+    heroClosePeriod: (periodName: string) => string;
+    /** Income stat sub-line for a cycle expecting more than one paycheck. */
+    statPaycheckOf: (logged: number, expected: number) => string;
+    statPaychecksAllIn: (expected: number) => string;
+    /** Income stat sub-line for a cycle expecting exactly one paycheck. */
+    statSinglePaycheck: (date: string) => string;
     heroPacePerDay: (perDay: string) => string;
     heroLastDay: (amount: string) => string;
     heroCycleEnded: (vocab: PeriodVocab, date: string) => string;
@@ -313,6 +333,17 @@ export type Dictionary = {
     };
     /** MONTHLY-budget only: the explicit, manually-triggered rollover -- closes the current cycle and starts the next, but (unlike closeQuincena) never asks for a paycheck amount, since MONTHLY income is logged per-paycheck via logPaycheck instead. Reuses ConfirmJustGotPaidSheet's UI via its copy-override props, and CycleClosedCard unmodified. */
     closeMonth: {
+      /** Kicker: the period and how far through it the user is. */
+      kicker: (dateRange: string, day: number, total: number) => string;
+      /** Title, naming the month being closed. */
+      titleNamed: (periodName: string) => string;
+      /** Shown when an expected paycheck was never logged. */
+      missingPaycheck: string;
+      missingPaycheckAction: string;
+      rowIncome: string;
+      rowSpent: string;
+      rowSaved: string;
+      rowLeftover: string;
       button: string;
       pending: string;
       title: string;
@@ -323,6 +354,12 @@ export type Dictionary = {
     };
     /** MONTHLY-budget only: logs one paycheck into the currently-open cycle additively, without closing it -- the mechanism that lets a twice-monthly/biweekly paycheck accumulate into one MONTHLY budget cycle. Amount and date are collected together in one step (LogPaycheckSheet), unlike closeQuincena's two-step close-then-confirm-amount flow. */
     logPaycheck: {
+      /** Kicker above the title -- "Paycheck 2 of 2". */
+      kicker: (n: number, total: number) => string;
+      /** Helper under a prefilled amount, so the number isn't mistaken for one already committed. */
+      prefilledHint: string;
+      /** Preview strip: what this paycheck does to the period's income total. */
+      preview: (periodName: string, before: string, after: string) => string;
       title: string;
       body: string;
       dateLabel: string;

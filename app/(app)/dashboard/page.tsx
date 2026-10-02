@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getAdjacentCycles, getOrCreateDraftCycle, getRecentCycles, getUserBudgetFrequency } from "@/lib/cycles";
+import { expectedPaychecksPerCycle, daysUntilSecondPaycheck } from "@/lib/paycheck-schedule";
+import {
+  getAdjacentCycles,
+  getOrCreateDraftCycle,
+  getRecentCycles,
+  getUserBudgetFrequency,
+  getUserPayFrequency,
+  getActiveIncomeSource,
+} from "@/lib/cycles";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { generateInsights } from "@/lib/insights";
@@ -9,7 +17,7 @@ import { getRecurringExpenseOptions, getRecurringExpensesForCycle, summarizeRecu
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
 import { addDays, formatCycleLabel } from "@/lib/pay-date";
-import { formatCycleRangeLabel } from "@/lib/format";
+import { formatCycleRangeLabel, formatMonthLabel, formatShortDate } from "@/lib/format";
 import { computeCyclePace } from "@/lib/quincena-pace";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -21,6 +29,7 @@ import { InsightsCard } from "./_components/InsightsCard";
 import { NeedsAttentionBanner } from "./_components/NeedsAttentionBanner";
 import { PaydayOverdueBanner } from "./_components/PaydayOverdueBanner";
 import { TransactionList } from "../_components/TransactionList";
+import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
@@ -35,7 +44,8 @@ export default async function DashboardPage() {
     redirect("/login");
   }
   const userId = session.user.id;
-  const t = getDictionary(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const t = getDictionary(locale);
 
   const cycle = await getOrCreateDraftCycle(userId);
 
@@ -59,6 +69,8 @@ export default async function DashboardPage() {
     goals,
     needsAttentionTransactions,
     budgetFrequency,
+    payFrequency,
+    activeIncomeSource,
   ] = await Promise.all([
     getCycleFinancials(cycle.id),
     getAdjacentCycles(userId, cycle),
@@ -71,6 +83,8 @@ export default async function DashboardPage() {
     getGoalsWithProgress(userId, cycle.id),
     getNeedsAttentionTransactions(cycle.id),
     getUserBudgetFrequency(userId),
+    getUserPayFrequency(userId),
+    getActiveIncomeSource(prisma, userId),
   ]);
 
   // Exclusive neighbor boundary -> inclusive HTML date-input min, same
@@ -100,6 +114,22 @@ export default async function DashboardPage() {
     totalExpenses: financials.totalExpenses,
     frequency: budgetFrequency,
   });
+
+  // How many paychecks this cycle expects, and whether they are all in.
+  // Only a MONTHLY budget paired with twice-monthly pay ever expects two;
+  // see lib/paycheck-schedule.ts for the matrix.
+  const expectedPaychecks = expectedPaychecksPerCycle(payFrequency, budgetFrequency);
+  // The configured per-cycle pay, used to prefill the log-paycheck sheet.
+  // Read from IncomeSource rather than averaging what's already logged:
+  // "your usual paycheck" is the number the user set up, and averaging
+  // would drift every time an unusual month was logged.
+  const usualPaycheck = activeIncomeSource ? activeIncomeSource.netPayAmount.toNumber() : 0;
+  const allPaychecksIn = financials.paycheckCount >= expectedPaychecks;
+  const secondPaycheckInDays = allPaychecksIn
+    ? null
+    : daysUntilSecondPaycheck(new Date(), cycle.periodStart, payFrequency, budgetFrequency);
+  // "September" -- the single close action names the month it closes.
+  const periodName = formatMonthLabel(cycle.periodStart, locale);
 
   const insights = generateInsights(financials, previousClosedFinancials, {
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
@@ -189,12 +219,25 @@ export default async function DashboardPage() {
           totalExpenses={financials.totalExpenses}
           pendingScheduled={recurringExpensesSummary.pendingAmount}
           budgetFrequency={budgetFrequency}
+          baseIncome={financials.baseIncome}
+          allPaychecksIn={allPaychecksIn}
+          expectedPaychecks={expectedPaychecks}
+          paycheckCount={financials.paycheckCount}
+          usualPaycheck={usualPaycheck}
+          extraIncome={financials.extraIncome}
+          totalSavings={financials.totalSavings}
+          dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd)}
+          secondPaycheckInDays={secondPaycheckInDays}
+          periodName={periodName}
         />
       </div>
 
       <div className="dashboard-section dashboard-section--plain">
         <StatGrid
           baseIncome={financials.baseIncome}
+          paycheckCount={financials.paycheckCount}
+          expectedPaychecks={expectedPaychecks}
+          firstPaycheckDate={formatShortDate(cycle.periodStart)}
           extraIncome={financials.extraIncome}
           spent={financials.totalExpenses}
           saved={financials.totalSavings}

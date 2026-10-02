@@ -51,10 +51,47 @@ export function HeroCardActions({
   variant = "link",
   bannerLabel,
   showBanner = true,
+  allPaychecksIn = false,
+  namesPeriod = false,
+  periodName,
+  paycheckCount = 0,
+  expectedPaychecks = 1,
+  usualPaycheck = 0,
+  currentIncome = 0,
+  closeKicker,
+  closeSummaryRows,
 }: {
   variant?: "link" | "banner";
   bannerLabel?: string;
   showBanner?: boolean;
+  /**
+   * MONTHLY only: every paycheck this cycle expects has been logged, so
+   * "I just got paid" has nothing left to add and drops away, leaving
+   * closing as the single action. See lib/paycheck-schedule.ts.
+   */
+  allPaychecksIn?: boolean;
+  /**
+   * Whether the single close action should name the period it closes.
+   * True only once a cycle that EXPECTED more than one paycheck has them
+   * all in -- that is a moment ("September is complete, close it"). A
+   * once-a-month earner is in the single-action state from day one, where
+   * "Close September" on the 2nd would read as a prompt rather than a
+   * statement of fact, so they keep the generic label.
+   */
+  namesPeriod?: boolean;
+  /** MONTHLY only: the period's own name, for the single-action label ("Close September"). */
+  periodName?: string;
+  /** Paychecks already logged -- the paycheck sheet's kicker counts from this. */
+  paycheckCount?: number;
+  expectedPaychecks?: number;
+  /** The user's usual paycheck amount, prefilled into the sheet. */
+  usualPaycheck?: number;
+  /** Income already in this cycle, for the sheet's before/after preview. */
+  currentIncome?: number;
+  /** The close sheet's kicker ("Oct 1 - Oct 31 · Day 13 of 31"). */
+  closeKicker?: string;
+  /** The close sheet's income/spent/saved/leftover rows. */
+  closeSummaryRows?: Array<{ label: string; value: string; tone?: "saved" }>;
 }) {
   const t = useT().dashboard;
   const vocab = useVocab();
@@ -134,27 +171,42 @@ export function HeroCardActions({
           </div>
         )
       ) : isMonthly ? (
-        <div className="hero-actions">
+        // Two actions while a paycheck is still outstanding; one once they
+        // are all in. The close button also changes what it says: beside
+        // "I just got paid" it is the generic "Close this cycle", but
+        // standing alone it names the month it closes, which is the only
+        // moment there is room for that and the only moment it is the
+        // user's single remaining move.
+        <div className={`hero-actions${allPaychecksIn ? " hero-actions--single" : ""}`}>
+          {!allPaychecksIn && (
+            <button
+              type="button"
+              className="hero-action-link"
+              onClick={(e) => {
+                setTrigger(e.currentTarget);
+                setShowLogPaycheck(true);
+              }}
+            >
+              {t.iJustGotPaid}
+            </button>
+          )}
           <button
             type="button"
-            className="hero-action-link"
-            onClick={(e) => {
-              setTrigger(e.currentTarget);
-              setShowLogPaycheck(true);
-            }}
-          >
-            {t.iJustGotPaid} <ArrowRight size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="hero-action-link"
+            // Outlined except in the one state that is a completed
+            // month awaiting its close -- there the filled pill is the
+            // single thing the card is asking for.
+            className={`hero-action-link${namesPeriod ? "" : " hero-action-link--outlined"}`}
             onClick={(e) => {
               setTrigger(e.currentTarget);
               setConfirming(true);
             }}
             disabled={pending}
           >
-            {pending ? t.closeMonth.pending : t.closeMonth.button}
+            {pending
+              ? t.closeMonth.pending
+              : namesPeriod && periodName
+                ? t.heroClosePeriod(periodName)
+                : t.heroCloseCycle}
           </button>
         </div>
       ) : (
@@ -183,8 +235,23 @@ export function HeroCardActions({
           onCancel={() => setConfirming(false)}
           {...(isMonthly
             ? {
-                title: t.closeMonth.title,
+                kicker: closeKicker,
+                title: periodName ? t.closeMonth.titleNamed(periodName) : t.closeMonth.title,
                 body: t.closeMonth.body,
+                summaryRows: closeSummaryRows,
+                // Only when a paycheck the cycle expected never arrived --
+                // closing then would freeze the month short of its real
+                // income, which is the one mistake this sheet can prevent.
+                warning: allPaychecksIn
+                  ? null
+                  : {
+                      text: t.closeMonth.missingPaycheck,
+                      actionLabel: t.closeMonth.missingPaycheckAction,
+                      onAction: () => {
+                        setConfirming(false);
+                        setShowLogPaycheck(true);
+                      },
+                    },
                 whenLabel: t.closeMonth.whenEnded,
                 confirmLabel: t.closeMonth.yes,
                 cancelLabel: t.closeMonth.cancel,
@@ -195,7 +262,16 @@ export function HeroCardActions({
       )}
 
       {showLogPaycheck && (
-        <LogPaycheckSheet onDone={handleFinishLogPaycheck} onCancel={() => setShowLogPaycheck(false)} {...sheetProps} />
+        <LogPaycheckSheet
+          onDone={handleFinishLogPaycheck}
+          onCancel={() => setShowLogPaycheck(false)}
+          paycheckNumber={paycheckCount + 1}
+          expectedPaychecks={expectedPaychecks}
+          usualAmount={usualPaycheck}
+          currentIncome={currentIncome}
+          periodName={periodName ?? ""}
+          {...sheetProps}
+        />
       )}
     </>
   );

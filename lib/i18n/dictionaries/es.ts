@@ -236,6 +236,22 @@ export const es: Dictionary = {
     heroSafeToSpend: "Disponible sin riesgo",
     heroAvailableSummary: (left, pendingScheduled) => `${left} disponible · ${pendingScheduled} en gastos programados sin pagar`,
     heroDaysLeft: (n) => `${n} ${plural(n, "día restante", "días restantes")}`,
+    // "Terminó este mes" / "Terminó esta quincena" -- a verb plus
+    // thisPeriod, which already carries its own article and gender, so
+    // this needs no adjective agreement (unlike "Mes terminada").
+    heroPeriodEnded: (vocab) => `Terminó ${vocab.thisPeriod}`,
+    heroSecondPaycheckIn: (days) =>
+      days === 0
+        ? "2do pago esperado hoy"
+        : days === 1
+          ? "2do pago esperado mañana"
+          : `2do pago esperado en ${days} días`,
+    heroBothPaychecksIn: (total) => `Ambos pagos registrados · ${total}`,
+    heroCloseCycle: "Cerrar este ciclo",
+    heroClosePeriod: (periodName) => `Cerrar ${periodName}`,
+    statPaycheckOf: (logged, expected) => `Pago ${logged} de ${expected}`,
+    statPaychecksAllIn: (expected) => `${expected} de ${expected} pagos`,
+    statSinglePaycheck: (date) => `1 pago · ${date}`,
     heroPacePerDay: (perDay) => `Ritmo ~${perDay}/día`,
     heroLastDay: (amount) => `Último día · ${amount} para gastar`,
     heroCycleEnded: (vocab, date) => `Tu ${vocab.noun} terminó el ${date} · toca "Ya me pagaron"`,
@@ -295,6 +311,14 @@ export const es: Dictionary = {
       cancel: "Cancelar",
     },
     closeMonth: {
+      kicker: (dateRange, day, total) => `${dateRange} · Día ${day} de ${total}`,
+      titleNamed: (periodName) => `¿Cerrar ${periodName}?`,
+      missingPaycheck: "Tu segundo pago aún no está registrado.",
+      missingPaycheckAction: "Registrarlo",
+      rowIncome: "Ingresos",
+      rowSpent: "Gastado",
+      rowSaved: "Ahorrado",
+      rowLeftover: "Sobrante",
       button: "Cerrar este mes",
       pending: "Cerrando mes...",
       title: "¿Cerrar este mes?",
@@ -304,8 +328,11 @@ export const es: Dictionary = {
       cancel: "Cancelar",
     },
     logPaycheck: {
-      title: "Registrar un pago",
-      body: "Agrega este pago al ingreso de tu mes actual — no cierra ni comienza un nuevo ciclo.",
+      kicker: (n, total) => `Pago ${n} de ${total}`,
+      prefilledHint: "Prellenado con tu pago habitual",
+      preview: (periodName, before, after) => `Ingreso de ${periodName} ${before} → ${after}`,
+      title: "Registra tu segundo pago",
+      body: "Se suma a este mes. Tu mes sigue abierto hasta que lo cierres.",
       dateLabel: "¿Cuándo te pagaron?",
       pending: "Registrando...",
       confirm: "Registrar pago",

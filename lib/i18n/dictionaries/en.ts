@@ -234,6 +234,19 @@ export const en: Dictionary = {
     heroSafeToSpend: "Safe to spend",
     heroAvailableSummary: (left, pendingScheduled) => `${left} available · ${pendingScheduled} in unpaid scheduled expenses`,
     heroDaysLeft: (n) => `${n} ${plural(n, "day", "days")} left`,
+    heroPeriodEnded: (vocab) => `${capitalize(vocab.noun)} ended`,
+    heroSecondPaycheckIn: (days) =>
+      days === 0
+        ? "2nd paycheck expected today"
+        : days === 1
+          ? "2nd paycheck expected tomorrow"
+          : `2nd paycheck expected in ${days} days`,
+    heroBothPaychecksIn: (total) => `Both paychecks in · ${total}`,
+    heroCloseCycle: "Close this cycle",
+    heroClosePeriod: (periodName) => `Close ${periodName}`,
+    statPaycheckOf: (logged, expected) => `Paycheck ${logged} of ${expected}`,
+    statPaychecksAllIn: (expected) => `${expected} of ${expected} paychecks`,
+    statSinglePaycheck: (date) => `1 paycheck · ${date}`,
     heroPacePerDay: (perDay) => `Pace ~${perDay}/day`,
     heroLastDay: (amount) => `Last day · ${amount} to spend`,
     heroCycleEnded: (vocab, date) => `${capitalize(vocab.noun)} ended ${date} · tap "I just got paid"`,
@@ -293,6 +306,14 @@ export const en: Dictionary = {
       cancel: "Cancel",
     },
     closeMonth: {
+      kicker: (dateRange, day, total) => `${dateRange} · Day ${day} of ${total}`,
+      titleNamed: (periodName) => `Close ${periodName}?`,
+      missingPaycheck: "Your second paycheck isn't logged yet.",
+      missingPaycheckAction: "Log it",
+      rowIncome: "Income",
+      rowSpent: "Spent",
+      rowSaved: "Saved",
+      rowLeftover: "Leftover",
       button: "Close this month",
       pending: "Closing month...",
       title: "Close this month?",
@@ -302,8 +323,11 @@ export const en: Dictionary = {
       cancel: "Cancel",
     },
     logPaycheck: {
-      title: "Log a paycheck",
-      body: "Add this paycheck to your current month's income — it won't close or start a new cycle.",
+      kicker: (n, total) => `Paycheck ${n} of ${total}`,
+      prefilledHint: "Prefilled from your usual paycheck",
+      preview: (periodName, before, after) => `${periodName} income ${before} → ${after}`,
+      title: "Log your second paycheck",
+      body: "It adds to this month. Your month keeps going until you close it.",
       dateLabel: "When did you get paid?",
       pending: "Logging...",
       confirm: "Log paycheck",

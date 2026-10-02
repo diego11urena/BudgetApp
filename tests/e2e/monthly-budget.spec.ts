@@ -21,12 +21,17 @@ test.describe("MONTHLY budget cadence", () => {
     // Both explicit actions are always visible -- no auto-surfaced overdue
     // banner for MONTHLY (manual-only rollover, per the product decision).
     await expect(page.locator(".hero-action-link", { hasText: "I just got paid" })).toBeVisible();
-    await expect(page.locator(".hero-action-link", { hasText: "Close this month" })).toBeVisible();
+    await expect(page.locator(".hero-action-link", { hasText: "Close this cycle" })).toBeVisible();
     await expect(page.locator(".banner--action")).toHaveCount(0);
+    // One of two paychecks so far, and the pace line says when the other
+    // is due -- a countdown in days, never a date.
+    await expect(page.locator(".stat-tile").first()).toContainText("Paycheck 1 of 2");
+    await expect(page.locator(".hero-pace")).toContainText("2nd paycheck expected");
 
     // Log a second $800 paycheck via "I just got paid" -- additive, never closes.
     await page.locator(".hero-action-link", { hasText: "I just got paid" }).click();
-    await expect(page.getByText("Log a paycheck")).toBeVisible();
+    // The sheet names which paycheck this is -- "Log your second paycheck".
+    await expect(page.getByText("Log your second paycheck")).toBeVisible();
     await fillAmount(page.locator(".sheet input[type=\"text\"]").first(), "800");
     await page.click('button:has-text("Log paycheck")');
     // Waits for the full unmount (not just the text disappearing mid-
@@ -41,9 +46,14 @@ test.describe("MONTHLY budget cadence", () => {
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await page.waitForLoadState("networkidle");
 
-    // Still the same open cycle -- both actions still there, nothing closed.
-    await expect(page.locator(".hero-action-link", { hasText: "I just got paid" })).toBeVisible();
-    await expect(page.locator(".hero-action-link", { hasText: "Close this month" })).toBeVisible();
+    // Still the same open cycle -- nothing closed. But with both expected
+    // paychecks now in, "I just got paid" has nothing left to add and
+    // drops away, leaving closing as the single action, which now names
+    // the month it would close.
+    await expect(page.locator(".hero-action-link", { hasText: "I just got paid" })).toHaveCount(0);
+    await expect(page.locator(".hero-actions--single")).toBeVisible();
+    await expect(page.locator(".hero-paychecks-in")).toContainText("Both paychecks in");
+    await expect(page.locator(".stat-tile").first()).toContainText("2 of 2 paychecks");
 
     // The "Edit" pill now opens the per-entry list (MonthlyIncomeEntriesSheet)
     // instead of the single amount/date form -- confirm both paychecks
@@ -56,8 +66,10 @@ test.describe("MONTHLY budget cadence", () => {
     // Close the month -- reuses the same date-step sheet as QUINCENAL's
     // "I just got paid", but with "Close this month" copy, and skips the
     // income-confirm step entirely afterward.
-    await page.locator(".hero-action-link", { hasText: "Close this month" }).click();
-    await expect(page.getByText("Close this month?")).toBeVisible();
+    await page.locator(".hero-actions--single .hero-action-link").click();
+    // The close sheet names the month and shows what it is closing with.
+    await expect(page.locator(".sheet-kicker")).toContainText("Day");
+    await expect(page.locator(".close-summary-row")).toHaveCount(4);
     await page.click('button:has-text("Yes, close this month")');
 
     await dismissCycleSummary(page);
