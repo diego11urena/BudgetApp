@@ -9,8 +9,9 @@ import {
   computeTransactionsForDay,
   computeCategoryRollingAverage,
   computeLiveBanner,
+  computeWeekendShare,
 } from "./breakdown-v2";
-import { formatCycleLabel } from "./pay-date";
+import { formatCycleLabel, panamaMidnight } from "./pay-date";
 import type { CycleTransactionSummary, CycleFinancials } from "./cycle-financials";
 
 describe("breakdown-v2", () => {
@@ -448,5 +449,54 @@ describe("Panama calendar days (not UTC)", () => {
     const buckets = computeHeatmapPercentileBuckets(days);
     expect(buckets.get("2026-08-10")).toBeGreaterThan(0);
     expect(buckets.get("2026-08-11")).toBe(0);
+  });
+});
+
+describe("computeWeekendShare", () => {
+  /**
+   * Aug 2026: the 7th is a Friday, so 7/8/9 are Fri/Sat/Sun and 10/11 are
+   * Mon/Tue. Dates are built through panamaMidnight so the weekday is the
+   * Panama one, matching how the rest of this module anchors days.
+   */
+  const day = (d: number, total: number) => ({ date: panamaMidnight(2026, 8, d), total });
+
+  it("counts Friday through Sunday as the weekend", () => {
+    const result = computeWeekendShare([
+      day(7, 30), // Fri
+      day(8, 40), // Sat
+      day(9, 30), // Sun
+      day(10, 100), // Mon
+    ]);
+    expect(result).not.toBeNull();
+    expect(result!.weekendTotal).toBe(100);
+    expect(result!.periodTotal).toBe(200);
+    expect(result!.share).toBeCloseTo(0.5, 5);
+  });
+
+  it("treats Friday as part of the weekend, not the week", () => {
+    // The spec's line is "Fri-Sun", so a Friday-only period is 100%.
+    const result = computeWeekendShare([day(7, 50), day(10, 0)]);
+    expect(result!.share).toBe(1);
+  });
+
+  it("returns null when the period has no spend at all", () => {
+    // 0 of 0 is not "0% at the weekend" -- it is nothing to say, and the
+    // chapter renders its own empty state instead.
+    expect(computeWeekendShare([day(7, 0), day(10, 0)])).toBeNull();
+    expect(computeWeekendShare([])).toBeNull();
+  });
+
+  it("reports 0 when every dollar lands midweek", () => {
+    const result = computeWeekendShare([day(10, 80), day(11, 20)]);
+    expect(result!.share).toBe(0);
+    expect(result!.weekendTotal).toBe(0);
+    expect(result!.periodTotal).toBe(100);
+  });
+
+  it("rounds the reported totals to cents without distorting the share", () => {
+    const result = computeWeekendShare([day(8, 33.333), day(10, 66.667)]);
+    expect(result!.weekendTotal).toBe(33.33);
+    expect(result!.periodTotal).toBe(100);
+    expect(result!.share).toBeCloseTo(0.33333, 4);
   });
 });

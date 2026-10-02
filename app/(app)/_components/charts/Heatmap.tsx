@@ -27,15 +27,23 @@ export default function Heatmap({
   const locale = useLocale();
 
   // Narrow weekday letters (M T W T F S S in English, L M M J V S D in
-  // Spanish) for the header row above the grid -- Sun-first, matching the
-  // grid's own weekday indexing below (Date.getDay(): 0=Sun..6=Sat).
-  // Jan 1 1970 was a Thursday, so Jan 4 1970 (day 4) is the nearest Sunday
-  // on or after the epoch -- using UTC dates here only to look up a
-  // weekday name, never to derive an actual calendar day, so there's no
-  // Panama-anchoring concern the rest of this file's date math has.
+  // Spanish) for the header row above the grid. MONDAY-first, which the
+  // design spec asks for ("7-col grid, M-S header") and screens/20 draws.
+  // Jan 1 1970 was a Thursday, so Jan 5 1970 is the first Monday on or
+  // after the epoch.
+  //
+  // timeZone: "UTC" is load-bearing, not decoration. Date.UTC builds the
+  // instant correctly, but Intl formats it in the RUNTIME's zone unless
+  // told otherwise -- so on any machine west of UTC, Jan 5 00:00 UTC is
+  // still Jan 4 locally and the whole row silently shifts back to
+  // Sunday-first, while the grid below stays Monday-based. The two
+  // disagreeing puts every cell one column off its own weekday.
   const weekdayLabels = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(locale === "es" ? "es-ES" : "en-US", { weekday: "narrow" });
-    return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(Date.UTC(1970, 0, 4 + i))));
+    const formatter = new Intl.DateTimeFormat(locale === "es" ? "es-ES" : "en-US", {
+      weekday: "narrow",
+      timeZone: "UTC",
+    });
+    return Array.from({ length: 7 }, (_, i) => formatter.format(new Date(Date.UTC(1970, 0, 5 + i))));
   }, [locale]);
 
   // 7-column grid layout — pad/fill to complete the last week if needed.
@@ -43,11 +51,13 @@ export default function Heatmap({
   let currentWeek: HeatmapDay[] = [];
 
   for (const day of days) {
-    // Get weekday (0 = Sun, 1 = Mon, ..., 6 = Sat)
-    const weekday = new Date(day.date + "T00:00:00").getDay();
+    // Column index with MONDAY as column 0, so the grid lines up under the
+    // M-S header above. Date.getDay() is Sunday-based (0=Sun..6=Sat), and
+    // (d + 6) % 7 rotates that to Monday-based (Mon=0..Sun=6) -- the two
+    // have to agree or every cell sits one column off its own weekday.
+    const weekday = (new Date(day.date + "T00:00:00").getDay() + 6) % 7;
 
-    // If we have days from a previous week and we've wrapped (weekday < previous weekday),
-    // or this is the first day and it's not Sunday, backfill.
+    // Backfill blanks so the period's first day lands in its own column.
     if (currentWeek.length === 0 && weekday > 0) {
       // Backfill empty days at the start of the first week.
       for (let i = 0; i < weekday; i++) {
@@ -101,30 +111,39 @@ export default function Heatmap({
         {weeks.map((week, weekIdx) => (
           <div key={weekIdx} className="heatmap-week">
             {week.map((day, dayIdx) => {
-              // "" backfill/padding cells (before the period's first day,
-              // after its last) are real grid cells for alignment but not
-              // real days -- no date number, no bucket color, matching
-              // .heatmap-cell--disabled's existing "not a real zero"
-              // framing for LIVE's not-yet-happened days.
+              // Three kinds of cell, and they look different on purpose:
+              //  - a real day: bucket fill + its date number;
+              //  - a LIVE future day (has a date, disabled): --surface
+              //    fill with a dashed border, so it reads as "hasn't
+              //    happened yet" rather than as a very small amount on
+              //    the same heat ramp;
+              //  - a padding cell before/after the period (no date at
+              //    all): present only to keep the weekday columns
+              //    aligned, so it draws nothing.
               const dayNumber = day.date ? Number(day.date.slice(-2)) : null;
+              const isPadding = !day.date;
+              const isFuture = !isPadding && day.disabled;
               return (
                 <button
                   key={`${weekIdx}-${dayIdx}`}
-                  className={`heatmap-cell ${
-                    day.disabled ? "heatmap-cell--disabled" : ""
+                  className={`heatmap-cell ${isPadding ? "heatmap-cell--empty" : ""} ${
+                    isFuture ? "heatmap-cell--disabled" : ""
                   } ${selectedDate === day.date ? "heatmap-cell--selected" : ""}`}
                   onClick={() => handleCellClick(day.date)}
                   title={day.date ? `${day.date} · $${day.total.toFixed(2)}` : ""}
-                  style={{
-                    backgroundColor: day.disabled
-                      ? "transparent"
-                      : `var(${colorVar}-${day.bucket})`,
-                    cursor: day.disabled ? "default" : "pointer",
-                  }}
+                  // Only a real day gets an inline bucket fill; the other
+                  // two take their appearance from their class, which an
+                  // inline background would otherwise win against.
+                  style={
+                    isPadding || isFuture ? undefined : { backgroundColor: `var(${colorVar}-${day.bucket})` }
+                  }
                   disabled={day.disabled}
                 >
                   {dayNumber !== null && (
-                    <span className="heatmap-cell-date" style={{ color: `var(${colorVar}-text-${day.bucket})` }}>
+                    <span
+                      className="heatmap-cell-date"
+                      style={isFuture ? undefined : { color: `var(${colorVar}-text-${day.bucket})` }}
+                    >
                       {dayNumber}
                     </span>
                   )}

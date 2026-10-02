@@ -4,6 +4,22 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
+ * Whole dollars, no cents: "$594". The design system reserves this for
+ * display headlines specifically ("Currency always $1,234.56; headlines
+ * use whole dollars"), where the cents are noise against a 44px figure --
+ * every other figure on the same screen, including the stat row directly
+ * beneath the headline, still shows cents via formatCurrency above.
+ */
+export function formatWholeDollars(amount: number): string {
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
+/**
  * The single source of truth for a friendly display date: "Aug 11, 2026" —
  * a goal's ETA, a transaction-list date-group header, a History entry. Not
  * for "YYYY-MM-DD" form fields/labels (see lib/pay-date.ts's

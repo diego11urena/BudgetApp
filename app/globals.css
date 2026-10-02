@@ -4985,11 +4985,13 @@ button.line-item--link {
   flex: 0 0 auto;
 }
 
+/* Sentence case, not uppercase -- screens/18 draws these as "Income /
+   Spent / Saved". The uppercase treatment belongs to the screen's own
+   kicker above the headline, and having both competing made the stat row
+   read as a second kicker rather than as data. */
 .summary-stat-label {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .summary-stat-value {
@@ -5240,8 +5242,30 @@ button.line-item--link {
   font-variant-numeric: tabular-nums;
 }
 
+/* A live period's not-yet-happened days. The spec draws these as a
+   --surface fill with a 1px dashed --border and a dimmed date, NOT as a
+   faded heat cell: an opacity wash made them read as "a very small
+   amount was spent" on the same ramp as every other cell, when the real
+   meaning is "this day hasn't happened yet". The dashed outline says
+   that without borrowing the ramp's vocabulary. */
 .heatmap-cell--disabled {
-  opacity: 0.35;
+  background: var(--color-card);
+  border: 1px dashed var(--color-border);
+  cursor: default;
+}
+
+.heatmap-cell--disabled .heatmap-cell-date {
+  /* A future day has no bucket to speak for it, so it gets the faint
+     tier rather than a per-bucket colour (the component omits the inline
+     colour for these, so no !important is needed). */
+  color: var(--color-text-faint);
+}
+
+/* Padding cells before the period's first weekday carry no date at all,
+   so they shouldn't draw a box either. */
+.heatmap-cell--empty {
+  background: none;
+  border: none;
 }
 
 .heatmap-legend {
@@ -5337,6 +5361,44 @@ button.line-item--link {
   background: var(--color-bg-secondary);
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* LIVE's pace callout: the spec gives it a 1px border and a leading dot
+   that the CLOSED comparison banner doesn't have. */
+.breakdown-banner--pace {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.breakdown-pace-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  /* Always neutral. The spec is explicit that this dot never goes green
+     even when the user is under pace, because green means income
+     everywhere else in the product. */
+  background: var(--color-text-secondary);
+}
+
+/* LIVE top headline -- 32px/800 per the type scale, with the two money
+   figures in ink so the sentence reads as a comparison. */
+.breakdown-live-headline {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--color-text-secondary);
+  text-wrap: balance;
+  margin-bottom: 0.875rem;
+}
+
+.breakdown-live-headline-figure {
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
 }
 

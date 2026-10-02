@@ -785,6 +785,7 @@ export const en: Dictionary = {
       `${count} ${count === 1 ? "transaction" : "transactions"} without a category (${amount})`,
     fixAction: "Fix",
     ctaStart: (vocab) => `Start ${vocab.nextPeriod}`,
+    ctaStartRange: (dateRange) => `Start ${dateRange}`,
     seeFullBreakdown: "See full breakdown",
   },
 
@@ -803,6 +804,9 @@ export const en: Dictionary = {
     headingLive: (vocab, periodName) => capitalize(periodName),
     headingClosed: "Where it went",
     sublineDay: (day, total) => `Day ${day} of ${total}`,
+    sublineRangeDay: (dateRange, day, total) => `${dateRange} · Day ${day} of ${total}`,
+    liveHeadlinePrefix: "You've spent",
+    liveHeadlineOf: "of",
     bannerLive: (vocab, day, total, spent, projected) =>
       `Day ${day} of ${total} · ${spent} spent · on pace for ${projected}`,
     bannerClosed: (spent, avg) =>
@@ -836,6 +840,11 @@ export const en: Dictionary = {
     donutShareNew: (share) => `${share} · new this period`,
 
     chapter4Title: "When you spend",
+    chapter4Takeaway: (vocab, share, carries) =>
+      carries
+        ? `Weekends carry it — Fri–Sun is ${share}% of the ${vocab.noun}. Tap a day for detail.`
+        : `Fri–Sun is ${share}% of the ${vocab.noun}. Tap a day for detail.`,
+    chapter4TakeawayEmpty: "Tap a day for detail.",
     dayPanelHeaderToday: (date, total) => `Today · ${date} · ${total}`,
     dayPanelHeaderLastDay: (date, total) => `${date} · Last day · ${total}`,
     dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,

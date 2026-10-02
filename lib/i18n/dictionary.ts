@@ -828,6 +828,8 @@ export type Dictionary = {
     uncategorizedWarning: (count: number, amount: string) => string;
     fixAction: string;
     ctaStart: (vocab: PeriodVocab) => string;
+    /** Preferred over ctaStart whenever the next period's dates are known -- "Start Sep 1 - Sep 15". */
+    ctaStartRange: (dateRange: string) => string;
     seeFullBreakdown: string;
   };
 
@@ -836,6 +838,11 @@ export type Dictionary = {
     headingLive: (vocab: PeriodVocab, periodName: string) => string;
     headingClosed: string;
     sublineDay: (day: number, total: number) => string;
+    /** LIVE subline, with the period's own dates: "Oct 1 - Oct 15 · Day 12 of 15". */
+    sublineRangeDay: (dateRange: string, day: number, total: number) => string;
+    /** LIVE top headline: "You've spent $594 of $891." -- the spent figure is emphasised by the caller. */
+    liveHeadlinePrefix: string;
+    liveHeadlineOf: string;
     bannerLive: (vocab: PeriodVocab, day: number, total: number, spent: string, projected: string) => string;
     bannerClosed: (spent: string, avg: string) => string;
 
@@ -884,6 +891,15 @@ export type Dictionary = {
 
     /** Chapter 04 -- When you spend (the heatmap; moved here from slot 01). */
     chapter4Title: string;
+    /**
+     * Chapter 04's takeaway. Branches on whether the weekend actually
+     * carries the period -- the spec's own line ("Weekends carry it") is
+     * only true above a majority share, and asserting it at 12% would be
+     * a confident falsehood. `share` is already a rounded percentage.
+     */
+    chapter4Takeaway: (vocab: PeriodVocab, share: number, carries: boolean) => string;
+    /** Shown instead when the period has no spend to apportion. */
+    chapter4TakeawayEmpty: string;
     /** Day panel header -- "AUG 31 · LAST DAY · $18.40" (CLOSED, when the selected day happens to be the period's actual last day) or "TODAY · AUG 27 · $24.00" (LIVE, when it's today). Neither qualifier applies to some other day the user tapped -- see dayPanelHeaderPlain. */
     dayPanelHeaderToday: (date: string, total: string) => string;
     dayPanelHeaderLastDay: (date: string, total: string) => string;

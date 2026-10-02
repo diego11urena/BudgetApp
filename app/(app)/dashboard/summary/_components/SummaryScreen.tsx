@@ -6,7 +6,7 @@ import type { CycleFinancials } from "@/lib/cycle-financials";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { SpendComparison, UncategorizedWarning } from "@/lib/summary";
 import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatWholeDollars } from "@/lib/format";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import SummaryHeadline from "./SummaryHeadline";
 import SummaryContextLine from "./SummaryContextLine";
@@ -20,6 +20,8 @@ import SummaryCta from "./SummaryCta";
 interface SummaryScreenProps {
   cycleId: string;
   cycleRangeText: string;
+  /** The period this summary hands off to, for the CTA's label. Null when there's no open cycle to name. */
+  nextCycleRangeText: string | null;
   financials: CycleFinancials;
   goalsWithProgress: GoalWithProgress[];
   recurringFulfillment: RecurringFulfillment;
@@ -31,6 +33,7 @@ interface SummaryScreenProps {
 export default function SummaryScreen({
   cycleId,
   cycleRangeText,
+  nextCycleRangeText,
   financials,
   goalsWithProgress,
   recurringFulfillment,
@@ -60,7 +63,15 @@ export default function SummaryScreen({
         <p className="summary-header-eyebrow">{t.breakdown.closedEyebrow(cycleRangeText)}</p>
       </header>
 
-      <SummaryHeadline spent={formatCurrency(financials.totalExpenses)} saved={formatCurrency(financials.totalSavings)} t={t} vocab={vocab} />
+      {/* Whole dollars here only -- the design system's type notes put
+          headlines on whole dollars while every other figure, including
+          the stat row just below, keeps its cents. */}
+      <SummaryHeadline
+        spent={formatWholeDollars(financials.totalExpenses)}
+        saved={formatWholeDollars(financials.totalSavings)}
+        t={t}
+        vocab={vocab}
+      />
 
       <SummaryContextLine comparison={comparison} t={t} vocab={vocab} />
 
@@ -86,7 +97,7 @@ export default function SummaryScreen({
 
       {uncategorized && <SummaryUncategorizedStrip warning={uncategorized} t={t} />}
 
-      <SummaryCta cycleId={cycleId} vocab={vocab} t={t} />
+      <SummaryCta cycleId={cycleId} nextCycleRangeText={nextCycleRangeText} vocab={vocab} t={t} />
     </div>
   );
 }

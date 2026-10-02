@@ -14,6 +14,7 @@ import {
   computeCashFlowBreakdown,
   computeCategoryRollingAverage,
   computeDailySpendBuckets,
+  computeWeekendShare,
   computeHeatmapPercentileBuckets,
   computeLiveBanner,
   computeSameDayIndexAverage,
@@ -110,6 +111,10 @@ export default async function BreakdownPage({
     };
   });
   const defaultSelected = pickDefaultSelectedDay(dailyTotals, state, new Date());
+  // Chapter 04's takeaway. Rounded here rather than in the component so
+  // the copy function only ever receives a whole percentage to print.
+  const weekendShare = computeWeekendShare(dailyTotals);
+  const weekendSharePercent = weekendShare === null ? null : Math.round(weekendShare.share * 100);
   const selectedDayDefault = defaultSelected ? formatCycleLabel(defaultSelected) : null;
   // Only the days that actually have something to show, so a 31-day cycle
   // doesn't ship 31 empty arrays to the client.
@@ -201,6 +206,8 @@ export default async function BreakdownPage({
       biggestTransactions={biggestTransactions}
       categories={categories}
       historyCount={history.length}
+      weekendSharePercent={weekendSharePercent}
+      income={cashFlow.income}
     />
   );
 }

@@ -48,13 +48,25 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
     notFound();
   }
 
-  const [budgetFrequency, financials, goalsWithProgress, recurringExpenseCategories, closedCycles] = await Promise.all([
-    getUserBudgetFrequency(userId),
-    getCycleFinancials(cycle.id),
-    getGoalsWithProgress(userId, cycle.id),
-    getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
-    getClosedCycles(userId, COMPARISON_HISTORY_DEPTH),
-  ]);
+  const [budgetFrequency, financials, goalsWithProgress, recurringExpenseCategories, closedCycles, nextCycle] =
+    await Promise.all([
+      getUserBudgetFrequency(userId),
+      getCycleFinancials(cycle.id),
+      getGoalsWithProgress(userId, cycle.id),
+      getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
+      getClosedCycles(userId, COMPARISON_HISTORY_DEPTH),
+      // The period this summary hands off to, so the CTA can name its
+      // actual dates ("Start Sep 1 - Sep 15") rather than the generic
+      // "Start next paycheck". findFirst, deliberately NOT
+      // getOrCreateDraftCycle: viewing a past summary must never create a
+      // cycle as a side effect. Null is a normal outcome (an old summary
+      // reached from History, where the open cycle may be several periods
+      // on), and the CTA falls back to the generic label then.
+      prisma.budgetCycle.findFirst({
+        where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
+        select: { periodStart: true, periodEnd: true },
+      }),
+    ]);
 
   // Shared with Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's
   // own doc comment for why the two screens read from one function.
@@ -88,6 +100,9 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
     <SummaryScreen
       cycleId={cycle.id}
       cycleRangeText={formatCycleRangeText(cycle, {}, budgetFrequency)}
+      nextCycleRangeText={
+        nextCycle ? formatCycleRangeText(nextCycle, {}, budgetFrequency) : null
+      }
       financials={financials}
       goalsWithProgress={goalsWithProgress}
       recurringFulfillment={recurringFulfillment}

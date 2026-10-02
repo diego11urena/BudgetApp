@@ -35,6 +35,10 @@ interface BreakdownScreenNewProps {
   categories: CategoryRow[];
   /** Closed periods available for comparison, excluding the one being viewed. */
   historyCount: number;
+  /** Chapter 04's Fri-Sun share as a whole percentage; null when the period has no spend. */
+  weekendSharePercent: number | null;
+  /** LIVE only -- total income for the period, the denominator in "spent $X of $Y". */
+  income: number;
 }
 
 /**
@@ -62,6 +66,8 @@ export default function BreakdownScreenNew({
   recurringFulfillment,
   biggestTransactions,
   categories,
+  weekendSharePercent,
+  income,
 }: BreakdownScreenNewProps) {
   const router = useRouter();
   const t = useT();
@@ -102,7 +108,9 @@ export default function BreakdownScreenNew({
             {state === "LIVE" ? t.breakdown.headingLive(vocab, vocab.thisPeriod) : t.breakdown.headingClosed}
           </h1>
           {state === "LIVE" && (
-            <p className="breakdown-header-subline">{t.breakdown.sublineDay(dayIndex, totalDays)}</p>
+            <p className="breakdown-header-subline">
+              {t.breakdown.sublineRangeDay(dateRangeLabel, dayIndex, totalDays)}
+            </p>
           )}
         </div>
 
@@ -130,7 +138,23 @@ export default function BreakdownScreenNew({
         </div>
       </header>
 
-      <p className="breakdown-banner" role="status">
+      {/* LIVE's top section is exactly two things per the spec: this
+          headline and the pace callout below it. The spent figure is the
+          emphasised half -- it is what the sentence is about -- so it is
+          split out rather than templated into one opaque string, which
+          also keeps EN/ES word order free. */}
+      {state === "LIVE" && (
+        <h2 className="breakdown-live-headline">
+          {t.breakdown.liveHeadlinePrefix}{" "}
+          <span className="breakdown-live-headline-figure">{formatCurrency(spent)}</span>{" "}
+          {t.breakdown.liveHeadlineOf} <span className="breakdown-live-headline-figure">{formatCurrency(income)}</span>.
+        </h2>
+      )}
+
+      <p className={`breakdown-banner${state === "LIVE" ? " breakdown-banner--pace" : ""}`} role="status">
+        {/* Neutral dot, never green -- green is reserved for income
+            (DESIGN.md S1), even when the user is comfortably under pace. */}
+        {state === "LIVE" && <span className="breakdown-pace-dot" aria-hidden="true" />}
         {state === "LIVE"
           ? t.breakdown.bannerLive(vocab, dayIndex, totalDays, formatCurrency(spent), formatCurrency(projected))
           : comparisonCycleCount > 0
@@ -163,6 +187,11 @@ export default function BreakdownScreenNew({
         <section className="breakdown-chapter">
           <p className="breakdown-chapter-kicker">04</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter4Title}</h2>
+          <p className="breakdown-chapter-takeaway">
+            {weekendSharePercent === null
+              ? t.breakdown.chapter4TakeawayEmpty
+              : t.breakdown.chapter4Takeaway(vocab, weekendSharePercent, weekendSharePercent >= 50)}
+          </p>
           <WhenYouSpendChapter
             days={heatmapDays}
             defaultSelected={selectedDayDefault}

@@ -1,5 +1,5 @@
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
-import { addDays, formatCycleLabel } from "./pay-date";
+import { addDays, formatCycleLabel, panamaDateParts } from "./pay-date";
 
 /** Transaction classification for the cash-flow model and its consumers. */
 export type TransactionCategory = "fixed" | "discretionary" | "goals" | "income";
@@ -226,6 +226,51 @@ export function computeCategoryRollingAverage(
   }
 
   return Math.round((total / recent.length) * 100) / 100;
+}
+
+/** Chapter 04's takeaway: how much of the period's spend lands Fri-Sun. */
+export interface WeekendShare {
+  /** 0-1. Fri+Sat+Sun spend over all spend in the period. */
+  share: number;
+  weekendTotal: number;
+  periodTotal: number;
+}
+
+/**
+ * The design spec's chapter 04 takeaway is "Weekends carry it — Fri–Sun is
+ * 61% of the quincena", so the weekend here is FRIDAY through Sunday, not
+ * the Sat/Sun pair -- Friday night is where a discretionary week tends to
+ * tip over, which is the whole observation the line is making.
+ *
+ * Returns null when the period has no spend at all: 0 of 0 is not "0% at
+ * the weekend", it is nothing to say, and the chapter already renders its
+ * own "No spending" state in that case.
+ *
+ * Weekday comes from the Panama calendar parts re-anchored through
+ * Date.UTC, never from getDay() on the stored instant -- a Date built by
+ * panamaMidnight is an absolute time, and asking it for a weekday in the
+ * server's own timezone can land a Friday 7pm purchase on Saturday (the
+ * exact class of bug the rest of this file's date math exists to avoid).
+ */
+export function computeWeekendShare(dailyTotals: DailySpend[]): WeekendShare | null {
+  let weekendTotal = 0;
+  let periodTotal = 0;
+
+  for (const { date, total } of dailyTotals) {
+    const { year, month, day } = panamaDateParts(date);
+    const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    // 5 = Friday, 6 = Saturday, 0 = Sunday.
+    if (weekday === 5 || weekday === 6 || weekday === 0) weekendTotal += total;
+    periodTotal += total;
+  }
+
+  if (periodTotal <= 0) return null;
+
+  return {
+    share: weekendTotal / periodTotal,
+    weekendTotal: Math.round(weekendTotal * 100) / 100,
+    periodTotal: Math.round(periodTotal * 100) / 100,
+  };
 }
 
 /**
