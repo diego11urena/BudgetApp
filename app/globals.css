@@ -773,7 +773,12 @@ a {
 
 .expenses-step-add-row input,
 .expenses-step-add-row select {
+  /* min-width:0 matters as much as flex:1 here -- a flex item's default
+     min-width:auto refuses to shrink below its intrinsic width, which is
+     what pushed the amount field past the card's right edge on a 390px
+     screen. */
   flex: 1;
+  min-width: 0;
   min-height: 52px;
   padding: 0.6rem 0.8rem;
   border-radius: var(--radius-sm);
@@ -789,11 +794,57 @@ a {
   min-height: 52px;
 }
 
-.expenses-step-suggestions {
+/* ----- Onboarding step 2: Scheduled / Ongoing groups ----- */
+.expenses-step-group {
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* "Two groups, separated by a 1px divider." */
+.expenses-step-group--divided {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+/* Ongoing's amount wears a "~" to say the number is typical, not exact.
+   The prefix sits inside the field's own box so it reads as part of the
+   input rather than a separate label. */
+.expenses-step-amount-field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.expenses-step-amount-field input {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.9375rem;
+}
+
+.expenses-step-tilde + input {
+  padding-left: 1.5rem;
+}
+
+.expenses-step-tilde {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-text-faint);
+  pointer-events: none;
 }
 
 .chip-pill {
@@ -825,17 +876,25 @@ a {
   margin-right: 0.3rem;
 }
 
-/* Goal step -- live projection card */
+/* Goal step -- live projection card.
+   Savings blue in both themes. DESIGN.md S1 lists "onboarding projection"
+   under Savings/goals, and its light spec for this card is the savings
+   tint (#eef4ff) with a --savings ring. HANDOFF's onboarding-dark notes
+   instead give it a gold treatment (#2b2113 fill, #e6c48f copy, #d59a3c
+   ring) -- a leftover from the draft where savings itself was gold.
+   DESIGN.md wins, so the card is the savings tint with savings copy and
+   ring on both sides, which also keeps it matching the goal rings on Plan
+   and the completed-goal block on Summary. */
 .goal-step-projection {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--color-accent-bg);
+  background: var(--color-savings-bg);
   border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-top: 1rem;
   font-size: 0.875rem;
-  color: var(--color-accent-green);
+  color: var(--color-savings);
 }
 
 .goal-step-projection-ring {
@@ -4304,8 +4363,16 @@ button.line-item--link {
   color: var(--color-text-secondary);
 }
 
+/* Desktop-only. The spec's mobile landing is a deliberately spare
+   single column whose auth entries are exactly two: the header's Log in
+   pill and the one Get started button, with the inline "Already have an
+   account? Log in" link called out as "the only other auth entry; do not
+   add a second Log in button". This band carries a second Get started
+   AND a second Log in, so on a phone it broke that rule twice -- and
+   screens/09 draws the mobile page ending at the trust line, with no
+   band at all. It stays in the desktop layout, which does spec it. */
 .landing-cta-band {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 1.25rem;
   background: var(--color-hero-bg);
@@ -4354,15 +4421,19 @@ button.line-item--link {
   opacity: 1;
 }
 
+/* One row on every width -- copyright left, links right. The mobile
+   footer the spec draws is a single line, not a stacked centred block;
+   at 390px "© 2026 Balboa" and two short links fit comfortably. */
 .landing-footer {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 20px;
   border-top: 1px solid var(--color-divider);
   color: var(--color-silver);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .landing-footer-brand {
@@ -4372,6 +4443,12 @@ button.line-item--link {
 
 .landing-footer-brand .landing-brand-logo {
   border-radius: 6px;
+}
+
+/* Both desktop-only -- see their call sites in app/page.tsx. */
+.landing-footer-logo,
+.landing-footer-support {
+  display: none;
 }
 
 .landing-footer-links {
@@ -4573,6 +4650,7 @@ button.line-item--link {
   }
 
   .landing-cta-band {
+    display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -4601,6 +4679,14 @@ button.line-item--link {
     flex-direction: row;
     justify-content: space-between;
     padding: 20px 56px;
+  }
+
+  .landing-footer-logo {
+    display: block;
+  }
+
+  .landing-footer-support {
+    display: inline;
   }
 }
 
@@ -5888,18 +5974,34 @@ button.line-item--link {
 
 
 /* ----- Explainer bubble (DESIGN.md S6) -----
-   A disclosure, not a tooltip: --primary fill, 13px white copy, radius
-   14, and a 10px rotated square under the ⓘ acting as the caret. Used by
-   onboarding step 2 to explain Scheduled vs Ongoing. */
+   A disclosure, not a tooltip: --primary fill, 13px copy, radius 14, and
+   a 10px rotated square acting as the caret. The ⓘ sits inline after the
+   heading and the bubble spans the full width below, so the caret hangs
+   off the TOGGLE rather than off the bubble -- that way it tracks the
+   button's position automatically, which a fixed offset on the bubble
+   could not do once "Scheduled" becomes "Programados". */
 .explainer {
-  position: relative;
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
 }
 
-/* 24px visual, padded out to the 44px minimum hit area via the negative
-   margin trick rather than by growing the circle itself. */
+.explainer-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.explainer-heading {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+/* 24px visual, padded out to the 44px minimum hit area by a transparent
+   ::before rather than by growing the circle itself. */
 .explainer-toggle {
+  position: relative;
   width: 24px;
   height: 24px;
   display: inline-flex;
@@ -5914,11 +6016,11 @@ button.line-item--link {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.explainer-toggle::after {
+.explainer-toggle::before {
   content: "";
   position: absolute;
   top: 50%;
-  left: 12px;
+  left: 50%;
   width: 44px;
   height: 44px;
   transform: translate(-50%, -50%);
@@ -5927,6 +6029,21 @@ button.line-item--link {
 .explainer-toggle.is-open {
   background: var(--color-button-bg);
   color: var(--color-on-accent);
+}
+
+/* The caret: a 10px square rotated 45deg, sitting in the gap between the
+   toggle and the bubble below it. Only drawn while open, since there is
+   nothing for it to point at otherwise. */
+.explainer-toggle.is-open::after {
+  content: "";
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--color-button-bg);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
 }
 
 .explainer-toggle:active {
@@ -5943,8 +6060,7 @@ button.line-item--link {
 }
 
 .explainer-bubble {
-  position: relative;
-  margin-top: 10px;
+  margin-top: 8px;
   padding: 0.75rem 0.875rem;
   border-radius: 14px;
   background: var(--color-button-bg);
@@ -5954,26 +6070,20 @@ button.line-item--link {
   text-wrap: pretty;
 }
 
-/* The caret: a 10px square rotated 45deg, half-buried under the bubble's
-   top edge so only the point shows. Inherits the bubble's own background
-   so the two can never drift apart. */
-.explainer-bubble::before {
-  content: "";
-  position: absolute;
-  top: -5px;
-  left: 7px;
-  width: 10px;
-  height: 10px;
-  background: inherit;
-  transform: rotate(45deg);
-  border-radius: 2px;
+/* Dark: the open ⓘ becomes the accent blue with a dark glyph, and the
+   bubble lifts to its own #243444 surface -- HANDOFF's onboarding dark
+   notes give those two different values, so the caret follows the ⓘ's
+   colour (it belongs to the button) while the bubble keeps its own. */
+:root[data-theme="dark"] .explainer-toggle.is-open {
+  background: var(--color-accent-green);
+  color: var(--color-bg);
 }
 
-/* Dark mode lifts the fill off --primary (which is a brighter blue here)
-   to the design system's own #243444, so the bubble reads as a raised
-   surface rather than as a second primary button. */
-:root[data-theme="dark"] .explainer-toggle.is-open,
+:root[data-theme="dark"] .explainer-toggle.is-open::after,
 :root[data-theme="dark"] .explainer-bubble {
   background: #243444;
+}
+
+:root[data-theme="dark"] .explainer-bubble {
   color: var(--color-text-primary);
 }

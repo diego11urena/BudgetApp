@@ -197,8 +197,23 @@ export type Dictionary = {
       dueDayAria: string;
       dueDayOption: string;
       addButton: string;
-      suggestionChip: (name: string) => string;
-      suggestions: { phone: string; netflix: string; spotify: string; gym: string; insurance: string };
+      /**
+       * Step 2 is split into the two groups the recurring model actually
+       * has (hasFixedDate true/false). Each heading gets an explainer
+       * bubble behind an info button, because the distinction decides how
+       * the app judges the item later -- a Scheduled item is checked for
+       * being charged, an Ongoing one is only noted when logged.
+       */
+      scheduledHeading: string;
+      ongoingHeading: string;
+      scheduledExplainer: string;
+      ongoingExplainer: string;
+      scheduledExplainerAria: string;
+      ongoingExplainerAria: string;
+      /** Ongoing's amount field -- a typical amount, not an exact one, hence the "~". */
+      typicalAmountPlaceholder: string;
+      /** Meta line under an added Ongoing row. */
+      ongoingMeta: string;
       tipLabel: string;
       tipBody: string;
       saving: string;

@@ -170,13 +170,25 @@ export default async function Home() {
 
       <footer className="landing-footer">
         <div className="landing-brand landing-footer-brand">
-          <Image src="/balboa-logo.png" alt="" width={26} height={26} className="landing-brand-logo" />
+          {/* The 26px mark is desktop-only -- the mobile footer the spec
+              draws is one line of copyright against two links, and
+              screens/09 shows no logo there. */}
+          <Image
+            src="/balboa-logo.png"
+            alt=""
+            width={26}
+            height={26}
+            className="landing-brand-logo landing-footer-logo"
+          />
           <span>{t.footerCopyright}</span>
         </div>
         <div className="landing-footer-links">
           <a href="#privacy">{t.footerPrivacy}</a>
           <a href="#terms">{t.footerTerms}</a>
-          <a href="#support">{t.footerSupport}</a>
+          {/* Support is listed in the desktop footer only. */}
+          <a href="#support" className="landing-footer-support">
+            {t.footerSupport}
+          </a>
         </div>
       </footer>
     </div>
