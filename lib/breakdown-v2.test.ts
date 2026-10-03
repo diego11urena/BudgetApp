@@ -10,6 +10,7 @@ import {
   computeCategoryRollingAverage,
   computeLiveBanner,
   computeWeekendShare,
+  computeTopTransactionsByCategory,
 } from "./breakdown-v2";
 import { formatCycleLabel, panamaMidnight } from "./pay-date";
 import type { CycleTransactionSummary, CycleFinancials } from "./cycle-financials";
@@ -498,5 +499,77 @@ describe("computeWeekendShare", () => {
     expect(result!.weekendTotal).toBe(33.33);
     expect(result!.periodTotal).toBe(100);
     expect(result!.share).toBeCloseTo(0.33333, 4);
+  });
+});
+
+describe("computeTopTransactionsByCategory", () => {
+  const makeTx = (over: Partial<CycleTransactionSummary> & { id: string; amount: number }): CycleTransactionSummary =>
+    ({
+      name: over.id,
+      categoryName: null,
+      occurredAt: new Date("2026-08-05T15:00:00.000Z"),
+      type: "EXPENSE",
+      recurringExpenseId: null,
+      expenseCategoryId: null,
+      paymentMethod: null,
+      ...over,
+    }) as CycleTransactionSummary;
+  const tx = (over: Partial<CycleTransactionSummary> & { id: string; amount: number }) =>
+    makeTx({ type: "EXPENSE", expenseCategoryId: "food", ...over });
+
+  it("returns each category's transactions largest first, capped at the limit", () => {
+    const result = computeTopTransactionsByCategory([
+      tx({ id: "a", amount: 17.5, name: "Super 99" }),
+      tx({ id: "b", amount: 41.2, name: "Riba Smith" }),
+      tx({ id: "c", amount: 12.75, name: "McDonald's" }),
+      tx({ id: "d", amount: 5, name: "Kiosco" }),
+    ]);
+    expect(result.food.map((r) => r.name)).toEqual(["Riba Smith", "Super 99", "McDonald's"]);
+    expect(result.food[0].amount).toBe(41.2);
+  });
+
+  it("keeps categories separate -- a category's rows are only its own", () => {
+    const result = computeTopTransactionsByCategory([
+      tx({ id: "a", amount: 10, name: "Food one" }),
+      tx({ id: "b", amount: 99, name: "Taxi", expenseCategoryId: "transport" }),
+    ]);
+    expect(result.food.map((r) => r.name)).toEqual(["Food one"]);
+    expect(result.transport.map((r) => r.name)).toEqual(["Taxi"]);
+  });
+
+  it("returns fewer than the limit when that's all the category has", () => {
+    const result = computeTopTransactionsByCategory([tx({ id: "a", amount: 10 })]);
+    expect(result.food).toHaveLength(1);
+  });
+
+  it("omits a category entirely when it has no transactions", () => {
+    const result = computeTopTransactionsByCategory([tx({ id: "a", amount: 10 })]);
+    // The caller renders an empty state off the missing key rather than
+    // being handed somebody else's rows.
+    expect(result.transport).toBeUndefined();
+  });
+
+  it("ignores income, savings and uncategorized rows", () => {
+    const result = computeTopTransactionsByCategory([
+      tx({ id: "a", amount: 10, name: "Groceries" }),
+      makeTx({ id: "b", amount: 500, name: "Paycheck", type: "INCOME", expenseCategoryId: "food" }),
+      makeTx({ id: "c", amount: 300, name: "Emergency fund", type: "SAVINGS", expenseCategoryId: "food" }),
+      makeTx({ id: "d", amount: 900, name: "Bank import", type: "EXPENSE", expenseCategoryId: null }),
+    ]);
+    expect(result.food.map((r) => r.name)).toEqual(["Groceries"]);
+  });
+
+  it("carries the payment method through for the row's secondary line", () => {
+    const result = computeTopTransactionsByCategory([
+      tx({ id: "a", amount: 10, paymentMethod: "CREDIT_CARD" }),
+    ]);
+    expect(result.food[0].paymentMethod).toBe("CREDIT_CARD");
+  });
+
+  it("does not mutate the array it was given", () => {
+    const rows = [tx({ id: "a", amount: 1 }), tx({ id: "b", amount: 99 })];
+    const order = rows.map((r) => r.id);
+    computeTopTransactionsByCategory(rows);
+    expect(rows.map((r) => r.id)).toEqual(order);
   });
 });

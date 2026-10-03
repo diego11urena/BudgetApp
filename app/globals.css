@@ -6159,3 +6159,90 @@ button.line-item--link {
   border-top-color: var(--color-divider);
 }
 
+
+/* ----- Chapter 03: the selected category's transaction preview -----
+   Appears under the legend only while a slice is selected; the chapter's
+   resting state (donut + full legend) is unchanged. Separated from the
+   legend by a rule rather than its own card, because it belongs to the
+   same chapter card the donut already sits in. */
+.category-preview {
+  margin-top: 0.875rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--color-divider);
+}
+
+.category-preview-heading {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  margin-bottom: 0.625rem;
+}
+
+.category-preview-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.category-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  list-style: none;
+  margin-bottom: 0.875rem;
+}
+
+/* Name and amount share the top line; the meta line spans both columns
+   underneath, matching how chapter 05's rows and TransactionList already
+   stack a row's secondary detail. */
+.category-preview-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.125rem 0.75rem;
+}
+
+.category-preview-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-preview-amount {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.category-preview-meta {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+}
+
+/* Full-width sibling of chapter 04's own "View transactions" button --
+   same surface, pill and border, widened and centred because this one is
+   the panel's single closing action rather than a trailing link. */
+.category-preview-view-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card);
+  box-shadow: var(--shadow-row);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent-green);
+  text-decoration: none;
+}
+
+.category-preview-view-all:active {
+  background: var(--color-bg-secondary);
+}

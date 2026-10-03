@@ -943,6 +943,8 @@ export type Dictionary = {
     /** Same header, no qualifier -- any day that's neither today nor the period's last day. */
     dayPanelHeaderPlain: (date: string, total: string) => string;
     viewTransactions: string;
+    /** Chapter 03: shown under the donut when the selected category has no transactions to preview. */
+    categoryNoTransactions: string;
 
     /** Chapter 05 -- Biggest transactions (new). */
     chapter5Title: string;

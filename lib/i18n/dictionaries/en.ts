@@ -873,6 +873,7 @@ export const en: Dictionary = {
     dayPanelHeaderLastDay: (date, total) => `${date} · Last day · ${total}`,
     dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,
     viewTransactions: "View transactions →",
+    categoryNoTransactions: "No transactions in this category yet.",
 
     chapter5Title: "Biggest transactions",
     chapter5Takeaway: (state) =>

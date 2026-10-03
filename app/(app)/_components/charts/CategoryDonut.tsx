@@ -1,9 +1,12 @@
 "use client";
 
 import { useId, useState } from "react";
-import { formatCurrency } from "@/lib/format";
+import Link from "next/link";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { categoryColorVar } from "@/lib/category-colors";
-import { useT } from "@/app/_components/LocaleProvider";
+import { PAYMENT_METHOD_LABEL } from "@/lib/payment-method";
+import type { CategoryTransactionRow } from "@/lib/breakdown-v2";
+import { useT, useLocale } from "@/app/_components/LocaleProvider";
 
 /**
  * The one donut in the product. The design system is explicit that no
@@ -68,16 +71,25 @@ export default function CategoryDonut({
   slices,
   total,
   state,
+  topTransactionsByCategory = {},
 }: {
   slices: CategoryDonutSlice[];
   total: number;
   state: "LIVE" | "CLOSED";
+  /**
+   * Each category's own biggest transactions, keyed by category id (see
+   * computeTopTransactionsByCategory). Selecting a slice previews that
+   * category's rows underneath, which is the point of selecting one.
+   */
+  topTransactionsByCategory?: Record<string, CategoryTransactionRow[]>;
 }) {
   const t = useT();
+  const locale = useLocale();
   const titleId = useId();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selected = slices.find((s) => s.categoryId === selectedId) ?? null;
+  const selectedRows = selected ? (topTransactionsByCategory[selected.categoryId] ?? []) : [];
   const toggle = (id: string) => setSelectedId((current) => (current === id ? null : id));
 
   const shareOf = (amount: number) => (total > 0 ? amount / total : 0);
@@ -225,6 +237,47 @@ export default function CategoryDonut({
           );
         })}
       </ul>
+
+      {/* Only while a slice is selected. The resting state of this chapter
+          stays exactly what it was -- donut plus full legend -- and this
+          panel is an addition under it, not a replacement for either. */}
+      {selected && (
+        <div className="category-preview">
+          <p className="category-preview-heading">{selected.categoryName}</p>
+
+          {selectedRows.length === 0 ? (
+            // Never somebody else's rows: a category with nothing in it
+            // says so.
+            <p className="category-preview-empty">{t.breakdown.categoryNoTransactions}</p>
+          ) : (
+            <ul className="category-preview-list">
+              {selectedRows.map((row) => (
+                <li key={row.id} className="category-preview-row">
+                  <span className="category-preview-name">{row.name}</span>
+                  <span className="category-preview-amount">{formatCurrency(row.amount)}</span>
+                  {/* Date, plus the same payment-method metadata
+                      TransactionList already shows on a row. The category
+                      is deliberately not repeated -- every row here
+                      belongs to the heading directly above. */}
+                  <span className="category-preview-meta">
+                    {[formatShortDate(row.occurredAt, locale), row.paymentMethod ? PAYMENT_METHOD_LABEL[row.paymentMethod] : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Hands the selection straight to Activity's existing
+              ?category= filter -- the same query param its own filter
+              <select> reads, so the page opens with the filter visibly
+              applied rather than merely pre-filtered. */}
+          <Link href={`/transactions?category=${selected.categoryId}`} className="category-preview-view-all">
+            {t.breakdown.viewTransactions}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

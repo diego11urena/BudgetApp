@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
-import type { BiggestTransactionRow, CashFlowBreakdown } from "@/lib/breakdown-v2";
+import type { BiggestTransactionRow, CashFlowBreakdown, CategoryTransactionRow } from "@/lib/breakdown-v2";
 import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
 import type { CategoryRow, DayTransaction, HeatmapDayData } from "./types";
 import CashFlowChapter from "./chapters/CashFlowChapter";
@@ -33,6 +33,8 @@ interface BreakdownScreenNewProps {
   recurringFulfillment: RecurringFulfillment;
   biggestTransactions: BiggestTransactionRow[];
   categories: CategoryRow[];
+  /** Each category's biggest transactions, for chapter 03's selected-slice preview. */
+  topTransactionsByCategory: Record<string, CategoryTransactionRow[]>;
   /** Closed periods available for comparison, excluding the one being viewed. */
   historyCount: number;
   /** Chapter 04's Fri-Sun share as a whole percentage; null when the period has no spend. */
@@ -66,6 +68,7 @@ export default function BreakdownScreenNew({
   recurringFulfillment,
   biggestTransactions,
   categories,
+  topTransactionsByCategory,
   weekendSharePercent,
   income,
 }: BreakdownScreenNewProps) {
@@ -181,7 +184,11 @@ export default function BreakdownScreenNew({
           <p className="breakdown-chapter-kicker">03</p>
           <h2 className="breakdown-chapter-title">{t.breakdown.chapter3Title}</h2>
           <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(vocab, dateRangeLabel, state)}</p>
-          <ByCategoryChapter categories={categories} state={state} />
+          <ByCategoryChapter
+            categories={categories}
+            state={state}
+            topTransactionsByCategory={topTransactionsByCategory}
+          />
         </section>
 
         <section className="breakdown-chapter">

@@ -125,6 +125,72 @@ test.describe("Breakdown", () => {
     await expect(centre).toContainText("2 categories");
   });
 
+  test("selecting a category previews its own top transactions and hands them to Activity", async ({ page }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "2000" });
+
+    // Three Food purchases (so the top-3 cap and the ordering both bite)
+    // and one Transport, to prove the preview never borrows another
+    // category's rows.
+    for (const [amount, name, category] of [
+      ["17.50", "Super 99", "Food"],
+      ["41.20", "Riba Smith", "Food"],
+      ["12.75", "Cafe Unido", "Food"],
+      ["33.00", "Uber", "Transport"],
+    ] as const) {
+      await openQuickAdd(page, "Expense");
+      await fillAmount(page.getByLabel("Amount (USD)"), amount);
+      // Category first: the merchant name pre-fills FROM the category, so
+      // setting the category afterwards would overwrite the real name.
+      await fillCategory(page, category);
+      await page.locator('.sheet input[name="name"]').fill(name);
+      await page.click('button:has-text("Log it")');
+      // Wait for the sheet to actually close rather than for the row to
+      // appear on Home -- Home's Recent list is capped at three, so the
+      // fourth transaction is saved but deliberately not shown there.
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    }
+
+    await page.goto("/transactions/breakdown");
+    await expect(page.getByText("We hit a snag")).toHaveCount(0);
+
+    // Resting state: no preview at all, just the donut and its legend.
+    await expect(page.locator(".category-preview")).toHaveCount(0);
+
+    await page.locator(".category-donut-legend-row", { hasText: "Food" }).click();
+    const preview = page.locator(".category-preview");
+    await expect(preview).toBeVisible();
+    await expect(preview.locator(".category-preview-heading")).toHaveText("Food");
+
+    // Largest first, and only Food's own rows.
+    const names = preview.locator(".category-preview-name");
+    await expect(names).toHaveText(["Riba Smith", "Super 99", "Cafe Unido"]);
+    await expect(preview).not.toContainText("Uber");
+    await expect(preview.locator(".category-preview-amount").first()).toHaveText("$41.20");
+    // Each row carries its date alongside the metadata the rest of the
+    // app already shows.
+    await expect(preview.locator(".category-preview-meta").first()).not.toBeEmpty();
+
+    // Switching selection swaps the preview immediately.
+    await page.locator(".category-donut-legend-row", { hasText: "Transport" }).click();
+    await expect(preview.locator(".category-preview-heading")).toHaveText("Transport");
+    await expect(preview.locator(".category-preview-name")).toHaveText(["Uber"]);
+
+    // Tapping the selected one again returns to the default state.
+    await page.locator(".category-donut-legend-row", { hasText: "Transport" }).click();
+    await expect(page.locator(".category-preview")).toHaveCount(0);
+
+    // "View transactions" opens Activity already filtered to that
+    // category -- via the same ?category= param Activity's own filter
+    // <select> reads, so the control shows the filter applied too.
+    await page.locator(".category-donut-legend-row", { hasText: "Food" }).click();
+    await page.locator(".category-preview-view-all").click();
+    await page.waitForURL(/\/transactions\?category=/, { timeout: 30_000 });
+    await expect(page.locator(".transaction-row", { hasText: "Riba Smith" })).toBeVisible();
+    await expect(page.locator(".transaction-row", { hasText: "Uber" })).toHaveCount(0);
+    const categorySelect = page.getByLabel(/category/i).first();
+    await expect(categorySelect).not.toHaveValue("");
+  });
+
   test("chapter 05 never repeats the day chapter 04 has selected", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "2000" });
 

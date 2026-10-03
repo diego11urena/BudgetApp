@@ -371,3 +371,60 @@ export function computeBiggestTransactions(
     .slice(0, limit)
     .map((tx) => ({ id: tx.id, name: tx.name, categoryName: tx.categoryName, amount: tx.amount, occurredAt: tx.occurredAt }));
 }
+
+/** One row in chapter 03's per-category transaction preview. */
+export interface CategoryTransactionRow {
+  id: string;
+  name: string;
+  amount: number;
+  occurredAt: Date;
+  /** The same secondary metadata TransactionList already shows beside a row's category. */
+  paymentMethod: CycleTransactionSummary["paymentMethod"];
+}
+
+/**
+ * The top N transactions of every category, keyed by category id -- what
+ * chapter 03 shows underneath the donut once a slice is selected.
+ *
+ * Precomputed for every category rather than resolved on tap: the whole
+ * map is a few rows per category, and shipping it with the chapter keeps
+ * selection instant and client-only, where fetching per tap would put a
+ * network round trip inside an interaction whose entire point is that it
+ * responds immediately.
+ *
+ * EXPENSE only, and only rows that actually carry a category -- this
+ * chapter is a breakdown of spending by category, so an income row or an
+ * uncategorized one has no slice to belong to. That matches how
+ * categoryTotals (the donut's own source) is built, so a category's rows
+ * here always add up to the slice they sit under.
+ */
+export function computeTopTransactionsByCategory(
+  transactions: CycleTransactionSummary[],
+  limit: number = 3
+): Record<string, CategoryTransactionRow[]> {
+  const byCategory = new Map<string, CycleTransactionSummary[]>();
+
+  for (const tx of transactions) {
+    if (tx.type !== "EXPENSE" || !tx.expenseCategoryId) continue;
+    const existing = byCategory.get(tx.expenseCategoryId);
+    if (existing) existing.push(tx);
+    else byCategory.set(tx.expenseCategoryId, [tx]);
+  }
+
+  const result: Record<string, CategoryTransactionRow[]> = {};
+  for (const [categoryId, rows] of byCategory) {
+    result[categoryId] = rows
+      .slice()
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, limit)
+      .map((tx) => ({
+        id: tx.id,
+        name: tx.name,
+        amount: tx.amount,
+        occurredAt: tx.occurredAt,
+        paymentMethod: tx.paymentMethod,
+      }));
+  }
+
+  return result;
+}

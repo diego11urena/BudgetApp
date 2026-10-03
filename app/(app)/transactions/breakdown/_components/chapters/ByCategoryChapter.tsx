@@ -1,6 +1,7 @@
 "use client";
 
 import CategoryDonut from "@/app/(app)/_components/charts/CategoryDonut";
+import type { CategoryTransactionRow } from "@/lib/breakdown-v2";
 import { useT } from "@/app/_components/LocaleProvider";
 import type { CategoryRow } from "../types";
 
@@ -17,9 +18,12 @@ import type { CategoryRow } from "../types";
 export default function ByCategoryChapter({
   categories,
   state,
+  topTransactionsByCategory,
 }: {
   categories: CategoryRow[];
   state: "LIVE" | "CLOSED";
+  /** Each category's biggest transactions, previewed when its slice is selected. */
+  topTransactionsByCategory: Record<string, CategoryTransactionRow[]>;
 }) {
   const t = useT();
 
@@ -39,6 +43,7 @@ export default function ByCategoryChapter({
       }))}
       total={total}
       state={state}
+      topTransactionsByCategory={topTransactionsByCategory}
     />
   );
 }

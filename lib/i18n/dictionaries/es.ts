@@ -914,6 +914,7 @@ export const es: Dictionary = {
     dayPanelHeaderLastDay: (date, total) => `${date} · Último día · ${total}`,
     dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,
     viewTransactions: "Ver transacciones →",
+    categoryNoTransactions: "Aún no hay transacciones en esta categoría.",
 
     chapter5Title: "Las compras más grandes",
     chapter5Takeaway: (state) =>

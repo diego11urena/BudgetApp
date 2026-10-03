@@ -16,6 +16,7 @@ import {
   computeCategoryRollingAverage,
   computeDailySpendBuckets,
   computeWeekendShare,
+  computeTopTransactionsByCategory,
   computeHeatmapPercentileBuckets,
   computeLiveBanner,
   computeSameDayIndexAverage,
@@ -117,6 +118,9 @@ export default async function BreakdownPage({
   const defaultSelected = pickDefaultSelectedDay(dailyTotals, state, new Date());
   // Chapter 04's takeaway. Rounded here rather than in the component so
   // the copy function only ever receives a whole percentage to print.
+  // Chapter 03's per-category preview. Computed for every category up
+  // front so selecting a slice is instant and client-only.
+  const topTransactionsByCategory = computeTopTransactionsByCategory(financials.transactions);
   const weekendShare = computeWeekendShare(dailyTotals);
   const weekendSharePercent = weekendShare === null ? null : Math.round(weekendShare.share * 100);
   const selectedDayDefault = defaultSelected ? formatCycleLabel(defaultSelected) : null;
@@ -210,6 +214,7 @@ export default async function BreakdownPage({
       biggestTransactions={biggestTransactions}
       categories={categories}
       historyCount={history.length}
+      topTransactionsByCategory={topTransactionsByCategory}
       weekendSharePercent={weekendSharePercent}
       income={cashFlow.income}
     />
