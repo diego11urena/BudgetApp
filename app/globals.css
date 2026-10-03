@@ -775,7 +775,8 @@ a {
   cursor: pointer;
 }
 
-.expenses-step-row-remove:hover {
+.expenses-step-row-remove:hover,
+.expenses-step-row-remove:active {
   background: var(--color-bg-secondary-hover);
 }
 
@@ -865,22 +866,6 @@ a {
   font-weight: 700;
   color: var(--color-text-faint);
   pointer-events: none;
-}
-
-.chip-pill {
-  min-height: 32px;
-  padding: 0.4rem 0.85rem;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-secondary);
-  color: var(--color-accent-green);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.chip-pill:hover {
-  background: var(--color-bg-secondary-hover);
 }
 
 .tip-block {
@@ -1132,7 +1117,8 @@ input[type="checkbox"]::before {
   white-space: nowrap;
 }
 
-.button--chip:hover {
+.button--chip:hover,
+.button--chip:active {
   background: var(--color-bg-secondary-hover);
 }
 
@@ -1155,7 +1141,8 @@ input[type="checkbox"]::before {
   padding: 0.4rem 0.9rem;
   cursor: pointer;
 }
-.button--ghost:hover {
+.button--ghost:hover,
+.button--ghost:active {
   color: var(--color-text-primary);
 }
 .button--ghost:disabled {
@@ -1168,7 +1155,8 @@ input[type="checkbox"]::before {
 .button--ghost-danger {
   color: var(--color-error);
 }
-.button--ghost-danger:hover {
+.button--ghost-danger:hover,
+.button--ghost-danger:active {
   background: var(--color-error-bg);
   color: var(--color-error);
   border-radius: var(--radius-pill);
@@ -1219,7 +1207,8 @@ input[type="checkbox"]::before {
   border: 1px solid var(--color-error);
 }
 
-.button--danger:hover {
+.button--danger:hover,
+.button--danger:active {
   background: var(--color-error-bg);
 }
 
@@ -1245,16 +1234,6 @@ input[type="checkbox"]::before {
 .overage-text {
   color: var(--color-error);
   font-weight: 600;
-}
-
-.muted-link {
-  margin-top: 1.25rem;
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
-.muted-link a {
-  text-decoration: underline;
 }
 
 .step-progress {
@@ -1304,7 +1283,8 @@ input[type="checkbox"]::before {
   transform: translateY(-50%);
 }
 
-.step-progress a:hover {
+.step-progress a:hover,
+.step-progress a:active {
   background: var(--color-secondary-green);
 }
 
@@ -1325,13 +1305,6 @@ input[type="checkbox"]::before {
 
 .line-item:last-child {
   border-bottom: none;
-}
-
-.line-item-amounts {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: 0.875rem;
 }
 
 /* A small inline status pill (e.g. History's "CLOSED") -- neutral, not a
@@ -1755,7 +1728,8 @@ button.line-item--link {
   transition: background-color 0.15s ease;
 }
 
-.home-edit-pill:hover {
+.home-edit-pill:hover,
+.home-edit-pill:active {
   background: var(--color-bg-secondary-hover);
 }
 
@@ -1895,7 +1869,8 @@ button.line-item--link {
   transition: opacity 0.15s ease;
 }
 
-.hero-action-link:hover {
+.hero-action-link:hover,
+.hero-action-link:active {
   opacity: 0.9;
 }
 
@@ -2177,10 +2152,6 @@ button.line-item--link {
   color: var(--color-savings);
 }
 
-.stat-tile-value--warning {
-  color: var(--color-warning);
-}
-
 /* The "Bills left" / recurring-pending tile. DESIGN.md S1 lists "Bills
    left stat" under Recurring gold, and reserves --color-warning for
    uncategorized only ("Warning (uncategorized)"). HANDOFF's Home section
@@ -2311,7 +2282,8 @@ button.line-item--link {
   inset: -5px 0;
 }
 
-.type-toggle-btn:hover {
+.type-toggle-btn:hover,
+.type-toggle-btn:active {
   background: var(--color-bg-secondary-hover);
 }
 
@@ -2424,7 +2396,8 @@ button.line-item--link {
 }
 
 .category-name-input-dropdown button:hover,
-.category-name-input-dropdown button.is-active {
+.category-name-input-dropdown button.is-active,
+.category-name-input-dropdown button:active {
   background: var(--color-bg-secondary);
 }
 
@@ -2491,7 +2464,8 @@ button.line-item--link {
 }
 
 .recurring-picker-dropdown button:hover,
-.recurring-picker-dropdown button.is-active {
+.recurring-picker-dropdown button.is-active,
+.recurring-picker-dropdown button:active {
   background: var(--color-bg-secondary);
 }
 
@@ -2627,158 +2601,8 @@ button.line-item--link {
   color: var(--color-text-secondary);
 }
 
-.bar-chart-icon {
-  margin-right: 0.4rem;
-}
-
-/* Paycheck Breakdown pie chart */
-.pie-chart {
-  display: block;
-  width: 100%;
-  max-width: 15rem;
-  margin: 0 auto 1.25rem;
-}
-
-.pie-chart-slice {
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    opacity 0.15s ease;
-  /* Was --color-card -- on the dark-mode card background that's the exact
-     same color as the card itself, so it separated nothing between two
-     adjacent slices of a similar tone. --color-border is the token this
-     app already uses everywhere else a visible-but-quiet separator is
-     needed. */
-  stroke: var(--color-border);
-  stroke-width: 1.5;
-}
-
-.pie-chart-slice:focus-visible {
-  outline: 2px solid var(--color-accent-green);
-  outline-offset: 2px;
-}
-
-.pie-chart-slice.is-dimmed {
-  opacity: 0.45;
-}
-
-.breakdown-legend {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.breakdown-legend-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 0.5rem 0.4rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  font: inherit;
-  color: var(--foreground);
-  text-align: left;
-  cursor: pointer;
-}
-
 .breakdown-legend-row.is-selected {
   background: var(--color-bg-secondary);
-}
-
-.breakdown-legend-swatch {
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: var(--radius-pill);
-  flex-shrink: 0;
-}
-
-.breakdown-legend-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.breakdown-legend-sublabel {
-  color: var(--color-text-secondary);
-  font-weight: 400;
-}
-
-.breakdown-legend-amount {
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-}
-
-.breakdown-legend-percent {
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  min-width: 2.5rem;
-  text-align: right;
-}
-
-.breakdown-detail-panel {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
-}
-
-.breakdown-detail-header {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-}
-
-.breakdown-detail-title {
-  flex: 1;
-  font-weight: 600;
-}
-
-.breakdown-detail-amount {
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-}
-
-.breakdown-detail-transactions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
-}
-
-.breakdown-detail-tx-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.875rem;
-}
-
-.breakdown-detail-members {
-  margin-bottom: 0.25rem;
-}
-
-.breakdown-detail-member-row {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.4rem 0;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  background: none;
-  font: inherit;
-  color: var(--foreground);
-  cursor: pointer;
-}
-
-.breakdown-detail-member-row:last-child {
-  border-bottom: none;
 }
 
 /* Top categories horizontal bar chart */
@@ -3033,7 +2857,8 @@ button.line-item--link {
   padding: 0.25rem 0.5rem;
 }
 
-.icon-button:hover {
+.icon-button:hover,
+.icon-button:active {
   opacity: 1;
 }
 
@@ -3099,7 +2924,8 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.category-row-kebab:hover {
+.category-row-kebab:hover,
+.category-row-kebab:active {
   background: var(--color-bg-secondary);
 }
 
@@ -3193,7 +3019,8 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.icon-picker-item:hover {
+.icon-picker-item:hover,
+.icon-picker-item:active {
   background: var(--color-bg-secondary);
 }
 
@@ -3264,7 +3091,8 @@ button.line-item--link {
   margin: 0 auto;
 }
 
-.page-content h1,
+/* .page-content h1 was the other half of this selector -- that wrapper no
+   longer exists anywhere in the app, so only .page-title is left. */
 .page-title {
   font-family: var(--font-display);
   font-size: 1.625rem;
@@ -3476,10 +3304,6 @@ button.line-item--link {
 
 .progress-bar-fill--critical {
   background: var(--color-error);
-}
-
-.progress-bar-fill--navy {
-  background: var(--color-button-bg);
 }
 
 /* The Recurring tab's own summary bar -- "N of M paid this quincena" + a progress
@@ -3867,11 +3691,6 @@ button.line-item--link {
   font-variant-numeric: tabular-nums;
 }
 
-.goal-row-of {
-  color: var(--color-text-faint);
-  font-weight: 400;
-}
-
 .goal-row-actions {
   display: flex;
   align-items: center;
@@ -4055,7 +3874,8 @@ button.line-item--link {
   font-weight: 700;
 }
 
-.profile-signout-button:hover {
+.profile-signout-button:hover,
+.profile-signout-button:active {
   background: var(--color-bg-secondary-hover);
   opacity: 1;
 }
@@ -4505,7 +4325,8 @@ button.line-item--link {
   color: #ffffff;
 }
 
-.landing-cta-band-secondary:hover {
+.landing-cta-band-secondary:hover,
+.landing-cta-band-secondary:active {
   border-color: #ffffff;
   opacity: 1;
 }
@@ -4552,7 +4373,9 @@ button.line-item--link {
 }
 
 .landing-footer-links a:hover,
-.landing-nav a:hover {
+.landing-nav a:hover,
+.landing-footer-links a:active,
+.landing-nav a:active {
   color: var(--color-text-primary);
 }
 
@@ -5022,7 +4845,8 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.summary-header-back:hover {
+.summary-header-back:hover,
+.summary-header-back:active {
   color: var(--color-text-primary);
 }
 
@@ -5132,7 +4956,11 @@ button.line-item--link {
 .summary-sparkline-row:hover,
 .summary-recurring-row:hover,
 .summary-goals-completed:hover,
-.summary-goals-in-progress:hover {
+.summary-goals-in-progress:hover,
+.summary-sparkline-row:active,
+.summary-recurring-row:active,
+.summary-goals-completed:active,
+.summary-goals-in-progress:active {
   background: var(--color-bg-secondary);
 }
 
@@ -5408,7 +5236,9 @@ button.line-item--link {
 }
 
 .breakdown-header-back:hover,
-.breakdown-header-chevron:hover {
+.breakdown-header-chevron:hover,
+.breakdown-header-back:active,
+.breakdown-header-chevron:active {
   color: var(--color-text-primary);
 }
 
@@ -5591,7 +5421,8 @@ button.line-item--link {
   text-decoration: none;
 }
 
-.breakdown-day-view-all:hover {
+.breakdown-day-view-all:hover,
+.breakdown-day-view-all:active {
   background: var(--color-bg-secondary);
 }
 
@@ -5706,10 +5537,10 @@ button.line-item--link {
   margin: -0.5rem -0.625rem;
 }
 
-/* :active, never :hover -- DESIGN.md S5 is explicit that this is a mobile
+/* Pressed, never hover -- DESIGN.md S5 is explicit that this is a mobile
    product with no hover states anywhere, and a hover-only affordance on a
-   touch device is simply invisible. The focus ring is the keyboard half
-   of the same rule. */
+   touch device is simply invisible. The focus ring below is the keyboard
+   half of the same rule. */
 .cash-flow-legend-row--tappable:active {
   background: var(--color-bg-secondary-hover);
 }
@@ -5981,7 +5812,7 @@ button.line-item--link {
 }
 
 /* 180ms per the spec, on the two properties selection actually changes.
-   cursor:pointer only -- there is deliberately no :hover rule here (this
+   cursor:pointer only -- there is deliberately no hover rule here (this
    is a mobile product); the legend row below is the keyboard-reachable
    affordance for the same selection. */
 .category-donut-slice {

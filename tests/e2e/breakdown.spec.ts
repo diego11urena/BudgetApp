@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, openQuickAdd, fillCategory, fillAmount } from "./helpers";
+import { signUpAndOnboard, openQuickAdd, fillCategory, fillAmount, openMoreDetails } from "./helpers";
 
 test.describe("Breakdown", () => {
   test("LIVE: renders real pacing and populated chapters, not the error boundary", async ({ page }) => {
@@ -123,6 +123,63 @@ test.describe("Breakdown", () => {
     await expect(groceries).toHaveAttribute("aria-pressed", "false");
     await expect(centre).toContainText("$160.00");
     await expect(centre).toContainText("2 categories");
+  });
+
+  test("chapter 05 never repeats the day chapter 04 has selected", async ({ page }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "2000" });
+
+    // Backdate the cycle's start through the real Edit pay-info flow, the
+    // same technique payday-overdue.spec.ts uses -- a brand-new account's
+    // cycle starts TODAY, and addTransactionAction floors a transaction's
+    // date at the cycle start, so without this there is no earlier day to
+    // put a second transaction on.
+    await page.click("text=Edit");
+    const editPayDate = page.getByLabel("Pay date");
+    await editPayDate.waitFor();
+    const cycleStart = new Date();
+    cycleStart.setDate(cycleStart.getDate() - 5);
+    await editPayDate.fill(cycleStart.toISOString().slice(0, 10));
+    await page.click('.sheet button[type="submit"]');
+    await page.waitForSelector(".sheet-backdrop", { state: "detached" });
+
+    // Two days of spending: today (which LIVE always preselects in
+    // chapter 04) and an earlier day. Without the excludeDate rule,
+    // today's $300 would be the single biggest transaction AND the one
+    // already itemised in the day panel right above it.
+    const earlier = new Date();
+    earlier.setDate(earlier.getDate() - 2);
+    const yesterdayValue = earlier.toISOString().slice(0, 10);
+
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "300.00");
+    await fillCategory(page, "Rent");
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".transaction-row", { hasText: "Rent" })).toBeVisible();
+
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "90.00");
+    await fillCategory(page, "Market");
+    await openMoreDetails(page);
+    await page.locator('.sheet input[type="date"]').fill(yesterdayValue);
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".transaction-row", { hasText: "Market" })).toBeVisible();
+
+    await page.goto("/transactions/breakdown");
+    await expect(page.getByText("We hit a snag")).toHaveCount(0);
+
+    // Chapter 04 preselected today and itemises its $300 purchase...
+    const dayHeader = page.locator(".breakdown-day-detail-header");
+    await expect(dayHeader).toContainText("Today");
+    await expect(dayHeader).toContainText("$300.00");
+
+    // ...so chapter 05 shows yesterday's instead, never today's. This is
+    // the acceptance criterion "the heatmap's default selected day is
+    // never the same day as any row in Biggest transactions".
+    const biggest = page.locator(".biggest-transaction-row");
+    await expect(biggest).toHaveCount(1);
+    await expect(biggest.first()).toContainText("Market");
+    await expect(biggest.first()).toContainText("$90.00");
+    await expect(page.locator(".biggest-transaction-list")).not.toContainText("$300.00");
   });
 
   test("a brand-new cycle with no spending says so instead of erroring", async ({ page }) => {
