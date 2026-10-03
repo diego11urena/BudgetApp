@@ -19,7 +19,7 @@ export default function SummarySparklineRow({ cycleId, points, vocab, t }: Summa
       className="summary-sparkline-row"
     >
       <div className="summary-sparkline-content">
-        <Sparkline points={points} colorVar="--color-savings" />
+        <Sparkline points={points} colorVar="--color-silver" dotVar="--color-text-primary" />
         <span className="summary-sparkline-label">{t.summary.sparklineLabel(vocab, points.length)}</span>
       </div>
       <span className="summary-sparkline-chevron">›</span>

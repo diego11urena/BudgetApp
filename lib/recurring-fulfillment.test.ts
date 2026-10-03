@@ -129,5 +129,9 @@ describe("summarizeRecurringFulfillment", () => {
     );
 
     expect(result.ongoing.loggedNames).toEqual(["Haircut", "Panapass"]);
+    // The "N of N logged" row: every Ongoing item counts toward the
+    // total, and the ones with nothing logged are named for the subline.
+    expect(result.ongoing.total).toBe(3);
+    expect(result.ongoing.missingNames).toEqual(["Groceries"]);
   });
 });

@@ -24,6 +24,10 @@ export interface ScheduledFulfillment {
 export interface OngoingFulfillment {
   /** Alphabetical -- joined "A, B and C" at the display layer via Intl.ListFormat, not here (that's locale-specific presentation, not data). */
   loggedNames: string[];
+  /** Every Ongoing item this cycle, logged or not -- the "N of N logged" denominator. */
+  total: number;
+  /** Ongoing items with nothing logged yet, alphabetical -- the row's subline names the first. */
+  missingNames: string[];
 }
 
 export interface RecurringFulfillment {
@@ -54,6 +58,8 @@ export function summarizeRecurringFulfillment(categories: CategoryWithRecurringE
   let chargedOnTime = 0;
   const notStarted: { name: string; dueDay: number | null }[] = [];
   const loggedOngoing: string[] = [];
+  const missingOngoing: string[] = [];
+  let ongoingTotal = 0;
 
   for (const category of categories) {
     for (const expense of category.expenses) {
@@ -64,8 +70,10 @@ export function summarizeRecurringFulfillment(categories: CategoryWithRecurringE
         } else {
           chargedOnTime++;
         }
-      } else if (expense.status === "logged") {
-        loggedOngoing.push(expense.name);
+      } else {
+        ongoingTotal++;
+        if (expense.status === "logged") loggedOngoing.push(expense.name);
+        else missingOngoing.push(expense.name);
       }
     }
   }
@@ -96,6 +104,10 @@ export function summarizeRecurringFulfillment(categories: CategoryWithRecurringE
 
   return {
     scheduled: { chargedOnTime, total, exception },
-    ongoing: { loggedNames: loggedOngoing.sort((a, b) => a.localeCompare(b)) },
+    ongoing: {
+      loggedNames: loggedOngoing.sort((a, b) => a.localeCompare(b)),
+      total: ongoingTotal,
+      missingNames: missingOngoing.sort((a, b) => a.localeCompare(b)),
+    },
   };
 }

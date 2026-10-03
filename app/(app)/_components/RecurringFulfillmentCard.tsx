@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgressBar } from "./ProgressBar";
-import { useLocale } from "@/app/_components/LocaleProvider";
+import { useLocale, useVocab } from "@/app/_components/LocaleProvider";
 import { formatShortDate } from "@/lib/format";
 import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -21,15 +21,14 @@ import type { Dictionary } from "@/lib/i18n/dictionary";
 export default function RecurringFulfillmentCard({
   fulfillment,
   t,
-  showProgressBar,
   live,
 }: {
   fulfillment: RecurringFulfillment;
   t: Dictionary;
-  showProgressBar: boolean;
   live: boolean;
 }) {
   const locale = useLocale();
+  const vocab = useVocab();
   const { scheduled, ongoing } = fulfillment;
 
   const exceptionText = scheduled.exception
@@ -41,36 +40,46 @@ export default function RecurringFulfillmentCard({
         )
     : t.recurringFulfillment.allChargedOnTime;
 
+  const listFormat = new Intl.ListFormat(locale === "es" ? "es" : "en", { style: "long", type: "conjunction" });
+  const ongoingLogged = ongoing.total - ongoing.missingNames.length;
+  const ongoingSubline =
+    ongoing.missingNames.length > 0
+      ? t.recurringFulfillment.ongoingMissing(vocab, ongoing.missingNames[0])
+      : t.recurringFulfillment.ongoingLogged(listFormat.format(ongoing.loggedNames), live);
+
+  // DESIGN.md S6 "Recurring row": Scheduled and Ongoing are IDENTICAL --
+  // gold swatch + label, gold "N of N ..." count, 6px gold bar, and a
+  // faint subline naming the exception.
   return (
     <div className="recurring-fulfillment-card">
       <div className="recurring-fulfillment-group">
         <div className="recurring-fulfillment-row">
           <span className="recurring-fulfillment-swatch" aria-hidden="true" />
           <span className="recurring-fulfillment-label">{t.recurringFulfillment.scheduledLabel}</span>
-          <span className="recurring-fulfillment-status">{t.recurringFulfillment.chargedOnTime(scheduled.chargedOnTime, scheduled.total)}</span>
+          <span className="recurring-fulfillment-status">
+            {t.recurringFulfillment.chargedOnTime(scheduled.chargedOnTime, scheduled.total)}
+          </span>
         </div>
-        {showProgressBar && (
-          <div className="recurring-fulfillment-progress">
-            <ProgressBar current={scheduled.chargedOnTime} target={scheduled.total} colorState="good" />
-          </div>
-        )}
+        <div className="recurring-fulfillment-progress">
+          <ProgressBar current={scheduled.chargedOnTime} target={scheduled.total} colorState="good" />
+        </div>
         <p className="recurring-fulfillment-subline">{exceptionText}</p>
       </div>
-
-      {ongoing.loggedNames.length > 0 && (
+      {ongoing.total > 0 && (
         <>
           <div className="recurring-fulfillment-divider" />
           <div className="recurring-fulfillment-group">
             <div className="recurring-fulfillment-row">
               <span className="recurring-fulfillment-swatch" aria-hidden="true" />
               <span className="recurring-fulfillment-label">{t.recurringFulfillment.ongoingLabel}</span>
-              <span className="recurring-fulfillment-status recurring-fulfillment-status--muted">
-                {t.recurringFulfillment.ongoingLogged(
-                  new Intl.ListFormat(locale === "es" ? "es" : "en", { style: "long", type: "conjunction" }).format(ongoing.loggedNames),
-                  live
-                )}
+              <span className="recurring-fulfillment-status">
+                {t.recurringFulfillment.ongoingLoggedCount(ongoingLogged, ongoing.total)}
               </span>
             </div>
+            <div className="recurring-fulfillment-progress">
+              <ProgressBar current={ongoingLogged} target={ongoing.total} colorState="good" />
+            </div>
+            <p className="recurring-fulfillment-subline">{ongoingSubline}</p>
           </div>
         </>
       )}

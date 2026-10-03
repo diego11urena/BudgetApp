@@ -4,7 +4,6 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { categoryColorVar } from "@/lib/category-colors";
-import { PAYMENT_METHOD_LABEL } from "@/lib/payment-method";
 import type { CategoryTransactionRow } from "@/lib/breakdown-v2";
 import { useT, useLocale } from "@/app/_components/LocaleProvider";
 
@@ -45,7 +44,11 @@ const SELECTED_OFFSET = 6;
 const DIMMED_OPACITY = 0.28;
 
 function polar(radius: number, angle: number): [number, number] {
-  return [CENTER + radius * Math.cos(angle), CENTER + radius * Math.sin(angle)];
+  // Rounded to 3 decimals: Node and the browser can disagree in the last
+  // digit of Math.cos/Math.sin, which made the server-rendered path differ
+  // from the client's and tripped a hydration mismatch on every load.
+  const round = (n: number) => Math.round(n * 1000) / 1000;
+  return [round(CENTER + radius * Math.cos(angle)), round(CENTER + radius * Math.sin(angle))];
 }
 
 /**
@@ -72,6 +75,7 @@ export default function CategoryDonut({
   total,
   state,
   topTransactionsByCategory = {},
+  transactionCountByCategory = {},
 }: {
   slices: CategoryDonutSlice[];
   total: number;
@@ -82,6 +86,8 @@ export default function CategoryDonut({
    * category's rows underneath, which is the point of selecting one.
    */
   topTransactionsByCategory?: Record<string, CategoryTransactionRow[]>;
+  /** Each category's full transaction count this period -- the preview header's "{n} transactions". */
+  transactionCountByCategory?: Record<string, number>;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -203,6 +209,35 @@ export default function CategoryDonut({
         </div>
       </div>
 
+      {selected && selectedRows.length > 0 && (
+        <div className="category-preview">
+          <div className="category-preview-head">
+            <span
+              className="category-donut-legend-swatch"
+              style={{ background: categoryColorVar(selected.categoryName) }}
+              aria-hidden="true"
+            />
+            <span className="category-preview-heading">{t.breakdown.categoryPreviewHeading(selected.categoryName)}</span>
+            <span className="category-preview-count">
+              {t.transactions.count(transactionCountByCategory[selected.categoryId] ?? selectedRows.length)}
+            </span>
+          </div>
+          <ul className="category-preview-list">
+            {selectedRows.map((row) => (
+              <li key={row.id} className="category-preview-row">
+                <span className="category-preview-text">
+                  <span className="category-preview-name">{row.name}</span>
+                  <span className="category-preview-meta">{formatShortDate(row.occurredAt, locale)}</span>
+                </span>
+                <span className="category-preview-amount">{formatCurrency(row.amount)}</span>
+              </li>
+            ))}
+          </ul>
+          <Link href={`/transactions?category=${selected.categoryId}`} className="category-preview-view-all">
+            {t.breakdown.viewTransactions}
+          </Link>
+        </div>
+      )}
       <ul className="category-donut-legend">
         {slices.map((slice) => {
           const isSelected = slice.categoryId === selectedId;
@@ -241,43 +276,6 @@ export default function CategoryDonut({
       {/* Only while a slice is selected. The resting state of this chapter
           stays exactly what it was -- donut plus full legend -- and this
           panel is an addition under it, not a replacement for either. */}
-      {selected && (
-        <div className="category-preview">
-          <p className="category-preview-heading">{selected.categoryName}</p>
-
-          {selectedRows.length === 0 ? (
-            // Never somebody else's rows: a category with nothing in it
-            // says so.
-            <p className="category-preview-empty">{t.breakdown.categoryNoTransactions}</p>
-          ) : (
-            <ul className="category-preview-list">
-              {selectedRows.map((row) => (
-                <li key={row.id} className="category-preview-row">
-                  <span className="category-preview-name">{row.name}</span>
-                  <span className="category-preview-amount">{formatCurrency(row.amount)}</span>
-                  {/* Date, plus the same payment-method metadata
-                      TransactionList already shows on a row. The category
-                      is deliberately not repeated -- every row here
-                      belongs to the heading directly above. */}
-                  <span className="category-preview-meta">
-                    {[formatShortDate(row.occurredAt, locale), row.paymentMethod ? PAYMENT_METHOD_LABEL[row.paymentMethod] : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Hands the selection straight to Activity's existing
-              ?category= filter -- the same query param its own filter
-              <select> reads, so the page opens with the filter visibly
-              applied rather than merely pre-filtered. */}
-          <Link href={`/transactions?category=${selected.categoryId}`} className="category-preview-view-all">
-            {t.breakdown.viewTransactions}
-          </Link>
-        </div>
-      )}
     </div>
   );
 }

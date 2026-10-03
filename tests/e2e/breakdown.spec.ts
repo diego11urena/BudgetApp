@@ -29,7 +29,7 @@ test.describe("Breakdown", () => {
     // Real pacing, not the "Day X of Y · $XXX" placeholders this shipped with.
     const banner = page.locator(".breakdown-banner");
     await expect(banner).toContainText(/Day \d+ of \d+/);
-    await expect(banner).toContainText("$165.00");
+    await expect(banner).toContainText("$165");
     await expect(banner).not.toContainText("XXX");
 
     await expect(page.locator(".breakdown-chapter")).toHaveCount(5);
@@ -159,7 +159,7 @@ test.describe("Breakdown", () => {
     await page.locator(".category-donut-legend-row", { hasText: "Food" }).click();
     const preview = page.locator(".category-preview");
     await expect(preview).toBeVisible();
-    await expect(preview.locator(".category-preview-heading")).toHaveText("Food");
+    await expect(preview.locator(".category-preview-heading")).toHaveText("Top in Food");
 
     // Largest first, and only Food's own rows.
     const names = preview.locator(".category-preview-name");
@@ -172,7 +172,7 @@ test.describe("Breakdown", () => {
 
     // Switching selection swaps the preview immediately.
     await page.locator(".category-donut-legend-row", { hasText: "Transport" }).click();
-    await expect(preview.locator(".category-preview-heading")).toHaveText("Transport");
+    await expect(preview.locator(".category-preview-heading")).toHaveText("Top in Transport");
     await expect(preview.locator(".category-preview-name")).toHaveText(["Uber"]);
 
     // Tapping the selected one again returns to the default state.

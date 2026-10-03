@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatWholeDollars } from "@/lib/format";
+import { emphasize, emphasizeAmounts } from "@/lib/emphasize-amounts";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
 import type { BiggestTransactionRow, CashFlowBreakdown, CategoryTransactionRow } from "@/lib/breakdown-v2";
 import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
@@ -35,6 +36,7 @@ interface BreakdownScreenNewProps {
   categories: CategoryRow[];
   /** Each category's biggest transactions, for chapter 03's selected-slice preview. */
   topTransactionsByCategory: Record<string, CategoryTransactionRow[]>;
+  transactionCountByCategory: Record<string, number>;
   /** Closed periods available for comparison, excluding the one being viewed. */
   historyCount: number;
   /** Chapter 04's Fri-Sun share as a whole percentage; null when the period has no spend. */
@@ -69,6 +71,7 @@ export default function BreakdownScreenNew({
   biggestTransactions,
   categories,
   topTransactionsByCategory,
+  transactionCountByCategory,
   weekendSharePercent,
   income,
 }: BreakdownScreenNewProps) {
@@ -149,8 +152,8 @@ export default function BreakdownScreenNew({
       {state === "LIVE" && (
         <h2 className="breakdown-live-headline">
           {t.breakdown.liveHeadlinePrefix}{" "}
-          <span className="breakdown-live-headline-figure">{formatCurrency(spent)}</span>{" "}
-          {t.breakdown.liveHeadlineOf} <span className="breakdown-live-headline-figure">{formatCurrency(income)}</span>.
+          <span className="breakdown-live-headline-figure">{formatWholeDollars(spent)}</span>{" "}
+          {t.breakdown.liveHeadlineOf} <span className="breakdown-live-headline-figure">{formatWholeDollars(income)}</span>.
         </h2>
       )}
 
@@ -158,47 +161,72 @@ export default function BreakdownScreenNew({
         {/* Neutral dot, never green -- green is reserved for income
             (DESIGN.md S1), even when the user is comfortably under pace. */}
         {state === "LIVE" && <span className="breakdown-pace-dot" aria-hidden="true" />}
-        {state === "LIVE"
-          ? t.breakdown.bannerLive(vocab, dayIndex, totalDays, formatCurrency(spent), formatCurrency(projected))
-          : comparisonCycleCount > 0
-            ? t.breakdown.bannerClosed(formatCurrency(spent), formatCurrency(comparisonAverage))
-            : formatCurrency(spent)}
+        <span>
+          {emphasizeAmounts(
+            state === "LIVE"
+              ? t.breakdown.bannerLive(vocab, dayIndex, totalDays, formatWholeDollars(spent), formatWholeDollars(projected))
+              : comparisonCycleCount > 0
+                ? t.breakdown.bannerClosed(formatWholeDollars(spent), formatWholeDollars(comparisonAverage))
+                : formatWholeDollars(spent),
+          )}
+        </span>
       </p>
 
       <div className="breakdown-chapters">
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-kicker">01</p>
-          <h2 className="breakdown-chapter-title">{t.breakdown.chapter1Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter1Takeaway(state)}</p>
-          <CashFlowChapter cashFlow={cashFlow} incomeLine={t.breakdown.cashFlowIncomeLine(formatCurrency(cashFlow.income), dateRangeLabel)} />
+          <div className="breakdown-chapter-head">
+            <p className="breakdown-chapter-kicker">01</p>
+            <h2 className="breakdown-chapter-title">{t.breakdown.chapter1Title}</h2>
+            <p className="breakdown-chapter-takeaway">{t.breakdown.chapter1Takeaway(state)}</p>
+          </div>
+          <div className="breakdown-chapter-card">
+            <CashFlowChapter cashFlow={cashFlow} incomeLine={t.breakdown.cashFlowIncomeLine(
+                formatCurrency(cashFlow.income),
+                state === "LIVE" ? vocab.thisPeriod : dateRangeLabel,
+              )}
+              live={state === "LIVE"} />
+          </div>
         </section>
 
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-kicker">02</p>
-          <h2 className="breakdown-chapter-title">{t.breakdown.chapter2Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter2Takeaway(vocab, state)}</p>
-          <RecurringChapter fulfillment={recurringFulfillment} live={state === "LIVE"} />
+          <div className="breakdown-chapter-head">
+            <p className="breakdown-chapter-kicker">02</p>
+            <h2 className="breakdown-chapter-title">{t.breakdown.chapter2Title}</h2>
+            <p className="breakdown-chapter-takeaway">{t.breakdown.chapter2Takeaway(vocab, state)}</p>
+          </div>
+          <div className="breakdown-chapter-card">
+            <RecurringChapter fulfillment={recurringFulfillment} live={state === "LIVE"} />
+          </div>
         </section>
 
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-kicker">03</p>
-          <h2 className="breakdown-chapter-title">{t.breakdown.chapter3Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(vocab, dateRangeLabel, state)}</p>
-          <ByCategoryChapter
-            categories={categories}
-            state={state}
-            topTransactionsByCategory={topTransactionsByCategory}
-          />
+          <div className="breakdown-chapter-head">
+            <p className="breakdown-chapter-kicker">03</p>
+            <h2 className="breakdown-chapter-title">{t.breakdown.chapter3Title}</h2>
+            <p className="breakdown-chapter-takeaway">{t.breakdown.chapter3Takeaway(vocab, dateRangeLabel, state)}</p>
+          </div>
+          <div className="breakdown-chapter-card">
+            <ByCategoryChapter
+              categories={categories}
+              state={state}
+              topTransactionsByCategory={topTransactionsByCategory}
+              transactionCountByCategory={transactionCountByCategory}
+            />
+          </div>
         </section>
 
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-kicker">04</p>
-          <h2 className="breakdown-chapter-title">{t.breakdown.chapter4Title}</h2>
-          <p className="breakdown-chapter-takeaway">
-            {weekendSharePercent === null
-              ? t.breakdown.chapter4TakeawayEmpty
-              : t.breakdown.chapter4Takeaway(vocab, weekendSharePercent, weekendSharePercent >= 50)}
-          </p>
+          <div className="breakdown-chapter-head">
+            <p className="breakdown-chapter-kicker">04</p>
+            <h2 className="breakdown-chapter-title">{t.breakdown.chapter4Title}</h2>
+            <p className="breakdown-chapter-takeaway">
+              {weekendSharePercent === null
+                ? t.breakdown.chapter4TakeawayEmpty
+                : emphasize(t.breakdown.chapter4Takeaway(vocab, weekendSharePercent, weekendSharePercent >= 50), [
+                  `${weekendSharePercent}%`,
+                ])}
+            </p>
+          </div>
           <WhenYouSpendChapter
             days={heatmapDays}
             defaultSelected={selectedDayDefault}
@@ -208,10 +236,14 @@ export default function BreakdownScreenNew({
         </section>
 
         <section className="breakdown-chapter">
-          <p className="breakdown-chapter-kicker">05</p>
-          <h2 className="breakdown-chapter-title">{t.breakdown.chapter5Title}</h2>
-          <p className="breakdown-chapter-takeaway">{t.breakdown.chapter5Takeaway(state)}</p>
-          <BiggestTransactionsChapter rows={biggestTransactions} />
+          <div className="breakdown-chapter-head">
+            <p className="breakdown-chapter-kicker">05</p>
+            <h2 className="breakdown-chapter-title">{t.breakdown.chapter5Title}</h2>
+            <p className="breakdown-chapter-takeaway">{t.breakdown.chapter5Takeaway(state)}</p>
+          </div>
+          <div className="breakdown-chapter-card">
+            <BiggestTransactionsChapter rows={biggestTransactions} />
+          </div>
         </section>
       </div>
     </div>

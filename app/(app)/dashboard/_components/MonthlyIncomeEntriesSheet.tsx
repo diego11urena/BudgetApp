@@ -64,12 +64,12 @@ export function MonthlyIncomeEntriesSheet({
     <Sheet
       visible={visible}
       title={t.monthlyIncomeEntries.title}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
     >
       {entries.length === 0 ? (
-        <p className="field-hint" style={{ textAlign: "center" }}>
+        <p className="field-hint">
           {t.monthlyIncomeEntries.empty}
         </p>
       ) : (

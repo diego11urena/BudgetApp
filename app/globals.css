@@ -33,11 +33,11 @@
   /* Darkened from #6b7480 -- the original only cleared 4.15:1 against
      --color-bg-secondary (WCAG AA text requires 4.5:1); this clears 4.5+
      against both --color-bg and --color-bg-secondary. */
-  --color-text-secondary: #656e79;
+  --color-text-secondary: #6b7480;
   /* Darkened from #dbe0e6 -- the original only cleared 1.33:1 against
      --color-bg (WCAG 1.4.11 non-text contrast, e.g. form field borders,
      requires 3:1); this clears ~3.4:1. */
-  --color-border: #838d99;
+  --color-border: #dbe0e6;
   /* 1px row dividers -- same value as --color-bg-secondary by design (a
      divider is meant to be barely-there, not a hairline border), kept as
      its own named token so call sites read as "divider" not "secondary
@@ -82,9 +82,9 @@
      the same 4.5:1 floor the rest of this block already holds itself to.
      Darkened to #b55118 (same hue/saturation, lower lightness): clears
      ~4.7:1 on white and ~4.5:1 on --color-warning-bg. */
-  --color-success: #1a754e;
-  --color-warning: #b55118;
-  --color-error: #ba372a;
+  --color-success: #1f8a5c;
+  --color-warning: #c2571a;
+  --color-error: #c0392b;
   /* Status colors tuned for a navy fill specifically (the hero card, and
      anywhere else a status needs to sit on the signal color rather than
      the page background) -- the regular --color-success/warning/error
@@ -129,8 +129,10 @@
      value reaches 4.12:1; that's a non-text fill held to WCAG 1.4.11's
      3:1, so it passes on the applicable bar. Dark mode's value (below) is
      the spec literal, unchanged -- it already clears 6.7:1+. */
-  --color-recurring: #9d6917;
+  --color-recurring: #b3781a;
   --color-on-accent: #ffffff;
+  --focus-ring: rgba(23, 57, 92, 0.1);
+  --select-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%238b93a0'/%3E%3C/svg%3E");
   /* DESIGN.md S1's literal income tint (#e8f2ec) -- was a 16%-alpha wash
      of --color-success, which shifted with whatever sat behind it; the
      spec wants one opaque value (income category chips, income blocks).
@@ -140,7 +142,7 @@
      is a background tint, not text, so it isn't subject to the same
      4.5:1 floor. */
   --color-warning-bg: #fcefe7;
-  --color-error-bg: rgba(186, 55, 42, 0.15);
+  --color-error-bg: #fbeceb;
   /* Soft diffuse shadows are the primary depth cue (not hairline borders)
      — tinted off text-primary's own hue rather than pure black. */
   --shadow-color: rgba(16, 22, 28, 0.06);
@@ -221,7 +223,7 @@
   --shadow-card: 0 4px 18px rgba(16, 22, 28, 0.07);
   --shadow-row: 0 3px 14px rgba(16, 22, 28, 0.06);
   --shadow-hero: 0 10px 28px rgba(23, 57, 92, 0.24);
-  --shadow-cta: 0 6px 16px rgba(23, 57, 92, 0.28);
+  --shadow-cta: 0 8px 22px rgba(23, 57, 92, 0.26);
   --shadow-fab: 0 8px 20px rgba(23, 57, 92, 0.35);
 
   /* z-index ladder — every stacking layer in the app references one of
@@ -234,7 +236,7 @@
   /* One scrim opacity for every full-screen dimming backdrop (sheet
      backdrop, cycle-closed overlay) instead of two slightly different
      ones for the same conceptual scrim. */
-  --color-scrim: rgba(0, 0, 0, 0.45);
+  --color-scrim: rgba(16, 22, 28, 0.64);
 
   /* Neutral, low-emphasis fill for a secondary surface (.button--secondary,
      and anywhere else a "quiet" background is needed without a full card). */
@@ -255,7 +257,7 @@
   /* How much bottom clearance scrollable page content needs so its last
      item never sits behind the fixed .bottom-nav — shared by .app-content
      and .toast so the same number isn't duplicated in two places. */
-  --bottom-nav-clearance: 5rem;
+  --bottom-nav-clearance: calc(76px + 24px);
 
   /* Category palette -- DESIGN.md "Category palette". These are keyed to
      the CATEGORY, not to its rank: "Fixed per category (not per rank).
@@ -354,10 +356,10 @@
      gray-blue" ramp -- deliberately not the fixed/savings/warning blue
      family, since this counts all spending regardless of category. */
   --heatmap-0: #eef0f3;
-  --heatmap-1: #d9dfe6;
-  --heatmap-2: #b8c2cd;
-  --heatmap-3: #8e9aa8;
-  --heatmap-4: #5f6b79;
+  --heatmap-1: #d6e0eb;
+  --heatmap-2: #a9bdd3;
+  --heatmap-3: #5f80a6;
+  --heatmap-4: #17395c;
   /* Each cell's date-number text, one per bucket above. Spec's literal
      split is "ink on the first three, white on the last two" -- but
      measured (WCAG relative-luminance formula) against each bucket's own
@@ -371,7 +373,7 @@
   --heatmap-text-0: var(--color-text-primary);
   --heatmap-text-1: var(--color-text-primary);
   --heatmap-text-2: var(--color-text-primary);
-  --heatmap-text-3: var(--color-text-primary);
+  --heatmap-text-3: #ffffff;
   --heatmap-text-4: #ffffff;
 }
 
@@ -420,7 +422,7 @@
      this session's existing dark --color-border value instead, which
      already clears ~3:1 against the new --color-card and was tuned for
      exactly this failure mode once before (see git history). */
-  --color-border: #5e6a76;
+  --color-border: #2a3a4c;
   --color-divider: #23303f;
   /* Same raw value as light mode -- already light enough to read as a
      decorative/icon tone against this mode's dark surfaces. */
@@ -451,6 +453,7 @@
      value this needed no darkening. */
   --color-recurring: #d59a3c;
   --color-on-accent: #ffffff;
+  --focus-ring: rgba(127, 179, 232, 0.18);
   --color-success-bg: #12291f;
   /* Handoff's literal spec, unchanged (was #2b2113). */
   --color-warning-bg: #2e1a10;
@@ -471,11 +474,11 @@
   --shadow-row: none;
   /* The hero keeps its separation from --color-hero-border instead. */
   --shadow-hero: none;
-  --shadow-cta: 0 8px 20px rgba(47, 108, 176, 0.45);
+  --shadow-cta: 0 8px 22px rgba(47, 108, 176, 0.36);
   --shadow-fab: 0 8px 20px rgba(47, 108, 176, 0.45);
   /* Deeper than light mode's 0.45: a 45%-black scrim over an already
      near-black page barely separates the sheet from what's behind it. */
-  --color-scrim: rgba(0, 0, 0, 0.6);
+  --color-scrim: rgba(16, 22, 28, 0.64);
   --color-button-bg: #2f6cb0;
   --gradient-brand: #2f6cb0;
   --color-accent-bg: rgba(127, 179, 232, 0.16);
@@ -539,10 +542,10 @@
   /* Heatmap 5-step percentile buckets — dark-mode scale. */
   /* Design spec's literal dark ramp (was this file's own blue heat ramp). */
   --heatmap-0: #23303f;
-  --heatmap-1: #2e3b4a;
-  --heatmap-2: #435265;
-  --heatmap-3: #62748a;
-  --heatmap-4: #98a9bd;
+  --heatmap-1: #1e3a5c;
+  --heatmap-2: #2a5a8c;
+  --heatmap-3: #4f86c2;
+  --heatmap-4: #7fb3e8;
   /* Same fix as the light-mode block, mirrored: spec's literal split
      ("light text on the first three, near-black on the last two") only
      clears 3.96:1 on bucket 3 (#62748a) -- white clears 4.79:1 there
@@ -551,18 +554,9 @@
   --heatmap-text-0: #96a3b4;
   --heatmap-text-1: #c3ccd6;
   --heatmap-text-2: #e8eef5;
-  --heatmap-text-3: #ffffff;
+  --heatmap-text-3: #0b1117;
   --heatmap-text-4: #0b1117;
 
-  /* Elevation is color, not shadow, in dark mode -- cards separate from
-     the page via --color-card/--color-divider rather than a visible drop
-     shadow, so these stay reserved for the surfaces the design doc
-     explicitly keeps shadow on (FAB, primary CTAs, the hero card). */
-  --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.35);
-  --shadow-row: 0 3px 14px rgba(0, 0, 0, 0.3);
-  --shadow-hero: 0 10px 28px rgba(0, 0, 0, 0.45);
-  --shadow-cta: 0 6px 16px rgba(0, 0, 0, 0.4);
-  --shadow-fab: 0 8px 20px rgba(0, 0, 0, 0.45);
 
   --background: var(--color-bg);
   --foreground: var(--color-text-primary);
@@ -594,6 +588,13 @@ body {
    if the device's own text-size setting shrinks what 1rem resolves to —
    every input/select/textarea gets this floor; a component can still size
    up from here (e.g. .sheet-amount-input), just never below it. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 input,
 select,
 textarea {
@@ -621,10 +622,10 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: none;
+  /* DESIGN.md S5: 1.5px accent border + a 4px soft ring. */
   box-shadow:
-    0 0 0 2px var(--color-card),
-    0 0 0 4px var(--color-accent-green),
-    0 0 0 7px var(--color-accent-bg);
+    0 0 0 1.5px var(--color-accent-green),
+    0 0 0 5.5px var(--focus-ring);
 }
 
 /* The box-shadow halo above gets silently clipped by any scrollable/
@@ -695,10 +696,12 @@ a {
    size). */
 .onboarding-shell h1 {
   font-family: var(--font-display);
-  font-size: 1.875rem;
+  font-size: 2rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.5rem;
+  letter-spacing: -0.03em;
+  margin-bottom: 0;
+  line-height: 1.1;
+  text-wrap: balance;
 }
 
 .onboarding-kicker {
@@ -706,8 +709,11 @@ a {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--color-text-secondary);
-  margin-bottom: 0.4rem;
+  color: var(--color-silver);
+  margin-bottom: 10px;
+  font-family: var(--font-display);
+  padding-top: 36px;
+  line-height: 1.4;
 }
 
 .form-actions--stacked {
@@ -721,35 +727,33 @@ a {
 .expenses-step-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: 10px;
+  margin: 0;
 }
 
 .expenses-step-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 12px;
   background: var(--color-card);
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   padding: 12px 14px;
   box-shadow: var(--shadow-row);
 }
 
 .expenses-step-row-name {
-  flex-shrink: 0;
   font-size: 0.9375rem;
   font-weight: 700;
-  max-width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
 .expenses-step-row-meta {
-  flex: 1;
   min-width: 0;
   font-size: 0.75rem;
-  color: var(--color-silver);
+  color: var(--color-text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -760,6 +764,7 @@ a {
   font-size: 0.9375rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
 }
 
 .expenses-step-row-remove {
@@ -770,12 +775,15 @@ a {
   border: none;
   background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1;
   cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.expenses-step-row-remove:hover,
 .expenses-step-row-remove:active {
   background: var(--color-bg-secondary-hover);
 }
@@ -783,102 +791,85 @@ a {
 .expenses-step-add {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 10px;
+  margin-top: 0;
 }
 
 .expenses-step-add-row {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .expenses-step-add-row input,
 .expenses-step-add-row select {
-  /* min-width:0 matters as much as flex:1 here -- a flex item's default
-     min-width:auto refuses to shrink below its intrinsic width, which is
-     what pushed the amount field past the card's right edge on a 390px
-     screen. */
   flex: 1;
   min-width: 0;
-  min-height: 52px;
-  padding: 0.6rem 0.8rem;
-  border-radius: var(--radius-sm);
+  min-height: 0;
+  padding: 0 14px;
+  border-radius: 14px;
   border: 1.5px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
   font-family: inherit;
-  font-size: 0.9375rem;
+  font-size: 1rem;
+  height: 48px;
+  margin: 0;
 }
 
 .expenses-step-add-button {
   flex-shrink: 0;
-  min-height: 52px;
+  width: 96px;
+  height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* ----- Onboarding step 2: Scheduled / Ongoing groups ----- */
 .expenses-step-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1.5rem;
+  gap: 10px;
+  margin-top: 0;
+  padding-top: 24px;
 }
 
 /* "Two groups, separated by a 1px divider." */
 .expenses-step-group--divided {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
+  margin-top: 22px;
+  padding-top: 22px;
   border-top: 1px solid var(--color-divider);
 }
 
 /* Ongoing's amount wears a "~" to say the number is typical, not exact.
    The prefix sits inside the field's own box so it reads as part of the
    input rather than a separate label. */
-.expenses-step-amount-field {
-  position: relative;
-  display: flex;
-  flex: 1;
-  min-width: 0;
-}
 
-.expenses-step-amount-field input {
-  flex: 1;
-  min-width: 0;
-  min-height: 52px;
-  padding: 0.6rem 0.8rem;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--color-border);
-  background: var(--color-card);
-  color: var(--foreground);
-  font-family: inherit;
-  font-size: 0.9375rem;
-}
 
-.expenses-step-tilde + input {
-  padding-left: 1.5rem;
-}
 
-.expenses-step-tilde {
-  position: absolute;
-  left: 0.8rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--color-text-faint);
-  pointer-events: none;
-}
 
 .tip-block {
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   padding: 16px 18px;
   margin-top: 1rem;
   font-size: 0.875rem;
+  margin: 18px 0 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
 
 .tip-block strong {
   color: var(--color-accent-green);
-  margin-right: 0.3rem;
+  margin-right: 0;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 800;
 }
 
 /* Goal step -- live projection card.
@@ -893,27 +884,29 @@ a {
 .goal-step-projection {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   background: var(--color-savings-bg);
-  border-radius: var(--radius-md);
+  border-radius: 16px;
   padding: 14px 16px;
-  margin-top: 1rem;
+  margin-top: 4px;
   font-size: 0.875rem;
-  color: var(--color-savings);
+  color: var(--color-text-secondary);
+  line-height: 1.45;
 }
 
 .goal-step-projection-ring {
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  border: 6px solid var(--color-savings);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   color: var(--color-text-primary);
+  position: relative;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
 }
 
 .goal-step-projection p {
@@ -930,8 +923,8 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 2rem;
+  gap: 22px;
+  padding: 40px;
   text-align: center;
   background: var(--color-hero-bg);
   border: 1px solid var(--color-hero-border);
@@ -940,7 +933,7 @@ a {
 
 .onboarding-complete-logo {
   border-radius: 24px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .onboarding-complete h1 {
@@ -948,11 +941,16 @@ a {
   font-size: 2rem;
   font-weight: 800;
   color: var(--color-on-accent);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
 .onboarding-complete p {
   font-size: 1rem;
   color: var(--color-hero-sub);
+  max-width: 250px;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .card h1 {
@@ -980,7 +978,7 @@ a {
   padding: 0.55rem 0.7rem;
   min-height: 44px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   background: var(--color-card);
   color: var(--foreground);
 }
@@ -1012,7 +1010,11 @@ input[type="checkbox"]::before {
 /* EmptyState -- consistent spacing for the "nothing here yet" message every
    list/panel shows on its own. */
 .empty-state {
-  padding: var(--space-3) 0;
+  padding: 10px 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  text-align: center;
 }
 
 .empty-state-action {
@@ -1058,27 +1060,24 @@ input[type="checkbox"]::before {
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-button);
   border: none;
-  /* --color-button-bg, not --gradient-brand -- the latter is a flat navy
-     alias that does NOT flip in dark mode (see its own comment), so a
-     primary CTA drawn from it read at 3.22:1 for white text in dark mode
-     (needs 4.5:1). --color-button-bg IS theme-aware and already used
-     correctly elsewhere (.category-chip.is-active, .bottom-nav-fab). */
+  /* --color-button-bg is the theme-aware primary (DESIGN.md S2 --primary:
+     #17395c light / #2f6cb0 dark). */
   background: var(--color-button-bg);
   color: var(--color-on-accent);
+  /* DESIGN.md S3: buttons are Manrope 700 and "must set font-family
+     explicitly" -- a <button> does not inherit the page font by default,
+     so without this every button rendered in the browser's own UI font. */
+  font-family: var(--font-display);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 0.1s ease,
-    opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.12s ease;
 }
 
-.button:hover {
-  opacity: 0.92;
-}
-
+/* DESIGN.md S5: no hover states; pressed uses the *-pressed tokens. */
 .button:active {
-  transform: scale(0.98);
+  background: var(--color-primary-hover);
 }
 
 .button:disabled {
@@ -1086,12 +1085,16 @@ input[type="checkbox"]::before {
   cursor: not-allowed;
 }
 
-/* "Secondary Gray" — most .button--secondary uses (Cancel, Sign out) are
-   neutral actions, not brand-colored ones. */
+/* Secondary: --surface-2 fill with accent text (DESIGN.md S2), pressed
+   --surface-2-pressed. */
 .button--secondary {
-  background: var(--color-surface-subtle);
-  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
   border: none;
+}
+
+.button--secondary:active {
+  background: var(--color-bg-secondary-hover);
 }
 
 .button--small {
@@ -1108,16 +1111,16 @@ input[type="checkbox"]::before {
 .button--chip {
   position: relative;
   min-height: 32px;
-  padding: 0 0.85rem;
+  padding: 0 14px;
   border-radius: var(--radius-pill);
   background: var(--color-bg-secondary);
   color: var(--color-accent-green);
   font-size: 0.8125rem;
   font-weight: 700;
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
-.button--chip:hover,
 .button--chip:active {
   background: var(--color-bg-secondary-hover);
 }
@@ -1140,10 +1143,12 @@ input[type="checkbox"]::before {
   min-height: 44px;
   padding: 0.4rem 0.9rem;
   cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
 }
-.button--ghost:hover,
 .button--ghost:active {
   color: var(--color-text-primary);
+  background: transparent;
 }
 .button--ghost:disabled {
   opacity: 0.5;
@@ -1155,7 +1160,6 @@ input[type="checkbox"]::before {
 .button--ghost-danger {
   color: var(--color-error);
 }
-.button--ghost-danger:hover,
 .button--ghost-danger:active {
   background: var(--color-error-bg);
   color: var(--color-error);
@@ -1169,8 +1173,11 @@ input[type="checkbox"]::before {
   width: 100%;
   min-height: 46px;
   font-size: 0.9375rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   box-shadow: var(--shadow-cta);
+  height: 46px;
+  gap: 9px;
+  text-decoration: none;
 }
 
 .transaction-summary-line {
@@ -1179,9 +1186,10 @@ input[type="checkbox"]::before {
   justify-content: space-between;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-silver);
   white-space: nowrap;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
+  padding: 2px 2px 0;
 }
 
 .transaction-summary-totals {
@@ -1204,10 +1212,9 @@ input[type="checkbox"]::before {
 .button--danger {
   background: transparent;
   color: var(--color-error);
-  border: 1px solid var(--color-error);
+  border: 1.5px solid var(--color-error);
 }
 
-.button--danger:hover,
 .button--danger:active {
   background: var(--color-error-bg);
 }
@@ -1239,8 +1246,8 @@ input[type="checkbox"]::before {
 .step-progress {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 12px;
+  margin-bottom: 0;
 }
 
 .step-progress-pills {
@@ -1254,11 +1261,12 @@ input[type="checkbox"]::before {
   font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
+  color: var(--color-silver);
+  font-family: var(--font-display);
 }
 
-.step-progress span,
-.step-progress a {
+.step-progress-pills span,
+.step-progress-pills a {
   flex: 1;
   display: block;
   height: 5px;
@@ -1266,14 +1274,14 @@ input[type="checkbox"]::before {
   background: var(--color-bg-secondary-hover);
 }
 
-.step-progress a {
+.step-progress-pills a {
   position: relative;
   cursor: pointer;
 }
 
 /* The bar itself stays a thin 5px indicator; this invisibly extends the
    actual tap target to 44px so it's not a sliver to aim for on mobile. */
-.step-progress a::before {
+.step-progress-pills a::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -1283,14 +1291,13 @@ input[type="checkbox"]::before {
   transform: translateY(-50%);
 }
 
-.step-progress a:hover,
-.step-progress a:active {
+.step-progress-pills a:active {
   background: var(--color-secondary-green);
 }
 
-.step-progress span.is-complete,
-.step-progress span.is-active,
-.step-progress a.is-complete {
+.step-progress-pills span.is-complete,
+.step-progress-pills span.is-active,
+.step-progress-pills a.is-complete {
   background: var(--color-accent-green);
 }
 
@@ -1300,7 +1307,7 @@ input[type="checkbox"]::before {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .line-item:last-child {
@@ -1357,7 +1364,7 @@ button.line-item--link {
 .profile-theme-row {
   flex-direction: column;
   align-items: stretch;
-  gap: 0.5rem;
+  gap: 10px;
   padding: 14px 0;
 }
 
@@ -1369,8 +1376,11 @@ button.line-item--link {
 /* Full-width track, options sharing it equally -- inline-flex + auto
    widths would leave the track only as wide as its longest label. */
 .profile-theme-row .theme-picker {
-  display: flex;
+  display: grid;
   width: 100%;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: 40px;
 }
 
 .profile-theme-row .theme-picker-option {
@@ -1379,7 +1389,9 @@ button.line-item--link {
 
 .profile-theme-row .field-hint {
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  color: var(--color-silver);
+  line-height: 1.4;
+  margin-top: 0;
 }
 
 /* DESIGN.md S6 Segmented control: 40px pill track --surface-2, 3px inset
@@ -1394,18 +1406,18 @@ button.line-item--link {
 }
 
 .theme-picker-option {
-  /* 34px + the track's 3px inset top and bottom = the spec's 40px. */
-  min-height: 34px;
-  padding: 0 0.75rem;
+  min-height: 0;
+  padding: 0 0.5rem;
   border: none;
   border-radius: var(--radius-pill);
   background: none;
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 600;
-  font-family: inherit;
+  font-family: var(--font-display);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  position: relative;
 }
 
 .theme-picker-option:disabled {
@@ -1441,28 +1453,27 @@ button.line-item--link {
   color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
   min-height: 44px;
+  margin-top: -8px;
 }
 
 .banner {
   border-radius: 14px;
   padding: 12px 14px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  border-left: 3px solid;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .banner--good {
   color: var(--color-success);
   background: var(--color-success-bg);
-  border-left-color: var(--color-success);
 }
 
 .banner--critical {
   color: var(--color-error);
   background: var(--color-error-bg);
-  border-left-color: var(--color-error);
 }
 
 /* No border-left accent -- .banner-dot carries the color signal instead,
@@ -1473,13 +1484,16 @@ button.line-item--link {
   border: none;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 12px;
   width: 100%;
-  font: inherit;
-  font-weight: 600;
+  font-weight: 400;
   text-align: left;
   cursor: pointer;
   appearance: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  min-height: 44px;
 }
 
 /* :not(.banner-action-label) too -- NeedsAttentionBanner's trailing
@@ -1506,8 +1520,9 @@ button.line-item--link {
 
 .banner-action-label {
   flex-shrink: 0;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   font-weight: 700;
+  font-family: var(--font-display);
 }
 
 .categorize-imports-list {
@@ -1570,18 +1585,22 @@ button.line-item--link {
 .home-page {
   display: flex;
   flex-direction: column;
+  gap: 14px;
 }
 
 /* Soft shadow, no hairline border -- the design system's cards-not-borders
    rule, applied here since .dashboard-section is the one shared card shell
    every tab (Home, Activity, Plan, Profile, History) already builds on. */
 .dashboard-section {
-  margin-top: 1.5rem;
+  margin-top: 0;
   background: var(--color-card);
   border: none;
   border-radius: var(--radius-lg);
   padding: 18px;
   box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* A section's own heading + one action button, side by side -- flex-wrap
@@ -1591,29 +1610,30 @@ button.line-item--link {
    which previously each inlined this identical style object. */
 .section-header-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 .dashboard-section h2 {
   font-family: var(--font-display);
   font-size: 1.0625rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.85rem;
+  letter-spacing: 0;
+  margin-bottom: 0;
   color: var(--color-text-primary);
+  line-height: 1.3;
 }
 
 /* Small trailing label next to a section header -- e.g. Home's "Where
    it's going" + "Top 6". */
 .chart-badge {
   flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-silver);
 }
 
 /* A section header's own "See all"-style link, e.g. Home's Recent card --
@@ -1627,8 +1647,10 @@ button.line-item--link {
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
-  min-height: 44px;
-  padding: 0.4rem 0;
+  min-height: 0;
+  padding: 0;
+  font-family: var(--font-display);
+  position: relative;
 }
 
 .dashboard-section h3 {
@@ -1642,7 +1664,7 @@ button.line-item--link {
 .card-divider {
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-divider);
 }
 
 .dashboard-section--plain {
@@ -1650,6 +1672,7 @@ button.line-item--link {
   border: none;
   box-shadow: none;
   padding: 0;
+  display: block;
 }
 
 /* Home header */
@@ -1657,7 +1680,8 @@ button.line-item--link {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  gap: 12px;
 }
 
 .home-greeting {
@@ -1665,12 +1689,13 @@ button.line-item--link {
   font-size: 1.625rem;
   font-weight: 800;
   letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
 .home-month {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
-  margin-top: 0.15rem;
+  margin-top: 2px;
 }
 
 .home-header-edit-link {
@@ -1712,14 +1737,14 @@ button.line-item--link {
   border-radius: var(--radius-pill);
   background: var(--color-bg-secondary);
   color: var(--color-accent-green);
-  font: inherit;
   font-size: 0.875rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.12s ease;
+  font-family: var(--font-display);
+  position: relative;
 }
 
-.home-edit-pill:hover,
 .home-edit-pill:active {
   background: var(--color-bg-secondary-hover);
 }
@@ -1737,10 +1762,13 @@ button.line-item--link {
   background: var(--color-hero-bg);
   border: 1px solid var(--color-hero-border);
   border-radius: var(--radius-hero);
-  padding: 22px;
+  padding: 22px 22px 20px;
   text-align: center;
   color: var(--color-on-accent);
   box-shadow: var(--shadow-hero);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .hero-label {
@@ -1748,20 +1776,18 @@ button.line-item--link {
   color: var(--color-hero-kicker);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  line-height: 1.4;
 }
 
 .hero-value {
   font-family: var(--font-display);
-  /* clamp, not a flat 3.25rem -- a negative balance ("-$12,345.67") at the
-     flat size overflows .hero-card's own padding on a 320-390px viewport,
-     and html,body's overflow-x:hidden means those digits were silently
-     unscrollable, not just visually tight. */
-  font-size: clamp(2rem, 12vw, 3.25rem);
+  font-size: clamp(2.25rem, 13.3vw, 3.25rem);
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.05;
   letter-spacing: -0.035em;
-  margin: 0.4rem 0;
+  margin: 2px 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1776,7 +1802,7 @@ button.line-item--link {
 .hero-subtitle {
   font-size: 0.875rem;
   color: var(--color-hero-sub);
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 }
 
 /* Cycle-elapsed progress bar row -- the design's own addition over the
@@ -1784,8 +1810,8 @@ button.line-item--link {
 .hero-elapsed-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
+  gap: 10px;
+  margin-bottom: 0;
 }
 
 .hero-elapsed-track {
@@ -1805,19 +1831,20 @@ button.line-item--link {
 
 .hero-elapsed-label {
   flex-shrink: 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-hero-sub);
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 .hero-pace-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  padding-top: 0.75rem;
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding-top: 2px;
 }
 
 /* Monthly: the pace line (which also carries the paycheck countdown) sits
@@ -1835,8 +1862,9 @@ button.line-item--link {
 
 .hero-pace {
   font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: var(--color-hero-sub);
+  text-align: left;
 }
 
 /* A solid white pill, not a text link -- "I just got paid" is this card's
@@ -1852,17 +1880,18 @@ button.line-item--link {
   background: #ffffff;
   border: none;
   border-radius: var(--radius-pill);
-  color: var(--color-button-bg);
+  color: #17395c;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.9375rem;
   cursor: pointer;
-  padding: 0.5rem 1rem;
-  transition: opacity 0.15s ease;
+  padding: 0 20px;
+  transition: background-color 0.12s ease;
+  font-family: var(--font-display);
+  position: relative;
 }
 
-.hero-action-link:hover,
 .hero-action-link:active {
-  opacity: 0.9;
+  background: #eef0f3;
 }
 
 .hero-action-link:disabled {
@@ -1920,6 +1949,7 @@ button.line-item--link {
 
 .hero-action-link--outlined:active {
   border-color: #ffffff;
+  background: transparent;
 }
 
 /* The all-paychecks-in confirmation that replaces the pace line. */
@@ -2029,7 +2059,7 @@ button.line-item--link {
   gap: 0.75rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-divider);
   font-size: 0.9rem;
   font-weight: 600;
   text-align: left;
@@ -2115,9 +2145,9 @@ button.line-item--link {
 .stat-tile {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 2px;
   background: var(--color-card);
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   padding: 16px;
   box-shadow: var(--shadow-card);
 }
@@ -2155,7 +2185,7 @@ button.line-item--link {
 
 .stat-tile-sub {
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  color: var(--color-silver);
 }
 
 /* Quick-add bottom sheet */
@@ -2177,31 +2207,17 @@ button.line-item--link {
 .sheet {
   width: 100%;
   max-width: 30rem;
-  /* A sheet taller than the viewport (Edit transaction measured at 813px
-     against a 673px viewport) needs to scroll internally -- max-height
-     (dvh, not vh, so the mobile keyboard's viewport shrink is accounted
-     for) + overflow-y makes that possible. touch-action: none used to sit
-     here too, meant only for the handle's swipe-to-dismiss (see
-     QuickAddSheet's onTouchStart/Move/End), but applied to the whole
-     sheet it blocked finger-scroll for every descendant, including ones
-     with their own overflow-y: auto (.categorize-imports-list,
-     .icon-picker-scroll) -- the longest sheet in the app was the least
-     scrollable one. */
   max-height: 85dvh;
   overflow-y: auto;
   background: var(--color-card);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
-  /* Same tier as --elev-3 (the overlay level this and .cycle-closed-card
-     both sit at) but with the Y offset negated -- a sheet is anchored to
-     the bottom of the screen, so its shadow has to fall upward, not down.
-     In dark it resolves to none (--shadow-color is still a real value,
-     but --elev-3 is none there) and the 1px top border below takes over,
-     which is what the design system asks a sheet to separate with. */
+  border-radius: 28px 28px 0 0;
+  padding: 10px 24px calc(30px + env(safe-area-inset-bottom));
   box-shadow: 0 -12px 32px var(--shadow-color);
   border-top: 1px solid transparent;
   transform: translateY(100%);
   transition: transform 0.22s ease;
+  text-align: left;
+  color: var(--color-text-primary);
 }
 
 .sheet.is-open {
@@ -2209,13 +2225,11 @@ button.line-item--link {
 }
 
 .sheet-handle {
-  width: 2.5rem;
-  height: 4px;
-  border-radius: var(--radius-xs);
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-pill);
   background: var(--color-border);
-  margin: 0 auto 1rem;
-  /* Swipe-to-dismiss (QuickAddSheet's onTouchStart/Move/End) lives here
-     only -- see .sheet's own comment for why it was removed from there. */
+  margin: 0 auto 18px;
   touch-action: none;
 }
 
@@ -2224,15 +2238,11 @@ button.line-item--link {
    .dashboard-section h2. */
 .sheet h2 {
   font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  /* Explicit, not left to the browser's default h2 sizing (1.5em, which
-     just so happens to already resolve to this same 1.5rem here) --
-     .dashboard-section h2 sits right next to this rule at its own
-     explicit 1.05rem, and an unset size on this one made the two look
-     like an oversight rather than two deliberately different contexts
-     (a sheet's own single-purpose title vs. a card's section label). */
-  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.625rem;
+  line-height: 1.15;
+  text-wrap: balance;
 }
 
 /* Four equal, independent pills (not a shared-track segmented control) --
@@ -2254,14 +2264,12 @@ button.line-item--link {
   border-radius: var(--radius-pill);
   background: var(--color-bg-secondary);
   color: var(--color-text-secondary);
-  font-family: inherit;
+  font-family: var(--font-display);
   font-size: 0.8125rem;
   font-weight: 700;
-  padding: 0.5rem 0.3rem;
+  padding: 0 0.3rem;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
+  transition: background-color 0.12s ease;
 }
 
 /* 34px is the design's visual height -- this invisibly pads the real hit
@@ -2273,7 +2281,6 @@ button.line-item--link {
   inset: -5px 0;
 }
 
-.type-toggle-btn:hover,
 .type-toggle-btn:active {
   background: var(--color-bg-secondary-hover);
 }
@@ -2386,7 +2393,6 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.category-name-input-dropdown button:hover,
 .category-name-input-dropdown button.is-active,
 .category-name-input-dropdown button:active {
   background: var(--color-bg-secondary);
@@ -2454,7 +2460,6 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.recurring-picker-dropdown button:hover,
 .recurring-picker-dropdown button.is-active,
 .recurring-picker-dropdown button:active {
   background: var(--color-bg-secondary);
@@ -2475,23 +2480,24 @@ button.line-item--link {
 
 .sheet-submit {
   width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.85rem 1.2rem;
-  font-size: 1.05rem;
+  margin-top: 6px;
+  padding: 0 1.2rem;
+  font-size: 1.0625rem;
+  height: 56px;
 }
 
 .sheet-delete {
   width: 100%;
   min-height: 44px;
-  margin-top: 0.75rem;
-  padding: 0.7rem 1.2rem;
+  margin-top: 6px;
+  padding: 0 1.2rem;
   border-radius: var(--radius-button);
-  border: 1px solid var(--color-error);
+  border: none;
   background: transparent;
   color: var(--color-error);
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -2508,11 +2514,17 @@ button.line-item--link {
   border-radius: var(--radius-lg);
   padding: 18px;
   box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .insights-title {
   font-weight: 700;
-  margin-bottom: 0.6rem;
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.3;
 }
 
 .insights-list {
@@ -2520,25 +2532,22 @@ button.line-item--link {
   display: flex;
   flex-direction: column;
   font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 /* Divider between rows -- last row gets none. */
 .insights-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.6rem 0;
+  gap: 12px;
+  padding: 0;
   border-bottom: 1px solid var(--color-divider);
 }
 
 .insights-row:last-child {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
-.insights-row:first-child {
-  padding-top: 0;
-}
 
 /* Severity dot -- red for a runway/over-budget concern, recurring gold
    for an unpaid/due-soon recurring item, silver for everything else
@@ -2564,6 +2573,7 @@ button.line-item--link {
 
 .insights-text {
   flex: 1;
+  padding: 10px 0;
 }
 
 /* An insight with a natural destination (unpaid recurring expenses ->
@@ -2576,11 +2586,11 @@ button.line-item--link {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 12px;
   color: inherit;
   text-decoration: none;
   min-height: 44px;
-  transition: opacity 0.1s ease;
+  padding: 10px 0;
 }
 
 .insights-list-link:active {
@@ -2589,7 +2599,7 @@ button.line-item--link {
 
 .insights-list-link svg {
   flex-shrink: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-chevron);
 }
 
 .breakdown-legend-row.is-selected {
@@ -2613,7 +2623,7 @@ button.line-item--link {
   display: grid;
   grid-template-columns: 76px 1fr 62px;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
 }
 
 .bar-chart-label {
@@ -2645,6 +2655,7 @@ button.line-item--link {
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
 /* Date section header above a group of same-day transaction rows -- the
@@ -2656,32 +2667,32 @@ button.line-item--link {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  margin: 1rem 0 0.4rem;
+  margin: 0;
+  padding: 12px 2px 2px;
 }
 
 .transaction-date-group h3 {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--color-silver);
   margin: 0;
+  font-family: var(--font-display);
 }
 
 .transaction-date-net {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-primary);
+  color: var(--color-silver);
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
-.transaction-date-net--good {
-  color: var(--color-success);
-}
 
 .transaction-date-group:first-child {
-  margin-top: 0;
+  padding-top: 8px;
 }
 
 /* Transaction list — each row is its own white card (button, opens the
@@ -2690,7 +2701,7 @@ button.line-item--link {
 .transaction-row {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 12px;
   width: 100%;
   padding: 10px 12px;
   border: none;
@@ -2702,8 +2713,8 @@ button.line-item--link {
   text-align: left;
   cursor: pointer;
   min-height: 44px;
-  margin-bottom: 6px;
-  transition: opacity 0.1s ease;
+  margin-bottom: 0;
+  transition: background-color 0.12s ease;
 }
 
 .transaction-row:last-child {
@@ -2711,7 +2722,7 @@ button.line-item--link {
 }
 
 .transaction-row:active {
-  opacity: 0.6;
+  background: var(--color-bg-secondary);
 }
 
 .transaction-icon-chip {
@@ -2728,6 +2739,7 @@ button.line-item--link {
 
 .transaction-icon-chip--uncategorized {
   color: var(--color-warning);
+  background: var(--color-warning-bg);
 }
 
 .transaction-icon-chip-income {
@@ -2743,10 +2755,11 @@ button.line-item--link {
 
 .transaction-meta .transaction-name {
   font-weight: 700;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
 .transaction-meta .transaction-sub {
@@ -2774,6 +2787,7 @@ button.line-item--link {
   font-size: 0.9375rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
 .transaction-amount--income {
@@ -2787,8 +2801,8 @@ button.line-item--link {
 .transaction-filters {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 14px;
+  margin-bottom: 0;
 }
 
 .transaction-filters-search-wrap {
@@ -2806,37 +2820,42 @@ button.line-item--link {
 
 .transaction-filters-search {
   width: 100%;
-  padding: 0.6rem 0.9rem 0.6rem 2.5rem;
+  padding: 0 14px 0 40px;
   min-height: 44px;
   border-radius: 14px;
   border: none;
   background: var(--color-bg-secondary);
   color: var(--foreground);
   font-family: inherit;
+  height: 44px;
+  margin: 0;
 }
 
 .transaction-filters-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
 }
 
 .transaction-filters-row select {
-  /* Two half-width selects sharing the row, per the Activity spec.
-     min-width:0 is what makes that actually happen: a flex item defaults
-     to min-width:auto and refuses to shrink below its own content, and
-     "Current paycheck" plus a dropdown arrow is wider than half a 390px
-     screen -- so the pair wrapped onto two stacked rows instead. The
-     basis stays small and they grow to share the space equally. */
-  flex: 1 1 0;
   min-width: 0;
   min-height: 40px;
-  padding: 0.5rem 0.6rem;
-  border-radius: var(--radius-sm);
+  padding: 0 30px 0 13px;
+  border-radius: 12px;
   border: 1.5px solid var(--color-border);
-  background: var(--color-card);
   color: var(--foreground);
   font-family: inherit;
+  height: 40px;
+  font-weight: 600;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  text-overflow: ellipsis;
+  background-color: var(--color-card);
+  background-image: var(--select-caret);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px 6px;
 }
 
 .icon-button {
@@ -2852,7 +2871,6 @@ button.line-item--link {
   padding: 0.25rem 0.5rem;
 }
 
-.icon-button:hover,
 .icon-button:active {
   opacity: 1;
 }
@@ -2870,7 +2888,7 @@ button.line-item--link {
   align-items: center;
   gap: 0.75rem;
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .category-row-list > .category-row:last-child {
@@ -2919,7 +2937,6 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.category-row-kebab:hover,
 .category-row-kebab:active {
   background: var(--color-bg-secondary);
 }
@@ -2927,7 +2944,7 @@ button.line-item--link {
 .category-unused-section {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-divider);
 }
 
 .category-unused-toggle {
@@ -3014,7 +3031,6 @@ button.line-item--link {
   cursor: pointer;
 }
 
-.icon-picker-item:hover,
 .icon-picker-item:active {
   background: var(--color-bg-secondary);
 }
@@ -3079,7 +3095,7 @@ button.line-item--link {
 .app-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem 1rem;
+  padding: 18px 20px 24px;
   padding-bottom: calc(var(--bottom-nav-clearance) + env(safe-area-inset-bottom));
   max-width: 30rem;
   width: 100%;
@@ -3093,7 +3109,8 @@ button.line-item--link {
   font-size: 1.625rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  line-height: 1.2;
 }
 
 .bottom-nav {
@@ -3101,39 +3118,37 @@ button.line-item--link {
   bottom: 0;
   left: 0;
   right: 0;
-  min-height: 76px;
-  display: flex;
-  justify-content: space-around;
+  display: grid;
   background: var(--color-nav-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--color-divider);
   padding-bottom: env(safe-area-inset-bottom);
   z-index: var(--z-nav);
-  /* Matches .app-content's own column width -- on desktop this keeps the
-     nav under the content it controls instead of stretching edge-to-edge
-     of a 1800px window with a 480px column floating in the middle of it. */
   max-width: 30rem;
   margin: 0 auto;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  justify-items: center;
+  height: calc(76px + env(safe-area-inset-bottom));
+  padding: 0 8px env(safe-area-inset-bottom);
 }
 
 .bottom-nav-item {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.6rem 0.25rem;
+  gap: 4px;
+  padding: 0;
   font-size: 0.6875rem;
   font-weight: 600;
-  /* --color-text-secondary, not the raw --color-silver token -- this is
-     small (11px) TEXT, and --color-text-secondary is the one already
-     tuned to clear AA against --color-card (see its own comment; dark
-     mode's version is explicitly the spec's Silver already). */
-  color: var(--color-text-secondary);
-  transition:
-    color 0.15s ease,
-    transform 0.15s ease;
+  color: var(--color-silver);
+  transition: color 0.12s ease;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-display);
+  text-decoration: none;
 }
 
 .bottom-nav-item.is-active {
@@ -3142,8 +3157,7 @@ button.line-item--link {
 }
 
 .bottom-nav-icon {
-  font-size: 1.375rem;
-  transition: transform 0.15s ease;
+
 }
 
 .bottom-nav-label {
@@ -3156,13 +3170,12 @@ button.line-item--link {
    font's own glyph metrics, which vary enough across platforms to
    read as visibly off-center at this size. */
 .bottom-nav-fab {
-  flex: 0 0 auto;
-  align-self: flex-start;
+  align-self: start;
   width: 3.5rem;
   height: 3.5rem;
   margin-top: -22px;
   border-radius: 50%;
-  border: 3px solid var(--color-card);
+  border: none;
   background: var(--color-button-bg);
   color: var(--color-on-accent);
   display: flex;
@@ -3170,16 +3183,16 @@ button.line-item--link {
   justify-content: center;
   box-shadow: var(--shadow-fab);
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: background-color 0.12s ease;
 }
 
 .bottom-nav-fab svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.625rem;
+  height: 1.625rem;
 }
 
 .bottom-nav-fab:active {
-  transform: scale(0.94);
+  background: var(--color-primary-hover);
 }
 
 /* Toast — non-blocking feedback for logging/deleting, with an Undo action */
@@ -3247,9 +3260,6 @@ button.line-item--link {
   transform: translateY(-50%);
 }
 
-.bottom-nav-item.is-active .bottom-nav-icon {
-  transform: translateY(-2px) scale(1.08);
-}
 
 /* Gmail sync — small non-blocking indicator while a background sync runs */
 .gmail-sync-indicator {
@@ -3308,11 +3318,11 @@ button.line-item--link {
 .recurring-summary-bar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  margin-bottom: 1rem;
+  border-radius: 18px;
+  padding: 14px 16px;
+  margin-bottom: 0;
 }
 
 .recurring-summary-bar-text {
@@ -3324,14 +3334,18 @@ button.line-item--link {
    would be invisible against this bar's identical background -- a subtle
    dark overlay instead, visible in both themes without a new token. */
 .recurring-summary-bar .progress-bar-track {
-  background: rgba(16, 22, 28, 0.12);
+  background: var(--color-border);
+  height: 6px;
+  border-radius: var(--radius-pill);
 }
 
 .recurring-summary-bar-count {
   display: block;
   font-size: 0.875rem;
   font-weight: 700;
-  margin-bottom: 0.4rem;
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  line-height: 1.4;
 }
 
 /* Gold, not warning orange: this is the remaining RECURRING amount, and
@@ -3353,6 +3367,8 @@ button.line-item--link {
    been charged"; that is a completion count, not a traffic light. */
 .recurring-summary-bar .progress-bar-fill {
   background: var(--color-recurring);
+  height: 6px;
+  border-radius: var(--radius-pill);
 }
 
 /* Recurring Expenses & Goals rows */
@@ -3374,7 +3390,7 @@ button.line-item--link {
 
 .category-progress-row {
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .category-progress-row:last-child {
@@ -3392,7 +3408,7 @@ button.line-item--link {
   background: var(--color-card);
   border-radius: var(--radius-lg);
   padding: 16px;
-  box-shadow: var(--shadow-row);
+  box-shadow: var(--shadow-card);
 }
 
 /* A category is an expandable container, not a link -- tapping it
@@ -3452,19 +3468,16 @@ button.line-item--link {
 .recurring-subsection-heading {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-text-secondary);
+  color: var(--color-silver);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: var(--space-4) 0 0.625rem;
+  letter-spacing: 0.08em;
+  font-family: var(--font-display);
 }
 
-.recurring-subsection-heading:first-of-type {
-  margin-top: var(--space-3);
-}
 
 .recurring-expense-row {
   padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-divider);
 }
 
 .recurring-expense-row:first-child {
@@ -3537,21 +3550,21 @@ button.line-item--link {
 }
 
 .recurring-expense-status--partial .recurring-expense-status-label {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: var(--color-bg-secondary);
+  color: var(--color-recurring);
 }
 
 .recurring-expense-status--paid .recurring-expense-status-label {
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-bg-secondary);
+  color: var(--color-recurring);
 }
 
 /* Same warning tone as the category-level bar's orange 101-120% tier --
    an item can never read as calmly "Paid" while its category is
    simultaneously showing a warning about it. */
 .recurring-expense-status--paid-over .recurring-expense-status-label {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: var(--color-bg-secondary);
+  color: var(--color-recurring);
 }
 
 .recurring-expense-status--exceeded .recurring-expense-status-label {
@@ -3572,13 +3585,14 @@ button.line-item--link {
 .recurring-expense-row--simplified-top {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 12px;
 }
 
 .recurring-expense-row--simplified .recurring-expense-row-main {
   flex: 1;
   min-width: 0;
-  gap: 0.7rem;
+  gap: 12px;
+  min-height: 0;
 }
 
 .recurring-expense-row--simplified .recurring-expense-suggestion {
@@ -3609,8 +3623,8 @@ button.line-item--link {
    swaps to a check glyph and drops the dot's own fill -- the icon itself
    (rendered conditionally in the component) carries the color instead. */
 .recurring-expense-row--simplified .recurring-expense-row-indicator:has(svg) {
-  width: auto;
-  height: auto;
+  width: 16px;
+  height: 16px;
   background: none;
 }
 
@@ -3627,6 +3641,7 @@ button.line-item--link {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
 }
 
 .recurring-expense-row-meta {
@@ -3639,6 +3654,7 @@ button.line-item--link {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+  font-family: var(--font-display);
 }
 
 /* Paid: name/meta/amount all recede to the faint tone, matching the
@@ -3665,35 +3681,46 @@ button.line-item--link {
 .goal-row-main {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 14px;
   width: 100%;
 }
 
 .goal-row-details {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .goal-row-name {
   font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .goal-row-progress {
   font-size: 0.875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
 .goal-row-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .goal-row-actions .button--chip {
   min-height: 40px;
+  padding: 0 16px;
+  font-size: 0.875rem;
 }
 
 /* Contribute is the one primary (navy) action in this row -- flex:1 so it
@@ -3701,13 +3728,17 @@ button.line-item--link {
 .goal-row-actions > .button:first-child {
   flex: 1;
   min-height: 40px;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 0.875rem;
 }
 
 .goal-projection {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-savings);
-  margin-top: 0.3rem;
+  margin-top: 0;
+  line-height: 1.4;
 }
 
 .goal-projection--complete {
@@ -3716,7 +3747,7 @@ button.line-item--link {
 
 .goal-projection--muted {
   font-weight: 400;
-  color: var(--color-text-secondary);
+  color: var(--color-silver);
 }
 
 /* Goal ring — plain SVG, no charting library */
@@ -3751,26 +3782,28 @@ button.line-item--link {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+  font-family: var(--font-display);
 }
 
 .profile-name {
   font-family: var(--font-display);
   font-size: 1.125rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
+  line-height: 1.3;
 }
 
 .profile-member-since {
   font-size: 0.75rem;
   color: var(--color-text-faint);
-  margin-top: 0.15rem;
+  margin-top: 1px;
 }
 
 .profile-identity {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  margin-bottom: 1.5rem;
+  gap: 14px;
+  margin-bottom: 0;
 }
 
 .profile-avatar {
@@ -3794,10 +3827,12 @@ button.line-item--link {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
+  letter-spacing: 0.09em;
+  color: var(--color-silver);
   padding-left: 4px;
-  margin: 1.25rem 0 0.5rem;
+  margin: 0;
+  font-family: var(--font-display);
+  line-height: 1.4;
 }
 
 .profile-section-label--danger {
@@ -3807,7 +3842,7 @@ button.line-item--link {
 .profile-row-trailing {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -3823,20 +3858,22 @@ button.line-item--link {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.15rem 0.6rem;
+  gap: 6px;
+  padding: 0 11px;
   border-radius: var(--radius-pill);
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-bg-secondary);
+  color: var(--color-accent-green);
   font-size: 0.75rem;
   font-weight: 700;
+  height: 26px;
+  font-family: var(--font-display);
 }
 
 .profile-gmail-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-success);
+  background: var(--color-accent-green);
 }
 
 .profile-gmail-status--error {
@@ -3854,7 +3891,7 @@ button.line-item--link {
 }
 
 .profile-signout-footer {
-  margin-top: 1.5rem;
+  margin-top: 0;
 }
 
 /* The one full-width button on the page -- a quiet #eef0f3 pill, not the
@@ -3867,9 +3904,9 @@ button.line-item--link {
   color: var(--color-accent-green);
   font-size: 1rem;
   font-weight: 700;
+  height: 50px;
 }
 
-.profile-signout-button:hover,
 .profile-signout-button:active {
   background: var(--color-bg-secondary-hover);
   opacity: 1;
@@ -4027,7 +4064,7 @@ button.line-item--link {
   background: var(--color-nav-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-divider);
+  border-bottom: none;
 }
 
 .landing-brand {
@@ -4072,8 +4109,8 @@ button.line-item--link {
 .landing-hero {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  padding: 32px 20px 40px;
+  gap: 0;
+  padding: 44px 20px 40px;
 }
 
 /* Desktop only -- see the min-width:900px block below. */
@@ -4093,12 +4130,12 @@ button.line-item--link {
 
 .landing-hero h1 {
   font-family: var(--font-display);
-  font-size: 2.375rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  line-height: 1.06;
+  line-height: 1.05;
   letter-spacing: -0.035em;
   text-wrap: balance;
-  margin-bottom: 0.85rem;
+  margin-bottom: 14px;
 }
 
 .landing-hero-sub {
@@ -4117,6 +4154,7 @@ button.line-item--link {
 
 .landing-hero-sub--mobile {
   font-size: 1.0625rem;
+  margin-bottom: 0;
 }
 
 /* Desktop only -- mobile uses .landing-hero-mobile-cta instead. */
@@ -4153,7 +4191,7 @@ button.line-item--link {
 }
 
 .landing-trust-line--mobile {
-  margin-top: 0.75rem;
+  margin-top: 0;
 }
 
 .landing-trust-dot {
@@ -4170,8 +4208,8 @@ button.line-item--link {
 .landing-hero-mobile-cta {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 2rem 0 2.75rem;
+  gap: 14px;
+  margin: 32px 0 44px;
 }
 
 .landing-hero-mobile-cta .landing-cta-primary {
@@ -4194,15 +4232,15 @@ button.line-item--link {
 .landing-checklist {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 14px;
   list-style: none;
-  margin-bottom: 1rem;
+  margin-bottom: 18px;
 }
 
 .landing-checklist li {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 10px;
   font-size: 1rem;
   color: var(--color-text-primary);
 }
@@ -4320,7 +4358,6 @@ button.line-item--link {
   color: #ffffff;
 }
 
-.landing-cta-band-secondary:hover,
 .landing-cta-band-secondary:active {
   border-color: #ffffff;
   opacity: 1;
@@ -4339,6 +4376,7 @@ button.line-item--link {
   border-top: 1px solid var(--color-divider);
   color: var(--color-silver);
   font-size: 0.8125rem;
+  margin-top: auto;
 }
 
 .landing-footer-brand {
@@ -4367,8 +4405,6 @@ button.line-item--link {
   text-decoration: none;
 }
 
-.landing-footer-links a:hover,
-.landing-nav a:hover,
 .landing-footer-links a:active,
 .landing-nav a:active {
   color: var(--color-text-primary);
@@ -4673,7 +4709,7 @@ button.line-item--link {
 .auth-input:focus-visible {
   outline: none;
   border-color: var(--color-accent-green);
-  box-shadow: 0 0 0 4px var(--color-accent-bg);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .auth-password-label-row {
@@ -4692,6 +4728,7 @@ button.line-item--link {
   font-weight: 700;
   color: var(--color-accent-green);
   text-decoration: none;
+  font-family: var(--font-display);
 }
 
 .auth-password-wrap {
@@ -4763,7 +4800,7 @@ button.line-item--link {
   color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 700;
-  font-family: inherit;
+  font-family: var(--font-display);
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -4816,31 +4853,34 @@ button.line-item--link {
 .summary-screen {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1rem 1rem 2.5rem;
+  gap: 0;
+  min-height: calc(100dvh - 18px);
+  padding: 0 4px 4px;
   max-width: 32rem;
   margin: 0 auto;
 }
 
 .summary-header {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 34px;
 }
 
 .summary-header-back {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   background: none;
-  padding: 0.25rem;
-  margin-left: -0.25rem;
+  padding: 0;
+  margin-left: -6px;
   color: var(--color-text-secondary);
   cursor: pointer;
 }
 
-.summary-header-back:hover,
 .summary-header-back:active {
   color: var(--color-text-primary);
 }
@@ -4848,19 +4888,22 @@ button.line-item--link {
 /* Uppercase to match Breakdown's own kicker (.breakdown-header-eyebrow) --
    both now render the same composed phrase ("{range} · closed"). */
 .summary-header-eyebrow {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-silver);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.09em;
 }
 
 .summary-headline h1 {
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: clamp(2.25rem, 11.3vw, 2.75rem);
   font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
   text-wrap: balance;
+  font-variant-numeric: tabular-nums;
 }
 
 /* The "$297" fragment only -- see SummaryHeadline's own doc comment for
@@ -4872,11 +4915,10 @@ button.line-item--link {
 .summary-stat-row {
   display: flex;
   align-items: stretch;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--color-card);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md, 0.75rem);
+  margin-top: 32px;
+  padding: 18px 4px;
+  border-top: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .summary-stat {
@@ -4884,7 +4926,8 @@ button.line-item--link {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 3px;
+  align-items: center;
 }
 
 .summary-stat-divider {
@@ -4898,13 +4941,14 @@ button.line-item--link {
    kicker above the headline, and having both competing made the stat row
    read as a second kicker rather than as data. */
 .summary-stat-label {
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  color: var(--color-silver);
 }
 
 .summary-stat-value {
-  font-size: 1rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 5.1vw, 1.25rem);
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
@@ -4916,16 +4960,20 @@ button.line-item--link {
    "$47 less than your last three quincenas — your lightest since May." */
 .summary-context-line {
   font-size: 1rem;
+  line-height: 1.5;
   color: var(--color-text-secondary);
+  margin-top: 12px;
+  text-wrap: pretty;
 }
 
 .summary-section-eyebrow {
+  font-family: var(--font-display);
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-text-secondary);
+  color: var(--color-silver);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 0.625rem;
+  letter-spacing: 0.09em;
+  margin-bottom: 0;
 }
 
 /* Sparkline row */
@@ -4935,26 +4983,43 @@ button.line-item--link {
 .summary-goals-in-progress {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
   width: 100%;
-  padding: 0.875rem 1rem;
-  background: var(--color-card);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md, 0.75rem);
   color: inherit;
   text-decoration: none;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
+  transition: background-color 0.12s ease;
 }
 
-.summary-sparkline-row:hover,
-.summary-recurring-row:hover,
-.summary-goals-completed:hover,
-.summary-goals-in-progress:hover,
-.summary-sparkline-row:active,
+.summary-sparkline-row {
+  gap: 14px;
+  min-height: 44px;
+  padding: 14px 2px 0;
+}
+
+.summary-recurring-row,
+.summary-goals-in-progress {
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+.summary-recurring-row {
+  display: block;
+  padding: 14px 16px;
+}
+
+.summary-goals-completed {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--color-savings-bg);
+}
+
+.summary-sparkline-row:active {
+  opacity: 0.85;
+}
+
 .summary-recurring-row:active,
-.summary-goals-completed:active,
 .summary-goals-in-progress:active {
   background: var(--color-bg-secondary);
 }
@@ -4962,14 +5027,15 @@ button.line-item--link {
 .summary-sparkline-content {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 14px;
   flex: 1;
   min-width: 0;
 }
 
 .summary-sparkline-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--color-text-secondary);
+  line-height: 1.4;
 }
 
 .summary-sparkline-chevron,
@@ -4977,7 +5043,7 @@ button.line-item--link {
 .summary-goals-chevron {
   margin-left: auto;
   flex-shrink: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-chevron);
 }
 
 /* Goals */
@@ -4985,29 +5051,21 @@ button.line-item--link {
 .summary-recurring-section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 10px;
+  margin-top: 26px;
 }
 
 .summary-goals-icon {
-  font-size: 1.125rem;
   flex-shrink: 0;
+  color: var(--color-savings);
 }
 
-.summary-goals-completed span:not(.summary-goals-icon),
-.summary-goals-in-progress span:not(.summary-goals-chevron) {
-  font-size: 0.9375rem;
-  min-width: 0;
-}
 
 /* Recurring (Summary screen) -- the row's own content is now
    RecurringFulfillmentCard, shared with Breakdown's chapter 02 (see
    app/(app)/_components/RecurringFulfillmentCard.tsx and its CSS above,
    ".recurring-fulfillment-*"). This wrapper just keeps the content
    stretched to fill the tappable row alongside the chevron. */
-.summary-recurring-content {
-  flex: 1;
-  min-width: 0;
-}
 
 /* Uncategorized warning strip -- deliberately neutral (ink text on
    --color-bg-secondary, a plain gray dot), not the warning-orange
@@ -5019,64 +5077,58 @@ button.line-item--link {
 .summary-uncategorized-strip {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
   color: var(--color-text-primary);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md, 0.75rem);
+  border-radius: 14px;
+  text-decoration: none;
 }
 
-.summary-uncategorized-strip::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-silver);
-  flex-shrink: 0;
-}
 
 .summary-uncategorized-fix {
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
+  font-family: var(--font-display);
   font-weight: 700;
   color: inherit;
-  text-decoration: underline;
 }
 
 /* CTA row */
 .summary-cta {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-  margin-top: 0.5rem;
+  gap: 6px;
+  margin-top: 0;
 }
 
-.summary-cta-primary,
+
+.summary-cta-primary {
+  width: 100%;
+  height: 56px;
+  font-size: 1.0625rem;
+  box-shadow: var(--shadow-cta);
+}
+
 .summary-cta-secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 52px;
-  border-radius: var(--radius-pill, 999px);
-  font-size: 1rem;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
   font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
+  color: var(--color-accent-green);
   text-decoration: none;
 }
 
-.summary-cta-primary {
-  border: none;
-  background: var(--color-button-bg);
-  color: var(--color-on-accent);
-}
-
-.summary-cta-secondary {
-  border: 1.5px solid var(--color-border);
-  background: var(--color-card);
-  color: var(--color-text-primary);
+.summary-cta-secondary:active {
+  background: var(--color-bg-secondary);
 }
 
 /* ===== Shared chart primitives ===== */
@@ -5096,7 +5148,7 @@ button.line-item--link {
 .heatmap {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 /* M/T/W/T/F/S/S above the grid, one label per column -- same 7-col
@@ -5110,9 +5162,10 @@ button.line-item--link {
 
 .heatmap-weekday-label {
   text-align: center;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 700;
-  color: var(--color-text-faint);
+  color: var(--color-silver);
+  font-family: var(--font-display);
 }
 
 .heatmap-grid {
@@ -5132,8 +5185,8 @@ button.line-item--link {
   border: none;
   border-radius: 7px;
   padding: 0;
-  /* The date number sits at the cell's own bottom-right corner. */
   position: relative;
+  cursor: pointer;
 }
 
 /* Ink, not the accent-green this used before -- matches the design
@@ -5149,7 +5202,7 @@ button.line-item--link {
   right: 3px;
   bottom: 2px;
   font-size: 8px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -5183,34 +5236,37 @@ button.line-item--link {
 .heatmap-legend {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 6px;
+  justify-content: flex-end;
+  padding-top: 6px;
 }
 
 .heatmap-legend-label {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  color: var(--color-silver);
 }
 
 .heatmap-legend-swatch {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 /* ===== Breakdown V2 (Cash flow, Recurring, By category, When you spend, Biggest transactions) ===== */
 .breakdown-screen-v2 {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1rem 1.25rem 2.5rem;
+  gap: 0;
+  padding: 0;
   max-width: 32rem;
   margin: 0 auto;
 }
 
 .breakdown-header {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 10px;
+  margin-top: -6px;
 }
 
 .breakdown-header-back,
@@ -5220,38 +5276,46 @@ button.line-item--link {
   justify-content: center;
   border: none;
   background: none;
-  padding: 0.25rem;
+  padding: 0;
   color: var(--color-text-secondary);
   cursor: pointer;
   flex-shrink: 0;
+  border-radius: 50%;
+  position: relative;
 }
 
 .breakdown-header-back {
-  margin-left: -0.25rem;
+  width: 38px;
+  height: 38px;
+  margin-left: -8px;
 }
 
-.breakdown-header-back:hover,
-.breakdown-header-chevron:hover,
 .breakdown-header-back:active,
 .breakdown-header-chevron:active {
   color: var(--color-text-primary);
+  background: var(--color-bg-secondary-hover);
 }
 
 .breakdown-header-titles {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .breakdown-header-eyebrow {
+  font-family: var(--font-display);
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  font-weight: 700;
+  color: var(--color-silver);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.09em;
 }
 
 .breakdown-header-title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -5259,42 +5323,47 @@ button.line-item--link {
 
 .breakdown-header-subline {
   font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-  margin-top: 0.15rem;
+  color: var(--color-silver);
+  margin-top: 0;
 }
 
 .breakdown-header-nav {
   display: flex;
-  gap: 0.125rem;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .breakdown-banner {
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md, 0.75rem);
-  background: var(--color-bg-secondary);
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
+  margin-top: 36px;
 }
 
 /* LIVE's pace callout: the spec gives it a 1px border and a leading dot
    that the CLOSED comparison banner doesn't have. */
 .breakdown-banner--pace {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
+  box-shadow: none;
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin-top: 0;
 }
 
 .breakdown-pace-dot {
   flex-shrink: 0;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  /* Always neutral. The spec is explicit that this dot never goes green
-     even when the user is under pace, because green means income
-     everywhere else in the product. */
   background: var(--color-text-secondary);
 }
 
@@ -5304,11 +5373,11 @@ button.line-item--link {
   font-family: var(--font-display);
   font-size: 2rem;
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.08;
   letter-spacing: -0.03em;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   text-wrap: balance;
-  margin-bottom: 0.875rem;
+  margin: 22px 0 16px;
 }
 
 .breakdown-live-headline-figure {
@@ -5322,7 +5391,9 @@ button.line-item--link {
 .breakdown-chapters {
   display: flex;
   flex-direction: column;
-  gap: 2.75rem;
+  gap: 44px;
+  margin-top: 36px;
+  padding-bottom: 8px;
 }
 
 /* Each chapter is its own elevated card -- radius 20 (--radius-lg),
@@ -5335,10 +5406,9 @@ button.line-item--link {
    not shadow" once a surface already separates by --color-card vs
    --color-bg. */
 .breakdown-chapter {
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  padding: 1.125rem;
-  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .breakdown-chapter-kicker {
@@ -5347,8 +5417,8 @@ button.line-item--link {
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--color-text-faint);
-  margin-bottom: 0.25rem;
+  color: var(--color-silver);
+  margin-bottom: 0;
 }
 
 .breakdown-chapter-title {
@@ -5356,7 +5426,8 @@ button.line-item--link {
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.025em;
-  margin-bottom: 0.375rem;
+  margin-bottom: 0;
+  line-height: 1.2;
 }
 
 .breakdown-chapter-takeaway {
@@ -5364,11 +5435,14 @@ button.line-item--link {
   line-height: 1.45;
   color: var(--color-text-secondary);
   margin-bottom: 0.875rem;
+  margin: 2px 0 0;
+  text-wrap: pretty;
 }
 
 .breakdown-chapter-empty {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
+  text-align: center;
 }
 
 /* Chapter 01's plain income line ("$891.45 came in Aug 16–31.") -- sits
@@ -5377,18 +5451,22 @@ button.line-item--link {
 .breakdown-chapter-lede {
   font-size: 0.875rem;
   color: var(--color-text-primary);
-  margin-bottom: 0.875rem;
+  margin-bottom: 0;
 }
 
 /* ----- Chapter 01: the selected day's own transactions ----- */
 .breakdown-day-detail {
-  margin-top: 1rem;
-  padding-top: 0.875rem;
-  border-top: 1px solid var(--color-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
 }
 
 .breakdown-day-detail-head {
-  margin-bottom: 0.5rem;
+  padding-bottom: 6px;
 }
 
 /* "AUG 31 · LAST DAY · $18.40" / "TODAY · AUG 27 · $24.00" -- one kicker-
@@ -5399,50 +5477,56 @@ button.line-item--link {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-text-faint);
+  color: var(--color-silver);
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
 }
 
 .breakdown-day-view-all {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  margin-top: 0.75rem;
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--color-border);
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  margin-top: 6px;
+  padding: 0 14px;
+  border: 1.5px solid var(--color-chevron);
   border-radius: var(--radius-pill);
-  font-size: 0.8125rem;
+  background: none;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-accent-green);
   text-decoration: none;
 }
 
-.breakdown-day-view-all:hover,
 .breakdown-day-view-all:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-secondary-hover);
 }
 
 .breakdown-day-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0;
   list-style: none;
 }
 
 .breakdown-day-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: "name amount" "meta amount";
-  gap: 0 0.75rem;
-  align-items: baseline;
-  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-divider);
 }
 
 .breakdown-day-row-name {
-  grid-area: name;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 6px;
   min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .breakdown-day-row-tag {
@@ -5450,7 +5534,7 @@ button.line-item--link {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--chart-fixed);
+  color: var(--color-recurring);
   background: var(--color-bg-secondary);
   border-radius: 999px;
   padding: 0.05rem 0.4rem;
@@ -5458,16 +5542,16 @@ button.line-item--link {
 }
 
 .breakdown-day-row-meta {
-  grid-area: meta;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  color: var(--color-silver);
 }
 
 .breakdown-day-row-amount {
-  grid-area: amount;
-  align-self: center;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -5476,11 +5560,9 @@ button.line-item--link {
   display: flex;
   height: 14px;
   border-radius: 999px;
-  /* Unfilled remainder = Leftover -- deliberately no segment drawn for it,
-     see CashFlowChapter's own comment. */
   background: var(--color-bg-secondary);
   overflow: hidden;
-  margin-bottom: 0.875rem;
+  margin-bottom: 0;
 }
 
 .cash-flow-bar-segment {
@@ -5504,9 +5586,7 @@ button.line-item--link {
 .cash-flow-legend {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-  /* 13px, muted (--color-text-secondary) -- the amount itself overrides
-     back to ink+700 below, since only the label half is muted. */
+  gap: 10px;
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
   list-style: none;
@@ -5515,7 +5595,7 @@ button.line-item--link {
 .cash-flow-legend-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   border-radius: var(--radius-sm);
 }
 
@@ -5528,8 +5608,12 @@ button.line-item--link {
 .cash-flow-legend-row--tappable {
   cursor: pointer;
   background: var(--color-bg-secondary);
-  padding: 0.5rem 0.625rem;
-  margin: -0.5rem -0.625rem;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  min-height: 44px;
 }
 
 /* Pressed, never hover -- DESIGN.md S5 is explicit that this is a mobile
@@ -5542,16 +5626,12 @@ button.line-item--link {
 
 .cash-flow-legend-row--tappable:focus-visible {
   outline: none;
-  border: 1.5px solid var(--color-accent-green);
-  box-shadow: 0 0 0 4px rgba(23, 57, 92, 0.1);
+  box-shadow: 0 0 0 1.5px var(--color-accent-green), 0 0 0 5.5px var(--focus-ring);
 }
 
-:root[data-theme="dark"] .cash-flow-legend-row--tappable:focus-visible {
-  box-shadow: 0 0 0 4px rgba(127, 179, 232, 0.18);
-}
 
 .cash-flow-legend-chevron {
-  margin-left: auto;
+  margin-left: 0;
   flex-shrink: 0;
   color: var(--color-text-secondary);
 }
@@ -5567,7 +5647,7 @@ button.line-item--link {
    tappable row -- the amount there sits before the chevron instead of
    being the row's last (auto-margined) element. */
 .cash-flow-legend-row--tappable .cash-flow-legend-amount {
-  margin-left: 0;
+  margin-left: auto;
 }
 
 /* 9px, radius 3 (DESIGN.md S6's literal legend swatch). */
@@ -5606,29 +5686,28 @@ button.line-item--link {
    not the primary label. */
 .cash-flow-legend-sublabel {
   display: block;
-  width: 100%;
   font-size: 0.6875rem;
-  color: var(--color-text-faint);
-  margin-top: 0.125rem;
+  color: var(--color-silver);
+  margin-top: 0;
 }
 
 /* ----- Chapter 02 + Summary's Recurring section: shared fulfillment card ----- */
 .recurring-fulfillment-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .recurring-fulfillment-group {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 6px;
 }
 
 .recurring-fulfillment-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 /* 9px, radius 3 -- same swatch geometry as the Cash-flow legend, since
@@ -5661,13 +5740,8 @@ button.line-item--link {
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
-  /* Gold, not green. DESIGN.md S6 spells this row out as "right `N of N
-     charged on time` / `N of N logged` 13/700 gold", and S1 reserves
-     green for income alone ("Nothing else is green"). This was
-     --color-success back when gold was parked on --color-savings and a
-     gold status here would have read as a goal; now that gold means
-     recurring, the count, the swatch and the bar are all one color. */
   color: var(--color-recurring);
+  font-family: var(--font-display);
 }
 
 /* Ongoing's own status half ("Panapass and haircut logged") is plain
@@ -5676,31 +5750,26 @@ button.line-item--link {
    lib/recurring-expense-status.ts's OngoingRecurringExpenseStatus doc
    comment: an Ongoing item's own amount is an estimate, not a number to
    hit or miss). */
-.recurring-fulfillment-status--muted {
-  font-weight: 400;
-  font-size: 0.8125rem;
-  color: var(--color-text-secondary);
-}
 
 /* 17px -- aligns with the label text past the swatch (10px + the row's
    own 0.5rem/8px gap comes close; the extra sliver matches the design
    spec's literal indent). */
 .recurring-fulfillment-subline {
   font-size: 0.75rem;
-  color: var(--color-text-faint);
-  margin-left: 1.0625rem;
+  color: var(--color-silver);
+  margin-left: 0;
 }
 
 .recurring-fulfillment-divider {
   border-top: 1px solid var(--color-divider);
-  margin: 0.125rem 0;
+  margin: 0;
 }
 
 /* 6px bar per the design spec, overriding ProgressBar's own default. */
 .recurring-fulfillment-progress .progress-bar-track,
 .recurring-fulfillment-progress .progress-bar-fill {
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-pill);
 }
 
 /* "6px gold bar on --surface-2" (DESIGN.md S6). ProgressBar colors itself
@@ -5718,14 +5787,14 @@ button.line-item--link {
 .biggest-transaction-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 14px;
   list-style: none;
 }
 
 .biggest-transaction-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .biggest-transaction-rank {
@@ -5740,6 +5809,7 @@ button.line-item--link {
   font-weight: 700;
   color: var(--color-text-secondary);
   flex-shrink: 0;
+  font-family: var(--font-display);
 }
 
 .biggest-transaction-content {
@@ -5759,7 +5829,7 @@ button.line-item--link {
 
 .biggest-transaction-meta {
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  color: var(--color-silver);
 }
 
 .biggest-transaction-trailing {
@@ -5772,11 +5842,13 @@ button.line-item--link {
 .biggest-transaction-amount {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
 }
 
 .biggest-transaction-date {
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  color: var(--color-silver);
 }
 
 /* ----- Chapter 03: the By-category donut -----
@@ -5788,7 +5860,7 @@ button.line-item--link {
 .category-donut {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 14px;
 }
 
 /* The centre block is absolutely positioned over the ring, so the figure
@@ -5836,6 +5908,7 @@ button.line-item--link {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
+  font-family: var(--font-display);
 }
 
 .category-donut-centre-value {
@@ -5870,12 +5943,12 @@ button.line-item--link {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  width: 100%;
+  width: calc(100% + 20px);
   min-height: 44px;
   margin: 0 -10px;
   padding: 6px 10px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   background: none;
   font-family: inherit;
   text-align: left;
@@ -5930,6 +6003,7 @@ button.line-item--link {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+  font-family: var(--font-display);
 }
 
 .category-donut-legend-share {
@@ -5961,7 +6035,7 @@ button.line-item--link {
 .explainer-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .explainer-heading {
@@ -5987,6 +6061,9 @@ button.line-item--link {
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color 0.15s ease, color 0.15s ease;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
 .explainer-toggle::before {
@@ -6010,7 +6087,7 @@ button.line-item--link {
 .explainer-toggle.is-open::after {
   content: "";
   position: absolute;
-  bottom: -11px;
+  bottom: -19px;
   left: 50%;
   width: 10px;
   height: 10px;
@@ -6025,16 +6102,13 @@ button.line-item--link {
 
 .explainer-toggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(23, 57, 92, 0.1);
+  box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
-:root[data-theme="dark"] .explainer-toggle:focus-visible {
-  box-shadow: 0 0 0 4px rgba(127, 179, 232, 0.18);
-}
 
 .explainer-bubble {
-  margin-top: 8px;
-  padding: 0.75rem 0.875rem;
+  margin-top: 14px;
+  padding: 12px 14px;
   border-radius: 14px;
   background: var(--color-button-bg);
   color: var(--color-on-accent);
@@ -6067,25 +6141,29 @@ button.line-item--link {
    appears. */
 .sheet-kicker {
   font-family: var(--font-display);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--color-text-faint);
-  text-align: center;
-  margin-bottom: 0.25rem;
+  color: var(--color-silver);
+  text-align: left;
+  margin-bottom: 6px;
 }
 
 /* The paycheck sheet's before/after income strip. */
 .paycheck-preview {
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem;
+  border-radius: 16px;
+  padding: 14px 16px;
   margin-bottom: 0.75rem;
-  text-align: center;
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
 }
 
 /* The close sheet's "what you're closing with" rows -- income, spent,
@@ -6093,15 +6171,19 @@ button.line-item--link {
    value, and that pairing is what a screen reader should announce. */
 .close-summary {
   margin-bottom: 0.875rem;
-  border-top: 1px solid var(--color-divider);
+  border-top: none;
+  margin: 0 0 12px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: var(--color-bg-secondary);
 }
 
 .close-summary-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--color-divider);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
   font-size: 0.875rem;
 }
 
@@ -6113,6 +6195,7 @@ button.line-item--link {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+  font-family: var(--font-display);
 }
 
 /* Saved keeps its meaning color here, same as everywhere else. */
@@ -6126,13 +6209,13 @@ button.line-item--link {
 .close-warning {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  gap: 10px;
   background: var(--color-warning-bg);
   color: var(--color-warning);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem;
-  margin-bottom: 0.875rem;
+  border-radius: 14px;
+  padding: 4px 14px;
+  margin-bottom: 12px;
   font-size: 0.875rem;
 }
 
@@ -6141,10 +6224,10 @@ button.line-item--link {
   border: none;
   background: none;
   color: inherit;
-  font-family: inherit;
+  font-family: var(--font-display);
   font-size: inherit;
   font-weight: 700;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
   min-height: 44px;
 }
@@ -6161,43 +6244,50 @@ button.line-item--link {
    legend by a rule rather than its own card, because it belongs to the
    same chapter card the donut already sits in. */
 .category-preview {
-  margin-top: 0.875rem;
-  padding-top: 0.875rem;
-  border-top: 1px solid var(--color-divider);
+  margin-top: 0;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background: var(--color-bg-secondary);
+  animation: category-preview-in 180ms ease;
 }
 
 .category-preview-heading {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: 0.9375rem;
-  font-weight: 800;
-  margin-bottom: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.category-preview-empty {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-  margin-bottom: 0.75rem;
-}
 
 .category-preview-list {
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
+  gap: 0;
   list-style: none;
-  margin-bottom: 0.875rem;
+  margin: 0;
 }
 
 /* Name and amount share the top line; the meta line spans both columns
    underneath, matching how chapter 05's rows and TransactionList already
    stack a row's secondary detail. */
 .category-preview-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.125rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--color-border);
 }
 
 .category-preview-name {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   min-width: 0;
   overflow: hidden;
@@ -6206,15 +6296,16 @@ button.line-item--link {
 }
 
 .category-preview-amount {
-  font-size: 0.875rem;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .category-preview-meta {
-  grid-column: 1 / -1;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: var(--color-text-faint);
 }
 
@@ -6226,20 +6317,22 @@ button.line-item--link {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 44px;
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--color-border);
+  height: 44px;
+  margin-top: 6px;
+  padding: 0 14px;
+  border: 1.5px solid var(--color-chevron);
   border-radius: var(--radius-pill);
-  background: var(--color-card);
-  box-shadow: var(--shadow-row);
-  font-size: 0.8125rem;
+  background: none;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--color-accent-green);
   text-decoration: none;
+  margin-top: 10px;
 }
 
 .category-preview-view-all:active {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-secondary-hover);
 }
 
 /* An in-progress goal row on Summary: name on its own line, the amount
@@ -6253,14 +6346,882 @@ button.line-item--link {
 }
 
 .summary-goals-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+}
+
+.summary-goals-detail {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 44px hit area around the visually small "See all" link (DESIGN.md S5). */
+.section-header-link::before {
+  content: "";
+  position: absolute;
+  inset: -14px -8px;
+}
+
+.home-edit-pill::before {
+  content: "";
+  position: absolute;
+  inset: -5px 0;
+}
+
+.banner--action:active {
+  filter: brightness(0.97);
+}
+
+.hero-pace strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.transaction-icon-chip--income {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* Inside a card (Home's Recent, a past cycle's list) rows are flat: the
+   card is the surface. On the page itself (Activity) each row is its own
+   card -- see .transaction-row above. */
+.dashboard-section .transaction-row {
+  padding: 0;
+  margin-bottom: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.dashboard-section .transaction-row:last-child {
+  margin-bottom: 0;
+}
+
+.dashboard-section .transaction-row:active {
+  background: none;
+  opacity: 0.6;
+}
+
+.dashboard-section .transaction-meta .transaction-name {
+  font-size: 0.875rem;
+}
+
+.transaction-filters .type-toggle {
+  gap: 7px;
+  margin-bottom: 0;
+}
+
+.type-toggle-btn.is-active:active {
+  background: var(--color-primary-hover);
+}
+
+.transaction-filters-search::placeholder {
+  color: var(--color-text-faint);
+}
+
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard-section .transaction-list {
+  gap: 10px;
+}
+
+/* Plan: title, then labelled sections 22px apart; each section is a
+   12px stack of header + cards sitting directly on the page (HANDOFF.md
+   Tab 3) -- the cards inside are the surfaces, not the section. */
+.plan-page {
+  gap: 22px;
+}
+
+.dashboard-section.plan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plan-section .section-header-row {
+  align-items: center;
+}
+
+.goal-row-progress-of {
+  color: var(--color-text-faint);
+}
+
+.goal-row-actions .button--ghost-danger {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.875rem;
+  border-radius: var(--radius-pill);
+}
+
+.recurring-expense-card {
+  gap: 0;
+  padding: 4px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+.recurring-expense-row--simplified:first-child {
+  padding-top: 14px;
+}
+
+/* Profile: title, identity, then labelled groups 20px apart; each group
+   is an 8px stack of an uppercase label over one list card (HANDOFF.md
+   Tab 4). */
+.profile-page {
+  gap: 20px;
+}
+
+.profile-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-section.profile-card {
+  gap: 0;
+  padding: 0 16px;
+}
+
+
+
+.profile-card .line-item .field-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-silver);
+}
+
+.profile-card .line-item--link svg {
+  flex-shrink: 0;
+  color: var(--color-chevron);
+}
+
+.profile-card .profile-danger-row svg {
+  color: var(--color-error);
+  opacity: 0.4;
+}
+
+.profile-row-count {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-silver);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-inline-error {
+  margin: 0;
+}
+
+.profile-identity .field-hint {
+  font-size: 0.875rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.profile-card .profile-theme-row {
+  padding: 14px 0;
+}
+
+.theme-picker-option::before {
+  content: "";
+  position: absolute;
+  inset: -5px 0;
+}
+
+.theme-picker-option:active:not(:disabled):not(.is-active) {
+  color: var(--color-text-primary);
+}
+
+.profile-card .line-item {
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: none;
+  font-size: 0.9375rem;
   font-weight: 600;
+}
+
+/* Dividers come from the card, not from each row: a row can be a <Link>,
+   a <button> (whose reset drops its own border) or a <form> wrapping one,
+   and a sheet rendered next to a row must not count as a row. */
+.profile-card > .line-item:not(:first-child),
+.profile-card > form:not(:first-child) {
+  border-top: 1px solid var(--color-divider);
+}
+
+.plan-section .recurring-subsection-heading {
+  margin: 4px 0 -4px 4px;
+}
+
+.transaction-filters-row select.is-placeholder {
+  font-weight: 400;
+  color: var(--color-silver);
+}
+
+/* ---- Onboarding shell (HANDOFF.md "Onboarding -- now 3 steps") ----
+   No card: the step sits straight on the page with 26px side padding, a
+   3-segment progress bar on top, and the action stack pinned to the
+   bottom of the screen by a flexible spacer. */
+.onboarding-page {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  background: var(--color-bg);
+}
+
+.onboarding-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 26rem;
+  min-height: 100dvh;
+  padding: 26px 26px 30px;
+}
+
+.onboarding-shell--income .onboarding-kicker {
+  padding-top: 44px;
+}
+
+.onboarding-shell--income h1 {
+  font-size: 2.125rem;
+}
+
+.onboarding-explainer {
+  margin-top: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+.onboarding-shell form {
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-shell > form:not(.onboarding-skip-form) {
+  flex: 1;
+}
+
+.onboarding-shell--income > form,
+.onboarding-shell--goal > form {
+  padding-top: 24px;
+}
+
+.onboarding-shell--income > form {
+  padding-top: 34px;
+}
+
+.onboarding-shell .field {
+  gap: 8px;
+  margin-bottom: 14px;
+  min-width: 0;
+}
+
+.onboarding-shell .field label {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.onboarding-shell .onboarding-income-field {
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.onboarding-shell .onboarding-income-field label {
+  font-size: 0.9375rem;
+}
+
+.onboarding-shell .field .field-hint {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-silver);
+  text-wrap: pretty;
+}
+
+.onboarding-shell .onboarding-income-field .field-hint {
+  margin-top: 6px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.onboarding-shell .field input:not([type="checkbox"]):not([type="hidden"]) {
+  height: 52px;
+  min-height: 0;
+  padding: 0 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0;
+}
+
+.onboarding-shell .field input::placeholder,
+.expenses-step-add-row input::placeholder {
+  color: var(--color-text-faint);
+  font-weight: 400;
+}
+
+.onboarding-shell .field input:focus-visible,
+.expenses-step-add-row input:focus-visible,
+.expenses-step-add-row select:focus-visible {
+  border-color: var(--color-accent-green);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.onboarding-shell .theme-picker {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: 40px;
+}
+
+.field-pair {
+  display: flex;
+  gap: 10px;
+}
+
+.field-pair > .field {
+  flex: 1;
+}
+
+.onboarding-shell .form-actions--stacked {
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.onboarding-shell .form-actions--stacked > .button:not(.button--ghost) {
+  width: 100%;
+  height: 56px;
+  font-size: 1.0625rem;
+  box-shadow: var(--shadow-cta);
+}
+
+.onboarding-skip-form {
+  margin-top: 6px;
+}
+
+.button.onboarding-skip {
+  width: 100%;
+  height: 44px;
+  font-size: 0.9375rem;
+  color: var(--color-silver);
+}
+
+.button.onboarding-skip:active {
+  color: var(--color-accent-green);
+}
+
+.expenses-step-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.expenses-step-row-name,
+.expenses-step-row-meta {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.summary-goals-detail {
+.expenses-step-row-remove::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+
+.expenses-step-add-row > input,
+.expenses-step-add-row > select {
+  flex: 1;
+}
+
+.expenses-step-add-row select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image: var(--select-caret);
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px 6px;
+}
+
+.expenses-step-add-row select:invalid,
+.expenses-step-add-row select:has(option[value=""]:checked) {
+  color: var(--color-text-faint);
+}
+
+.expenses-step-amount-field {
+  flex: 0 0 112px;
+}
+
+.expenses-step-amount-field--ongoing {
+  flex-basis: 104px;
+}
+
+.expenses-step-amount-field--ongoing + .expenses-step-add-button {
+  width: 72px;
+}
+
+.expenses-step-add-button:active {
+  background: var(--color-bg-secondary-hover);
+}
+
+.tip-block p {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+}
+
+.goal-step-projection svg {
+  display: block;
+}
+
+.goal-step-projection-ring span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.goal-step-projection-track {
+  stroke: #dbe4f7;
+}
+
+:root[data-theme="dark"] .goal-step-projection-track {
+  stroke: var(--color-divider);
+}
+
+.goal-step-projection-fill {
+  stroke: var(--color-savings);
+}
+
+.goal-step-projection strong {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.onboarding-complete-progress {
+  width: 150px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.onboarding-complete-progress > div {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  animation: onboarding-complete-fill 1.5s ease-out forwards;
+}
+
+@keyframes onboarding-complete-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-complete-progress > div {
+    animation: none;
+    width: 70%;
+  }
+}
+
+/* ---- Money field (DESIGN.md: "$" prefix in silver, Manrope 700 tabular
+   value; focused = accent border + soft ring) ---- */
+.money-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: 52px;
+  padding: 0 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.money-field:focus-within {
+  border-color: var(--color-accent-green);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.money-field-prefix {
+  flex-shrink: 0;
+  color: var(--color-silver);
+}
+
+.money-field input,
+.onboarding-shell .field .money-field input:not([type="checkbox"]):not([type="hidden"]) {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  background: none;
+  box-shadow: none;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-field input::placeholder {
+  color: var(--color-text-faint);
+  font-weight: 700;
+}
+
+.money-field--sm {
+  height: 48px;
+  padding: 0 12px;
+}
+
+.money-field--lg {
+  gap: 6px;
+  height: 64px;
+  padding: 0 20px;
+  border-radius: 16px;
+  font-size: 1.75rem;
+}
+
+.summary-header-back::before {
+  content: "";
+  position: absolute;
+  inset: -11px;
+}
+
+.summary-headline {
+  margin-top: 12px;
+}
+
+.summary-stat:first-child {
+  align-items: flex-start;
+}
+
+.summary-stat:last-child {
+  align-items: flex-end;
+}
+
+.summary-stat-value--income {
+  color: var(--color-success);
+}
+
+.summary-recurring-section {
+  margin-top: 22px;
+}
+
+.summary-uncategorized-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+}
+
+.summary-uncategorized-text {
+  flex: 1;
+}
+
+.summary-spacer {
+  flex: 1;
+  min-height: 24px;
+}
+
+/* Summary is a full-screen "moment" (HANDOFF.md Screen 1): 24px side
+   padding and no tab bar, its own primary CTA closes it. */
+.app-shell:has(.summary-screen) .bottom-nav {
+  display: none;
+}
+
+.app-shell:has(.summary-screen) .app-content {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+.breakdown-header-back::before,
+.breakdown-header-chevron::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.breakdown-header-chevron {
+  width: 32px;
+  height: 32px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.breakdown-banner strong {
+  font-weight: 800;
+}
+
+.breakdown-banner:not(.breakdown-banner--pace) + .breakdown-chapters {
+  margin-top: 44px;
+}
+
+.breakdown-chapter-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breakdown-chapter-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+}
+
+.breakdown-chapter-card--heatmap {
+  gap: 8px;
+}
+
+.breakdown-chapter-takeaway strong {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.cash-flow-legend-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.breakdown-day-row-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.category-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.category-preview-count {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+}
+
+.category-preview-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@keyframes category-preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-preview {
+    animation: none;
+  }
+}
+
+/* Breakdown is a full-screen sub-page with its own back chevron
+   (HANDOFF.md Screens 2-3): no tab bar. */
+.app-shell:has(.breakdown-screen-v2) .bottom-nav {
+  display: none;
+}
+
+.app-shell:has(.breakdown-screen-v2) .app-content {
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
+}
+
+/* ---- Sheets (DESIGN.md S6): 28px top corners, 5px grabber, a 56px
+   primary and a 44px ghost underneath. ---- */
+.sheet .field-hint {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.sheet .field .field-hint {
   font-size: 0.8125rem;
+  color: var(--color-silver);
+}
+
+.sheet .field {
+  gap: 8px;
+}
+
+.sheet .field label {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.sheet .field input:not([type="checkbox"]),
+.sheet .field select {
+  height: 52px;
+  min-height: 0;
+  padding: 0 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  margin: 0;
+}
+
+.sheet .field input:not([type="checkbox"]):focus-visible,
+.sheet .field select:focus-visible {
+  border-color: var(--color-accent-green);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.sheet .field input.sheet-amount-input {
+  height: auto;
+}
+
+.sheet .field input.sheet-amount-input:focus-visible {
+  box-shadow: none;
+}
+
+.sheet-submit:not(.button--secondary):not(.button--danger) {
+  box-shadow: var(--shadow-cta);
+}
+
+/* The ghost under the primary: Cancel / Not yet / Delete. */
+.sheet .button--secondary.sheet-submit {
+  height: 44px;
+  background: transparent;
+  color: var(--color-silver);
+  font-size: 0.9375rem;
+}
+
+.sheet .button--secondary.sheet-submit:active {
+  background: transparent;
+  color: var(--color-accent-green);
+}
+
+.sheet .form-actions {
+  margin-top: 6px;
+}
+
+.sheet .form-actions > .button {
+  width: 100%;
+  height: 56px;
+  font-size: 1.0625rem;
+  box-shadow: var(--shadow-cta);
+}
+
+.summary-value--savings {
+  color: var(--color-savings);
+}
+
+/* Past-cycle detail: recurring bars and their status chips carry the
+   recurring gold (DESIGN.md S1) -- green is income only, orange is
+   uncategorized only. Going over stays danger red. */
+.category-progress-list .progress-bar-fill--good,
+.category-progress-list .progress-bar-fill--warning {
+  background: var(--color-recurring);
+}
+
+.history-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.history-detail-actions .button {
+  text-decoration: none;
+  font-size: 0.9375rem;
+}
+
+.history-row-amount {
+  font-size: 0.875rem;
+  font-weight: 400;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.paycheck-preview-value {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.paycheck-preview-after {
+  color: var(--color-success);
+}
+
+.sheet .field .money-field--lg {
+  height: 60px;
+  padding: 0 18px;
+  font-size: 1.5rem;
+}
+
+.sheet .field .money-field input:not([type="checkbox"]) {
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.sheet .field .money-field input:not([type="checkbox"]):focus-visible {
+  box-shadow: none;
+}
+
+.close-summary-row:last-child {
+  border-bottom: none;
+}
+
+.close-summary-value--income {
+  color: var(--color-success);
+}
+
+.close-warning-text {
+  flex: 1;
+}
+
+.hero-pace-row--stacked .hero-pace {
+  text-align: center;
+}
+
+.hero-actions .hero-action-link {
+  padding: 0 12px;
+  white-space: nowrap;
 }

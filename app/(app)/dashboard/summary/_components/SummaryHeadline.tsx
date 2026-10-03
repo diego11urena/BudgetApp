@@ -19,11 +19,20 @@ export default function SummaryHeadline({
   t: Dictionary;
   vocab: PeriodVocab;
 }) {
+  // "…and saved $297." -- only the AMOUNT takes the savings blue (DESIGN.md
+  // S1 "Saved stat + headline amount"); the words around it stay ink.
+  const fragment = t.summary.headlineSavedFragment(saved);
+  const at = fragment.indexOf(saved);
+  const savedBefore = at >= 0 ? fragment.slice(0, at) : fragment;
+  const savedAfter = at >= 0 ? fragment.slice(at + saved.length) : "";
+
   return (
     <div className="summary-headline">
       <h1>
         {t.summary.headlinePrefix(vocab, spent)}
-        <span className="summary-headline-saved">{t.summary.headlineSavedFragment(saved)}</span>
+        {savedBefore}
+        <span className="summary-headline-saved">{saved}</span>
+        {savedAfter}
       </h1>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useId, useRef, type CSSProperties, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { useModalFocus } from "./useModalFocus";
 
-const DEFAULT_TITLE_STYLE: CSSProperties = { textAlign: "center", marginBottom: "1rem" };
+const DEFAULT_TITLE_STYLE: CSSProperties = { marginBottom: "1rem" };
 
 export interface SheetProps {
   /**

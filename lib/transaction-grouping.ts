@@ -1,4 +1,5 @@
-import { formatFriendlyDate } from "./format";
+import { formatFriendlyDate, formatShortDate } from "./format";
+import type { LocaleValue } from "./i18n/locale";
 import { addDays, panamaDateParts } from "./pay-date";
 
 export interface TransactionDateGroup<T> {
@@ -19,10 +20,19 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 }
 
 /** "Today" / "Yesterday" / "Aug 1, 2026" — lib/format.ts's formatFriendlyDate for anything older. */
-export function formatGroupDateLabel(date: Date, labels: { today: string; yesterday: string }, now: Date = new Date()): string {
+export function formatGroupDateLabel(
+  date: Date,
+  labels: { today: string; yesterday: string },
+  now: Date = new Date(),
+  locale: LocaleValue = "en",
+): string {
   if (isSameCalendarDay(date, now)) return labels.today;
   if (isSameCalendarDay(date, addDays(now, -1))) return labels.yesterday;
-  return formatFriendlyDate(date);
+  // "Aug 28" within the current year (the design system's day header);
+  // the year only appears once it is actually needed to tell dates apart.
+  return panamaDateParts(date).year === panamaDateParts(now).year
+    ? formatShortDate(date, locale)
+    : formatFriendlyDate(date, locale);
 }
 
 /**
@@ -35,10 +45,11 @@ export function groupTransactionsByDate<T extends { occurredAt: Date }>(
   items: T[],
   labels: { today: string; yesterday: string },
   now: Date = new Date(),
+  locale: LocaleValue = "en",
 ): TransactionDateGroup<T>[] {
   const groups: TransactionDateGroup<T>[] = [];
   for (const item of items) {
-    const label = formatGroupDateLabel(item.occurredAt, labels, now);
+    const label = formatGroupDateLabel(item.occurredAt, labels, now, locale);
     const lastGroup = groups[groups.length - 1];
     if (lastGroup && lastGroup.label === label) {
       lastGroup.items.push(item);

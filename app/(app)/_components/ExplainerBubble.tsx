@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Info } from "lucide-react";
 
 /**
  * A heading with an ⓘ toggle and the explainer bubble it opens
@@ -48,7 +47,7 @@ export default function ExplainerBubble({
           aria-label={label}
           onClick={() => setOpen((v) => !v)}
         >
-          <Info size={14} aria-hidden="true" />
+          <span aria-hidden="true">i</span>
         </button>
       </div>
       {open && (

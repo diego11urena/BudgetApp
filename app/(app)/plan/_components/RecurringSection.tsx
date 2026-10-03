@@ -102,14 +102,18 @@ export function RecurringSection({
       {scheduled.length > 0 && (
         <>
           <h3 className="recurring-subsection-heading">{t.plan.recurring.scheduledHeading}</h3>
-          <div className="recurring-expense-list recurring-expense-list--flat">{scheduled.map(renderRow)}</div>
+          <div className="recurring-expense-list recurring-expense-list--flat recurring-expense-card">
+            {scheduled.map(renderRow)}
+          </div>
         </>
       )}
 
       {ongoing.length > 0 && (
         <>
           <h3 className="recurring-subsection-heading">{t.plan.recurring.ongoingHeading}</h3>
-          <div className="recurring-expense-list recurring-expense-list--flat">{ongoing.map(renderRow)}</div>
+          <div className="recurring-expense-list recurring-expense-list--flat recurring-expense-card">
+            {ongoing.map(renderRow)}
+          </div>
         </>
       )}
 

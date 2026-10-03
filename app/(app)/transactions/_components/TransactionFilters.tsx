@@ -107,6 +107,7 @@ export function TransactionFilters({
           ))}
         </select>
         <select
+          className={searchParams.get("category") ? undefined : "is-placeholder"}
           value={searchParams.get("category") ?? ""}
           onChange={(e) => updateParam("category", e.target.value)}
           aria-label={t.transactions.filters.categoryAria}

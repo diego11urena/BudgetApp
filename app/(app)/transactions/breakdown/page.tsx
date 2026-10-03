@@ -121,6 +121,13 @@ export default async function BreakdownPage({
   // Chapter 03's per-category preview. Computed for every category up
   // front so selecting a slice is instant and client-only.
   const topTransactionsByCategory = computeTopTransactionsByCategory(financials.transactions);
+  // The preview header's "{n} transactions" -- the category's full count
+  // this period, not just the three rows shown.
+  const transactionCountByCategory: Record<string, number> = {};
+  for (const tx of financials.transactions) {
+    if (tx.type !== "EXPENSE" || !tx.expenseCategoryId) continue;
+    transactionCountByCategory[tx.expenseCategoryId] = (transactionCountByCategory[tx.expenseCategoryId] ?? 0) + 1;
+  }
   const weekendShare = computeWeekendShare(dailyTotals);
   const weekendSharePercent = weekendShare === null ? null : Math.round(weekendShare.share * 100);
   const selectedDayDefault = defaultSelected ? formatCycleLabel(defaultSelected) : null;
@@ -215,6 +222,7 @@ export default async function BreakdownPage({
       categories={categories}
       historyCount={history.length}
       topTransactionsByCategory={topTransactionsByCategory}
+      transactionCountByCategory={transactionCountByCategory}
       weekendSharePercent={weekendSharePercent}
       income={cashFlow.income}
     />

@@ -35,7 +35,11 @@ export default function WhenYouSpendChapter({
   const hasAnySpend = days.some((d) => d.total > 0);
 
   if (!hasAnySpend) {
-    return <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>;
+    return (
+      <div className="breakdown-chapter-card">
+        <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>
+      </div>
+    );
   }
 
   // Neither qualifier is "whichever day the user happens to have tapped" --
@@ -47,7 +51,9 @@ export default function WhenYouSpendChapter({
 
   return (
     <>
-      <Heatmap days={days} selectedDate={selected} onSelectDay={setSelected} />
+      <div className="breakdown-chapter-card breakdown-chapter-card--heatmap">
+        <Heatmap days={days} selectedDate={selected} onSelectDay={setSelected} />
+      </div>
 
       {selected && (
         <div className="breakdown-day-detail">
@@ -71,11 +77,13 @@ export default function WhenYouSpendChapter({
               <ul className="breakdown-day-list">
                 {rows.map((row) => (
                   <li key={row.id} className="breakdown-day-row">
-                    <span className="breakdown-day-row-name">
-                      {row.name}
-                      {row.isRecurring && <span className="breakdown-day-row-tag">{t.breakdown.recurringTag}</span>}
+                    <span className="breakdown-day-row-text">
+                      <span className="breakdown-day-row-name">
+                        {row.name}
+                        {row.isRecurring && <span className="breakdown-day-row-tag">{t.breakdown.recurringTag}</span>}
+                      </span>
+                      <span className="breakdown-day-row-meta">{row.categoryName ?? ""}</span>
                     </span>
-                    <span className="breakdown-day-row-meta">{row.categoryName ?? ""}</span>
                     <span className="breakdown-day-row-amount">{formatCurrency(row.amount)}</span>
                   </li>
                 ))}

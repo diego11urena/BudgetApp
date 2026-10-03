@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { ExpensesFormState } from "../actions";
 import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
+import { MoneyField } from "@/app/(app)/_components/MoneyField";
 import ExplainerBubble from "@/app/(app)/_components/ExplainerBubble";
 import { useT } from "@/app/_components/LocaleProvider";
 
@@ -83,12 +84,14 @@ export function RecurringExpensesStepForm({
       <div className="expenses-step-list">
         {group.map((row) => (
           <div key={row.id} className="expenses-step-row">
-            <span className="expenses-step-row-name">{row.name || t.onboarding.expenses.untitled}</span>
-            <span className="expenses-step-row-meta">
-              {row.hasFixedDate
-                ? t.onboarding.expenses.scheduleSummary(true, row.dueDay ? Number(row.dueDay) : null)
-                : t.onboarding.expenses.ongoingMeta}
-            </span>
+            <div className="expenses-step-row-text">
+              <span className="expenses-step-row-name">{row.name || t.onboarding.expenses.untitled}</span>
+              <span className="expenses-step-row-meta">
+                {row.hasFixedDate
+                  ? t.onboarding.expenses.scheduleSummary(true, row.dueDay ? Number(row.dueDay) : null)
+                  : t.onboarding.expenses.ongoingMeta}
+              </span>
+            </div>
             <span className="expenses-step-row-amount">
               {row.amount ? `${row.hasFixedDate ? "" : "~"}$${Number(row.amount).toFixed(2)}` : "—"}
             </span>
@@ -195,27 +198,23 @@ function AddRow({
           onChange={(e) => setName(e.target.value)}
           aria-label={t.onboarding.expenses.nameAria}
         />
-        <div className="expenses-step-amount-field">
-          {!scheduled && (
-            <span className="expenses-step-tilde" aria-hidden="true">
-              ~
-            </span>
-          )}
+        <MoneyField
+          prefix={scheduled ? "$" : "~$"}
+          size="sm"
+          className={`expenses-step-amount-field${scheduled ? "" : " expenses-step-amount-field--ongoing"}`}
+        >
           <CurrencyInput
             defaultValue=""
             allowEmpty
             onValueChange={setAmount}
-            placeholder={
+            placeholder="0.00"
+            ariaLabel={
               scheduled ? t.onboarding.expenses.amountPlaceholder : t.onboarding.expenses.typicalAmountPlaceholder
             }
           />
-        </div>
-        {/* Ongoing has no date, so its three controls fit one row -- the
-            spec draws it that way. Scheduled needs a second row for the
-            due-day select, which would otherwise squeeze the name field
-            past readability on a phone. */}
+        </MoneyField>
         {!scheduled && (
-          <button type="button" className="button button--chip expenses-step-add-button" onClick={submit}>
+          <button type="button" className="expenses-step-add-button" onClick={submit}>
             {t.onboarding.expenses.addButton}
           </button>
         )}
@@ -230,7 +229,7 @@ function AddRow({
               </option>
             ))}
           </select>
-          <button type="button" className="button button--chip expenses-step-add-button" onClick={submit}>
+          <button type="button" className="expenses-step-add-button" onClick={submit}>
             {t.onboarding.expenses.addButton}
           </button>
         </div>
@@ -253,9 +252,9 @@ export function RecurringExpensesStepSkipButton({
   const [, formAction, pending] = useActionState<ExpensesFormState, FormData>(action, undefined);
 
   return (
-    <form action={formAction}>
+    <form action={formAction} className="onboarding-skip-form">
       <input type="hidden" name="itemsJson" value="[]" readOnly />
-      <button type="submit" className="button button--ghost" disabled={pending}>
+      <button type="submit" className="button button--ghost onboarding-skip" disabled={pending}>
         {t.onboarding.expenses.skip}
       </button>
     </form>

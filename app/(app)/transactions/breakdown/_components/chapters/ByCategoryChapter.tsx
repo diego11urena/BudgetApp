@@ -19,11 +19,13 @@ export default function ByCategoryChapter({
   categories,
   state,
   topTransactionsByCategory,
+  transactionCountByCategory,
 }: {
   categories: CategoryRow[];
   state: "LIVE" | "CLOSED";
   /** Each category's biggest transactions, previewed when its slice is selected. */
   topTransactionsByCategory: Record<string, CategoryTransactionRow[]>;
+  transactionCountByCategory?: Record<string, number>;
 }) {
   const t = useT();
 
@@ -44,6 +46,7 @@ export default function ByCategoryChapter({
       total={total}
       state={state}
       topTransactionsByCategory={topTransactionsByCategory}
+      transactionCountByCategory={transactionCountByCategory}
     />
   );
 }

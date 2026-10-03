@@ -20,7 +20,6 @@ import { addDays, formatCycleLabel } from "@/lib/pay-date";
 import { formatCycleRangeLabel, formatMonthLabel, formatShortDate } from "@/lib/format";
 import { computeCyclePace } from "@/lib/quincena-pace";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { Header } from "./_components/Header";
 import { HeroCard } from "./_components/HeroCard";
 import { StatGrid } from "./_components/StatGrid";
@@ -270,7 +269,6 @@ export default async function DashboardPage() {
           {financials.transactions.length > 3 && (
             <Link href="/transactions" className="section-header-link">
               {t.dashboard.seeAll}
-              <ChevronRight size={16} aria-hidden="true" />
             </Link>
           )}
         </div>

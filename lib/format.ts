@@ -100,3 +100,12 @@ export function formatShortDate(date: Date, locale: LocaleValue = "en"): string 
 export function formatMonthLabel(date: Date, locale: "en" | "es"): string {
   return date.toLocaleDateString(locale === "es" ? "es-ES" : "en-US", { month: "long", timeZone: "America/Panama" });
 }
+
+/**
+ * "Jun 2027" -- a goal's projected finish on Plan. Month precision on
+ * purpose: the projection is "about when", and a specific day would read
+ * as a promise the per-cycle math can't keep.
+ */
+export function formatMonthYear(date: Date, locale: LocaleValue = "en"): string {
+  return date.toLocaleDateString(intlLocale(locale), { month: "short", year: "numeric", timeZone: "America/Panama" });
+}

@@ -30,12 +30,12 @@ describe("formatGroupDateLabel", () => {
   });
 
   it("formats anything older as a short date with year", () => {
-    expect(formatGroupDateLabel(panama(2026, 8, 1), LABELS, NOW)).toBe("Aug 1, 2026");
+    expect(formatGroupDateLabel(panama(2026, 8, 1), LABELS, NOW)).toBe("Aug 1");
     expect(formatGroupDateLabel(panama(2025, 12, 25), LABELS, NOW)).toBe("Dec 25, 2025");
   });
 
   it("does not label a future date as Today/Yesterday", () => {
-    expect(formatGroupDateLabel(panama(2026, 8, 16), LABELS, NOW)).toBe("Aug 16, 2026");
+    expect(formatGroupDateLabel(panama(2026, 8, 16), LABELS, NOW)).toBe("Aug 16");
   });
 });
 
@@ -71,7 +71,7 @@ describe("groupTransactionsByDate", () => {
       LABELS,
       NOW,
     );
-    expect(groups.map((g) => g.label)).toEqual(["Aug 1, 2026", "Jul 20, 2026", "Aug 1, 2026"]);
+    expect(groups.map((g) => g.label)).toEqual(["Aug 1", "Jul 20", "Aug 1"]);
   });
 
   it("returns an empty array for no transactions", () => {

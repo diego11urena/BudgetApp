@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { ArrowRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
@@ -59,7 +58,7 @@ export function ConfirmJustGotPaidSheet({
    * leftover. Shown above the date field so the decision is made against
    * the actual numbers rather than from memory.
    */
-  summaryRows?: Array<{ label: string; value: string; tone?: "saved" }>;
+  summaryRows?: Array<{ label: string; value: string; tone?: "saved" | "income" }>;
   /** Shown when something about the period looks unfinished (e.g. an expected paycheck was never logged). */
   warning?: { text: string; actionLabel: string; onAction: () => void } | null;
 }) {
@@ -117,12 +116,12 @@ export function ConfirmJustGotPaidSheet({
       visible={visible}
       kicker={kicker}
       title={title ?? t.closeQuincena.title(vocab)}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!confirmed}
       returnFocusTo={returnFocusTo}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
         {body ?? t.closeQuincena.body(vocab)}
       </p>
       {summaryRows && summaryRows.length > 0 && (
@@ -130,7 +129,7 @@ export function ConfirmJustGotPaidSheet({
           {summaryRows.map((row) => (
             <div key={row.label} className="close-summary-row">
               <dt>{row.label}</dt>
-              <dd className={row.tone === "saved" ? "close-summary-value close-summary-value--saved" : "close-summary-value"}>
+              <dd className={row.tone ? `close-summary-value close-summary-value--${row.tone}` : "close-summary-value"}>
                 {row.value}
               </dd>
             </div>
@@ -140,7 +139,8 @@ export function ConfirmJustGotPaidSheet({
 
       {warning && (
         <div className="close-warning">
-          <span>{warning.text}</span>
+          <span className="banner-dot" aria-hidden="true" />
+          <span className="close-warning-text">{warning.text}</span>
           <button type="button" className="close-warning-action" onClick={warning.onAction}>
             {warning.actionLabel}
           </button>
@@ -171,7 +171,7 @@ export function ConfirmJustGotPaidSheet({
         </p>
       )}
       <button type="button" className="button sheet-submit" onClick={handleConfirm} disabled={confirmed}>
-        {confirmLabel ?? t.closeQuincena.yes} <ArrowRight size={16} aria-hidden="true" />
+        {confirmLabel ?? t.closeQuincena.yes}
       </button>
       <button
         type="button"

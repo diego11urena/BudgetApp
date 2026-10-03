@@ -13,7 +13,7 @@ import { useSheet } from "./useSheet";
 import { EmptyState } from "./EmptyState";
 import type { EditingTransaction } from "./QuickAddSheet";
 import type { RecurringOption } from "./RecurringExpensePicker";
-import { useT, useVocab } from "../../_components/LocaleProvider";
+import { useLocale, useT, useVocab } from "../../_components/LocaleProvider";
 
 // See BottomNav's own comment -- same lazy-loaded QuickAddSheet, same reason.
 const QuickAddSheet = dynamic(() => import("./QuickAddSheet").then((mod) => mod.QuickAddSheet));
@@ -68,7 +68,9 @@ function TransactionRowContent({
           design system handoff's Assets section. Chip fill stays the
           standard #eef0f3 in every case; only the icon's color/glyph
           changes. */}
-      <span className={`transaction-icon-chip ${isUncategorized ? "transaction-icon-chip--uncategorized" : ""}`}>
+      <span
+        className={`transaction-icon-chip ${isUncategorized ? "transaction-icon-chip--uncategorized" : tx.type === "INCOME" ? "transaction-icon-chip--income" : ""}`}
+      >
         {isUncategorized ? (
           <HelpCircle size={18} aria-hidden="true" />
         ) : tx.type === "INCOME" ? (
@@ -100,7 +102,7 @@ function TransactionRowContent({
           spendable balance, same direction as amountLeft's own formula
           treats it) instead of double-negating into "--$50.00". */}
       <span className={`transaction-amount ${AMOUNT_CLASS[tx.type]}`}>
-        {tx.type === "INCOME" || tx.amount < 0 ? "+" : "-"}
+        {tx.type === "INCOME" || tx.amount < 0 ? "+" : "−"}
         {formatCurrency(Math.abs(tx.amount))}
       </span>
     </>
@@ -163,6 +165,7 @@ export function TransactionList({
   const { sheetProps, setTrigger } = useSheet();
   const t = useT();
   const vocab = useVocab();
+  const locale = useLocale();
 
   if (transactions.length === 0) {
     return <EmptyState>{emptyMessage ?? t.transactions.nothingLoggedThisQuincena(vocab)}</EmptyState>;
@@ -190,9 +193,14 @@ export function TransactionList({
   const showCycleLabel = !groupByDate;
 
   return (
-    <div>
+    <div className={groupByDate ? "transaction-list transaction-list--grouped" : "transaction-list"}>
       {groupByDate ? (
-        groupTransactionsByDate(transactions, { today: t.transactions.today, yesterday: t.transactions.yesterday }).map((group) => {
+        groupTransactionsByDate(
+          transactions,
+          { today: t.transactions.today, yesterday: t.transactions.yesterday },
+          new Date(),
+          locale,
+        ).map((group) => {
           // A savings contribution counts toward "out," same convention
           // the Activity summary line and HeroCard's safeToSpend use --
           // it's still money leaving spendable balance, even though it
@@ -205,7 +213,7 @@ export function TransactionList({
             <Fragment key={group.label + group.items[0].id}>
               <div className="transaction-date-group">
                 <h3>{group.label}</h3>
-                <span className={`transaction-date-net ${net >= 0 ? "transaction-date-net--good" : ""}`}>
+                <span className="transaction-date-net">
                   {net >= 0 ? "+" : "−"}
                   {formatCurrency(Math.abs(net))}
                 </span>

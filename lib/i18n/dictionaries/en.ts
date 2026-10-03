@@ -156,7 +156,7 @@ export const en: Dictionary = {
     complete: {
       metaTitle: "You're set",
       title: "You're set.",
-      redirecting: (vocab) => `Redirecting to /dashboard for ${vocab.thisPeriod}.`,
+      redirecting: (vocab) => `Taking you to your dashboard for ${vocab.thisPeriod}.`,
     },
     income: {
       metaTitle: "Income",
@@ -174,10 +174,10 @@ export const en: Dictionary = {
     expenses: {
       metaTitle: "Recurring",
       kicker: "Recurring · optional",
-      question: "What do you pay regularly?",
-      explainer: (vocab) => `Rent, subscriptions, utilities — anything that repeats ${vocab.everyPeriod}. Add as many as you want, or none.`,
+      question: (vocab) => `What repeats ${vocab.everyPeriod}?`,
+      explainer: () => "Add what you know now, or skip and set it up later from Plan.",
       untitled: "Untitled",
-      scheduleSummary: (hasFixedDate, dueDay) => (hasFixedDate ? `Scheduled${dueDay ? ` · due day ${dueDay}` : ""}` : "Ongoing"),
+      scheduleSummary: (hasFixedDate, dueDay) => (hasFixedDate ? (dueDay ? `Due day ${dueDay}` : "Scheduled") : "Ongoing"),
       removeAria: (name) => `Remove ${name || "expense"}`,
       namePlaceholder: "Name",
       amountPlaceholder: "$ Amount",
@@ -317,10 +317,10 @@ export const en: Dictionary = {
       button: "Close this month",
       pending: "Closing month...",
       title: "Close this month?",
-      body: "This closes the current month for good and starts a fresh one. Recurring budget targets and goal contributions carry forward automatically. Any paychecks you've already logged this month are final.",
+      body: "You'll get your month summary and start the next month. Anything you log after this counts toward the next one.",
       whenEnded: "When did the month end?",
-      yes: "Yes, close this month",
-      cancel: "Cancel",
+      yes: "Close this month",
+      cancel: "Not yet",
     },
     logPaycheck: {
       kicker: (n, total) => `Paycheck ${n} of ${total}`,
@@ -330,7 +330,7 @@ export const en: Dictionary = {
       body: "It adds to this month. Your month keeps going until you close it.",
       dateLabel: "When did you get paid?",
       pending: "Logging...",
-      confirm: "Log paycheck",
+      confirm: "Add paycheck",
       cancel: "Cancel",
     },
     monthlyIncomeEntries: {
@@ -587,8 +587,8 @@ export const en: Dictionary = {
     saveGoal: "Save goal",
     savedOf: (saved, target) => `${saved} of ${target}`,
     reached: "Goal reached!",
-    onTrack: (amount, date) => `Per-cycle contribution: ${amount} on track to hit goal by ${date}`,
-    setContribution: "Set a per-cycle contribution to project a completion date.",
+    onTrack: (vocab, amount, date) => `${amount} / ${vocab.noun} · done ${date}`,
+    setContribution: "Set a per-cycle contribution to project a date",
     edit: "Edit",
     removeAria: (name) => `Remove goal: ${name}`,
     removing: "Removing...",
@@ -801,11 +801,12 @@ export const en: Dictionary = {
     sparklineLabel: (vocab, n) =>
       `Last ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
     goalsEyebrow: "Goals",
-    goalCompleted: (name) => `${name} · completed ✓`,
+    goalCompleted: (name) => `${name} is complete`,
+    goalCompletedDetail: (amount, target) => `+${amount} · ${target} reached`,
     goalInProgress: (amount, pct, target) => `+${amount} · ${pct.toFixed(0)}% of ${target}`,
     scheduledEyebrow: "Recurring",
-    uncategorizedWarning: (count, amount) =>
-      `${count} ${count === 1 ? "transaction" : "transactions"} without a category (${amount})`,
+    uncategorizedWarning: (count) =>
+      `${count} ${count === 1 ? "transaction was" : "transactions were"} never categorized`,
     fixAction: "Fix",
     ctaStart: (vocab) => `Start ${vocab.nextPeriod}`,
     ctaStartRange: (dateRange) => `Start ${dateRange}`,
@@ -820,6 +821,8 @@ export const en: Dictionary = {
     missing: (name) => `${name} hasn't shown up yet`,
     upcoming: (name, date) => `${name} is due ${date}`,
     ongoingLogged: (names, live) => `${names} logged${live ? " so far" : ""}`,
+    ongoingLoggedCount: (logged, total) => `${logged} of ${total} logged`,
+    ongoingMissing: (vocab, name) => `No ${name.toLowerCase()} logged ${vocab.thisPeriod}`,
   },
 
   breakdown: {
@@ -841,7 +844,7 @@ export const en: Dictionary = {
     fixedLabel: "Fixed",
     discretionaryLabel: "Everything else",
     savedLabel: "Saved",
-    savedGoalsList: (names) => `Going to ${names}`,
+    savedGoalsList: (names, live) => (live ? `${names} · tap for goals` : names),
     leftoverLabel: "Leftover",
 
     chapter2Title: "Recurring",
@@ -849,7 +852,8 @@ export const en: Dictionary = {
       `How this ${vocab.noun}'s recurring items ${state === "LIVE" ? "are doing" : "did"}.`,
 
     chapter3Title: "By category",
-    chapter3Takeaway: (vocab, dateRange, state) => `${state === "LIVE" ? capitalize(vocab.thisPeriod) : dateRange} vs your usual.`,
+    chapter3Takeaway: (vocab, dateRange, state) =>
+      state === "LIVE" ? `So far ${vocab.thisPeriod}. Tap a slice to compare with your usual.` : "Tap a slice to compare with your usual.",
     categoryUsual: (amount) => `Usual: ${amount}`,
     categoryNew: "New this period",
     donutCenterLabel: "Spent",
@@ -872,6 +876,9 @@ export const en: Dictionary = {
     dayPanelHeaderLastDay: (date, total) => `${date} · Last day · ${total}`,
     dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,
     viewTransactions: "View transactions →",
+    categoryPreviewHeading: (name) => `Top in ${name}`,
+    heatmapLess: "Less",
+    heatmapMore: "More",
     categoryNoTransactions: "No transactions in this category yet.",
 
     chapter5Title: "Biggest transactions",

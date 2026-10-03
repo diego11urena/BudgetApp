@@ -52,11 +52,11 @@ function AddGoalSheetContent({
     <Sheet
       visible={visible}
       title={t.goals.addOrUpdate}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.75rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.75rem" }}>
         {t.goals.logNote}
       </p>
       <GoalForm categoryNames={categoryNames} onSuccess={handleClose} />

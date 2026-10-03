@@ -99,9 +99,9 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
   return (
     <SummaryScreen
       cycleId={cycle.id}
-      cycleRangeText={formatCycleRangeText(cycle, {}, budgetFrequency)}
+      cycleRangeText={formatCycleRangeText(cycle, { includeYear: false }, budgetFrequency)}
       nextCycleRangeText={
-        nextCycle ? formatCycleRangeText(nextCycle, {}, budgetFrequency) : null
+        nextCycle ? formatCycleRangeText(nextCycle, { includeYear: false }, budgetFrequency) : null
       }
       financials={financials}
       goalsWithProgress={goalsWithProgress}
