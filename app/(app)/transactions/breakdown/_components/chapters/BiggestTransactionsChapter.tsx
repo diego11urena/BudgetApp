@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCurrency, formatShortDate } from "@/lib/format";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useLocale } from "@/app/_components/LocaleProvider";
 import type { BiggestTransactionRow } from "@/lib/breakdown-v2";
 
 /**
@@ -13,6 +13,7 @@ import type { BiggestTransactionRow } from "@/lib/breakdown-v2";
  */
 export default function BiggestTransactionsChapter({ rows }: { rows: BiggestTransactionRow[] }) {
   const t = useT();
+  const locale = useLocale();
 
   if (rows.length === 0) {
     return <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>;
@@ -31,7 +32,7 @@ export default function BiggestTransactionsChapter({ rows }: { rows: BiggestTran
           </div>
           <div className="biggest-transaction-trailing">
             <span className="biggest-transaction-amount">{formatCurrency(row.amount)}</span>
-            <span className="biggest-transaction-date">{formatShortDate(row.occurredAt)}</span>
+            <span className="biggest-transaction-date">{formatShortDate(row.occurredAt, locale)}</span>
           </div>
         </li>
       ))}

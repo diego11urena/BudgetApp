@@ -34,14 +34,15 @@ export async function PaydayOverdueBanner({
   isOverdue: boolean;
   budgetFrequency: BudgetFrequency;
 }) {
-  const dict = getDictionary(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const dict = getDictionary(locale);
   const t = dict.dashboard;
   const vocab = resolveVocab(dict, budgetFrequency);
   return (
     <HeroCardActions
       variant="banner"
       showBanner={isOverdue}
-      bannerLabel={t.paydayOverdue(vocab, formatFriendlyDate(cycleEndDate))}
+      bannerLabel={t.paydayOverdue(vocab, formatFriendlyDate(cycleEndDate, locale))}
     />
   );
 }

@@ -6,10 +6,11 @@ import { CategoryNameInput } from "@/app/(app)/_components/CategoryNameInput";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { saveGoalStepAction, skipGoalStepAction, type GoalStepFormState } from "../actions";
-import { useT, useBudgetFrequency, useVocab } from "@/app/_components/LocaleProvider";
+import { useT, useBudgetFrequency, useVocab, useLocale } from "@/app/_components/LocaleProvider";
 
 export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: string[] }) {
   const t = useT();
+  const locale = useLocale();
   const vocab = useVocab();
   const budgetFrequency = useBudgetFrequency();
   const [state, formAction, pending] = useActionState<GoalStepFormState, FormData>(saveGoalStepAction, undefined);
@@ -82,7 +83,7 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
               {t.onboarding.goal.projection(
                 vocab,
                 formatCurrency(Number(perQuincena)),
-                formatFriendlyDate(projection.etaDate),
+                formatFriendlyDate(projection.etaDate, locale),
               )}
             </p>
           </div>

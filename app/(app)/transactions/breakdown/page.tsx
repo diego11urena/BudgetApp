@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getRequestLocale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import {
   getAdjacentClosedCycles,
@@ -58,6 +59,9 @@ export default async function BreakdownPage({
     redirect("/login");
   }
   const userId = session.user.id;
+  // Dates on this screen go through the formatters, which need the locale
+  // to render month names in the user's own language.
+  const locale = await getRequestLocale();
   const { cycle: cycleIdParam } = await searchParams;
 
   // Ownership and status are both enforced in the query itself -- a cycle
@@ -184,7 +188,7 @@ export default async function BreakdownPage({
     comparisonAverage = computeSameDayIndexAverage(history, totalDays);
   }
 
-  const dateRangeLabel = formatCycleRangeLabel(cycle.periodStart, periodEnd);
+  const dateRangeLabel = formatCycleRangeLabel(cycle.periodStart, periodEnd, locale);
 
   return (
     <BreakdownScreenNew

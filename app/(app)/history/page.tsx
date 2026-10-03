@@ -20,7 +20,8 @@ export default async function HistoryPage() {
     redirect("/login");
   }
   const userId = session.user.id;
-  const t = getDictionary(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const t = getDictionary(locale);
   const vocab = resolveVocab(t, await getUserBudgetFrequency(userId));
 
   const closedCycles = await getClosedCycles(userId);
@@ -39,7 +40,7 @@ export default async function HistoryPage() {
               return (
                 <Link href={`/history/${c.id}`} className="line-item line-item--link" key={c.id}>
                   <span>
-                    {formatFriendlyDate(c.periodStart)}{" "}
+                    {formatFriendlyDate(c.periodStart, locale)}{" "}
                     <span className="status-badge">{t.history.closed}</span>
                   </span>
                   <span>

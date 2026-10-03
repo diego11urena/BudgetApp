@@ -63,7 +63,8 @@ export async function HeroCard({
   /** Sum of the cycle's logged paychecks, shown in the all-in confirmation line. */
   baseIncome?: number;
 }) {
-  const dict = getDictionary(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const dict = getDictionary(locale);
   const t = dict.dashboard;
   const vocab = resolveVocab(dict, budgetFrequency);
   // The hero number used to be raw amountLeft -- money that still includes
@@ -157,7 +158,7 @@ export async function HeroCard({
               <p className="hero-pace">
                 {pace.phase === "running" && t.heroPacePerDay(formatCurrency(pace.perDay))}
                 {pace.phase === "last-day" && t.heroLastDay(formatCurrency(safeToSpend))}
-                {pace.phase === "ended" && t.heroCycleEnded(vocab, formatFriendlyDate(pace.cycleEnd))}
+                {pace.phase === "ended" && t.heroCycleEnded(vocab, formatFriendlyDate(pace.cycleEnd, locale))}
                 {secondPaycheckInDays !== null && pace.phase === "running" && (
                   <> · {t.heroSecondPaycheckIn(secondPaycheckInDays)}</>
                 )}

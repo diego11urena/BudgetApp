@@ -1,3 +1,24 @@
+import type { LocaleValue } from "./i18n/locale";
+
+/**
+ * This app's own locale value ("en" | "es") mapped to the BCP 47 tag Intl
+ * wants. Dates were formatted with a hardcoded "en-US" everywhere, so a
+ * Spanish user read "Aug 16 - Aug 31" and "Oct 2" throughout an otherwise
+ * fully translated app -- the dictionary cannot catch that, because the
+ * month names never passed through it.
+ *
+ * "es-ES" rather than "es-PA": both render the month names identically,
+ * and es-ES is what formatMonthLabel below already used, so this keeps one
+ * answer for the whole file.
+ *
+ * Defaulting to "en" keeps every existing call site compiling and
+ * behaving exactly as before; the callers that have a locale in hand pass
+ * it.
+ */
+function intlLocale(locale: LocaleValue): string {
+  return locale === "es" ? "es-ES" : "en-US";
+}
+
 /** The single source of truth for displaying money: $1,234.56, thousands separators, two decimals. */
 export function formatCurrency(amount: number): string {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -31,8 +52,8 @@ export function formatWholeDollars(amount: number): string {
  * UTC servers (where midnight-anchored Panama Dates round-trip correctly
  * by coincidence) or a Panama-timezone dev machine.
  */
-export function formatFriendlyDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
+export function formatFriendlyDate(date: Date, locale: LocaleValue = "en"): string {
+  return date.toLocaleDateString(intlLocale(locale), {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -45,9 +66,10 @@ export function formatFriendlyDate(date: Date): string {
  * no year (unlike formatFriendlyDate: a 2-week range is always read in the
  * context of "this/last quincena," so the year would just be noise).
  */
-export function formatCycleRangeLabel(start: Date, end: Date): string {
+export function formatCycleRangeLabel(start: Date, end: Date, locale: LocaleValue = "en"): string {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", timeZone: "America/Panama" };
-  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`;
+  const tag = intlLocale(locale);
+  return `${start.toLocaleDateString(tag, opts)} – ${end.toLocaleDateString(tag, opts)}`;
 }
 
 /**
@@ -57,8 +79,8 @@ export function formatCycleRangeLabel(start: Date, end: Date): string {
  * Transactions' per-row date, both always read as "within this/last
  * cycle," never far enough back for the year to matter.
  */
-export function formatShortDate(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Panama" });
+export function formatShortDate(date: Date, locale: LocaleValue = "en"): string {
+  return date.toLocaleDateString(intlLocale(locale), { month: "short", day: "numeric", timeZone: "America/Panama" });
 }
 
 /**

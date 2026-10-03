@@ -37,7 +37,7 @@ export default function RecurringFulfillmentCard({
       ? t.recurringFulfillment.missing(scheduled.exception.name)
       : t.recurringFulfillment.upcoming(
           scheduled.exception.name,
-          scheduled.exception.dueDate ? formatShortDate(scheduled.exception.dueDate) : ""
+          scheduled.exception.dueDate ? formatShortDate(scheduled.exception.dueDate, locale) : ""
         )
     : t.recurringFulfillment.allChargedOnTime;
 

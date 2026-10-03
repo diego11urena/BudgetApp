@@ -10,7 +10,7 @@ import { RemoveGoalButton } from "./RemoveGoalButton";
 import { EditGoalSheet, type EditableGoal } from "./EditGoalSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { GoalWithProgress } from "@/lib/goals";
-import { useT, useBudgetFrequency } from "@/app/_components/LocaleProvider";
+import { useT, useBudgetFrequency, useLocale } from "@/app/_components/LocaleProvider";
 
 /**
  * One row in Plan's Goals list. The design system handoff's action row is
@@ -23,6 +23,7 @@ import { useT, useBudgetFrequency } from "@/app/_components/LocaleProvider";
  */
 export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categoryNames: string[] }) {
   const t = useT();
+  const locale = useLocale();
   const budgetFrequency = useBudgetFrequency();
   const editSheet = useSheet();
   const projection = computeGoalProjection({ ...goal, frequency: budgetFrequency });
@@ -51,7 +52,7 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
             </p>
           ) : goal.currentCycleRecurringAmount !== null && projection.etaDate ? (
             <p className="goal-projection">
-              {t.goals.onTrack(formatCurrency(goal.currentCycleRecurringAmount), formatFriendlyDate(projection.etaDate))}{" "}
+              {t.goals.onTrack(formatCurrency(goal.currentCycleRecurringAmount), formatFriendlyDate(projection.etaDate, locale))}{" "}
               <ArrowRight size={14} aria-hidden="true" className="inline-arrow" />
             </p>
           ) : (

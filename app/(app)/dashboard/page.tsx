@@ -155,7 +155,7 @@ export default async function DashboardPage() {
         currentPayDate={formatCycleLabel(cycle.periodStart)}
         cycleId={cycle.id}
         previousBoundDate={previousBoundDate}
-        dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd)}
+        dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd, locale)}
         budgetFrequency={budgetFrequency}
       />
 
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
           usualPaycheck={usualPaycheck}
           extraIncome={financials.extraIncome}
           totalSavings={financials.totalSavings}
-          dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd)}
+          dateRangeLabel={formatCycleRangeLabel(cycle.periodStart, pace.cycleEnd, locale)}
           secondPaycheckInDays={secondPaycheckInDays}
           periodName={periodName}
         />
@@ -237,7 +237,7 @@ export default async function DashboardPage() {
           baseIncome={financials.baseIncome}
           paycheckCount={financials.paycheckCount}
           expectedPaychecks={expectedPaychecks}
-          firstPaycheckDate={formatShortDate(cycle.periodStart)}
+          firstPaycheckDate={formatShortDate(cycle.periodStart, locale)}
           extraIncome={financials.extraIncome}
           spent={financials.totalExpenses}
           saved={financials.totalSavings}

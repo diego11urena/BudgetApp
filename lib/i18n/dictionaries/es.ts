@@ -261,7 +261,7 @@ export const es: Dictionary = {
     needsAttention: (n) => `${n} ${plural(n, "transacción necesita", "transacciones necesitan")} más información`,
     review: "Revisar",
     finishTransactionsTitle: "Completa estas transacciones",
-    finishTransactionsBody: "Agrega lo que falte — categoría, descripción, o ambas — para que tus totales e historial se mantengan exactos.",
+    finishTransactionsBody: "Agrega lo que falte — categoría, descripción o ambas — para que tus totales e historial se mantengan exactos.",
     doneForNow: "Listo por ahora",
     sentTo: (name) => `Enviado a ${name}`,
     receivedFrom: (name) => `Recibido de ${name}`,
@@ -287,7 +287,9 @@ export const es: Dictionary = {
     statSaved: "Ahorrado",
     statScheduledLeft: "Programados pendientes",
     scheduledLabel: "Programados",
-    scheduledPaidOfTotal: (paid, total) => `${paid} de ${total} pagado`,
+    // Same agreement as plan.recurring.paidOfTotal -- the participle
+    // describes the recurring items counted, not the number itself.
+    scheduledPaidOfTotal: (paid, total) => `${paid} de ${total} ${plural(paid, "pagado", "pagados")}`,
     pendingAmount: (amount) => `${amount} pendiente`,
     baseExtra: (base, extra) => `${base} base + ${extra} extra`,
     thisQuincena: (vocab) => vocab.thisPeriod,
@@ -322,7 +324,7 @@ export const es: Dictionary = {
       button: "Cerrar este mes",
       pending: "Cerrando mes...",
       title: "¿Cerrar este mes?",
-      body: "Esto cierra definitivamente el mes actual y comienza uno nuevo. Las metas de presupuesto recurrentes y las contribuciones a metas se trasladan automáticamente. Los pagos que ya registraste este mes quedan finales.",
+      body: "Esto cierra definitivamente el mes actual y comienza uno nuevo. Las metas de presupuesto recurrentes y las contribuciones a metas se trasladan automáticamente. Los pagos que ya registraste este mes son definitivos.",
       whenEnded: "¿Cuándo terminó el mes?",
       yes: "Sí, cerrar este mes",
       cancel: "Cancelar",
@@ -442,7 +444,11 @@ export const es: Dictionary = {
       empty: 'Aún no hay nada recurrente — toca "+ Nuevo" arriba.',
       scheduledHeading: "Programados",
       ongoingHeading: "Continuos",
-      paidOfTotal: (vocab, paid, total) => `${paid} de ${total} pagado ${vocab.thisPeriod}`,
+      // "pagados", not "pagado": the participle agrees with the recurring
+      // items being counted (gastos recurrentes, masculine plural), so it
+      // only stays singular when exactly one has been paid.
+      paidOfTotal: (vocab, paid, total) =>
+        `${paid} de ${total} ${paid === "1" ? "pagado" : "pagados"} ${vocab.thisPeriod}`,
     },
     goals: {
       title: "Metas de ahorro",
@@ -481,7 +487,11 @@ export const es: Dictionary = {
     whichRecurringExpenseLabel: "¿Cuál gasto recurrente?",
     notePlaceholder: "¿Para qué fue esto?",
     moveWarning: (vocab, rangeText) =>
-      `Cambiar esta fecha moverá esta transacción a otro ${vocab.noun} (${rangeText}). Sus totales y los de ese ${vocab.noun} se recalcularán. ¿Continuar?`,
+      // "a otro mes ... ese mes" / "a otra quincena ... esa quincena" --
+      // both the article and the demonstrative take the noun's gender.
+      vocab.noun === "mes"
+        ? `Cambiar esta fecha moverá esta transacción a otro ${vocab.noun} (${rangeText}). Sus totales y los de ese ${vocab.noun} se recalcularán. ¿Continuar?`
+        : `Cambiar esta fecha moverá esta transacción a otra ${vocab.noun} (${rangeText}). Sus totales y los de esa ${vocab.noun} se recalcularán. ¿Continuar?`,
     moving: "Moviendo...",
     continue: "Continuar",
     cancel: "Cancelar",
@@ -675,7 +685,7 @@ export const es: Dictionary = {
       hint: "Permanente. No se puede deshacer.",
       confirmTitle: "¿Borrar todos los ciclos?",
       confirmBody: (vocab) =>
-        `Elimina permanentemente cada ${vocab.noun} ${vocab.noun === "mes" ? "pasado" : "pasada"} y actual — todas las transacciones, metas de presupuesto, y registros de ingresos en ellas. Tus categorías y configuración de ingresos permanecen intactas, y un ciclo nuevo comienza de inmediato. Esto no se puede deshacer.`,
+        `Elimina permanentemente cada ${vocab.noun} ${vocab.noun === "mes" ? "pasado" : "pasada"} y actual — todas las transacciones, metas de presupuesto y registros de ingresos ${vocab.noun === "mes" ? "en ellos" : "en ellas"}. Tus categorías y configuración de ingresos permanecen intactas, y un ciclo nuevo comienza de inmediato. Esto no se puede deshacer.`,
       erasing: "Borrando...",
       yes: "Sí, borrar todo",
       cancel: "Cancelar",
@@ -805,13 +815,27 @@ export const es: Dictionary = {
     headlinePrefix: (vocab, spent) => `Gastaste ${spent} y `,
     headlineSavedFragment: (saved) => `ahorraste ${saved}.`,
     subcopyDelta: (vocab, amount, isLighter) =>
-      `${amount} ${isLighter ? "menos" : "más"} que tus últimas tres ${vocab.nounPlural}`,
+      // "últimos meses" / "últimas quincenas" -- the adjective agrees with
+      // the period noun, which differs in gender between the two cadences.
+      `${amount} ${isLighter ? "menos" : "más"} que tus ${vocab.noun === "mes" ? "últimos" : "últimas"} tres ${vocab.nounPlural}`,
     subcopyLightestSince: (vocab, label, month) =>
-      `tu ${label === "lightest" ? "más baja" : "más alta"} desde ${month}`,
+      // The adjective stands in for the period noun ("tu [quincena] más
+      // baja" / "tu [mes] más bajo"), so it takes that noun's gender.
+      vocab.noun === "mes"
+        ? `tu ${label === "lightest" ? "más bajo" : "más alto"} desde ${month}`
+        : `tu ${label === "lightest" ? "más baja" : "más alta"} desde ${month}`,
     statIncome: "Ingreso",
     statSpent: "Gastado",
     sparklineLabel: (vocab, n) =>
-      `Últimas ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
+      // Gender from the period noun, and no bare "1" -- "Última 1
+      // quincena" is not how the count reads out loud in Spanish.
+      vocab.noun === "mes"
+        ? n === 1
+          ? `Último ${vocab.noun}`
+          : `Últimos ${n} ${vocab.nounPlural}`
+        : n === 1
+          ? `Última ${vocab.noun}`
+          : `Últimas ${n} ${vocab.nounPlural}`,
     goalsEyebrow: "Metas",
     goalCompleted: (name) => `${name} · completada ✓`,
     goalInProgress: (name, amount, pct, target) =>

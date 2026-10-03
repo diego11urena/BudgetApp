@@ -5,7 +5,7 @@ import Link from "next/link";
 import Heatmap from "@/app/(app)/_components/charts/Heatmap";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
-import { useT } from "@/app/_components/LocaleProvider";
+import { useT, useLocale } from "@/app/_components/LocaleProvider";
 import type { DayTransaction, HeatmapDayData } from "../types";
 
 /**
@@ -27,6 +27,7 @@ export default function WhenYouSpendChapter({
   state: "LIVE" | "CLOSED";
 }) {
   const t = useT();
+  const locale = useLocale();
   const [selected, setSelected] = useState<string | null>(defaultSelected);
 
   const rows = selected ? (transactionsByDay[selected] ?? []) : [];
@@ -56,10 +57,10 @@ export default function WhenYouSpendChapter({
                 midnight, which is the 9th in Panama. */}
             <span className="breakdown-day-detail-header">
               {isToday
-                ? t.breakdown.dayPanelHeaderToday(formatShortDate(new Date(`${selected}T05:00:00.000Z`)), formatCurrency(dayTotal))
+                ? t.breakdown.dayPanelHeaderToday(formatShortDate(new Date(`${selected}T05:00:00.000Z`), locale), formatCurrency(dayTotal))
                 : isLastDayOfPeriod
-                  ? t.breakdown.dayPanelHeaderLastDay(formatShortDate(new Date(`${selected}T05:00:00.000Z`)), formatCurrency(dayTotal))
-                  : t.breakdown.dayPanelHeaderPlain(formatShortDate(new Date(`${selected}T05:00:00.000Z`)), formatCurrency(dayTotal))}
+                  ? t.breakdown.dayPanelHeaderLastDay(formatShortDate(new Date(`${selected}T05:00:00.000Z`), locale), formatCurrency(dayTotal))
+                  : t.breakdown.dayPanelHeaderPlain(formatShortDate(new Date(`${selected}T05:00:00.000Z`), locale), formatCurrency(dayTotal))}
             </span>
           </div>
 
