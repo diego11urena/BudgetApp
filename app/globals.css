@@ -1445,15 +1445,6 @@ button.line-item--link {
   min-height: 44px;
 }
 
-.preview-box {
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  background: var(--color-bg-secondary);
-}
-
 .banner {
   border-radius: 14px;
   padding: 12px 14px;
@@ -2831,10 +2822,14 @@ button.line-item--link {
 }
 
 .transaction-filters-row select {
-  /* min-width first, then grow to share leftover space -- four selects on
-     a narrow screen wrap to two rows of two rather than every label
-     clipping mid-word to fit one cramped row. */
-  flex: 1 1 8rem;
+  /* Two half-width selects sharing the row, per the Activity spec.
+     min-width:0 is what makes that actually happen: a flex item defaults
+     to min-width:auto and refuses to shrink below its own content, and
+     "Current paycheck" plus a dropdown arrow is wider than half a 390px
+     screen -- so the pair wrapped onto two stacked rows instead. The
+     basis stays small and they grow to share the space equally. */
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 40px;
   padding: 0.5rem 0.6rem;
   border-radius: var(--radius-sm);
@@ -6245,4 +6240,27 @@ button.line-item--link {
 
 .category-preview-view-all:active {
   background: var(--color-bg-secondary);
+}
+
+/* An in-progress goal row on Summary: name on its own line, the amount
+   and percentage beneath it. Stacked rather than one run, so a long goal
+   name can't wrap mid-separator and strand a "·" at a line end. */
+.summary-goals-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-goals-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-goals-detail {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }

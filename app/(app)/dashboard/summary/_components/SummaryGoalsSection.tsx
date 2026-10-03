@@ -31,13 +31,18 @@ export default function SummaryGoalsSection({ goals, t }: SummaryGoalsSectionPro
       {inProgressGoals.map((goal) => (
         <Link key={goal.categoryId} href={`/goals/${goal.categoryId}`} className="summary-goals-in-progress">
           <ProgressRing fraction={Math.min(1, goal.savedSoFar / (goal.lifetimeTargetAmount || 1))} />
-          <span>
-            {t.summary.goalInProgress(
-              goal.name,
-              formatCurrency(goal.savedSoFar),
-              Math.min(100, (goal.savedSoFar / (goal.lifetimeTargetAmount || 1)) * 100),
-              formatCurrency(goal.lifetimeTargetAmount || 0)
-            )}
+          {/* Name on its own line, detail beneath (screens/18). One
+              concatenated run wrapped mid-separator on a narrow screen,
+              leaving a trailing "·" hanging at the end of a line. */}
+          <span className="summary-goals-text">
+            <span className="summary-goals-name">{goal.name}</span>
+            <span className="summary-goals-detail">
+              {t.summary.goalInProgress(
+                formatCurrency(goal.savedSoFar),
+                Math.min(100, (goal.savedSoFar / (goal.lifetimeTargetAmount || 1)) * 100),
+                formatCurrency(goal.lifetimeTargetAmount || 0)
+              )}
+            </span>
           </span>
           <span className="summary-goals-chevron">›</span>
         </Link>

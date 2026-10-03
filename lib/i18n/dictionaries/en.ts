@@ -402,7 +402,7 @@ export const en: Dictionary = {
       quincenaAria: (vocab) => `Filter by ${vocab.noun}`,
       currentQuincena: (vocab) => capitalize(vocab.currentPeriodAdj),
       categoryAria: "Filter by category",
-      category: "Category",
+      category: "All categories",
       uncategorized: "Uncategorized",
     },
     breakdown: {
@@ -802,8 +802,7 @@ export const en: Dictionary = {
       `Last ${n} ${n === 1 ? vocab.noun : vocab.nounPlural}`,
     goalsEyebrow: "Goals",
     goalCompleted: (name) => `${name} · completed ✓`,
-    goalInProgress: (name, amount, pct, target) =>
-      `${name} · +${amount} · ${pct.toFixed(0)}% of ${target}`,
+    goalInProgress: (amount, pct, target) => `+${amount} · ${pct.toFixed(0)}% of ${target}`,
     scheduledEyebrow: "Recurring",
     uncategorizedWarning: (count, amount) =>
       `${count} ${count === 1 ? "transaction" : "transactions"} without a category (${amount})`,

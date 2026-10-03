@@ -859,7 +859,13 @@ export type Dictionary = {
     sparklineLabel: (vocab: PeriodVocab, n: number) => string;
     goalsEyebrow: string;
     goalCompleted: (name: string) => string;
-    goalInProgress: (name: string, amount: string, pct: number, target: string) => string;
+    /**
+     * The detail line UNDER an in-progress goal's name -- the name is its
+     * own line (see screens/18), so it isn't templated in here. Keeping
+     * them separate stops the row from wrapping mid-separator and leaving
+     * a dangling "·" at the end of a line.
+     */
+    goalInProgress: (amount: string, pct: number, target: string) => string;
     /** The Recurring card's section header -- its content is now RecurringFulfillmentCard, shared with Breakdown's chapter 02 (see recurringFulfillment above). */
     scheduledEyebrow: string;
     uncategorizedWarning: (count: number, amount: string) => string;

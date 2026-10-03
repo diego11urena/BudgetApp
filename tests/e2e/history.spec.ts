@@ -28,7 +28,7 @@ test.describe("past quincenas", () => {
     await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
 
     await page.goto("/history");
-    await page.click(".preview-box .line-item >> nth=0");
+    await page.click(".history-list .line-item >> nth=0");
     await page.waitForSelector(".hero-card");
     await expect(page.locator(".hero-label")).toHaveText("Final available");
     await expect(page.locator(".hero-value")).toHaveText("$950.00");
@@ -93,7 +93,7 @@ test.describe("past quincenas", () => {
     await dismissCycleSummary(page);
 
     await page.goto("/history");
-    await page.click(".preview-box .line-item >> nth=0");
+    await page.click(".history-list .line-item >> nth=0");
     await page.waitForSelector(".hero-card");
     await expect(page.locator(".transaction-row")).toHaveCount(1);
 

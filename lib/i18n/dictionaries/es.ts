@@ -411,7 +411,7 @@ export const es: Dictionary = {
       quincenaAria: (vocab) => `Filtrar por ${vocab.noun}`,
       currentQuincena: (vocab) => capitalize(vocab.currentPeriodAdj),
       categoryAria: "Filtrar por categoría",
-      category: "Categoría",
+      category: "Todas las categorías",
       uncategorized: "Sin categoría",
     },
     breakdown: {
@@ -838,8 +838,7 @@ export const es: Dictionary = {
           : `Últimas ${n} ${vocab.nounPlural}`,
     goalsEyebrow: "Metas",
     goalCompleted: (name) => `${name} · completada ✓`,
-    goalInProgress: (name, amount, pct, target) =>
-      `${name} · +${amount} · ${pct.toFixed(0)}% de ${target}`,
+    goalInProgress: (amount, pct, target) => `+${amount} · ${pct.toFixed(0)}% de ${target}`,
     scheduledEyebrow: "Recurrentes",
     uncategorizedWarning: (count, amount) =>
       `${count} ${count === 1 ? "transacción sin" : "transacciones sin"} categoría (${amount})`,

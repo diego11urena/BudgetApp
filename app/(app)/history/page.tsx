@@ -34,7 +34,12 @@ export default async function HistoryPage() {
         {closedCycles.length === 0 ? (
           <p className="field-hint">{t.history.empty(vocab)}</p>
         ) : (
-          <div className="preview-box">
+          /* Plain list, not .preview-box: that container is a dashed
+             placeholder affordance, and these are real closed cycles. A
+             dashed outline around actual content reads as an empty slot
+             waiting to be filled. The surrounding .dashboard-section
+             already provides the card. */
+          <div className="history-list">
             {closedCycles.map((c) => {
               const cFinancials = summarizeCycleFinancials(c.incomeEntries, c.transactions);
               return (

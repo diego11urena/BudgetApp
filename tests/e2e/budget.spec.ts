@@ -203,7 +203,7 @@ test.describe("Plan screen (Recurring)", () => {
     // read-only -- History's own per-category breakdown is unchanged (it's
     // not the live Plan screen, so it kept its category-grouped view).
     await page.goto("/history");
-    await page.click(".preview-box .line-item >> nth=0");
+    await page.click(".history-list .line-item >> nth=0");
     await page.waitForSelector(".hero-card");
     await expect(page.getByRole("heading", { name: "Recurring", exact: true })).toBeVisible();
     await expect(page.locator(".category-progress-row")).toHaveCount(1);
