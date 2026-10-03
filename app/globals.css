@@ -2839,13 +2839,13 @@ button.line-item--link {
 
 .transaction-filters-row select {
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 30px 0 13px;
   border-radius: 12px;
   border: 1.5px solid var(--color-border);
   color: var(--foreground);
   font-family: inherit;
-  height: 40px;
+  height: 44px;
   font-weight: 600;
   margin: 0;
   appearance: none;
@@ -2869,6 +2869,8 @@ button.line-item--link {
   cursor: pointer;
   font-size: 0.8rem;
   padding: 0.25rem 0.5rem;
+  min-width: 44px;
+  justify-content: center;
 }
 
 .icon-button:active {
@@ -3593,6 +3595,7 @@ button.line-item--link {
   min-width: 0;
   gap: 12px;
   min-height: 0;
+  position: relative;
 }
 
 .recurring-expense-row--simplified .recurring-expense-suggestion {
@@ -7223,5 +7226,78 @@ button.line-item--link {
 
 .hero-actions .hero-action-link {
   padding: 0 12px;
+  white-space: nowrap;
+}
+
+/* ---- Hit areas (DESIGN.md S5: every target >= 44x44; "pad the hit area
+   when the visual is smaller"). Each of these keeps its designed visual
+   size and grows only its tappable area through a pseudo-element. ---- */
+.hero-action-link::before,
+.goal-row-actions .button::before {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
+}
+
+.goal-row-actions .button {
+  position: relative;
+}
+
+.recurring-expense-row--simplified .recurring-expense-row-main::before {
+  content: "";
+  position: absolute;
+  inset: -14px 0;
+}
+
+.heatmap-cell:not(.heatmap-cell--empty):not(:disabled)::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+}
+
+.auth-back,
+.auth-forgot-link,
+.auth-password-toggle,
+.auth-bottom-link a,
+.landing-brand,
+.landing-mobile-login-link a,
+.landing-footer-links a {
+  position: relative;
+}
+
+.auth-back::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+}
+
+.auth-password-toggle {
+  position: absolute;
+}
+
+.auth-password-toggle::before {
+  content: "";
+  position: absolute;
+  inset: -13px;
+}
+
+.auth-forgot-link::before,
+.auth-bottom-link a::before,
+.landing-mobile-login-link a::before,
+.landing-footer-links a::before {
+  content: "";
+  position: absolute;
+  inset: -13px -6px;
+}
+
+.landing-brand::before {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
+}
+
+.section-header-row > .button,
+.section-header-row > button {
+  flex-shrink: 0;
   white-space: nowrap;
 }
