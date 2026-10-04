@@ -53,7 +53,23 @@ export interface RecurringFulfillment {
  * is about whether the bill showed up at all, not whether the amount
  * matches.
  */
-export function summarizeRecurringFulfillment(categories: CategoryWithRecurringExpenses[], now: Date): RecurringFulfillment {
+/**
+ * `asOf` is the moment the period is being judged from, NOT necessarily
+ * today. It decides two things: which month's occurrence of a dueDay
+ * resolves, and whether an uncharged item ranks as "missing" (already
+ * past its date) or "upcoming" (still ahead of it).
+ *
+ * For a LIVE period that is today. For a CLOSED one it must be the
+ * cycle's own end: a cycle that closed in August and is opened in
+ * October would otherwise resolve its due days against October and rank
+ * everything against today, so a bill that was never charged in August
+ * reads as "upcoming" -- due later this month -- when the period it
+ * belongs to ended two months ago and nothing more can arrive in it.
+ */
+export function summarizeRecurringFulfillment(
+  categories: CategoryWithRecurringExpenses[],
+  asOf: Date,
+): RecurringFulfillment {
   let total = 0;
   let chargedOnTime = 0;
   const notStarted: { name: string; dueDay: number | null }[] = [];
@@ -82,11 +98,11 @@ export function summarizeRecurringFulfillment(categories: CategoryWithRecurringE
   if (notStarted.length > 0) {
     let best: { name: string; dueDate: Date | null; rank: number } | null = null;
     for (const item of notStarted) {
-      const dueDate = item.dueDay !== null ? resolveMonthlyDueDate(now, item.dueDay) : null;
+      const dueDate = item.dueDay !== null ? resolveMonthlyDueDate(asOf, item.dueDay) : null;
       // Most-overdue first (most negative rank), then soonest-upcoming;
       // an unresolvable dueDay (Infinity) sorts last -- named only if
       // nothing with a real date is also waiting.
-      const rank = dueDate ? calendarDaysBetween(now, dueDate) : Infinity;
+      const rank = dueDate ? calendarDaysBetween(asOf, dueDate) : Infinity;
       if (!best || rank < best.rank) best = { name: item.name, dueDate, rank };
     }
     if (best) {
@@ -95,7 +111,7 @@ export function summarizeRecurringFulfillment(categories: CategoryWithRecurringE
         // <= 0, not < 0 -- matches lib/insights.ts's own overdue convention
         // (unpaidRecurringCandidate's hasOverdue is daysUntilDue <= 0): a
         // bill due today and not yet charged reads as "hasn't shown up
-        // yet," not "due today," once today has actually arrived.
+        // yet," not "due today," once asOf has actually reached it.
         kind: best.rank <= 0 ? "missing" : "upcoming",
         dueDate: best.dueDate,
       };

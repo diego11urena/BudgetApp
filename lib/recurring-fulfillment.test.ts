@@ -135,3 +135,47 @@ describe("summarizeRecurringFulfillment", () => {
     expect(result.ongoing.missingNames).toEqual(["Groceries"]);
   });
 });
+
+describe("summarizeRecurringFulfillment -- asOf is the period's own frame, not today", () => {
+  /**
+   * The bug this guards: a cycle that closed on Aug 31 and is reopened
+   * from History in October. Judged from today, Netflix's due day 20
+   * resolves to OCTOBER 20 -- still ahead -- so an item that was never
+   * charged during August reads as "upcoming". Judged from the cycle's
+   * own end, it resolves to August 20, which is behind, and it correctly
+   * reads as "missing".
+   */
+  const augustCycleEnd = new Date("2026-08-31T12:00:00.000Z");
+  const octoberToday = new Date("2026-10-05T12:00:00.000Z");
+  const categories = [
+    category([expense({ name: "Netflix", hasFixedDate: true, dueDay: 20, status: "not-started" })]),
+  ];
+
+  it("reports a never-charged item as missing when judged from the closed cycle's end", () => {
+    const result = summarizeRecurringFulfillment(categories, augustCycleEnd);
+    expect(result.scheduled.exception).not.toBeNull();
+    expect(result.scheduled.exception!.name).toBe("Netflix");
+    expect(result.scheduled.exception!.kind).toBe("missing");
+  });
+
+  it("would have called that same item upcoming if judged from today", () => {
+    // Not an endorsement -- this is the behaviour the call sites used to
+    // get by passing new Date(), kept as an explicit record of why they
+    // now pass the cycle's end instead.
+    const result = summarizeRecurringFulfillment(categories, octoberToday);
+    expect(result.scheduled.exception!.kind).toBe("upcoming");
+  });
+
+  it("resolves the due date into the month asOf falls in", () => {
+    const closed = summarizeRecurringFulfillment(categories, augustCycleEnd);
+    const today = summarizeRecurringFulfillment(categories, octoberToday);
+    expect(closed.scheduled.exception!.dueDate?.getUTCMonth()).toBe(7); // August
+    expect(today.scheduled.exception!.dueDate?.getUTCMonth()).toBe(9); // October
+  });
+
+  it("still ranks a LIVE period from today, where an unreached due day is genuinely upcoming", () => {
+    const midAugust = new Date("2026-08-15T12:00:00.000Z");
+    const result = summarizeRecurringFulfillment(categories, midAugust);
+    expect(result.scheduled.exception!.kind).toBe("upcoming");
+  });
+});
