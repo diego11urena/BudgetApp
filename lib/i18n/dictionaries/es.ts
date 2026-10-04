@@ -115,9 +115,6 @@ export const es: Dictionary = {
       hidePassword: "Ocultar contraseña",
       submitting: "Iniciando sesión...",
       submit: "Iniciar sesión",
-      or: "o",
-      gmailButton: "Continuar con Gmail",
-      gmailComingSoon: "Próximamente",
       newToBalboa: "¿Nuevo en Balboa? ",
       createAccount: "Crear una cuenta",
       invalidCredentials: "Correo o contraseña inválidos",
@@ -649,6 +646,8 @@ export const es: Dictionary = {
     yourData: "Tus datos",
     preferences: "Preferencias",
     payFrequencyHint: "Con qué frecuencia te pagan.",
+    budgetFrequencyMonthlyHint:
+      "Mensual: un presupuesto por mes; ambos pagos entran en él y tú lo cierras.",
     pastQuincenas: (vocab) => `${capitalize(vocab.nounPlural)} ${vocab.noun === "mes" ? "pasados" : "pasadas"}`,
     manageCategories: "Administrar categorías",
     account: "Cuenta",

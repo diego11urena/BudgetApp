@@ -116,9 +116,6 @@ export const en: Dictionary = {
       hidePassword: "Hide password",
       submitting: "Logging in...",
       submit: "Log in",
-      or: "or",
-      gmailButton: "Continue with Gmail",
-      gmailComingSoon: "Coming soon",
       newToBalboa: "New to Balboa? ",
       createAccount: "Create an account",
       invalidCredentials: "Invalid email or password",
@@ -629,6 +626,8 @@ export const en: Dictionary = {
     yourData: "Your data",
     preferences: "Preferences",
     payFrequencyHint: "How often you get paid.",
+    budgetFrequencyMonthlyHint:
+      "Monthly: one budget per month; both paychecks land in it and you close it yourself.",
     pastQuincenas: (vocab) => `Past ${vocab.nounPlural}`,
     manageCategories: "Manage categories",
     account: "Account",

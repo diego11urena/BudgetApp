@@ -131,9 +131,6 @@ export type Dictionary = {
       hidePassword: string;
       submitting: string;
       submit: string;
-      or: string;
-      gmailButton: string;
-      gmailComingSoon: string;
       newToBalboa: string;
       createAccount: string;
       invalidCredentials: string;
@@ -682,6 +679,8 @@ export type Dictionary = {
     preferences: string;
     /** Always-on hint under the Pay frequency control -- unlike the Budget frequency hint, which only appears in the monthly-locked state. */
     payFrequencyHint: string;
+    /** Shown under Budget frequency when Monthly is the selection, explaining what a monthly cycle means. Distinct from the locked-state hint, which explains why Biweekly is unavailable. */
+    budgetFrequencyMonthlyHint: string;
     pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
     account: string;
