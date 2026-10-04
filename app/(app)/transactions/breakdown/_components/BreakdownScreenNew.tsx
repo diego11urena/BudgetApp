@@ -37,6 +37,12 @@ interface BreakdownScreenNewProps {
   /** Each category's biggest transactions, for chapter 03's selected-slice preview. */
   topTransactionsByCategory: Record<string, CategoryTransactionRow[]>;
   transactionCountByCategory: Record<string, number>;
+  /**
+   * The cycle every "View transactions" link should scope Activity to --
+   * set only when viewing a CLOSED cycle, null on a live one (Activity
+   * already defaults to the current cycle).
+   */
+  activityCycleId: string | null;
   /** Closed periods available for comparison, excluding the one being viewed. */
   historyCount: number;
   /** Chapter 04's Fri-Sun share as a whole percentage; null when the period has no spend. */
@@ -72,6 +78,7 @@ export default function BreakdownScreenNew({
   categories,
   topTransactionsByCategory,
   transactionCountByCategory,
+  activityCycleId,
   weekendSharePercent,
   income,
 }: BreakdownScreenNewProps) {
@@ -211,6 +218,7 @@ export default function BreakdownScreenNew({
               state={state}
               topTransactionsByCategory={topTransactionsByCategory}
               transactionCountByCategory={transactionCountByCategory}
+              activityCycleId={activityCycleId}
             />
           </div>
         </section>
@@ -232,6 +240,7 @@ export default function BreakdownScreenNew({
             defaultSelected={selectedDayDefault}
             transactionsByDay={transactionsByDay}
             state={state}
+            activityCycleId={activityCycleId}
           />
         </section>
 

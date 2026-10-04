@@ -183,6 +183,9 @@ test.describe("Breakdown", () => {
     // category -- via the same ?category= param Activity's own filter
     // <select> reads, so the control shows the filter applied too.
     await page.locator(".category-donut-legend-row", { hasText: "Food" }).click();
+    // LIVE: scoped to the category only. No cycleId -- Activity already
+    // defaults to the open cycle, so pinning it would be redundant.
+    await expect(page.locator(".category-preview-view-all")).toHaveAttribute("href", /^\/transactions\?category=[^&]+$/);
     await page.locator(".category-preview-view-all").click();
     await page.waitForURL(/\/transactions\?category=/, { timeout: 30_000 });
     await expect(page.locator(".transaction-row", { hasText: "Riba Smith" })).toBeVisible();
@@ -301,6 +304,15 @@ test.describe("Breakdown", () => {
   test("CLOSED: reachable from History with prev/next navigation", async ({ page }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1500" });
 
+    // Spend before closing: a cycle with no transactions renders chapter
+    // 04's "No spending" state and therefore has no day panel and no
+    // "View transactions" link for the scoping assertions below.
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "75.00");
+    await fillCategory(page, "Groceries");
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".transaction-row", { hasText: "Groceries" })).toBeVisible();
+
     await page.click('button:has-text("I just got paid")');
     await page.waitForSelector('button:has-text("Yes, I got paid")');
     await page.click('button:has-text("Yes, I got paid")');
@@ -317,5 +329,32 @@ test.describe("Breakdown", () => {
     await expect(page.getByText("We hit a snag")).toHaveCount(0);
     await expect(page.locator(".breakdown-screen-v2")).toBeVisible();
     await expect(page.locator(".breakdown-header-title")).toHaveText("Where it went");
+
+    // A CLOSED breakdown scopes both of its "View transactions" links to
+    // the cycle being viewed, so Activity opens on that period rather
+    // than silently on the current one.
+    const cycleId = new URL(page.url()).searchParams.get("cycle");
+    expect(cycleId).toBeTruthy();
+
+    // Chapter 04's day panel link.
+    await expect(page.locator(".breakdown-day-view-all")).toHaveAttribute(
+      "href",
+      `/transactions?cycleId=${cycleId}`,
+    );
+
+    // Chapter 03's category preview link, once a slice is selected.
+    const legendRow = page.locator(".category-donut-legend-row").first();
+    if (await legendRow.count()) {
+      await legendRow.click();
+      await expect(page.locator(".category-preview-view-all")).toHaveAttribute(
+        "href",
+        new RegExp(`^/transactions\\?category=[^&]+&cycleId=${cycleId}$`),
+      );
+    }
+
+    // And following it actually lands on Activity scoped to that cycle.
+    await page.locator(".breakdown-day-view-all").click();
+    await page.waitForURL(/\/transactions\?cycleId=/, { timeout: 30_000 });
+    await expect(page.locator(".transaction-filters")).toBeVisible();
   });
 });

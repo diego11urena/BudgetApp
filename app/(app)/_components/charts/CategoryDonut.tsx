@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { categoryColorVar } from "@/lib/category-colors";
 import type { CategoryTransactionRow } from "@/lib/breakdown-v2";
+import { activityHref } from "@/app/(app)/transactions/breakdown/_components/types";
 import { useT, useLocale } from "@/app/_components/LocaleProvider";
 
 /**
@@ -76,6 +77,7 @@ export default function CategoryDonut({
   state,
   topTransactionsByCategory = {},
   transactionCountByCategory = {},
+  activityCycleId = null,
 }: {
   slices: CategoryDonutSlice[];
   total: number;
@@ -88,6 +90,8 @@ export default function CategoryDonut({
   topTransactionsByCategory?: Record<string, CategoryTransactionRow[]>;
   /** Each category's full transaction count this period -- the preview header's "{n} transactions". */
   transactionCountByCategory?: Record<string, number>;
+  /** Scopes the "View transactions" link to a closed cycle; null leaves Activity on the current one. */
+  activityCycleId?: string | null;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -209,7 +213,7 @@ export default function CategoryDonut({
         </div>
       </div>
 
-      {selected && selectedRows.length > 0 && (
+      {selected && (
         <div className="category-preview">
           <div className="category-preview-head">
             <span
@@ -222,6 +226,14 @@ export default function CategoryDonut({
               {t.transactions.count(transactionCountByCategory[selected.categoryId] ?? selectedRows.length)}
             </span>
           </div>
+          {/* A category with nothing in it says so, rather than
+              rendering an empty list or (worse) somebody else's rows.
+              Defensive in practice -- the donut only draws categories
+              that have spend -- but the alternative to a defensive
+              branch here is a silently blank panel. */}
+          {selectedRows.length === 0 && (
+            <p className="category-preview-empty">{t.breakdown.categoryNoTransactions}</p>
+          )}
           <ul className="category-preview-list">
             {selectedRows.map((row) => (
               <li key={row.id} className="category-preview-row">
@@ -233,7 +245,7 @@ export default function CategoryDonut({
               </li>
             ))}
           </ul>
-          <Link href={`/transactions?category=${selected.categoryId}`} className="category-preview-view-all">
+          <Link href={activityHref(activityCycleId, selected.categoryId)} className="category-preview-view-all">
             {t.breakdown.viewTransactions}
           </Link>
         </div>

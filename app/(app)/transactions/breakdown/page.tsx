@@ -161,14 +161,7 @@ export default async function BreakdownPage({
   const cashFlow = computeCashFlowBreakdown(financials);
 
   // ---- Chapter 02: recurring --------------------------------------------
-  // Same correction as Summary's: a CLOSED cycle is judged from its own
-  // end, a LIVE one from today. The two screens share this function so
-  // chapter 02 and Summary's Recurring card always agree -- which only
-  // holds if they also agree on when they are judging from.
-  const recurringFulfillment = summarizeRecurringFulfillment(
-    recurringExpenseCategories,
-    state === "CLOSED" ? periodEnd : new Date(),
-  );
+  const recurringFulfillment = summarizeRecurringFulfillment(recurringExpenseCategories, new Date());
 
   // ---- Trailing history (chapter 03's "usual" + CLOSED's comparison average) ----
   // Oldest first, ending on the cycle being viewed, so every series reads
@@ -230,6 +223,11 @@ export default async function BreakdownPage({
       historyCount={history.length}
       topTransactionsByCategory={topTransactionsByCategory}
       transactionCountByCategory={transactionCountByCategory}
+      // Only for a CLOSED cycle: a live breakdown is already the current
+      // cycle, which is what Activity defaults to, so scoping it would
+      // add a redundant query param pinning the view to a cycle the user
+      // is about to leave anyway.
+      activityCycleId={state === "CLOSED" ? cycle.id : null}
       weekendSharePercent={weekendSharePercent}
       income={cashFlow.income}
     />

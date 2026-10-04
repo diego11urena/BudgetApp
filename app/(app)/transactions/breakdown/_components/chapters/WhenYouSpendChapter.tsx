@@ -6,7 +6,7 @@ import Heatmap from "@/app/(app)/_components/charts/Heatmap";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { useT, useLocale } from "@/app/_components/LocaleProvider";
-import type { DayTransaction, HeatmapDayData } from "../types";
+import { activityHref, type DayTransaction, type HeatmapDayData } from "../types";
 
 /**
  * Chapter 04 — the heatmap, plus whatever the selected day actually held.
@@ -20,11 +20,14 @@ export default function WhenYouSpendChapter({
   defaultSelected,
   transactionsByDay,
   state,
+  activityCycleId,
 }: {
   days: HeatmapDayData[];
   defaultSelected: string | null;
   transactionsByDay: Record<string, DayTransaction[]>;
   state: "LIVE" | "CLOSED";
+  /** Scopes the day panel's "View transactions" link to a closed cycle; null on a live one. */
+  activityCycleId: string | null;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -88,7 +91,7 @@ export default function WhenYouSpendChapter({
                   </li>
                 ))}
               </ul>
-              <Link href="/transactions" className="breakdown-day-view-all">
+              <Link href={activityHref(activityCycleId)} className="breakdown-day-view-all">
                 {t.breakdown.viewTransactions}
               </Link>
             </>
