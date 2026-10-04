@@ -45,6 +45,15 @@ export default function SummaryScreen({
   const t = useT();
   const vocab = useVocab();
 
+  // What each goal received during this period: SAVINGS transactions in
+  // the period, grouped by the goal (category) they went to.
+  const goalContributions: Record<string, number> = {};
+  for (const goal of goalsWithProgress) {
+    goalContributions[goal.categoryId] = financials.transactions
+      .filter((tx) => tx.type === "SAVINGS" && tx.categoryName === goal.name)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }
+
   return (
     <div className="summary-screen">
       <header className="summary-header">
@@ -89,12 +98,15 @@ export default function SummaryScreen({
         <SummarySparklineRow cycleId={cycleId} points={sparklinePoints} vocab={vocab} t={t} />
       )}
 
-      {goalsWithProgress.length > 0 && <SummaryGoalsSection goals={goalsWithProgress} t={t} />}
+      {goalsWithProgress.length > 0 && (
+        <SummaryGoalsSection goals={goalsWithProgress} contributions={goalContributions} t={t} />
+      )}
 
       {recurringFulfillment.scheduled.total > 0 && (
         <SummaryRecurringSection fulfillment={recurringFulfillment} t={t} />
       )}
 
+      <div className="summary-spacer" />
       {uncategorized && <SummaryUncategorizedStrip warning={uncategorized} t={t} />}
 
       <SummaryCta cycleId={cycleId} nextCycleRangeText={nextCycleRangeText} vocab={vocab} t={t} />

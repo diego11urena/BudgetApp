@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { logPaycheckAction } from "../actions";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
+import { MoneyField } from "../../_components/MoneyField";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 import { formatCurrency } from "@/lib/format";
 import { useT } from "@/app/_components/LocaleProvider";
@@ -113,12 +114,19 @@ export function LogPaycheckSheet({
     setTimeout(onDone, 200);
   }
 
+  // "September income  $790.00 → $1,580.00": the label sits left, the
+  // figures right, and only the NEW total takes the income green.
+  const beforeLabel = formatCurrency(currentIncome);
+  const afterLabel = formatCurrency(currentIncome + amountNumber);
+  const previewFull = t.logPaycheck.preview(periodName, beforeLabel, afterLabel);
+  const previewLabel = previewFull.includes(beforeLabel) ? previewFull.slice(0, previewFull.indexOf(beforeLabel)).trim() : previewFull;
+
   return (
     <Sheet
       visible={visible}
       kicker={t.logPaycheck.kicker(paycheckNumber, expectedPaychecks)}
       title={t.logPaycheck.title}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!pending}
       returnFocusTo={returnFocusTo}
@@ -138,19 +146,20 @@ export function LogPaycheckSheet({
       // first-child text field.
       autoFocus={false}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
         {t.logPaycheck.body}
       </p>
 
       <form onSubmit={handleSubmit}>
         <div className="field">
           <label htmlFor={amountId}>{t.netPayLabel}</label>
-          <CurrencyInput
-            id={amountId}
-            defaultValue={amount}
-            onValueChange={setAmount}
-            className="sheet-amount-input"
-          />
+<MoneyField size="lg">
+            <CurrencyInput
+              id={amountId}
+              defaultValue={amount}
+              onValueChange={setAmount}
+            />
+          </MoneyField>
           {usualAmount > 0 && <span className="field-hint">{t.logPaycheck.prefilledHint}</span>}
         </div>
 
@@ -178,11 +187,10 @@ export function LogPaycheckSheet({
             about is the total, not the entry. */}
         {amountNumber > 0 && (
           <p className="paycheck-preview">
-            {t.logPaycheck.preview(
-              periodName,
-              formatCurrency(currentIncome),
-              formatCurrency(currentIncome + amountNumber),
-            )}
+            <span>{previewLabel}</span>
+            <span className="paycheck-preview-value">
+              {beforeLabel} → <span className="paycheck-preview-after">{afterLabel}</span>
+            </span>
           </p>
         )}
 

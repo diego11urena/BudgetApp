@@ -32,6 +32,9 @@ export default async function OnboardingCompletePage() {
       <Image src="/balboa-logo.png" alt="" width={88} height={88} className="onboarding-complete-logo" priority />
       <h1>{t.onboarding.complete.title}</h1>
       <p>{t.onboarding.complete.redirecting(vocab)}</p>
+      <div className="onboarding-complete-progress" aria-hidden="true">
+        <div />
+      </div>
       <CompleteRedirect />
     </div>
   );

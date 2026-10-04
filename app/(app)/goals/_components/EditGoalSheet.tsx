@@ -206,7 +206,7 @@ export function EditGoalSheet({
         )}
 
         {pendingChange !== null && (
-          <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+          <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
             {isIncrease
               ? t.goals.increaseConfirm(formatCurrency(pendingChange.delta))
               : t.goals.decreaseConfirm(formatCurrency(Math.abs(pendingChange.delta)))}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { justGotPaidAction, rolloverMonthlyCycleAction } from "../actions";
 import { ConfirmJustGotPaidSheet } from "./ConfirmJustGotPaidSheet";
 import { LogPaycheckSheet } from "./LogPaycheckSheet";
@@ -91,7 +91,7 @@ export function HeroCardActions({
   /** The close sheet's kicker ("Oct 1 - Oct 31 · Day 13 of 31"). */
   closeKicker?: string;
   /** The close sheet's income/spent/saved/leftover rows. */
-  closeSummaryRows?: Array<{ label: string; value: string; tone?: "saved" }>;
+  closeSummaryRows?: Array<{ label: string; value: string; tone?: "saved" | "income" }>;
 }) {
   const t = useT().dashboard;
   const vocab = useVocab();
@@ -222,9 +222,7 @@ export function HeroCardActions({
           {pending ? (
             t.closingQuincena(vocab)
           ) : (
-            <>
-              {t.iJustGotPaid} <ArrowRight size={16} aria-hidden="true" />
-            </>
+t.iJustGotPaid
           )}
         </button>
       )}
@@ -253,7 +251,7 @@ export function HeroCardActions({
                       },
                     },
                 whenLabel: t.closeMonth.whenEnded,
-                confirmLabel: t.closeMonth.yes,
+                confirmLabel: periodName ? t.heroClosePeriod(periodName) : t.closeMonth.yes,
                 cancelLabel: t.closeMonth.cancel,
               }
             : {})}

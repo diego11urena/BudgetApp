@@ -24,11 +24,11 @@ export default async function GoalStepPage() {
   const savingsCategoryNames = await getOrderedCategoryNames(session.user.id, state.cycle.id, "SAVINGS");
 
   return (
-    <div className="card card--wide onboarding-shell">
+    <div className="onboarding-shell onboarding-shell--goal">
       <StepProgress current="goal" />
       <p className="onboarding-kicker">{t.onboarding.goal.kicker}</p>
       <h1>{t.onboarding.goal.question}</h1>
-      <p className="field-hint">{t.onboarding.goal.explainer}</p>
+      <p className="onboarding-explainer">{t.onboarding.goal.explainer}</p>
       <GoalStepForm savingsCategoryNames={savingsCategoryNames} />
     </div>
   );

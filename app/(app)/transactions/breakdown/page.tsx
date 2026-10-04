@@ -121,6 +121,13 @@ export default async function BreakdownPage({
   // Chapter 03's per-category preview. Computed for every category up
   // front so selecting a slice is instant and client-only.
   const topTransactionsByCategory = computeTopTransactionsByCategory(financials.transactions);
+  // The preview header's "{n} transactions" -- the category's full count
+  // this period, not just the three rows shown.
+  const transactionCountByCategory: Record<string, number> = {};
+  for (const tx of financials.transactions) {
+    if (tx.type !== "EXPENSE" || !tx.expenseCategoryId) continue;
+    transactionCountByCategory[tx.expenseCategoryId] = (transactionCountByCategory[tx.expenseCategoryId] ?? 0) + 1;
+  }
   const weekendShare = computeWeekendShare(dailyTotals);
   const weekendSharePercent = weekendShare === null ? null : Math.round(weekendShare.share * 100);
   const selectedDayDefault = defaultSelected ? formatCycleLabel(defaultSelected) : null;
@@ -215,6 +222,12 @@ export default async function BreakdownPage({
       categories={categories}
       historyCount={history.length}
       topTransactionsByCategory={topTransactionsByCategory}
+      transactionCountByCategory={transactionCountByCategory}
+      // Only for a CLOSED cycle: a live breakdown is already the current
+      // cycle, which is what Activity defaults to, so scoping it would
+      // add a redundant query param pinning the view to a cycle the user
+      // is about to leave anyway.
+      activityCycleId={state === "CLOSED" ? cycle.id : null}
       weekendSharePercent={weekendSharePercent}
       income={cashFlow.income}
     />

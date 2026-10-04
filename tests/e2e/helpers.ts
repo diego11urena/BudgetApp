@@ -173,7 +173,7 @@ export async function fillCategory(page: Page, name: string): Promise<void> {
 
 /**
  * Finishes a close-cycle flow, from just after the confirm ("Yes, I got
- * paid" / "Yes, close this month") back to Home.
+ * paid" / "Close this month") back to Home.
  *
  * The redesign replaced the old CycleClosedCard overlay -- a modal on top
  * of Home, dismissed with "Continue" -- with a real Summary page at

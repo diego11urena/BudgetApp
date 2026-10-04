@@ -76,7 +76,7 @@ export function NeedsAttentionSheet({
     <Sheet
       visible={visible}
       title={t.finishTransactionsTitle}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
       // autoFocus off: this sheet should appear passively, with no field
@@ -85,7 +85,7 @@ export function NeedsAttentionSheet({
       // useModalFocus's own doc comment).
       autoFocus={false}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "1rem" }}>
+      <p className="field-hint" style={{ marginBottom: "1rem" }}>
         {t.finishTransactionsBody}
       </p>
 

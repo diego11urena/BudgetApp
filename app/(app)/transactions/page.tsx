@@ -154,41 +154,39 @@ export default async function TransactionsPage({
     <div className="home-page">
       <h1 className="page-title">{t.transactions.title}</h1>
 
-      <div className="dashboard-section">
-        <TransactionFilters categories={allCategories} cycles={cycleOptions} />
-        {/* Breakdown is a VIEW of this same activity (a pie chart instead
-            of a list), not a separate concept -- see the Balboa fix list's
-            batch 11.3. Sits below the filters (not in the header) since it
-            visualizes whatever they currently select. */}
-        <Link href="/transactions/breakdown" className="button transaction-breakdown-cta">
-          <PieChart size={17} aria-hidden="true" />
-          {t.transactions.seeWhereItWent}
-        </Link>
-        {transactions.length > 0 && (
-          <div className="transaction-summary-line">
-            <span>{t.transactions.count(transactions.length)}</span>
-            <span className="transaction-summary-totals">
-              {outTotal > 0 && <span className="transaction-summary-out">−{formatCurrency(outTotal)}</span>}
-              {outTotal > 0 && inTotal > 0 && " · "}
-              {inTotal > 0 && <span className="transaction-summary-in">+{formatCurrency(inTotal)}</span>}
-            </span>
-          </div>
-        )}
-        <TransactionList
-          transactions={transactions}
-          expenseCategoryNames={expenseCategoryNames}
-          savingsCategoryNames={savingsCategoryNames}
-          incomeCategoryNames={incomeCategoryNames}
-          recurringOptions={recurringOptions}
-          cycleStartDate={formatCycleLabel(cycle.periodStart)}
-          emptyMessage={
-            q || type || category || cycleId
-              ? t.transactions.noMatch
-              : t.transactions.noneYet
-          }
-          groupByDate
-        />
-      </div>
+      <TransactionFilters categories={allCategories} cycles={cycleOptions} />
+      {/* Breakdown is a VIEW of this same activity (a pie chart instead
+          of a list), not a separate concept -- see the Balboa fix list's
+          batch 11.3. Sits below the filters (not in the header) since it
+          visualizes whatever they currently select. */}
+      <Link href="/transactions/breakdown" className="button transaction-breakdown-cta">
+        <PieChart size={17} aria-hidden="true" />
+        {t.transactions.seeWhereItWent}
+      </Link>
+      {transactions.length > 0 && (
+        <div className="transaction-summary-line">
+          <span>{t.transactions.count(transactions.length)}</span>
+          <span className="transaction-summary-totals">
+            {outTotal > 0 && <span className="transaction-summary-out">−{formatCurrency(outTotal)}</span>}
+            {outTotal > 0 && inTotal > 0 && " · "}
+            {inTotal > 0 && <span className="transaction-summary-in">+{formatCurrency(inTotal)}</span>}
+          </span>
+        </div>
+      )}
+      <TransactionList
+        transactions={transactions}
+        expenseCategoryNames={expenseCategoryNames}
+        savingsCategoryNames={savingsCategoryNames}
+        incomeCategoryNames={incomeCategoryNames}
+        recurringOptions={recurringOptions}
+        cycleStartDate={formatCycleLabel(cycle.periodStart)}
+        emptyMessage={
+          q || type || category || cycleId
+            ? t.transactions.noMatch
+            : t.transactions.noneYet
+        }
+        groupByDate
+      />
     </div>
   );
 }

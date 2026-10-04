@@ -115,9 +115,6 @@ export const es: Dictionary = {
       hidePassword: "Ocultar contraseña",
       submitting: "Iniciando sesión...",
       submit: "Iniciar sesión",
-      or: "o",
-      gmailButton: "Continuar con Gmail",
-      gmailComingSoon: "Próximamente",
       newToBalboa: "¿Nuevo en Balboa? ",
       createAccount: "Crear una cuenta",
       invalidCredentials: "Correo o contraseña inválidos",
@@ -156,7 +153,7 @@ export const es: Dictionary = {
     complete: {
       metaTitle: "Todo listo",
       title: "Todo listo.",
-      redirecting: (vocab) => `Redirigiendo a /dashboard para ${vocab.thisPeriod}.`,
+      redirecting: (vocab) => `Llevándote a tu panel para ${vocab.thisPeriod}.`,
     },
     income: {
       metaTitle: "Ingresos",
@@ -176,10 +173,10 @@ export const es: Dictionary = {
     expenses: {
       metaTitle: "Recurrentes",
       kicker: "Recurrentes · opcional",
-      question: "¿Qué pagas regularmente?",
-      explainer: (vocab) => `Alquiler, suscripciones, servicios — cualquier cosa que se repita ${vocab.everyPeriod}. Agrega tantas como quieras, o ninguna.`,
+      question: (vocab) => `¿Qué se repite ${vocab.everyPeriod}?`,
+      explainer: () => "Agrega lo que sepas ahora, u omítelo y configúralo después desde Plan.",
       untitled: "Sin nombre",
-      scheduleSummary: (hasFixedDate, dueDay) => (hasFixedDate ? `Programado${dueDay ? ` · vence el día ${dueDay}` : ""}` : "Continuo"),
+      scheduleSummary: (hasFixedDate, dueDay) => (hasFixedDate ? (dueDay ? `Vence el día ${dueDay}` : "Programado") : "Continuo"),
       removeAria: (name) => `Eliminar ${name || "gasto"}`,
       namePlaceholder: "Nombre",
       amountPlaceholder: "$ Monto",
@@ -324,10 +321,10 @@ export const es: Dictionary = {
       button: "Cerrar este mes",
       pending: "Cerrando mes...",
       title: "¿Cerrar este mes?",
-      body: "Esto cierra definitivamente el mes actual y comienza uno nuevo. Las metas de presupuesto recurrentes y las contribuciones a metas se trasladan automáticamente. Los pagos que ya registraste este mes son definitivos.",
+      body: "Recibirás el resumen de tu mes y comenzarás el siguiente. Todo lo que registres después contará para el próximo.",
       whenEnded: "¿Cuándo terminó el mes?",
-      yes: "Sí, cerrar este mes",
-      cancel: "Cancelar",
+      yes: "Cerrar este mes",
+      cancel: "Todavía no",
     },
     logPaycheck: {
       kicker: (n, total) => `Pago ${n} de ${total}`,
@@ -337,7 +334,7 @@ export const es: Dictionary = {
       body: "Se suma a este mes. Tu mes sigue abierto hasta que lo cierres.",
       dateLabel: "¿Cuándo te pagaron?",
       pending: "Registrando...",
-      confirm: "Registrar pago",
+      confirm: "Agregar pago",
       cancel: "Cancelar",
     },
     monthlyIncomeEntries: {
@@ -606,8 +603,8 @@ export const es: Dictionary = {
     saveGoal: "Guardar meta",
     savedOf: (saved, target) => `${saved} de ${target}`,
     reached: "¡Meta alcanzada!",
-    onTrack: (amount, date) => `Contribución por ciclo: ${amount}, en camino a alcanzar la meta el ${date}`,
-    setContribution: "Define una contribución por ciclo para proyectar una fecha de finalización.",
+    onTrack: (vocab, amount, date) => `${amount} / ${vocab.noun} · lista ${date}`,
+    setContribution: "Define una contribución por ciclo para proyectar una fecha",
     edit: "Editar",
     removeAria: (name) => `Eliminar meta: ${name}`,
     removing: "Eliminando...",
@@ -649,6 +646,8 @@ export const es: Dictionary = {
     yourData: "Tus datos",
     preferences: "Preferencias",
     payFrequencyHint: "Con qué frecuencia te pagan.",
+    budgetFrequencyMonthlyHint:
+      "Mensual: un presupuesto por mes; ambos pagos entran en él y tú lo cierras.",
     pastQuincenas: (vocab) => `${capitalize(vocab.nounPlural)} ${vocab.noun === "mes" ? "pasados" : "pasadas"}`,
     manageCategories: "Administrar categorías",
     account: "Cuenta",
@@ -837,11 +836,12 @@ export const es: Dictionary = {
           ? `Última ${vocab.noun}`
           : `Últimas ${n} ${vocab.nounPlural}`,
     goalsEyebrow: "Metas",
-    goalCompleted: (name) => `${name} · completada ✓`,
+    goalCompleted: (name) => `${name} está completa`,
+    goalCompletedDetail: (amount, target) => `+${amount} · ${target} alcanzado`,
     goalInProgress: (amount, pct, target) => `+${amount} · ${pct.toFixed(0)}% de ${target}`,
     scheduledEyebrow: "Recurrentes",
-    uncategorizedWarning: (count, amount) =>
-      `${count} ${count === 1 ? "transacción sin" : "transacciones sin"} categoría (${amount})`,
+    uncategorizedWarning: (count) =>
+      `${count} ${count === 1 ? "transacción nunca se categorizó" : "transacciones nunca se categorizaron"}`,
     fixAction: "Arreglar",
     ctaStart: (vocab) => `Comenzar ${vocab.nextPeriod}`,
     ctaStartRange: (dateRange) => `Comenzar ${dateRange}`,
@@ -856,6 +856,8 @@ export const es: Dictionary = {
     missing: (name) => `${name} aún no aparece`,
     upcoming: (name, date) => `${name} vence ${date}`,
     ongoingLogged: (names, live) => `${names} registrado${live ? " hasta ahora" : ""}`,
+    ongoingLoggedCount: (logged, total) => `${logged} de ${total} registrados`,
+    ongoingMissing: (vocab, name) => `Sin ${name.toLowerCase()} registrado ${vocab.thisPeriod}`,
   },
 
   breakdown: {
@@ -878,7 +880,7 @@ export const es: Dictionary = {
     fixedLabel: "Fijos",
     discretionaryLabel: "Todo lo demás",
     savedLabel: "Ahorrado",
-    savedGoalsList: (names) => `Va hacia ${names}`,
+    savedGoalsList: (names, live) => (live ? `${names} · toca para ver metas` : names),
     leftoverLabel: "Sobrante",
 
     chapter2Title: "Recurrentes",
@@ -889,7 +891,9 @@ export const es: Dictionary = {
 
     chapter3Title: "Por categoría",
     chapter3Takeaway: (vocab, dateRange, state) =>
-      `${state === "LIVE" ? capitalize(vocab.thisPeriod) : dateRange} vs tu promedio.`,
+      state === "LIVE"
+        ? `Hasta ahora ${vocab.thisPeriod}. Toca una porción para comparar con tu habitual.`
+        : "Toca una porción para comparar con tu habitual.",
     // Handoff's propio vocabulario ES explícito: "Habitual: $X" (no "Tu promedio: $X" -- ese término se reserva para el título del capítulo/línea de comparación general).
     categoryUsual: (amount) => `Habitual: ${amount}`,
     categoryNew: "Nuevo este periodo",
@@ -913,6 +917,9 @@ export const es: Dictionary = {
     dayPanelHeaderLastDay: (date, total) => `${date} · Último día · ${total}`,
     dayPanelHeaderPlain: (date, total) => `${date} · ${total}`,
     viewTransactions: "Ver transacciones →",
+    categoryPreviewHeading: (name) => `Lo mayor en ${name}`,
+    heatmapLess: "Menos",
+    heatmapMore: "Más",
     categoryNoTransactions: "Aún no hay transacciones en esta categoría.",
 
     chapter5Title: "Las compras más grandes",

@@ -44,8 +44,8 @@ test.describe("managing categories", () => {
 
     // Both transactions now live under the surviving category.
     await page.goto("/transactions");
-    await expect(page.locator(".transaction-row", { hasText: "-$15.00" })).toBeVisible();
-    await expect(page.locator(".transaction-row", { hasText: "-$22.00" })).toBeVisible();
+    await expect(page.locator(".transaction-row", { hasText: "−$15.00" })).toBeVisible();
+    await expect(page.locator(".transaction-row", { hasText: "−$22.00" })).toBeVisible();
     await expect(page.locator(".transaction-row", { hasText: "Dining" })).toHaveCount(2);
   });
 
@@ -131,7 +131,7 @@ test.describe("managing categories", () => {
     // The transaction itself is untouched -- same amount, now filed under
     // the renamed category, not orphaned or duplicated.
     await page.goto("/transactions");
-    await expect(page.locator(".transaction-row", { hasText: "-$42.00" })).toBeVisible();
+    await expect(page.locator(".transaction-row", { hasText: "−$42.00" })).toBeVisible();
     await expect(page.locator(".transaction-row", { hasText: "Food & Dining" })).toHaveCount(1);
   });
 
@@ -182,7 +182,7 @@ test.describe("managing categories", () => {
 
     // The transaction itself was never deleted -- it just lost its category.
     await page.goto("/transactions");
-    await expect(page.locator(".transaction-row", { hasText: "-$18.00" })).toBeVisible();
+    await expect(page.locator(".transaction-row", { hasText: "−$18.00" })).toBeVisible();
     await expect(page.locator(".transaction-row", { hasText: "Needs a category" })).toBeVisible();
   });
 

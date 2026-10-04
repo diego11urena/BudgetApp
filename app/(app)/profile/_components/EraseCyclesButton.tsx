@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { eraseAllCyclesAction } from "../cycle-actions";
@@ -39,6 +40,7 @@ export function EraseCyclesButton() {
           <span className="line-item-title profile-danger-row-title">{t.profile.eraseCycles.button}</span>
           <span className="field-hint">{t.profile.eraseCycles.hint}</span>
         </span>
+        <ChevronRight size={18} aria-hidden="true" />
       </button>
 
       {confirming && (
@@ -79,16 +81,16 @@ function EraseCyclesConfirmSheet({
     <Sheet
       visible={visible}
       title={t.profile.eraseCycles.confirmTitle}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleCancel}
       closeOnBackdropClick={!pending}
       returnFocusTo={returnFocusTo}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
         {t.profile.eraseCycles.confirmBody(vocab)}
       </p>
       {error && (
-        <p className="error-text" role="alert" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+        <p className="error-text" role="alert" style={{ marginBottom: "0.5rem" }}>
           {error}
         </p>
       )}

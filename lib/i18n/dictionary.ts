@@ -131,9 +131,6 @@ export type Dictionary = {
       hidePassword: string;
       submitting: string;
       submit: string;
-      or: string;
-      gmailButton: string;
-      gmailComingSoon: string;
       newToBalboa: string;
       createAccount: string;
       invalidCredentials: string;
@@ -184,7 +181,7 @@ export type Dictionary = {
     expenses: {
       metaTitle: string;
       kicker: string;
-      question: string;
+      question: (vocab: PeriodVocab) => string;
       explainer: (vocab: PeriodVocab) => string;
       untitled: string;
       /** "Scheduled" (with its due day, when set) or "Ongoing" -- see RecurringExpenseEditSheet's own Scheduled/Ongoing choice. */
@@ -638,7 +635,7 @@ export type Dictionary = {
     saveGoal: string;
     savedOf: (saved: string, target: string) => string;
     reached: string;
-    onTrack: (amount: string, date: string) => string;
+    onTrack: (vocab: PeriodVocab, amount: string, date: string) => string;
     setContribution: string;
     edit: string;
     removeAria: (name: string) => string;
@@ -682,6 +679,8 @@ export type Dictionary = {
     preferences: string;
     /** Always-on hint under the Pay frequency control -- unlike the Budget frequency hint, which only appears in the monthly-locked state. */
     payFrequencyHint: string;
+    /** Shown under Budget frequency when Monthly is the selection, explaining what a monthly cycle means. Distinct from the locked-state hint, which explains why Biweekly is unavailable. */
+    budgetFrequencyMonthlyHint: string;
     pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
     account: string;
@@ -859,6 +858,8 @@ export type Dictionary = {
     sparklineLabel: (vocab: PeriodVocab, n: number) => string;
     goalsEyebrow: string;
     goalCompleted: (name: string) => string;
+    /** The completed-goal block's second line: "+$147.22 · $1,000.00 reached". */
+    goalCompletedDetail: (amount: string, target: string) => string;
     /**
      * The detail line UNDER an in-progress goal's name -- the name is its
      * own line (see screens/18), so it isn't templated in here. Keeping
@@ -900,7 +901,7 @@ export type Dictionary = {
     /** Cash-flow legend label for the goals segment -- never used for unallocated money, see leftoverLabel. */
     savedLabel: string;
     /** Subline under the tappable Saved row naming which goals this period's contributions went to. */
-    savedGoalsList: (names: string) => string;
+    savedGoalsList: (names: string, live: boolean) => string;
     /** Cash-flow legend label for the truly-unallocated remainder (income - fixed - everythingElse - saved, clamped >= 0). */
     leftoverLabel: string;
 
@@ -949,6 +950,10 @@ export type Dictionary = {
     /** Same header, no qualifier -- any day that's neither today nor the period's last day. */
     dayPanelHeaderPlain: (date: string, total: string) => string;
     viewTransactions: string;
+    /** The category preview's caps header: "TOP IN FOOD". */
+    categoryPreviewHeading: (name: string) => string;
+    heatmapLess: string;
+    heatmapMore: string;
     /** Chapter 03: shown under the donut when the selected category has no transactions to preview. */
     categoryNoTransactions: string;
 
@@ -976,6 +981,10 @@ export type Dictionary = {
     upcoming: (name: string, date: string) => string;
     /** live=true appends "so far" -- an in-progress cycle's Ongoing list can only ever grow, never be final the way a closed cycle's is. */
     ongoingLogged: (names: string, live: boolean) => string;
+    /** "2 of 3 logged" -- the Ongoing row's count, mirroring chargedOnTime. */
+    ongoingLoggedCount: (logged: number, total: number) => string;
+    /** "No gas logged this quincena" -- names the Ongoing item with nothing logged. */
+    ongoingMissing: (vocab: PeriodVocab, name: string) => string;
   };
 
   validations: {

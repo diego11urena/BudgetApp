@@ -3,6 +3,7 @@
 import { useState, useActionState } from "react";
 import { saveIncomeAction, type IncomeFormState } from "./actions";
 import { CurrencyInput } from "@/app/(app)/_components/CurrencyInput";
+import { MoneyField } from "@/app/(app)/_components/MoneyField";
 import { useT } from "@/app/_components/LocaleProvider";
 import type { BudgetFrequency } from "@/lib/quincena-pace";
 import type { IncomeFrequency } from "@/app/generated/prisma/client";
@@ -47,17 +48,18 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
 
   return (
     <form action={formAction}>
-      <div className="field">
+      <div className="field onboarding-income-field">
         <label htmlFor="netPayAmount">{t.onboarding.income.label(vocab)}</label>
-        <CurrencyInput
-          id="netPayAmount"
-          name="netPayAmount"
-          defaultValue={initial?.netPayAmount}
-          required
-          className={state?.error ? "is-invalid" : ""}
-          invalid={!!state?.error}
-          describedBy={state?.error ? "income-amount-error" : undefined}
-        />
+        <MoneyField size="lg" className={state?.error ? "is-invalid" : ""}>
+          <CurrencyInput
+            id="netPayAmount"
+            name="netPayAmount"
+            defaultValue={initial?.netPayAmount}
+            required
+            invalid={!!state?.error}
+            describedBy={state?.error ? "income-amount-error" : undefined}
+          />
+        </MoneyField>
         <span className="field-hint">{t.onboarding.income.hint(vocab)}</span>
       </div>
 
@@ -121,7 +123,7 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
         </p>
       )}
 
-      <div className="form-actions">
+      <div className="form-actions form-actions--stacked">
         <button type="submit" className="button" disabled={pending}>
           {pending ? t.onboarding.income.saving : t.onboarding.income.continue}
         </button>

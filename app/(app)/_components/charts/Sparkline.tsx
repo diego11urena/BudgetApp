@@ -5,10 +5,12 @@
 
 interface SparklineProps {
   points: number[];
-  colorVar?: string; // CSS var name, e.g. "--color-savings"
+  colorVar?: string; // CSS var name for the line
+  /** CSS var name for the end dot -- defaults to the line color. */
+  dotVar?: string;
 }
 
-export default function Sparkline({ points, colorVar = "--color-savings" }: SparklineProps) {
+export default function Sparkline({ points, colorVar = "--color-savings", dotVar }: SparklineProps) {
   if (points.length === 0) {
     return <div className="sparkline-empty" />;
   }
@@ -57,7 +59,7 @@ export default function Sparkline({ points, colorVar = "--color-savings" }: Spar
       />
 
       {/* Endpoint dot */}
-      <circle cx={endX} cy={endY} r="2" fill={`var(${colorVar})`} />
+      <circle cx={endX} cy={endY} r="2.5" fill={`var(${dotVar ?? colorVar})`} />
     </svg>
   );
 }

@@ -75,7 +75,7 @@ export function MergeCategorySheet({
           ? t.profile.categories.merge.title(source.name, target.name)
           : t.profile.categories.merge.genericTitle
       }
-      titleStyle={confirming ? { textAlign: "center", marginBottom: "0.5rem" } : undefined}
+      titleStyle={confirming ? { marginBottom: "0.5rem" } : undefined}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
     >
@@ -110,7 +110,7 @@ export function MergeCategorySheet({
         </>
       ) : (
         <>
-          <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+          <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
             {source.transactionCount > 0
               ? t.profile.categories.merge.bodyWithTx(source.transactionCount, target?.name ?? "")
               : t.profile.categories.merge.bodyNoTx(target?.name ?? "")}
