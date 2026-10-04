@@ -136,6 +136,7 @@ export default async function DashboardPage() {
     goals,
     budgetFrequency,
     vocab: resolveVocab(t, budgetFrequency),
+    locale,
     t: t.insights,
   });
 
