@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getClosedCycles, getUserBudgetFrequency, formatCycleRangeText } from "@/lib/cycles";
+import { formatMonthLabel } from "@/lib/format";
+import { getRequestLocale } from "@/lib/i18n/locale";
 import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
 import { summarizeRecurringFulfillment } from "@/lib/recurring-fulfillment";
 import { getGoalsWithProgress } from "@/lib/goals";
@@ -104,10 +106,20 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
     .reverse()
     .map((c) => c.financials.totalExpenses);
 
+  // A monthly cycle is named by its month ("SEPTEMBER · CLOSED", per the
+  // Month summary spec), not by a date range -- the range would just
+  // restate the month's own first and last day. A quincena has no such
+  // name, so it keeps the range.
+  const locale = await getRequestLocale();
+  const cycleRangeText =
+    budgetFrequency === "MONTHLY"
+      ? formatMonthLabel(cycle.periodStart, locale)
+      : formatCycleRangeText(cycle, { includeYear: false }, budgetFrequency);
+
   return (
     <SummaryScreen
       cycleId={cycle.id}
-      cycleRangeText={formatCycleRangeText(cycle, { includeYear: false }, budgetFrequency)}
+      cycleRangeText={cycleRangeText}
       nextCycleRangeText={
         nextCycle ? formatCycleRangeText(nextCycle, { includeYear: false }, budgetFrequency) : null
       }
