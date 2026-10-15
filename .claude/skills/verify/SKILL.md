@@ -27,10 +27,16 @@ does nothing." If dev unexpectedly starts on a port other than 3000, this is why
 `lsof -i :3000` / `pkill -f "next-server"` to clear it, then restart dev.
 
 ## Drive it (real browser — forms use client hooks like useActionState)
-Playwright is a devDependency. System Chrome works without downloading Chromium:
+`@playwright/test` is a devDependency (the plain `playwright` package was removed — import
+`chromium` from `@playwright/test`). System Chrome works without downloading Chromium:
 ```js
+import { chromium } from "@playwright/test";
 const browser = await chromium.launch({ channel: "chrome" });
 ```
+Before hand-writing a script, check `tests/e2e/` — `npx playwright test` (or one spec, e.g.
+`npx playwright test tests/e2e/history.spec.ts`) already drives most flows. It starts its own
+`npm run dev` (`reuseExistingServer: false`), so stop any dev server on :3000 first; DB comes
+from `.env` (local `budgetapp_dev`).
 Flow to drive (3 steps, no accounts step): `/signup` -> `/onboarding/income` (fill name +
 `#netQuincenaAmount` — **net take-home pay for one quincena, entered directly**, no
 payroll math involved) -> `/onboarding/expenses` (fixed expenses — starts with **zero
@@ -127,7 +133,7 @@ edit can affect too).
 
 **No inline add-transaction form anymore** — `TransactionForm.tsx` doesn't exist. Home is a
 read-only summary: `Header.tsx` (greeting + Profile avatar link), `UncategorizedImportsBanner`
-/ `NeedsDescriptionBanner` (Gmail-import follow-ups, see below), `LastPaycheckBanner`,
+/ `NeedsDescriptionBanner` (Gmail-import follow-ups, see below),
 `HeroCard` (the hero stat, see below), `BudgetBreakdownCard`, `TopCategoriesChart`, a
 `TransactionList` capped to the 3 most recent + "See all" link to `/transactions`, and
 `InsightsCard`. Transactions are added via the bottom-nav "+" FAB -> `AddActionSheet.tsx`
@@ -136,7 +142,7 @@ payment-method/note form, submit button reads "Log it" when creating, "Save chan
 editing (clicking an existing row in `TransactionList` reopens `QuickAddSheet` pre-filled,
 in edit mode). The rule-based insights card (`lib/insights.ts`, unit-tested in
 `lib/insights.test.ts`) shows up to 3 of: a top-category delta vs the last closed cycle, an
-on-track/over-budget restatement, an under-budget streak (≥2 cycles) — or a fallback if
+on-track/over-budget restatement — or a fallback if
 there's no closed-cycle history yet.
 
 **Hero stat**: `HeroCard.tsx`, class `.hero-value` (not `.kpi-value`), labeled "Available to
@@ -280,10 +286,10 @@ Grew well beyond user info + sign-out since this doc was last accurate. Current 
    picks/confirms the actual pay date (not necessarily "now"; bounded by
    `PAY_DATE_LOOKBACK_DAYS`, see `lib/pay-date.ts`).
 2. Confirming calls `justGotPaidAction(payDate)` (`dashboard/actions.ts`), which calls
-   `closeCycleAndStartNext(userId, payDate)`; `CycleClosedCard.tsx` then shows a summary
-   overlay (spent/saved/rolled-over/top-category/budget-vs-actual for the closed cycle).
-3. Dismissing that opens `NewCycleIncomeSheet.tsx` to confirm/adjust the carried-forward
-   income amount for the new cycle before it's actually used.
+   `closeCycleAndStartNext(userId, payDate)` and returns just `{ closedCycleId }`;
+   `HeroCardActions.tsx` then routes to the Summary page `/dashboard/summary/{closedCycleId}`.
+   (The old `CycleClosedCard` overlay and `NewCycleIncomeSheet` prompt were removed — the
+   new cycle's income is edited afterwards via the hero card's "Edit".)
 
 A cycle is a **paycheck period, not a calendar month** — `getOrCreateDraftCycle` finds the
 user's current open (DRAFT/ACTIVE) cycle regardless of date (now guaranteed unique per user
@@ -292,21 +298,19 @@ constraint, so closing twice in the same day is fine. `label` is just a display 
 start date, `YYYY-MM-DD`), not a dedupe key.
 
 Closing sets `status: CLOSED`/`periodEnd` on the old cycle and creates a new `ACTIVE` one,
-carrying forward the primary `IncomeSource` (`netQuincenaAmount` copied as-is, then
-overridable via step 3 above). **`CycleBudgetGoal` carry-forward is conditional, not
-unconditional**: only categories with `recurring: true` carry forward at all, and
-`shouldCarryForwardToCycle` (`lib/cycles.ts`) further gates it by frequency — BIWEEKLY
-carries into every new cycle, MONTHLY only into the one quincena per month matching the
-category's `dueDay`. A category with `recurring: false`, or a MONTHLY one whose `dueDay`
-doesn't match the new cycle, correctly does **not** get a `CycleBudgetGoal` row in the new
-cycle — that's not a bug. `CycleTransaction` rows never carry forward; they stay on their
+carrying forward the primary `IncomeSource` (`netQuincenaAmount` copied as-is). **Recurring
+expenses** (`RecurringExpense` with `recurring: true`) carry into **every** new cycle via
+`carryForwardRecurringExpenses` — `dueDay` is display/due-soon only, never a carry filter.
+SAVINGS goals still use `shouldCarryForwardToCycle` (`lib/cycles.ts`): BIWEEKLY into every
+cycle, MONTHLY only into the cycle containing `dueDay`. A `recurring: false` expense
+correctly does **not** carry. `CycleTransaction` rows never carry forward; they stay on their
 original (now closed) cycle forever.
 
-The **"Last paycheck" banner** (`dashboard/_components/LastPaycheckBanner.tsx` — note: under
-`dashboard/_components/`, not the shared `_components/` dir) is computed fresh on every
-dashboard load from `getMostRecentClosedCycle` + `getCycleFinancials` — it's not a one-time
-flash message tied to the click, so it persists across reloads until the next paycheck closes
-another cycle. It won't render at all if the user has never closed a cycle yet.
+**Cycle-by-date resolution** (`findCycleForDate`): a closed cycle is skipped from its
+`periodEnd` on, so an empty same-day-closed cycle never captures pay-day or later
+transactions (Gmail imports, date edits). A History-page add prefers its hinted cycle via
+`findCycleForDatePreferring` when that cycle's range covers the date. Closed cycles can be
+deleted from `/history/[cycleId]` (`deleteCycleAction`, closed-only).
 
 ## Verify DB state
 ```bash
