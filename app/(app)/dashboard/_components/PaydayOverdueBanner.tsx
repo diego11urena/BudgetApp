@@ -27,10 +27,12 @@ import type { BudgetFrequency } from "@/lib/quincena-pace";
  */
 export async function PaydayOverdueBanner({
   cycleEndDate,
+  cycleStartDate,
   isOverdue,
   budgetFrequency,
 }: {
   cycleEndDate: Date;
+  cycleStartDate: string;
   isOverdue: boolean;
   budgetFrequency: BudgetFrequency;
 }) {
@@ -42,6 +44,7 @@ export async function PaydayOverdueBanner({
     <HeroCardActions
       variant="banner"
       showBanner={isOverdue}
+      cycleStartDate={cycleStartDate}
       bannerLabel={t.paydayOverdue(vocab, formatFriendlyDate(cycleEndDate, locale))}
     />
   );

@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { computeCyclePace, cycleLengthDays, type BudgetFrequency } from "@/lib/quincena-pace";
 import { HeroCardActions } from "./HeroCardActions";
+import { formatCycleLabel } from "@/lib/pay-date";
 import { emphasizeAmounts } from "@/lib/emphasize-amounts";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
@@ -166,6 +167,7 @@ export async function HeroCard({
               </p>
             )}
             <HeroCardActions
+              cycleStartDate={formatCycleLabel(periodStart)}
               allPaychecksIn={allPaychecksIn}
               namesPeriod={monthComplete}
               periodName={periodName}

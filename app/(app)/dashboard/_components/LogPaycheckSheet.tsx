@@ -6,17 +6,10 @@ import { logPaycheckAction } from "../actions";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
 import { MoneyField } from "../../_components/MoneyField";
-import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
+import { addDays, formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 import { formatCurrency } from "@/lib/format";
 import { useT } from "@/app/_components/LocaleProvider";
 
-// Based on Panama time, not the device's own local clock -- same as
-// ConfirmJustGotPaidSheet/EditPayInfoSheet's own copy of this helper.
-function daysAgo(days: number): Date {
-  const date = nowInPanama();
-  date.setDate(date.getDate() - days);
-  return date;
-}
 
 /**
  * MONTHLY-budget accounts only: logs one paycheck into the currently open
@@ -73,7 +66,7 @@ export function LogPaycheckSheet({
   const errorId = `${uid}-error`;
 
   const amountNumber = Number(amount) || 0;
-  const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
+  const minDate = formatCycleLabel(addDays(nowInPanama(), -PAY_DATE_LOOKBACK_DAYS));
   const maxDate = formatCycleLabel(nowInPanama());
 
   function handleCancel() {

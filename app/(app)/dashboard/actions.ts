@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   assessPayDateChange,
+  getAdjacentCycles,
   closeCycleAndStartNext,
   deleteCycleIncomeEntry,
   getActiveIncomeSource,
@@ -220,7 +221,15 @@ export const editCyclePayInfoAction = withActionErrorHandling(async function edi
     return { error: t.dashboard.noIncomeSource };
   }
 
+  // The previous cycle ends where this one starts -- moving this start
+  // without moving that end leaves a gap (or overlap) no cycle covers.
+  const { previous } = payDateChanging ? await getAdjacentCycles(userId, cycle) : { previous: null };
+  const previousEndsHere = previous?.periodEnd?.getTime() === cycle.periodStart.getTime();
+
   await prisma.$transaction(async (tx) => {
+    if (previous && previousEndsHere) {
+      await tx.budgetCycle.update({ where: { id: previous.id }, data: { periodEnd: payDate } });
+    }
     if (cycle.status !== "CLOSED") {
       await tx.incomeSource.update({
         where: { id: incomeSource.id },

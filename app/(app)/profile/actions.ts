@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { signOut } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -21,7 +21,7 @@ export const signOutAction = withActionErrorHandling(async function signOutActio
   await signOut({ redirectTo: "/login" });
 });
 
-export type ChangePasswordFormState = ActionResult<{ success: true }> | undefined;
+export type ChangePasswordFormState = ActionResult | undefined;
 
 const CHANGE_PASSWORD_RATE_LIMIT = { max: 5, windowMs: 60_000 };
 
@@ -54,7 +54,7 @@ export const changePasswordAction = withActionErrorHandling(async function chang
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { hashedPassword: true },
+    select: { hashedPassword: true, email: true },
   });
   if (!user) {
     return { error: t.profile.changePassword.accountNotFound };
@@ -74,8 +74,13 @@ export const changePasswordAction = withActionErrorHandling(async function chang
     where: { id: userId },
     data: { hashedPassword, sessionVersion: { increment: 1 } },
   });
-
-  return { success: true };
+  // ...which includes THIS device's JWT too -- re-issue it with the new
+  // sessionVersion so the person who just changed their password stays
+  // signed in here. Then redirect rather than return: returning re-renders
+  // this page inside the same request, where auth() still reads the OLD
+  // cookie from the request headers and bounces straight to /login.
+  await signIn("credentials", { email: user.email, password: newPassword, redirect: false });
+  redirect("/profile?password=updated");
 });
 
 /**

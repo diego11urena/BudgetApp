@@ -3,18 +3,9 @@
 import { useId, useState } from "react";
 import { useSheetVisibility } from "../../_components/useSheet";
 import { Sheet } from "../../_components/Sheet";
-import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
+import { addDays, formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
-// Based on Panama time, not the device's own local clock — parsePayDate
-// validates this same window against nowInPanama() server-side regardless
-// of where the user's device thinks it is, so the client's bound has to
-// agree (see the same fix in EditPayInfoSheet.tsx).
-function daysAgo(days: number): Date {
-  const date = nowInPanama();
-  date.setDate(date.getDate() - days);
-  return date;
-}
 
 /**
  * Closing a cycle is the one significant, hard-to-undo action in the app
@@ -34,6 +25,7 @@ function daysAgo(days: number): Date {
 export function ConfirmJustGotPaidSheet({
   onConfirm,
   onCancel,
+  cycleStartDate,
   returnFocusTo = null,
   title,
   kicker,
@@ -46,6 +38,8 @@ export function ConfirmJustGotPaidSheet({
 }: {
   onConfirm: (payDate: string) => void;
   onCancel: () => void;
+  /** "YYYY-MM-DD" -- a pay date can't precede the cycle it closes (it becomes that cycle's end). */
+  cycleStartDate?: string;
   returnFocusTo?: HTMLElement | null;
   title?: string;
   /** Uppercase line above the title -- the close sheet names the period and how far through it the user is. */
@@ -80,7 +74,8 @@ export function ConfirmJustGotPaidSheet({
   const dateId = `${uid}-date`;
   const errorId = `${uid}-error`;
 
-  const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
+  const lookbackMin = formatCycleLabel(addDays(nowInPanama(), -PAY_DATE_LOOKBACK_DAYS));
+  const minDate = cycleStartDate && cycleStartDate > lookbackMin ? cycleStartDate : lookbackMin;
   const maxDate = formatCycleLabel(nowInPanama());
 
   function handleCancel() {

@@ -49,6 +49,7 @@ import { useT, useVocab, useBudgetFrequency } from "@/app/_components/LocaleProv
  */
 export function HeroCardActions({
   variant = "link",
+  cycleStartDate,
   bannerLabel,
   showBanner = true,
   allPaychecksIn = false,
@@ -62,6 +63,8 @@ export function HeroCardActions({
   closeSummaryRows,
 }: {
   variant?: "link" | "banner";
+  /** "YYYY-MM-DD" of the open cycle's start -- the earliest pay date the close sheet allows. */
+  cycleStartDate?: string;
   bannerLabel?: string;
   showBanner?: boolean;
   /**
@@ -229,6 +232,7 @@ t.iJustGotPaid
 
       {confirming && (
         <ConfirmJustGotPaidSheet
+          cycleStartDate={cycleStartDate}
           onConfirm={handleConfirmedJustGotPaid}
           onCancel={() => setConfirming(false)}
           {...(isMonthly

@@ -168,8 +168,7 @@ export function parsePayDate(value: string, now: Date = nowInPanama()): Date | n
   if (!date) return null;
 
   const today = startOfDay(now);
-  const earliest = new Date(today);
-  earliest.setDate(earliest.getDate() - PAY_DATE_LOOKBACK_DAYS);
+  const earliest = addDays(today, -PAY_DATE_LOOKBACK_DAYS);
 
   if (date.getTime() > today.getTime() || date.getTime() < earliest.getTime()) {
     return null;

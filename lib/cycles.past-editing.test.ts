@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "./prisma";
-import { assessPayDateChange, findCycleForDate, findCycleForDatePreferring } from "./cycles";
+import { assessPayDateChange, closeCycleAndStartNext, findCycleForDate, findCycleForDatePreferring } from "./cycles";
 import { getCycleFinancials } from "./cycle-financials";
 import { en } from "./i18n/dictionaries/en";
 
@@ -189,5 +189,17 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     expect((await findCycleForDate(userId, start))?.id).toBe(active.id);
     expect((await findCycleForDatePreferring(userId, start, empty.id))?.id).toBe(empty.id);
     expect((await findCycleForDatePreferring(userId, panama(2026, 10, 12), empty.id))?.id).toBe(active.id);
+  });
+  it("closeCycleAndStartNext never ends a cycle before it started", async () => {
+    const start = panama(2026, 10, 10);
+    const open = await prisma.budgetCycle.create({
+      data: { userId, label: "open", periodStart: start, status: "ACTIVE" },
+    });
+
+    const { closedCycle, newCycle } = await closeCycleAndStartNext(userId, panama(2026, 10, 5));
+
+    expect(closedCycle.id).toBe(open.id);
+    expect(closedCycle.periodEnd?.getTime()).toBe(start.getTime());
+    expect(newCycle.periodStart.getTime()).toBe(start.getTime());
   });
 });

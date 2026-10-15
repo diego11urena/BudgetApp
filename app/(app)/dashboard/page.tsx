@@ -195,6 +195,7 @@ export default async function DashboardPage() {
           a MONTHLY account. */}
       <PaydayOverdueBanner
         cycleEndDate={pace.cycleEnd}
+        cycleStartDate={formatCycleLabel(cycle.periodStart)}
         isOverdue={budgetFrequency !== "MONTHLY" && pace.phase === "ended"}
         budgetFrequency={budgetFrequency}
       />

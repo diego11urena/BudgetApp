@@ -63,11 +63,6 @@ export function ChangePasswordForm() {
           {state.error}
         </p>
       )}
-      {!!state && "success" in state && (
-        <p className="field-hint" style={{ marginTop: "0.5rem" }}>
-          {t.profile.changePassword.updated}
-        </p>
-      )}
 
       <div className="form-actions">
         <button type="submit" className="button" disabled={pending || mismatch}>
