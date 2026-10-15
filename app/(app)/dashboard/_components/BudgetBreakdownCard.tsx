@@ -43,7 +43,7 @@ export async function BudgetBreakdownCard({
         </div>
         <div className="summary-item">
           <span className="summary-label">{t.statSaved}</span>
-          <span className="summary-value summary-value--good">{formatCurrency(saved)}</span>
+          <span className="summary-value summary-value--savings">{formatCurrency(saved)}</span>
         </div>
       </div>
 

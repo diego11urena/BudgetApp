@@ -37,14 +37,15 @@ export function GmailRow({ connection }: { connection: GmailConnectionInfo | nul
             </span>
           )}
         </span>
-        {connection ? (
-          <span className={`profile-gmail-status ${connection.lastSyncError ? "profile-gmail-status--error" : ""}`}>
-            <span className="profile-gmail-status-dot" aria-hidden="true" />{" "}
-            {connection.lastSyncError ? t.profile.gmail.error : t.profile.gmail.on}
-          </span>
-        ) : (
+        <span className="profile-row-trailing">
+          {connection && (
+            <span className={`profile-gmail-status ${connection.lastSyncError ? "profile-gmail-status--error" : ""}`}>
+              <span className="profile-gmail-status-dot" aria-hidden="true" />
+              {connection.lastSyncError ? t.profile.gmail.error : t.profile.gmail.on}
+            </span>
+          )}
           <ChevronRight size={18} aria-hidden="true" />
-        )}
+        </span>
       </button>
 
       {open && <GmailSheetContent connection={connection} {...sheetProps} onClose={close} />}

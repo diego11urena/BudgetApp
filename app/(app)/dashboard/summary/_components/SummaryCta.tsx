@@ -22,7 +22,8 @@ export default function SummaryCta({
   return (
     <div className="summary-cta">
       <button
-        className="summary-cta-primary"
+        type="button"
+        className="button summary-cta-primary"
         onClick={() => router.push("/dashboard")}
       >
         {/* Name the period being started when we know it ("Start Sep 1 -

@@ -63,7 +63,7 @@ export function IconPickerSheet({
     <Sheet
       visible={visible}
       title={t.profile.categories.iconPicker.title}
-      titleStyle={{ textAlign: "center", marginBottom: "0.75rem" }}
+      titleStyle={{ marginBottom: "0.75rem" }}
       onClose={handleClose}
       returnFocusTo={null}
       className="icon-picker-sheet"

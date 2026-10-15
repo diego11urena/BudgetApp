@@ -30,16 +30,16 @@ export default async function HistoryPage() {
     <div className="home-page">
       <h1 className="page-title">{t.history.title}</h1>
 
-      <div className="dashboard-section">
+      <div className={closedCycles.length === 0 ? "dashboard-section" : "dashboard-section profile-card history-list"}>
         {closedCycles.length === 0 ? (
-          <p className="field-hint">{t.history.empty(vocab)}</p>
+          <p className="empty-state">{t.history.empty(vocab)}</p>
         ) : (
           /* Plain list, not .preview-box: that container is a dashed
              placeholder affordance, and these are real closed cycles. A
              dashed outline around actual content reads as an empty slot
              waiting to be filled. The surrounding .dashboard-section
              already provides the card. */
-          <div className="history-list">
+          <>
             {closedCycles.map((c) => {
               const cFinancials = summarizeCycleFinancials(c.incomeEntries, c.transactions);
               return (
@@ -48,14 +48,14 @@ export default async function HistoryPage() {
                     {formatFriendlyDate(c.periodStart, locale)}{" "}
                     <span className="status-badge">{t.history.closed}</span>
                   </span>
-                  <span>
-                    {t.history.left(formatCurrency(cFinancials.amountLeft))}
-                    <ChevronRight size={16} aria-hidden="true" className="inline-arrow" />
+                  <span className="profile-row-trailing">
+                    <span className="history-row-amount">{t.history.left(formatCurrency(cFinancials.amountLeft))}</span>
+                    <ChevronRight size={18} aria-hidden="true" />
                   </span>
                 </Link>
               );
             })}
-          </div>
+          </>
         )}
       </div>
     </div>

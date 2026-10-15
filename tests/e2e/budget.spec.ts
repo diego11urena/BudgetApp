@@ -267,7 +267,7 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
       // disambiguate by amount so this always unlinks the $15 one, leaving
       // the $20 one linked (actual == target == $20, a clean "paid" to
       // assert against below).
-      await page.locator(".transaction-row", { hasText: "-$15.00" }).click();
+      await page.locator(".transaction-row", { hasText: "−$15.00" }).click();
       await page.getByLabel("Amount (USD)").waitFor();
       await expect(page.getByLabel("This is a recurring expense")).toBeChecked();
       await page.getByLabel("This is a recurring expense").uncheck();

@@ -2,6 +2,7 @@ import { Check } from "lucide-react";
 import { formatCurrency, formatFriendlyDate } from "@/lib/format";
 import { computeCyclePace, cycleLengthDays, type BudgetFrequency } from "@/lib/quincena-pace";
 import { HeroCardActions } from "./HeroCardActions";
+import { emphasizeAmounts } from "@/lib/emphasize-amounts";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 
@@ -156,8 +157,8 @@ export async function HeroCard({
               </p>
             ) : (
               <p className="hero-pace">
-                {pace.phase === "running" && t.heroPacePerDay(formatCurrency(pace.perDay))}
-                {pace.phase === "last-day" && t.heroLastDay(formatCurrency(safeToSpend))}
+                {pace.phase === "running" && emphasizeAmounts(t.heroPacePerDay(formatCurrency(pace.perDay)))}
+                {pace.phase === "last-day" && emphasizeAmounts(t.heroLastDay(formatCurrency(safeToSpend)))}
                 {pace.phase === "ended" && t.heroCycleEnded(vocab, formatFriendlyDate(pace.cycleEnd, locale))}
                 {secondPaycheckInDays !== null && pace.phase === "running" && (
                   <> · {t.heroSecondPaycheckIn(secondPaycheckInDays)}</>
@@ -178,7 +179,7 @@ export async function HeroCard({
                 totalDays,
               )}
               closeSummaryRows={[
-                { label: t.closeMonth.rowIncome, value: formatCurrency(baseIncome + extraIncome) },
+                { label: t.closeMonth.rowIncome, value: formatCurrency(baseIncome + extraIncome), tone: "income" as const },
                 { label: t.closeMonth.rowSpent, value: formatCurrency(totalExpenses) },
                 { label: t.closeMonth.rowSaved, value: formatCurrency(totalSavings), tone: "saved" as const },
                 { label: t.closeMonth.rowLeftover, value: formatCurrency(Math.max(0, amountLeft)) },

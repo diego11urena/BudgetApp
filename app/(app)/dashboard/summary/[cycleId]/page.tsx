@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getClosedCycles, getUserBudgetFrequency, formatCycleRangeText } from "@/lib/cycles";
+import { formatMonthLabel } from "@/lib/format";
+import { getRequestLocale } from "@/lib/i18n/locale";
 import { getRecurringExpensesForCycle } from "@/lib/recurring-expenses";
 import { summarizeRecurringFulfillment } from "@/lib/recurring-fulfillment";
 import { getGoalsWithProgress } from "@/lib/goals";
@@ -70,7 +72,15 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
 
   // Shared with Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's
   // own doc comment for why the two screens read from one function.
-  const recurringFulfillment = summarizeRecurringFulfillment(recurringExpenseCategories, new Date());
+  // Judged from the cycle's own end, not today: this screen only ever
+  // shows a CLOSED cycle, and nothing can still arrive in a period that
+  // has already ended (see summarizeRecurringFulfillment's own note on
+  // asOf). periodEnd is always set on a closed cycle; the fallback is
+  // only there so a malformed row can't crash the page.
+  const recurringFulfillment = summarizeRecurringFulfillment(
+    recurringExpenseCategories,
+    cycle.periodEnd ?? new Date(),
+  );
 
   // Newest-first (getClosedCycles' own order) -- exactly what
   // computeSpendComparison wants for recentSpends (trailing N prior
@@ -96,12 +106,22 @@ export default async function SummaryPage({ params }: { params: Promise<{ cycleI
     .reverse()
     .map((c) => c.financials.totalExpenses);
 
+  // A monthly cycle is named by its month ("SEPTEMBER · CLOSED", per the
+  // Month summary spec), not by a date range -- the range would just
+  // restate the month's own first and last day. A quincena has no such
+  // name, so it keeps the range.
+  const locale = await getRequestLocale();
+  const cycleRangeText =
+    budgetFrequency === "MONTHLY"
+      ? formatMonthLabel(cycle.periodStart, locale)
+      : formatCycleRangeText(cycle, { includeYear: false }, budgetFrequency);
+
   return (
     <SummaryScreen
       cycleId={cycle.id}
-      cycleRangeText={formatCycleRangeText(cycle, {}, budgetFrequency)}
+      cycleRangeText={cycleRangeText}
       nextCycleRangeText={
-        nextCycle ? formatCycleRangeText(nextCycle, {}, budgetFrequency) : null
+        nextCycle ? formatCycleRangeText(nextCycle, { includeYear: false }, budgetFrequency) : null
       }
       financials={financials}
       goalsWithProgress={goalsWithProgress}

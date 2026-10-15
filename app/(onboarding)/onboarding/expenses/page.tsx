@@ -41,11 +41,11 @@ export default async function ExpensesStepPage() {
   }));
 
   return (
-    <div className="card card--wide onboarding-shell">
+    <div className="onboarding-shell onboarding-shell--expenses">
       <StepProgress current="expenses" />
       <p className="onboarding-kicker">{t.onboarding.expenses.kicker}</p>
-      <h1>{t.onboarding.expenses.question}</h1>
-      <p className="field-hint">{t.onboarding.expenses.explainer(vocab)}</p>
+      <h1>{t.onboarding.expenses.question(vocab)}</h1>
+      <p className="onboarding-explainer">{t.onboarding.expenses.explainer(vocab)}</p>
       <RecurringExpensesStepForm action={saveExpensesAction} initialItems={initialItems} />
       <RecurringExpensesStepSkipButton action={saveExpensesAction} />
     </div>

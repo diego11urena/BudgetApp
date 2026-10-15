@@ -1,54 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/app/_components/LocaleProvider";
 
-// Once per browser session/tab, not once per navigation -- see the Balboa
-// fix list's batch 11.7. This layout (and this component) doesn't remount
-// on client-side route changes, so a plain mount-once effect already
-// covers "once per session" as long as the tab stays open; the
-// sessionStorage flag additionally survives a full page reload within
-// that same tab, so reloading /transactions doesn't re-trigger it either.
-const SESSION_FLAG = "balboa:gmail-synced-this-session";
+// Re-syncs on mount and whenever the tab becomes visible again after sitting
+// idle for SYNC_INTERVAL_MS. The timestamp lives in sessionStorage so a full
+// reload within the same tab doesn't re-trigger it either. (Previously a
+// one-shot boolean flag: a tab left open never synced again.)
+const SESSION_KEY = "balboa:gmail-last-sync-at";
+const SYNC_INTERVAL_MS = 10 * 60_000;
+
+function isStale(): boolean {
+  const last = Number(sessionStorage.getItem(SESSION_KEY));
+  return !last || Date.now() - last > SYNC_INTERVAL_MS;
+}
 
 /**
- * Fires the Gmail sync once per session -- the same "await
- * syncGmailTransactions(userId) directly in render" this used to do (see
- * app/api/gmail/sync/route.ts), just non-blocking and no longer repeated
- * on every route change. Only mounted when the layout already knows the
- * user has a Gmail connection, so unconnected users never see it or pay
- * for the round trip.
+ * Fires the Gmail sync (non-blocking; see app/api/gmail/sync/route.ts) on
+ * mount and again when the tab regains focus after SYNC_INTERVAL_MS. Only
+ * mounted when the layout already knows the user has a Gmail connection.
  */
 export function GmailSyncTrigger() {
   const router = useRouter();
   const t = useT();
-  const [syncing, setSyncing] = useState(
-    () => typeof window !== "undefined" && sessionStorage.getItem(SESSION_FLAG) !== "true",
-  );
+  const [syncing, setSyncing] = useState(false);
+  const inFlight = useRef(false);
 
   useEffect(() => {
-    if (!syncing) return;
-    let cancelled = false;
-    fetch("/api/gmail/sync", { method: "POST" })
-      .then((res) => {
-        if (cancelled) return;
-        // Set regardless of res.ok -- a failed sync is recorded server-side
-        // (GmailConnection.lastSyncError) and surfaced on Profile; retrying
-        // it again on every subsequent navigation within the same session
-        // would just repeat the same failure.
-        sessionStorage.setItem(SESSION_FLAG, "true");
-        if (res.ok) router.refresh();
-      })
-      .catch(() => {
-        if (!cancelled) sessionStorage.setItem(SESSION_FLAG, "true");
-      })
-      .finally(() => {
-        if (!cancelled) setSyncing(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    function sync() {
+      if (inFlight.current || !isStale()) return;
+      inFlight.current = true;
+      setSyncing(true);
+      fetch("/api/gmail/sync", { method: "POST" })
+        .then((res) => {
+          // Stamp regardless of res.ok -- a failed sync is recorded server-side
+          // (GmailConnection.lastSyncError) and surfaced on Profile; the next
+          // interval retries it.
+          sessionStorage.setItem(SESSION_KEY, String(Date.now()));
+          if (res.ok) router.refresh();
+        })
+        .catch(() => sessionStorage.setItem(SESSION_KEY, String(Date.now())))
+        .finally(() => {
+          inFlight.current = false;
+          setSyncing(false);
+        });
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") sync();
+    }
+    sync();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

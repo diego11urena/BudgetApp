@@ -6,7 +6,7 @@ import Heatmap from "@/app/(app)/_components/charts/Heatmap";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { formatCycleLabel } from "@/lib/pay-date";
 import { useT, useLocale } from "@/app/_components/LocaleProvider";
-import type { DayTransaction, HeatmapDayData } from "../types";
+import { activityHref, type DayTransaction, type HeatmapDayData } from "../types";
 
 /**
  * Chapter 04 — the heatmap, plus whatever the selected day actually held.
@@ -20,11 +20,14 @@ export default function WhenYouSpendChapter({
   defaultSelected,
   transactionsByDay,
   state,
+  activityCycleId,
 }: {
   days: HeatmapDayData[];
   defaultSelected: string | null;
   transactionsByDay: Record<string, DayTransaction[]>;
   state: "LIVE" | "CLOSED";
+  /** Scopes the day panel's "View transactions" link to a closed cycle; null on a live one. */
+  activityCycleId: string | null;
 }) {
   const t = useT();
   const locale = useLocale();
@@ -35,7 +38,11 @@ export default function WhenYouSpendChapter({
   const hasAnySpend = days.some((d) => d.total > 0);
 
   if (!hasAnySpend) {
-    return <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>;
+    return (
+      <div className="breakdown-chapter-card">
+        <p className="breakdown-chapter-empty">{t.breakdown.noSpending}</p>
+      </div>
+    );
   }
 
   // Neither qualifier is "whichever day the user happens to have tapped" --
@@ -47,7 +54,9 @@ export default function WhenYouSpendChapter({
 
   return (
     <>
-      <Heatmap days={days} selectedDate={selected} onSelectDay={setSelected} />
+      <div className="breakdown-chapter-card breakdown-chapter-card--heatmap">
+        <Heatmap days={days} selectedDate={selected} onSelectDay={setSelected} />
+      </div>
 
       {selected && (
         <div className="breakdown-day-detail">
@@ -71,16 +80,18 @@ export default function WhenYouSpendChapter({
               <ul className="breakdown-day-list">
                 {rows.map((row) => (
                   <li key={row.id} className="breakdown-day-row">
-                    <span className="breakdown-day-row-name">
-                      {row.name}
-                      {row.isRecurring && <span className="breakdown-day-row-tag">{t.breakdown.recurringTag}</span>}
+                    <span className="breakdown-day-row-text">
+                      <span className="breakdown-day-row-name">
+                        {row.name}
+                        {row.isRecurring && <span className="breakdown-day-row-tag">{t.breakdown.recurringTag}</span>}
+                      </span>
+                      <span className="breakdown-day-row-meta">{row.categoryName ?? ""}</span>
                     </span>
-                    <span className="breakdown-day-row-meta">{row.categoryName ?? ""}</span>
                     <span className="breakdown-day-row-amount">{formatCurrency(row.amount)}</span>
                   </li>
                 ))}
               </ul>
-              <Link href="/transactions" className="breakdown-day-view-all">
+              <Link href={activityHref(activityCycleId)} className="breakdown-day-view-all">
                 {t.breakdown.viewTransactions}
               </Link>
             </>

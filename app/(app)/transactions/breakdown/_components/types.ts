@@ -29,3 +29,18 @@ export interface CategoryRow {
   /** Null when there's no prior-period data — renders "New this period" instead of a false $0 usual. */
   usualAmount: number | null;
 }
+
+/**
+ * The Activity URL a "View transactions" link should point at.
+ * `cycleId` scopes Activity to one closed cycle via the query param its
+ * own filter already reads; null leaves it on the current cycle, which
+ * is Activity's default. Shared by chapter 03's category preview and
+ * chapter 04's day panel so the two can't drift apart.
+ */
+export function activityHref(cycleId: string | null, categoryId?: string): string {
+  const params = new URLSearchParams();
+  if (categoryId) params.set("category", categoryId);
+  if (cycleId) params.set("cycleId", cycleId);
+  const query = params.toString();
+  return query ? `/transactions?${query}` : "/transactions";
+}

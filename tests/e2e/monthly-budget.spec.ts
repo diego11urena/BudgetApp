@@ -33,7 +33,7 @@ test.describe("MONTHLY budget cadence", () => {
     // The sheet names which paycheck this is -- "Log your second paycheck".
     await expect(page.getByText("Log your second paycheck")).toBeVisible();
     await fillAmount(page.locator(".sheet input[type=\"text\"]").first(), "800");
-    await page.click('button:has-text("Log paycheck")');
+    await page.click('button:has-text("Add paycheck")');
     // Waits for the full unmount (not just the text disappearing mid-
     // transition), same pattern goals.spec.ts already uses after a
     // mutation -- LogPaycheckSheet's onDone fires router.refresh() only
@@ -70,7 +70,9 @@ test.describe("MONTHLY budget cadence", () => {
     // The close sheet names the month and shows what it is closing with.
     await expect(page.locator(".sheet-kicker")).toContainText("Day");
     await expect(page.locator(".close-summary-row")).toHaveCount(4);
-    await page.click('button:has-text("Yes, close this month")');
+    // The confirm button names the month ("Close October"), so match the
+    // sheet's primary action rather than a fixed label.
+    await page.click(".sheet .sheet-submit:not(.button--secondary)");
 
     await dismissCycleSummary(page);
     await expect(page.getByText("How much did you get paid?")).toHaveCount(0);

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import RecurringFulfillmentCard from "@/app/(app)/_components/RecurringFulfillmentCard";
 import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -21,10 +20,7 @@ export default function SummaryRecurringSection({ fulfillment, t }: SummaryRecur
       <h2 className="summary-section-eyebrow">{t.summary.scheduledEyebrow}</h2>
 
       <Link href="/plan" className="summary-recurring-row">
-        <div className="summary-recurring-content">
-          <RecurringFulfillmentCard fulfillment={fulfillment} t={t} showProgressBar={true} live={false} />
-        </div>
-        <ChevronRight size={18} className="summary-recurring-chevron" aria-hidden="true" />
+        <RecurringFulfillmentCard fulfillment={fulfillment} t={t} live={false} />
       </Link>
     </section>
   );

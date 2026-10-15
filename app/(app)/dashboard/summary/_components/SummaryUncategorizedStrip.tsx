@@ -16,11 +16,12 @@ export default function SummaryUncategorizedStrip({
   t: Dictionary;
 }) {
   return (
-    <div className="summary-uncategorized-strip">
-      <span>{t.summary.uncategorizedWarning(warning.count, formatCurrency(warning.totalAmount))}</span>
-      <Link href="/transactions" className="summary-uncategorized-fix">
-        {t.summary.fixAction}
-      </Link>
-    </div>
+    <Link href="/transactions?category=uncategorized" className="summary-uncategorized-strip">
+      <span className="summary-uncategorized-dot" aria-hidden="true" />
+      <span className="summary-uncategorized-text">
+        {t.summary.uncategorizedWarning(warning.count, formatCurrency(warning.totalAmount))}
+      </span>
+      <span className="summary-uncategorized-fix">{t.summary.fixAction}</span>
+    </Link>
   );
 }

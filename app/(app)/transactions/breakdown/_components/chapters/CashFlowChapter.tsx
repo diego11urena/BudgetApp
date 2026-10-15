@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import { useT, useLocale } from "@/app/_components/LocaleProvider";
+import { useT } from "@/app/_components/LocaleProvider";
 import type { CashFlowBreakdown } from "@/lib/breakdown-v2";
 
 /**
@@ -14,11 +14,21 @@ import type { CashFlowBreakdown } from "@/lib/breakdown-v2";
  * lib/breakdown-v2's computeCashFlowBreakdown — drawing Leftover as a
  * fourth segment would just be redrawing the same unfilled space twice).
  */
-export default function CashFlowChapter({ cashFlow, incomeLine }: { cashFlow: CashFlowBreakdown; incomeLine: string }) {
+export default function CashFlowChapter({
+  cashFlow,
+  incomeLine,
+  live = false,
+}: {
+  cashFlow: CashFlowBreakdown;
+  incomeLine: string;
+  live?: boolean;
+}) {
   const t = useT();
-  const locale = useLocale();
   const { fixed, everythingElse, saved, savedGoals, leftover, income } = cashFlow;
-  const pct = (n: number) => (income > 0 ? (n / income) * 100 : 0);
+  // Widths are a share of income; if outflow ran past income the bar
+  // scales to total outflow instead, so it can never overflow its track.
+  const scale = Math.max(income, fixed + everythingElse + saved);
+  const pct = (n: number) => (scale > 0 ? (n / scale) * 100 : 0);
 
   return (
     <>
@@ -45,15 +55,15 @@ export default function CashFlowChapter({ cashFlow, incomeLine }: { cashFlow: Ca
         <li>
           <Link href="/goals" className="cash-flow-legend-row cash-flow-legend-row--tappable">
             <span className="cash-flow-legend-swatch cash-flow-legend-swatch--saved" aria-hidden="true" />
-            <span>{t.breakdown.savedLabel}</span>
+            <span className="cash-flow-legend-text">
+              <span>{t.breakdown.savedLabel}</span>
+              {savedGoals.length > 0 && (
+                <span className="cash-flow-legend-sublabel">{t.breakdown.savedGoalsList(savedGoals.join(" · "), live)}</span>
+              )}
+            </span>
             <span className="cash-flow-legend-amount">{formatCurrency(saved)}</span>
             <ChevronRight size={16} className="cash-flow-legend-chevron" aria-hidden="true" />
           </Link>
-          {savedGoals.length > 0 && (
-            <span className="cash-flow-legend-sublabel">
-              {t.breakdown.savedGoalsList(new Intl.ListFormat(locale === "es" ? "es" : "en", { style: "long", type: "conjunction" }).format(savedGoals))}
-            </span>
-          )}
         </li>
         <li className="cash-flow-legend-row">
           <span className="cash-flow-legend-swatch cash-flow-legend-swatch--leftover" aria-hidden="true" />

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, Mail } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { loginAction, type LoginFormState } from "./actions";
 import { AuthShell } from "../_components/AuthShell";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
@@ -73,18 +73,18 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="auth-divider">
-        <span>{t.auth.login.or}</span>
-      </div>
-
-      {/* UI only for now -- see the "wire real Gmail OAuth sign-in" follow-up
-          task: reusing the Gmail-import app for sign-in needs a new
-          redirect URI registered in Google Cloud Console and a decision on
-          scope, neither of which this pass makes. */}
-      <button type="button" className="auth-gmail-button" disabled title={t.auth.login.gmailComingSoon}>
-        <Mail size={19} aria-hidden="true" />
-        {t.auth.login.gmailButton}
-      </button>
+      {/* "Continue with Gmail" lived here as a permanently disabled
+          button. Removed rather than wired: this app's Auth.js config has
+          only a Credentials provider, and the /api/gmail/* routes connect
+          Gmail FOR IMPORT to an already-signed-in user -- they are not a
+          sign-in path. Turning this into a real control needs a Google
+          auth provider, a redirect URI registered in Google Cloud
+          Console, and a decision about linking a Google identity to an
+          existing credentials account. That is a feature, not wiring, and
+          a dead button in the meantime teaches people the app is broken.
+          Gmail import is still offered on Profile, where it applies. The
+          "or" divider went with it -- it existed only to separate the
+          form from this button. */}
 
       <p className="auth-bottom-link">
         {t.auth.login.newToBalboa}

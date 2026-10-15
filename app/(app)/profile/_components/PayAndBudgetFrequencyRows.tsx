@@ -105,9 +105,16 @@ export function PayAndBudgetFrequencyRows({
             );
           })}
         </div>
-        {payFrequency === "MONTHLY" && (
+        {/* Two different hints, and which one applies depends on WHY the
+            user is looking. Monthly pay LOCKS the choice, so that message
+            wins -- it explains an unavailable control. Otherwise, when
+            Monthly is simply the current selection, explain what a
+            monthly cycle actually does. */}
+        {payFrequency === "MONTHLY" ? (
           <span className="field-hint">{t.onboarding.income.monthlyPayLocksMonthlyBudget}</span>
-        )}
+        ) : budgetFrequency === "MONTHLY" ? (
+          <span className="field-hint">{t.profile.budgetFrequencyMonthlyHint}</span>
+        ) : null}
       </div>
     </>
   );

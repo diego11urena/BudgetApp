@@ -40,14 +40,14 @@ export default async function PlanPage() {
   ]);
 
   return (
-    <div className="home-page">
+    <div className="home-page plan-page">
       <h1 className="page-title">{t.plan.title}</h1>
 
-      <div className="dashboard-section">
+      <div className="dashboard-section dashboard-section--plain plan-section">
         <GoalsSection goals={goals} savingsCategoryNames={savingsCategoryNames} />
       </div>
 
-      <div className="dashboard-section">
+      <div className="dashboard-section dashboard-section--plain plan-section">
         <RecurringSection
           categories={recurringExpenseCategories}
           categoryNames={expenseCategoryNames}

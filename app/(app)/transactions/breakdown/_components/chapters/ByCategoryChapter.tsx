@@ -19,11 +19,16 @@ export default function ByCategoryChapter({
   categories,
   state,
   topTransactionsByCategory,
+  transactionCountByCategory,
+  activityCycleId,
 }: {
   categories: CategoryRow[];
   state: "LIVE" | "CLOSED";
   /** Each category's biggest transactions, previewed when its slice is selected. */
   topTransactionsByCategory: Record<string, CategoryTransactionRow[]>;
+  transactionCountByCategory?: Record<string, number>;
+  /** Scopes the preview's "View transactions" link to a closed cycle; null on a live one. */
+  activityCycleId: string | null;
 }) {
   const t = useT();
 
@@ -44,6 +49,8 @@ export default function ByCategoryChapter({
       total={total}
       state={state}
       topTransactionsByCategory={topTransactionsByCategory}
+      transactionCountByCategory={transactionCountByCategory}
+      activityCycleId={activityCycleId}
     />
   );
 }

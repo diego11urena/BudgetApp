@@ -13,5 +13,5 @@ import type { RecurringFulfillment } from "@/lib/recurring-fulfillment";
  */
 export default function RecurringChapter({ fulfillment, live }: { fulfillment: RecurringFulfillment; live: boolean }) {
   const t = useT();
-  return <RecurringFulfillmentCard fulfillment={fulfillment} t={t} showProgressBar={false} live={live} />;
+  return <RecurringFulfillmentCard fulfillment={fulfillment} t={t} live={live} />;
 }

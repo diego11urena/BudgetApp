@@ -63,12 +63,12 @@ export function DeleteCategoryConfirm({
     <Sheet
       visible={visible}
       title={t.profile.categories.deleteConfirm.title(category.name)}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleClose}
       closeOnBackdropClick={!pending}
       returnFocusTo={returnFocusTo}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
         {hasUsage ? (
           <>
             {category.transactionCount > 0 &&

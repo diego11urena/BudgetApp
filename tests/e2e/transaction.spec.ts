@@ -11,7 +11,7 @@ test.describe("logging a transaction", () => {
       await fillCategory(page, "Groceries");
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".transaction-row", { hasText: "Groceries" })).toBeVisible();
-      await expect(page.locator(".transaction-row", { hasText: "-$24.50" })).toBeVisible();
+      await expect(page.locator(".transaction-row", { hasText: "−$24.50" })).toBeVisible();
     });
 
     await test.step("edit the amount", async () => {
@@ -20,7 +20,7 @@ test.describe("logging a transaction", () => {
       await amountField.waitFor();
       await fillAmount(amountField, "30.00");
       await page.click('button:has-text("Save changes")');
-      await expect(page.locator(".transaction-row", { hasText: "-$30.00" })).toBeVisible();
+      await expect(page.locator(".transaction-row", { hasText: "−$30.00" })).toBeVisible();
     });
 
     await test.step("delete it", async () => {

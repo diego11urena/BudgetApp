@@ -1,5 +1,6 @@
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import { formatCurrency, formatCycleRangeLabel, formatFriendlyDate } from "@/lib/format";
+import type { LocaleValue } from "@/lib/i18n/locale";
 import { addDays, nowInPanama, resolveMonthlyDueDate } from "@/lib/pay-date";
 import { calendarDaysBetween, cycleEnd, type BudgetFrequency } from "@/lib/quincena-pace";
 import type { CategoryWithRecurringExpenses } from "@/lib/recurring-expenses";
@@ -110,6 +111,8 @@ export function generateInsights(
     budgetFrequency: BudgetFrequency;
     /** Resolved from budgetFrequency by the caller (which has the full Dictionary in scope, unlike this plain function) -- feeds the one rule sentence that names the cadence ("quincena"/"month"). */
     vocab: PeriodVocab;
+    /** The reader's language, for the dates these sentences embed. Without it a Spanish insight reads "alrededor del Oct 4, 2026". */
+    locale?: LocaleValue;
     /** Defaults to nowInPanama() -- overridable for tests. */
     now?: Date;
     /** This is a plain function (no useT()), so the caller threads the resolved dictionary's `insights` slice through here instead. */
@@ -119,6 +122,9 @@ export function generateInsights(
   const now = extras.now ?? nowInPanama();
   const phase = cyclePhase(extras.cycle, extras.budgetFrequency, now);
   const t = extras.t;
+  // Defaults to English so existing callers and tests are unaffected;
+  // the app's own callers pass the reader's locale.
+  const locale = extras.locale ?? "en";
   const candidates: Candidate[] = [];
 
   const dueSoon = dueSoonCandidate(now, extras.recurringExpenseCategories, t);
@@ -127,13 +133,13 @@ export function generateInsights(
   const unpaidRecurring = unpaidRecurringCandidate(extras.recurringExpenseCategories, now, phase, t);
   if (unpaidRecurring) candidates.push(unpaidRecurring);
 
-  const duplicateCharge = duplicateChargeCandidate(current, t);
+  const duplicateCharge = duplicateChargeCandidate(current, t, locale);
   if (duplicateCharge) candidates.push(duplicateCharge);
 
   const categoryAnomaly = categoryAnomalyCandidate(current, previousClosedFinancials, phase, extras.budgetFrequency, t);
   if (categoryAnomaly) candidates.push(categoryAnomaly);
 
-  candidates.push(paceAwareCandidate(current, phase, now, t));
+  candidates.push(paceAwareCandidate(current, phase, now, t, locale));
 
   const goalContribution = goalContributionCandidate(extras.goals, current, phase, extras.vocab, t);
   if (goalContribution) candidates.push(goalContribution);
@@ -299,7 +305,7 @@ function unpaidRecurringCandidate(
  * gap was more than zero days (see the Miguel Brugiatti bug report: a
  * "Sep 25" duplicate whose two real charges were 3 days apart).
  */
-function duplicateChargeCandidate(current: CycleFinancials, t: InsightsDictionary): Candidate | null {
+function duplicateChargeCandidate(current: CycleFinancials, t: InsightsDictionary, locale: LocaleValue): Candidate | null {
   const gmailTransactions = current.transactions.filter(
     (tx) => tx.importSource === "GMAIL" && tx.type === "EXPENSE",
   );
@@ -318,11 +324,11 @@ function duplicateChargeCandidate(current: CycleFinancials, t: InsightsDictionar
       const later = a.occurredAt > b.occurredAt ? a : b;
       const sameDay = calendarDaysBetween(earlier.occurredAt, later.occurredAt) === 0;
       const text = sameDay
-        ? t.duplicateCharge(formatCurrency(a.amount), a.name, formatFriendlyDate(later.occurredAt))
+        ? t.duplicateCharge(formatCurrency(a.amount), a.name, formatFriendlyDate(later.occurredAt, locale))
         : t.duplicateChargeRange(
             formatCurrency(a.amount),
             a.name,
-            formatCycleRangeLabel(earlier.occurredAt, later.occurredAt),
+            formatCycleRangeLabel(earlier.occurredAt, later.occurredAt, locale),
           );
       return {
         text,
@@ -448,7 +454,7 @@ function categoryDeltaFallback(
  * slot; with more rules producing candidates, a cycle with more urgent
  * things going on can simply not mention pace at all.
  */
-function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Date, t: InsightsDictionary): Candidate {
+function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Date, t: InsightsDictionary, locale: LocaleValue): Candidate {
   if (current.amountLeft < 0) {
     return {
       text: t.overBudget(formatCurrency(Math.abs(current.amountLeft)), phase.daysRemaining),
@@ -464,7 +470,7 @@ function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Da
       const runOutDate = addDays(now, Math.floor(daysUntilExhausted));
       const daysBeforePayday = phase.daysRemaining - Math.floor(daysUntilExhausted);
       return {
-        text: t.runOutOfCash(formatFriendlyDate(runOutDate), daysBeforePayday),
+        text: t.runOutOfCash(formatFriendlyDate(runOutDate, locale), daysBeforePayday),
         priority: PRIORITY.PACE_WARNING,
         href: "/dashboard/breakdown",
         severity: "critical",

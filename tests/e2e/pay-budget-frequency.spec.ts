@@ -92,7 +92,9 @@ test.describe("pay/budget frequency combination lock", () => {
     // The close sheet names the month and shows what it is closing with.
     await expect(page.locator(".sheet-kicker")).toContainText("Day");
     await expect(page.locator(".close-summary-row")).toHaveCount(4);
-    await page.click('button:has-text("Yes, close this month")');
+    // The confirm button names the month ("Close October"), so match the
+    // sheet's primary action rather than a fixed label.
+    await page.click(".sheet .sheet-submit:not(.button--secondary)");
     await dismissCycleSummary(page);
     await page.waitForLoadState("networkidle");
 

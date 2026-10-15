@@ -42,6 +42,7 @@ export function CurrencyInput({
   className,
   invalid = false,
   describedBy,
+  ariaLabel,
 }: {
   id?: string;
   /** When set, a hidden input with this name mirrors the clean decimal value for form submission. */
@@ -59,6 +60,8 @@ export function CurrencyInput({
   className?: string;
   invalid?: boolean;
   describedBy?: string;
+  /** For a field with no visible <label> (e.g. onboarding's inline add row). */
+  ariaLabel?: string;
 }) {
   const [cents, setCents] = useState<number | null>(() => {
     if (!defaultValue || !defaultValue.trim()) return allowEmpty ? null : 0;
@@ -116,6 +119,7 @@ export function CurrencyInput({
         className={className}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
+        aria-label={ariaLabel}
       />
       {name && <input type="hidden" name={name} value={decimalValue} required={required} />}
     </>

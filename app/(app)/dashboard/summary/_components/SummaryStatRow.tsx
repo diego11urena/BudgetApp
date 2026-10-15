@@ -22,7 +22,7 @@ export default function SummaryStatRow({ income, spent, saved, t }: SummaryStatR
     <div className="summary-stat-row">
       <div className="summary-stat">
         <div className="summary-stat-label">{t.summary.statIncome}</div>
-        <div className="summary-stat-value">{income}</div>
+        <div className="summary-stat-value summary-stat-value--income">{income}</div>
       </div>
       <div className="summary-stat-divider" />
       <div className="summary-stat">

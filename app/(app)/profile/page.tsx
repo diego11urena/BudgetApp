@@ -67,7 +67,7 @@ export default async function ProfilePage({
   const vocab = resolveVocab(t, initialBudgetFrequency);
 
   return (
-    <div className="home-page">
+    <div className="home-page profile-page">
       <h1 className="page-title">{t.profile.title}</h1>
 
       <div className="profile-identity">
@@ -89,26 +89,28 @@ export default async function ProfilePage({
       </div>
 
       {(gmail === "error" || gmail === "rate_limited") && (
-        <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+        <p className="error-text profile-inline-error">
           {gmail === "error" ? t.profile.gmailError : t.profile.gmailRateLimited}
         </p>
       )}
 
-      <p className="profile-section-label">{t.profile.yourData}</p>
-      <div className="dashboard-section">
-        <Link href="/history" className="line-item line-item--link">
-          <span>{t.profile.pastQuincenas(vocab)}</span>
-          <span className="profile-row-trailing">
-            {pastCycleCount > 0 && <span className="status-badge">{pastCycleCount}</span>}
+      <section className="profile-group">
+        <p className="profile-section-label">{t.profile.yourData}</p>
+        <div className="dashboard-section profile-card">
+          <Link href="/history" className="line-item line-item--link">
+            <span>{t.profile.pastQuincenas(vocab)}</span>
+            <span className="profile-row-trailing">
+              {pastCycleCount > 0 && <span className="profile-row-count">{pastCycleCount}</span>}
+              <ChevronRight size={18} aria-hidden="true" />
+            </span>
+          </Link>
+          <GmailRow connection={gmailConnection} />
+          <Link href="/profile/categories" className="line-item line-item--link">
+            <span>{t.profile.manageCategories}</span>
             <ChevronRight size={18} aria-hidden="true" />
-          </span>
-        </Link>
-        <GmailRow connection={gmailConnection} />
-        <Link href="/profile/categories" className="line-item line-item--link">
-          <span>{t.profile.manageCategories}</span>
-          <ChevronRight size={18} aria-hidden="true" />
-        </Link>
-      </div>
+          </Link>
+        </div>
+      </section>
 
       {/* Preferences is its own card between Your data and Account, per
           the Profile spec -- these four rows used to sit at the bottom of
@@ -116,33 +118,40 @@ export default async function ProfilePage({
           in with "places your data lives". Same components and the same
           optimistic behavior; only the grouping and the row layout
           change. */}
-      <p className="profile-section-label">{t.profile.preferences}</p>
-      <div className="dashboard-section">
-        <ThemeRow initialTheme={initialTheme} />
-        <LanguageRow initialLocale={initialLocale} />
-        <PayAndBudgetFrequencyRows
-          initialPayFrequency={initialPayFrequency}
-          initialBudgetFrequency={initialBudgetFrequency}
-        />
-      </div>
+      <section className="profile-group">
+        <p className="profile-section-label">{t.profile.preferences}</p>
+        <div className="dashboard-section profile-card">
+          <ThemeRow initialTheme={initialTheme} />
+          <LanguageRow initialLocale={initialLocale} />
+          <PayAndBudgetFrequencyRows
+            initialPayFrequency={initialPayFrequency}
+            initialBudgetFrequency={initialBudgetFrequency}
+          />
+        </div>
+      </section>
 
-      <p className="profile-section-label">{t.profile.account}</p>
-      <div className="dashboard-section">
-        <ChangePasswordSheet />
-        <form action={logOutEverywhereAction}>
-          <button type="submit" className="line-item line-item--link">
-            <span>
-              <span className="line-item-title">{t.profile.signOutEverywhere}</span>
-              <span className="field-hint">{t.profile.signOutEverywhereHint}</span>
-            </span>
-          </button>
-        </form>
-      </div>
+      <section className="profile-group">
+        <p className="profile-section-label">{t.profile.account}</p>
+        <div className="dashboard-section profile-card">
+          <ChangePasswordSheet />
+          <form action={logOutEverywhereAction}>
+            <button type="submit" className="line-item line-item--link">
+              <span>
+                <span className="line-item-title">{t.profile.signOutEverywhere}</span>
+                <span className="field-hint">{t.profile.signOutEverywhereHint}</span>
+              </span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </button>
+          </form>
+        </div>
+      </section>
 
-      <p className="profile-section-label profile-section-label--danger">{t.profile.dangerZone}</p>
-      <div className="dashboard-section">
-        <EraseCyclesButton />
-      </div>
+      <section className="profile-group">
+        <p className="profile-section-label profile-section-label--danger">{t.profile.dangerZone}</p>
+        <div className="dashboard-section profile-card">
+          <EraseCyclesButton />
+        </div>
+      </section>
 
       <form action={signOutAction} className="profile-signout-footer">
         <button type="submit" className="button profile-signout-button">

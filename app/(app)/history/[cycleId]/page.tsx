@@ -22,6 +22,7 @@ import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesCha
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
 import { MonthlyIncomeEntriesButton } from "../../dashboard/_components/MonthlyIncomeEntriesButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
+import { DeleteCycleButton } from "../_components/DeleteCycleButton";
 import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
@@ -141,11 +142,11 @@ export default async function CycleHistoryPage({
 
       {closed && (
         <div className="dashboard-section dashboard-section--plain">
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-            <Link href={`/dashboard/summary/${cycleId}`} className="hero-action-link">
+          <div className="history-detail-actions">
+            <Link href={`/dashboard/summary/${cycleId}`} className="button button--secondary">
               {t.history.viewSummary}
             </Link>
-            <Link href={`/transactions/breakdown?cycle=${cycleId}`} className="hero-action-link">
+            <Link href={`/transactions/breakdown?cycle=${cycleId}`} className="button button--secondary">
               {t.history.viewBreakdown}
             </Link>
           </div>
@@ -163,7 +164,7 @@ export default async function CycleHistoryPage({
 
       {recurringExpenseCategories.length > 0 && (
         <div className="dashboard-section">
-          <h2 style={{ marginBottom: "0.5rem" }}>{t.history.recurring}</h2>
+          <h2>{t.history.recurring}</h2>
           <div className="category-progress-list">
             {recurringExpenseCategories.map((category) => (
               <CategoryProgressRow
@@ -210,6 +211,12 @@ export default async function CycleHistoryPage({
           emptyMessage={t.history.empty2(resolveVocab(t, budgetFrequency))}
         />
       </div>
+
+      {closed && (
+        <div className="dashboard-section">
+          <DeleteCycleButton cycleId={cycle.id} />
+        </div>
+      )}
     </div>
   );
 }

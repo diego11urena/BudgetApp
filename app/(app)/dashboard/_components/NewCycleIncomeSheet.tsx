@@ -67,11 +67,11 @@ export function NewCycleIncomeSheet({
     <Sheet
       visible={visible}
       title={t.howMuchPaid}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleSkip}
       returnFocusTo={returnFocusTo}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
         {t.becomesIncome(vocab)}
       </p>
 

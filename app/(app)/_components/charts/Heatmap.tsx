@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useLocale } from "@/app/_components/LocaleProvider";
+import { useLocale, useT } from "@/app/_components/LocaleProvider";
 
 /** A single heatmap cell representing one day. */
 export interface HeatmapDay {
@@ -25,6 +25,7 @@ export default function Heatmap({
   colorVar = "--heatmap",
 }: HeatmapProps) {
   const locale = useLocale();
+  const t = useT();
 
   // Narrow weekday letters (M T W T F S S in English, L M M J V S D in
   // Spanish) for the header row above the grid. MONDAY-first, which the
@@ -156,7 +157,7 @@ export default function Heatmap({
 
       {/* Legend: 5 swatches + label */}
       <div className="heatmap-legend">
-        <span className="heatmap-legend-label">Less</span>
+        <span className="heatmap-legend-label">{t.breakdown.heatmapLess}</span>
         {[0, 1, 2, 3, 4].map((bucket) => (
           <div
             key={bucket}
@@ -166,7 +167,7 @@ export default function Heatmap({
             }}
           />
         ))}
-        <span className="heatmap-legend-label">More</span>
+        <span className="heatmap-legend-label">{t.breakdown.heatmapMore}</span>
       </div>
     </div>
   );

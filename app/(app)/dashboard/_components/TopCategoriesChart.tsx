@@ -26,17 +26,17 @@ export async function TopCategoriesChart({
 
   if (categories.length === 0) {
     return (
-      <div>
+      <>
         <h2>{resolvedTitle}</h2>
         <EmptyState>{t.noExpensesYet(resolveVocab(dict, budgetFrequency))}</EmptyState>
-      </div>
+      </>
     );
   }
 
   const maxAmount = Math.max(...categories.map((c) => c.amount));
 
   return (
-    <div>
+    <>
       <div className="section-header-row">
         <h2 style={{ marginBottom: 0 }}>{resolvedTitle}</h2>
         {badge && <span className="chart-badge">{badge}</span>}
@@ -66,6 +66,6 @@ export async function TopCategoriesChart({
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }

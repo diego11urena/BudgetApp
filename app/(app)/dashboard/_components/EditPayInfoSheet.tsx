@@ -176,11 +176,11 @@ export function EditPayInfoSheet({
     <Sheet
       visible={visible}
       title={t.dashboard.editPayInfo.title}
-      titleStyle={{ textAlign: "center", marginBottom: "0.5rem" }}
+      titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
     >
-      <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
         {closed ? t.dashboard.editPayInfo.hintNoMove(vocab) : t.dashboard.editPayInfo.hintMayMove(vocab)}
       </p>
 
@@ -219,7 +219,7 @@ export function EditPayInfoSheet({
         )}
 
         {pendingMove && pendingMove.changed && (
-          <p className="field-hint" style={{ textAlign: "center", marginBottom: "0.5rem" }}>
+          <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
             {t.dashboard.editPayInfo.moveWarning(
               vocab,
               pendingMove.movingCount,

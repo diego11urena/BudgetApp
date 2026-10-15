@@ -1,16 +1,15 @@
 "use client";
 
-import { PartyPopper, ArrowRight } from "lucide-react";
+import { PartyPopper } from "lucide-react";
 import { computeGoalProjection } from "@/lib/goal-projection";
-import { formatCurrency, formatFriendlyDate } from "@/lib/format";
-import { CategoryIcon } from "@/lib/category-icons";
+import { formatCurrency, formatMonthYear, formatWholeDollars } from "@/lib/format";
 import { GoalRing } from "./GoalRing";
 import { ContributeButton } from "./ContributeButton";
 import { RemoveGoalButton } from "./RemoveGoalButton";
 import { EditGoalSheet, type EditableGoal } from "./EditGoalSheet";
 import { useSheet } from "../../_components/useSheet";
 import type { GoalWithProgress } from "@/lib/goals";
-import { useT, useBudgetFrequency, useLocale } from "@/app/_components/LocaleProvider";
+import { useT, useBudgetFrequency, useLocale, useVocab } from "@/app/_components/LocaleProvider";
 
 /**
  * One row in Plan's Goals list. The design system handoff's action row is
@@ -24,6 +23,7 @@ import { useT, useBudgetFrequency, useLocale } from "@/app/_components/LocalePro
 export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categoryNames: string[] }) {
   const t = useT();
   const locale = useLocale();
+  const vocab = useVocab();
   const budgetFrequency = useBudgetFrequency();
   const editSheet = useSheet();
   const projection = computeGoalProjection({ ...goal, frequency: budgetFrequency });
@@ -35,16 +35,22 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
     savedSoFar: goal.savedSoFar,
   };
 
+  // "$764.00 of $1,000.00": the saved figure leads, the target trails in
+  // the faint tertiary tone. Split off the translated sentence rather than
+  // assembled from pieces, so word order stays the dictionary's call.
+  const savedLabel = formatCurrency(goal.savedSoFar);
+  const fullProgress = t.goals.savedOf(savedLabel, formatCurrency(goal.lifetimeTargetAmount));
+  const progressLabel = fullProgress.startsWith(savedLabel) ? fullProgress : savedLabel + " " + fullProgress;
+
   return (
     <div className="goal-row">
       <div className="goal-row-main">
         <GoalRing percentage={projection.percentage} complete={projection.isComplete} />
         <div className="goal-row-details">
-          <p className="goal-row-name">
-            <CategoryIcon name={goal.name} icon={goal.icon} size={16} aria-hidden="true" /> {goal.name}
-          </p>
+          <p className="goal-row-name">{goal.name}</p>
           <p className="goal-row-progress">
-            {t.goals.savedOf(formatCurrency(goal.savedSoFar), formatCurrency(goal.lifetimeTargetAmount))}
+            {savedLabel}
+            <span className="goal-row-progress-of">{progressLabel.slice(savedLabel.length)}</span>
           </p>
           {projection.isComplete ? (
             <p className="goal-projection goal-projection--complete">
@@ -52,8 +58,13 @@ export function GoalRow({ goal, categoryNames }: { goal: GoalWithProgress; categ
             </p>
           ) : goal.currentCycleRecurringAmount !== null && projection.etaDate ? (
             <p className="goal-projection">
-              {t.goals.onTrack(formatCurrency(goal.currentCycleRecurringAmount), formatFriendlyDate(projection.etaDate, locale))}{" "}
-              <ArrowRight size={14} aria-hidden="true" className="inline-arrow" />
+              {t.goals.onTrack(
+                vocab,
+                Number.isInteger(goal.currentCycleRecurringAmount)
+                  ? formatWholeDollars(goal.currentCycleRecurringAmount)
+                  : formatCurrency(goal.currentCycleRecurringAmount),
+                formatMonthYear(projection.etaDate, locale),
+              )}
             </p>
           ) : (
             <p className="goal-projection goal-projection--muted">
