@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { updateGoalWithContributionAction } from "../actions";
 import { CategoryNameInput } from "../../_components/CategoryNameInput";
@@ -44,7 +45,7 @@ export function EditGoalSheet({
 }) {
   const t = useT();
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [lifetimeTargetAmount, setLifetimeTargetAmount] = useState(goal.lifetimeTargetAmount.toFixed(2));
   const [recurringAmount, setRecurringAmount] = useState(
     goal.currentCycleRecurringAmount !== null ? goal.currentCycleRecurringAmount.toFixed(2) : "",
@@ -57,14 +58,8 @@ export function EditGoalSheet({
   const [pendingChange, setPendingChange] = useState<{ name: string; delta: number } | null>(null);
   const uid = useId();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   /**

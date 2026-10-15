@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../../_components/Sheet";
 import { CategoryIcon } from "@/lib/category-icons";
@@ -36,7 +37,7 @@ export function CategoryFormSheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [name, setName] = useState(existingCategory?.name ?? "");
   const [icon, setIcon] = useState<string | null>(existingCategory?.icon ?? null);
   const [pickingIcon, setPickingIcon] = useState(false);
@@ -47,14 +48,8 @@ export function CategoryFormSheet({
   const errorId = `${uid}-error`;
   const t = useT();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

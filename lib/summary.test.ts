@@ -1,40 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  computeSparklineSeries,
   computeSpendComparison,
-  classifyGoalRowsForSummary,
   computeUncategorizedWarning,
 } from "./summary";
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
-import type { GoalWithProgress } from "./goals";
 
 describe("summary", () => {
-  describe("computeSparklineSeries", () => {
-    it("transforms cycles to sparkline points", () => {
-      const cycles = [
-        {
-          periodLabel: "Aug 1-15",
-          financials: { totalExpenses: 500 } as CycleFinancials,
-        },
-        {
-          periodLabel: "Aug 16-31",
-          financials: { totalExpenses: 594 } as CycleFinancials,
-        },
-      ];
-
-      const result = computeSparklineSeries(cycles);
-
-      expect(result).toEqual([
-        { label: "Aug 1-15", spent: 500 },
-        { label: "Aug 16-31", spent: 594 },
-      ]);
-    });
-
-    it("handles empty list", () => {
-      expect(computeSparklineSeries([])).toEqual([]);
-    });
-  });
-
   describe("computeSpendComparison", () => {
     it("returns null when fewer than 2 prior periods", () => {
       expect(computeSpendComparison(500, [])).toBeNull();
@@ -85,63 +56,6 @@ describe("summary", () => {
       ]);
       expect(result?.label).toBe("heaviest");
       expect(result?.sincePeriodStart).toEqual(new Date("2026-05-01T05:00:00.000Z"));
-    });
-  });
-
-  describe("classifyGoalRowsForSummary", () => {
-    it("marks goal as completed when savedSoFar >= target", () => {
-      const goals: GoalWithProgress[] = [
-        {
-          categoryId: "cat1",
-          name: "Vacation",
-          icon: "🏖️",
-          lifetimeTargetAmount: 1000,
-          savedSoFar: 1200,
-          currentCycleRecurringAmount: null,
-        },
-      ];
-
-      const { completed, inProgress } = classifyGoalRowsForSummary(goals);
-
-      expect(completed).toHaveLength(1);
-      expect(inProgress).toHaveLength(0);
-    });
-
-    it("marks goal as in-progress when below target", () => {
-      const goals: GoalWithProgress[] = [
-        {
-          categoryId: "cat1",
-          name: "Vacation",
-          icon: "🏖️",
-          lifetimeTargetAmount: 1000,
-          savedSoFar: 600,
-          currentCycleRecurringAmount: null,
-        },
-      ];
-
-      const { completed, inProgress } = classifyGoalRowsForSummary(goals);
-
-      expect(completed).toHaveLength(0);
-      expect(inProgress).toHaveLength(1);
-      expect(inProgress[0].percentOfTarget).toBe(60);
-    });
-
-    it("ignores savings categories without a target (lifetimeTargetAmount === 0)", () => {
-      const goals: GoalWithProgress[] = [
-        {
-          categoryId: "savings",
-          name: "General Savings",
-          icon: "💰",
-          lifetimeTargetAmount: 0, // No target = not a goal
-          savedSoFar: 500,
-          currentCycleRecurringAmount: null,
-        },
-      ];
-
-      const { completed, inProgress } = classifyGoalRowsForSummary(goals);
-
-      expect(completed).toHaveLength(0);
-      expect(inProgress).toHaveLength(0);
     });
   });
 

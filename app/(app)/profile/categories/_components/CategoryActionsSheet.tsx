@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSheetVisibility } from "../../../_components/useSheet";
 import { Sheet } from "../../../_components/Sheet";
 import { CategoryFormSheet } from "./CategoryFormSheet";
 import { MergeCategorySheet } from "./MergeCategorySheet";
@@ -25,18 +26,12 @@ export function CategoryActionsSheet({
   onDone: () => void;
   returnFocusTo: HTMLElement | null;
 }) {
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [mode, setMode] = useState<"menu" | "edit" | "merge" | "delete">("menu");
   const t = useT();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   if (mode === "edit") {

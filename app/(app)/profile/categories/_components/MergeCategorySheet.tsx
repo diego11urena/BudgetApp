@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../../_components/Sheet";
 import { mergeCategoryAction } from "../../category-actions";
@@ -28,7 +29,7 @@ export function MergeCategorySheet({
   returnFocusTo?: HTMLElement | null;
 }) {
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [targetId, setTargetId] = useState(initialTargetId ?? "");
   const [confirming, setConfirming] = useState(Boolean(initialTargetId));
   const [pending, setPending] = useState(false);
@@ -38,14 +39,8 @@ export function MergeCategorySheet({
   const targetFieldId = `${uid}-target`;
   const t = useT();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   const target = otherCategories.find((c) => c.id === targetId);

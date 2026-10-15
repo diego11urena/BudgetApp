@@ -57,7 +57,6 @@ export type Dictionary = {
     back: string;
     loading: string;
     invalidInput: string;
-    genericError: string;
     tooManyAttempts: (seconds: number) => string;
     optional: string;
     confirm: string;
@@ -109,7 +108,6 @@ export type Dictionary = {
     feature2Body: string;
     feature3Title: string;
     feature3Body: string;
-    howItWorks: string;
     ctaTitle: (vocab: PeriodVocab) => string;
     ctaBody: string;
     footerCopyright: string;
@@ -291,10 +289,7 @@ export type Dictionary = {
     whatWasThisForPlaceholder: string;
     saving: string;
     save: string;
-    howMuchPaid: string;
-    becomesIncome: (vocab: PeriodVocab) => string;
     netPayLabel: string;
-    confirmSaving: string;
     confirm: string;
     skip: string;
     noIncomeSource: string;
@@ -375,18 +370,6 @@ export type Dictionary = {
       saving: string;
       close: string;
     };
-    cycleClosed: {
-      aria: (vocab: PeriodVocab) => string;
-      title: (vocab: PeriodVocab) => string;
-      spent: string;
-      saved: string;
-      rolledOver: string;
-      topCategory: (name: string) => string;
-      overBudgetBy: (amount: string) => string;
-      onBudget: string;
-      streak: (vocab: PeriodVocab, n: number) => string;
-      continue: string;
-    };
     editPayInfo: {
       edit: string;
       title: string;
@@ -443,22 +426,10 @@ export type Dictionary = {
     };
     breakdown: {
       metaTitle: string;
-      backToActivity: string;
       title: string;
       subtitle: (vocab: PeriodVocab) => string;
-      fullPaycheck: string;
-      spendingOnly: string;
       thisQuincena: (vocab: PeriodVocab) => string;
-      lastQuincena: (vocab: PeriodVocab) => string;
-      noPreviousQuincena: (vocab: PeriodVocab) => string;
-      nothingToShow: string;
-      categoryCount: (n: number) => string;
-      notYetSpent: (vocab: PeriodVocab) => string;
-      groupCount: (n: number) => string;
-      noTransactions: string;
       seeAll: string;
-      chartAria: string;
-      sliceAria: (label: string, amount: string, percent: number) => string;
     };
   };
 
@@ -750,8 +721,6 @@ export type Dictionary = {
     categories: {
       metaTitle: string;
       title: string;
-      incomeMetaTitle: string;
-      incomeTitle: string;
       back: string;
       manageIncomeLink: string;
       searchPlaceholder: string;
@@ -762,8 +731,6 @@ export type Dictionary = {
       noCategories: string;
       noMatch: (query: string) => string;
       noActiveCheckUnused: string;
-      unusedCount: (n: number) => string;
-      noUnusedMatch: (query: string) => string;
       recurringNoTx: string;
       noTx: string;
       txCount: (n: number, amount: string) => string;
@@ -971,7 +938,6 @@ export type Dictionary = {
     chapter5Takeaway: (state: "LIVE" | "CLOSED") => string;
 
     noSpending: string;
-    viewAllN: (n: number) => string;
     /** Chapter 04's inline tag on a row linked to a recurring expense. */
     recurringTag: string;
     prevCycleAria: string;
@@ -1010,6 +976,5 @@ export type Dictionary = {
     newPasswordMaxLength: string;
     amountTooLarge: string;
     dueDayRequiredForMonthly: string;
-    payFrequencyRequiresMonthlyBudget: string;
   };
 };

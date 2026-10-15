@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak, generateInsights } from "./insights";
+import { generateInsights } from "./insights";
 import { parseDateOnly } from "./pay-date";
 import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
 import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "./recurring-expenses";
@@ -163,30 +163,6 @@ describe("generateInsights", () => {
       });
       const insights = generateInsights(current, [], makeExtras());
       expect(insights.some((i) => i.text.includes("vs "))).toBe(false);
-    });
-  });
-
-  // computeStreak moved out of generateInsights entirely -- it's no longer
-  // a dashboard Insights candidate (see its own doc comment for why), just
-  // a plain counting function CycleClosedCard's own data now calls
-  // directly.
-  describe("computeStreak", () => {
-    it("counts consecutive (newest-first) under-budget cycles, stopping at the first over-budget one", () => {
-      const previous = [
-        makeFinancials({ amountLeft: 100 }),
-        makeFinancials({ amountLeft: 50 }),
-        makeFinancials({ amountLeft: -10 }),
-        makeFinancials({ amountLeft: 200 }),
-      ];
-      expect(computeStreak(previous)).toBe(2);
-    });
-
-    it("returns 0 for an empty history", () => {
-      expect(computeStreak([])).toBe(0);
-    });
-
-    it("returns 0 when the most recent cycle was over budget", () => {
-      expect(computeStreak([makeFinancials({ amountLeft: -10 }), makeFinancials({ amountLeft: 100 })])).toBe(0);
     });
   });
 

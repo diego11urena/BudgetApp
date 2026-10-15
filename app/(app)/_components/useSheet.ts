@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 
 /**
  * The trigger-capture-for-focus-return pattern every sheet-opening button
@@ -33,5 +33,26 @@ export function useSheet() {
      * to show) -- captures the trigger without touching `open`.
      */
     setTrigger: setTriggerElement,
+  };
+}
+
+/**
+ * The enter/exit slide every sheet ran on its own: `visible` flips true the
+ * frame after mount (so the CSS transition actually plays), and
+ * closeThen(fn) slides the sheet out before calling fn once the ~200ms
+ * transition has finished.
+ */
+export function useSheetVisibility() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return {
+    visible,
+    closeThen: (fn: () => void) => {
+      setVisible(false);
+      setTimeout(fn, 200);
+    },
   };
 }

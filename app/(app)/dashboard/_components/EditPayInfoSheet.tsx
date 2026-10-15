@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { editCyclePayInfoAction, previewPayDateChangeAction } from "../actions";
 import type { PayDateChangeResult } from "@/lib/cycles";
@@ -42,7 +43,7 @@ export function EditPayInfoSheet({
   const t = useT();
   const vocab = useVocab();
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [amount, setAmount] = useState(initialAmount.toFixed(2));
   const [payDate, setPayDate] = useState(initialPayDate);
   const [pending, setPending] = useState(false);
@@ -71,14 +72,8 @@ export function EditPayInfoSheet({
   const minDate = previousBoundDate ?? formatCycleLabel(addDays(nowInPanama(), -FIRST_CYCLE_BACKDATE_FLOOR_DAYS));
   const maxDate = closed ? (nextBoundDate ?? undefined) : formatCycleLabel(nowInPanama());
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   function buildFormData(): FormData {

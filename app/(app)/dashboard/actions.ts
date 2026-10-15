@@ -9,7 +9,6 @@ import {
   deleteCycleIncomeEntry,
   getActiveIncomeSource,
   getOrCreateDraftCycle,
-  getRecentCycles,
   getUserBudgetFrequency,
   logPaycheckToOpenCycle,
   parsePayDate,
@@ -17,12 +16,7 @@ import {
   upsertCycleIncomeEntry,
   type PayDateChangeResult,
 } from "@/lib/cycles";
-import type { BudgetCycle } from "@/app/generated/prisma/client";
 import { formatCycleLabel, nowInPanama, parseDateOnly } from "@/lib/pay-date";
-import { getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
-import { summarizeCycleFinancials, type CycleFinancials } from "@/lib/cycle-financials";
-import { computeStreak } from "@/lib/insights";
-import { getBudgetUsage } from "@/lib/budget-status";
 import { decimalString, INVALID_AMOUNT_FORMAT_MESSAGE } from "@/lib/validations/shared";
 import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
@@ -35,73 +29,8 @@ const JUST_GOT_PAID_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 const ROLLOVER_MONTH_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 const LOG_PAYCHECK_RATE_LIMIT = { max: 10, windowMs: 60_000 };
 
-export interface CycleClosedSummary {
-  /** The cycle that just closed -- what HeroCardActions routes to (/dashboard/summary/{id}) once the close succeeds. */
-  closedCycleId: string;
-  spent: number;
-  saved: number;
-  /** Income minus expenses minus savings — what's left from that cycle. */
-  rolledOver: number;
-  topCategory: { name: string; icon: string | null; amount: number } | null;
-  budget: { hasBudget: boolean; overBy: number };
-  /** The amount auto-carried into the new cycle — prefills the "how much did you get paid?" prompt. Always 0 for a MONTHLY rollover (see rolloverMonthlyCycleAction), which never carries income forward. */
-  carriedIncomeAmount: number;
-  /** Consecutive closed cycles (including the one that just closed) finishing with amountLeft >= 0 -- see computeStreak. Rendered on CycleClosedCard, not Insights: a streak is won right at the moment a cycle closes, which is this exact response. */
-  streak: number;
-}
-
-/** Not a form submission (no _prevState/useActionState here) — the caller (HeroCard) checks `"error" in result` directly instead of going through useActionState. */
-export type CycleClosedResult = ActionResult<CycleClosedSummary>;
-
-/**
- * The response-building tail shared by justGotPaidAction (QUINCENAL) and
- * rolloverMonthlyCycleAction (MONTHLY's "Close this month") -- both close
- * a cycle via closeCycleAndStartNext and need the identical spent/saved/
- * rolled-over/top-category/budget-status/streak summary for
- * CycleClosedCard, differing only in how carryIncomeForward was set and
- * what carriedIncomeAmount should read (the newly-seeded entry for
- * QUINCENAL, always 0 for MONTHLY).
- */
-async function buildCycleClosedSummary(
-  userId: string,
-  closedCycle: BudgetCycle,
-  closedCycleFinancials: CycleFinancials,
-  carriedIncomeAmount: number,
-): Promise<CycleClosedSummary> {
-  const [recurringExpenseCategories, recentCycles] = await Promise.all([
-    getRecurringExpensesForCycle(userId, closedCycle.id, { computeSuggestions: false }),
-    // For the streak below -- previously-closed cycles, oldest boundary
-    // first, same newest-first order computeStreak (and Insights' own
-    // category-anomaly rule) already expects.
-    getRecentCycles(userId),
-  ]);
-  const recurringExpensesSummary = summarizeRecurringExpenses(recurringExpenseCategories);
-  const top = closedCycleFinancials.topCategories[0];
-
-  // The cycle that just closed counts as the most recent point in its own
-  // streak -- getRecentCycles was fetched after closeCycleAndStartNext
-  // committed, so it already includes closedCycle (now CLOSED) alongside
-  // whatever closed cycles came before it; excluding closedCycle.id here
-  // avoids counting it twice against closedCycleFinancials.
-  const olderClosedFinancials = recentCycles
-    .filter((c) => c.status === "CLOSED" && c.id !== closedCycle.id)
-    .map((c) => summarizeCycleFinancials(c.incomeEntries, c.transactions));
-  const streak = computeStreak([closedCycleFinancials, ...olderClosedFinancials]);
-
-  return {
-    closedCycleId: closedCycle.id,
-    spent: closedCycleFinancials.totalExpenses,
-    saved: closedCycleFinancials.totalSavings,
-    rolledOver: closedCycleFinancials.amountLeft,
-    topCategory: top ? { name: top.categoryName, icon: top.categoryIcon, amount: top.amount } : null,
-    streak,
-    budget: {
-      hasBudget: recurringExpensesSummary.totalCount > 0,
-      overBy: getBudgetUsage(recurringExpensesSummary.totalActual, recurringExpensesSummary.totalTarget).overBy,
-    },
-    carriedIncomeAmount,
-  };
-}
+/** Not a form submission (no _prevState/useActionState here) — the caller (HeroCardActions) checks `"error" in result` directly, then routes to /dashboard/summary/{closedCycleId}. */
+export type CycleClosedResult = ActionResult<{ closedCycleId: string }>;
 
 /**
  * payDateStr is the "When did you get paid?" date input's value
@@ -128,21 +57,11 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
 
   const payDate = (payDateStr && parsePayDate(payDateStr)) || nowInPanama();
 
-  const { closedCycle, newCycle, closedCycleFinancials } = await closeCycleAndStartNext(
-    session.user.id,
-    payDate,
-  );
-  const carriedEntry = await prisma.cycleIncomeEntry.findFirst({ where: { cycleId: newCycle.id } });
-  const summary = await buildCycleClosedSummary(
-    session.user.id,
-    closedCycle,
-    closedCycleFinancials,
-    carriedEntry?.netAmount.toNumber() ?? 0,
-  );
+  const { closedCycle } = await closeCycleAndStartNext(session.user.id, payDate);
 
   revalidateAppPages();
 
-  return summary;
+  return { closedCycleId: closedCycle.id };
 });
 
 /**
@@ -151,9 +70,7 @@ export const justGotPaidAction = withActionErrorHandling(async function justGotP
  * uses, but with carryIncomeForward: false (a fresh MONTHLY cycle starts
  * at $0 income -- individual paychecks get logged into it via
  * logPaycheckAction instead of being seeded from a guess) and never
- * prompts to confirm a paycheck amount afterward. Returns the identical
- * CycleClosedSummary shape as justGotPaidAction so CycleClosedCard can be
- * reused unmodified.
+ * prompts to confirm a paycheck amount afterward.
  */
 export const rolloverMonthlyCycleAction = withActionErrorHandling(async function rolloverMonthlyCycleAction(
   payDateStr?: string,
@@ -171,14 +88,13 @@ export const rolloverMonthlyCycleAction = withActionErrorHandling(async function
 
   const payDate = (payDateStr && parsePayDate(payDateStr)) || nowInPanama();
 
-  const { closedCycle, closedCycleFinancials } = await closeCycleAndStartNext(session.user.id, payDate, {
+  const { closedCycle } = await closeCycleAndStartNext(session.user.id, payDate, {
     carryIncomeForward: false,
   });
-  const summary = await buildCycleClosedSummary(session.user.id, closedCycle, closedCycleFinancials, 0);
 
   revalidateAppPages();
 
-  return summary;
+  return { closedCycleId: closedCycle.id };
 });
 
 export type LogPaycheckResult = ActionResult | undefined;
@@ -225,46 +141,6 @@ export const logPaycheckAction = withActionErrorHandling(async function logPaych
   }
 
   await logPaycheckToOpenCycle(userId, parsedAmount.data, payDate);
-
-  revalidateAppPages();
-});
-
-export type ConfirmNewCycleIncomeResult = ActionResult | undefined;
-
-/**
- * Sets this quincena's actual paycheck amount, prompted right after closing
- * the previous cycle (rather than only editable via Profile) — pay varies
- * quincena to quincena, so this is asked every time instead of silently
- * reusing whatever was set last. Updates IncomeSource.netPayAmount too,
- * so it becomes the new baseline (and what the *next* prompt prefills).
- */
-export const confirmNewCycleIncomeAction = withActionErrorHandling(async function confirmNewCycleIncomeAction(
-  formData: FormData,
-): Promise<ConfirmNewCycleIncomeResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-  const userId = session.user.id;
-  const t = getDictionary(await getRequestLocale());
-
-  const parsed = decimalString.safeParse(formData.get("netPayAmount"));
-  if (!parsed.success) {
-    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? INVALID_AMOUNT_FORMAT_MESSAGE, t) };
-  }
-  const netPayAmount = parsed.data;
-
-  const incomeSource = await getActiveIncomeSource(prisma, userId);
-  if (!incomeSource) {
-    return { error: t.dashboard.noIncomeSource };
-  }
-
-  const cycle = await getOrCreateDraftCycle(userId);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.incomeSource.update({ where: { id: incomeSource.id }, data: { netPayAmount } });
-    await upsertCycleIncomeEntry(tx, cycle.id, incomeSource.id, netPayAmount);
-  });
 
   revalidateAppPages();
 });

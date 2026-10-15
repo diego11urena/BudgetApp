@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { logPaycheckAction } from "../actions";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
@@ -50,7 +51,7 @@ export function LogPaycheckSheet({
   periodName: string;
 }) {
   const t = useT().dashboard;
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   // "0.00" (not "") to match CurrencyInput's own displayed default when
   // untouched (it floors at "0.00" rather than rendering blank) -- keeps
   // this state and what's visually shown from disagreeing, so an
@@ -75,15 +76,9 @@ export function LogPaycheckSheet({
   const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
   const maxDate = formatCycleLabel(nowInPanama());
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleCancel() {
     if (pending) return;
-    setVisible(false);
-    setTimeout(onCancel, 200);
+    closeThen(onCancel);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -110,8 +105,7 @@ export function LogPaycheckSheet({
     }
 
     setPending(false);
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   // "September income  $790.00 → $1,580.00": the label sits left, the

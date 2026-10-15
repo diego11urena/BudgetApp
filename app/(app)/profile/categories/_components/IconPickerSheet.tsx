@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSheetVisibility } from "../../../_components/useSheet";
 import { Sheet } from "../../../_components/Sheet";
 import { EmptyState } from "../../../_components/EmptyState";
 import { ICON_LIBRARY, searchIcons, type IconEntry } from "@/lib/category-icon-library";
@@ -19,19 +20,13 @@ export function IconPickerSheet({
   onPick: (iconName: string) => void;
   onClose: () => void;
 }) {
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [query, setQuery] = useState("");
   const t = useT();
   const locale = useLocale();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    closeThen(onClose);
   }
 
   const trimmed = query.trim();
