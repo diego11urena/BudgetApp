@@ -874,6 +874,11 @@ export async function closeCycleAndStartNext(
 ): Promise<CloseCycleResult> {
   const { carryIncomeForward = true } = options;
   const currentCycle = await getOrCreateDraftCycle(userId);
+  // A pay date before this cycle began would give it an end before its
+  // start and overlap the previous cycle -- the close sheet's min already
+  // prevents it, this is the backstop (a tampered request, or a same-day
+  // close where periodStart carries a time of day past the midnight payDate).
+  if (payDate.getTime() < currentCycle.periodStart.getTime()) payDate = currentCycle.periodStart;
 
   let closedCycle: BudgetCycle;
   let newCycle: BudgetCycle;
