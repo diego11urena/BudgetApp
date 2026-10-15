@@ -23,8 +23,10 @@ __pycache__/
 # Claude Code local settings
 .claude/settings.local.json
 
-# Agent-skill install artifacts (skill tooling, not app code)
-.claude/skills/
+# Agent-skill install artifacts (skill tooling, not app code) -- except the
+# project's own verify skill, which is checked in.
+.claude/skills/*
+!.claude/skills/verify/
 .agents/
 skills-lock.json
 
