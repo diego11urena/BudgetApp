@@ -545,10 +545,19 @@ export function getMostRecentClosedCycle(userId: string) {
  * deterministically. createdAt asc as the tiebreaker resolves it to
  * whichever of the two existed first (the one that was open for most of
  * that day), rather than an arbitrary/unstable pick.
+ *
+ * A closed cycle that ended the instant it started (periodEnd == periodStart,
+ * e.g. closed immediately after a same-day close) never covered any time, so
+ * it's excluded -- otherwise the createdAt-asc tiebreak above picks it over
+ * the real open cycle and every transaction on that day lands in the empty one.
  */
 export function findCycleForDate(userId: string, date: Date) {
   return prisma.budgetCycle.findFirst({
-    where: { userId, periodStart: { lte: date } },
+    where: {
+      userId,
+      periodStart: { lte: date },
+      OR: [{ periodEnd: null }, { periodEnd: { gt: date } }],
+    },
     orderBy: [{ periodStart: "desc" }, { createdAt: "asc" }],
   });
 }
