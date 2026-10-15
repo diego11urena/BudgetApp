@@ -537,22 +537,42 @@ export const getOrCreateDraftCycle = cache(async (userId: string): Promise<Budge
  * whichever of the two existed first (the one that was open for most of
  * that day), rather than an arbitrary/unstable pick.
  *
- * A cycle that had already ended before the date is excluded -- otherwise a
+ * A cycle that had already ended by the date is excluded -- otherwise a
  * zero-length closed cycle (closed the same instant it started) wins the
- * createdAt-asc tiebreak above against the real open cycle for every later
- * date too, and all of them land in the empty one. A date exactly on its
- * end still matches it, so adding into a same-day-closed cycle from its own
- * History page keeps working.
+ * createdAt-asc tiebreak above against the real open cycle, and every
+ * transaction from pay day on lands in the empty one. Adding into such a
+ * cycle on purpose goes through findCycleForDatePreferring instead.
  */
 export function findCycleForDate(userId: string, date: Date) {
   return prisma.budgetCycle.findFirst({
     where: {
       userId,
       periodStart: { lte: date },
-      OR: [{ periodEnd: null }, { periodEnd: { gte: date } }],
+      OR: [{ periodEnd: null }, { periodEnd: { gt: date } }],
     },
     orderBy: [{ periodStart: "desc" }, { createdAt: "asc" }],
   });
+}
+
+/**
+ * findCycleForDate, except `preferredCycleId` wins whenever its own range
+ * covers the date (end inclusive) -- for adding from a past cycle's own
+ * History page, where the user explicitly picked that cycle (e.g. one
+ * closed the same day it started, which findCycleForDate never returns).
+ */
+export async function findCycleForDatePreferring(userId: string, date: Date, preferredCycleId?: string) {
+  if (preferredCycleId) {
+    const preferred = await prisma.budgetCycle.findFirst({
+      where: {
+        id: preferredCycleId,
+        userId,
+        periodStart: { lte: date },
+        OR: [{ periodEnd: null }, { periodEnd: { gte: date } }],
+      },
+    });
+    if (preferred) return preferred;
+  }
+  return findCycleForDate(userId, date);
 }
 
 /**

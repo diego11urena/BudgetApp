@@ -319,7 +319,7 @@ export function QuickAddSheet({
     // disagrees with where the row is expected to end up, hold the submit
     // and ask first (see handleConfirmMove/handleCancelMove).
     if (moveCheckCycleId) {
-      const resolved = await resolveCycleForDateAction(occurredAt);
+      const resolved = await resolveCycleForDateAction(occurredAt, isEditing ? undefined : targetCycleId);
       if (resolved && resolved.cycleId !== moveCheckCycleId) {
         pendingSubmitFormData.current = formData;
         setPendingMove(resolved);
