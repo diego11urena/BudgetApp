@@ -25,18 +25,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/onboarding");
   }
 
-  // Whether to mount GmailSyncTrigger at all — a cheap existence check, not
-  // the full sync itself (that now runs client-side, see below, instead of
-  // blocking this render like it used to).
-  const gmailConnection = await prisma.gmailConnection.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
-
-  // Feeds the bottom nav's global "+" action sheet, which needs to open
-  // QuickAddSheet from any page — same three fetches dashboard/page.tsx
-  // and transactions/page.tsx already each make independently.
-  const cycle = await getOrCreateDraftCycle(userId);
+  // Independent of each other, so fetched together. gmailConnection is just
+  // whether to mount GmailSyncTrigger at all -- a cheap existence check, not
+  // the sync itself (that runs client-side instead of blocking this render).
+  // The cycle feeds the bottom nav's global "+" action sheet, which needs to
+  // open QuickAddSheet from any page.
+  const [gmailConnection, cycle] = await Promise.all([
+    prisma.gmailConnection.findUnique({ where: { userId }, select: { id: true } }),
+    getOrCreateDraftCycle(userId),
+  ]);
   const [expenseCategoryNames, savingsCategoryNames, incomeCategoryNames, recurringOptions] = await Promise.all([
     getOrderedCategoryNames(userId, cycle.id, "EXPENSE"),
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),

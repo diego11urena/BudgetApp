@@ -3,22 +3,10 @@ import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-const PROTECTED_PREFIXES = [
-  "/onboarding",
-  "/dashboard",
-  "/transactions",
-  "/budget",
-  "/goals",
-  "/history",
-  "/profile",
-];
-
+// Every path config.matcher sends here is a protected app route -- the
+// matcher is the single list of them, so there's no second one to keep in sync.
 export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const { pathname } = req.nextUrl;
-  const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-
-  if (isProtectedRoute && !isLoggedIn) {
+  if (!req.auth) {
     return Response.redirect(new URL("/login", req.nextUrl));
   }
 });
@@ -36,6 +24,7 @@ export const config = {
     "/transactions/:path*",
     "/budget/:path*",
     "/goals/:path*",
+    "/plan/:path*",
     "/history/:path*",
     "/profile/:path*",
   ],
