@@ -28,14 +28,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ gmail?: string }>;
+  searchParams: Promise<{ gmail?: string; password?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
   const userId = session.user.id;
-  const { gmail } = await searchParams;
+  const { gmail, password } = await searchParams;
   const locale = await getRequestLocale();
   const t = getDictionary(locale);
 
@@ -87,6 +87,12 @@ export default async function ProfilePage({
           </p>
         </div>
       </div>
+
+      {password === "updated" && (
+        <p className="field-hint" role="status" style={{ margin: 0 }}>
+          {t.profile.changePassword.updated}
+        </p>
+      )}
 
       {(gmail === "error" || gmail === "rate_limited") && (
         <p className="error-text profile-inline-error">

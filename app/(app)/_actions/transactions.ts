@@ -629,8 +629,8 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   ) {
     return { error: t.quickAdd.invalidUndoPayload };
   }
-  // The rest of this action's inputs are trusted (validated at delete
-  // time, ownership-checked below), but amount/occurredAt are a toast's
+  // The cycle/category/recurring-expense ids are ownership-checked below;
+  // amount/occurredAt are a toast's
   // client-held snapshot resubmitted verbatim -- the same untrusted-input
   // boundary addTransactionAction's own schema already guards, so undo
   // can't hand Decimal(12,2) a value that overflows it, or `new Date()` a
@@ -664,8 +664,18 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   }
   const paymentMethodParsed = paymentMethodSchema.safeParse(rawPaymentMethod);
   const paymentMethod = paymentMethodParsed.success ? paymentMethodParsed.data : null;
-  const expenseCategoryId = typeof rawExpenseCategoryId === "string" && rawExpenseCategoryId ? rawExpenseCategoryId : null;
-  const recurringExpenseId = typeof rawRecurringExpenseId === "string" && rawRecurringExpenseId ? rawRecurringExpenseId : null;
+  // Client-held ids, so ownership-checked like the cycle below: an id that
+  // isn't this user's (tampered, or deleted since) restores as unlinked.
+  const [ownedCategory, ownedRecurringExpense] = await Promise.all([
+    typeof rawExpenseCategoryId === "string" && rawExpenseCategoryId
+      ? prisma.expenseCategory.findFirst({ where: { id: rawExpenseCategoryId, userId }, select: { id: true } })
+      : null,
+    typeof rawRecurringExpenseId === "string" && rawRecurringExpenseId
+      ? prisma.recurringExpense.findFirst({ where: { id: rawRecurringExpenseId, userId }, select: { id: true } })
+      : null,
+  ]);
+  const expenseCategoryId = ownedCategory?.id ?? null;
+  const recurringExpenseId = ownedRecurringExpense?.id ?? null;
   const importSource = rawImportSource === "GMAIL" ? "GMAIL" : "MANUAL";
   const sourceMessageId = typeof rawSourceMessageId === "string" && rawSourceMessageId ? rawSourceMessageId : null;
 
