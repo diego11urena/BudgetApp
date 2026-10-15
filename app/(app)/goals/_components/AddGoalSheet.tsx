@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Sheet } from "../../_components/Sheet";
-import { useSheet } from "../../_components/useSheet";
+import { useSheet, useSheetVisibility } from "../../_components/useSheet";
 import { GoalForm } from "./GoalForm";
 import { useT } from "@/app/_components/LocaleProvider";
 
@@ -36,16 +35,10 @@ function AddGoalSheetContent({
   onClose: () => void;
 }) {
   const t = useT();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
+  const { visible, closeThen } = useSheetVisibility();
 
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    closeThen(onClose);
   }
 
   return (

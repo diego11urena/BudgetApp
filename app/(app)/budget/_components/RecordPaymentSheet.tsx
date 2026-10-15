@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
@@ -32,7 +33,7 @@ export function RecordPaymentSheet({
 }) {
   const router = useRouter();
   const t = useT();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [amount, setAmount] = useState(targetAmount.toFixed(2));
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [pending, setPending] = useState(false);
@@ -42,14 +43,8 @@ export function RecordPaymentSheet({
   const errorId = `${uid}-error`;
   const paymentMethodId = `${uid}-payment-method`;
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

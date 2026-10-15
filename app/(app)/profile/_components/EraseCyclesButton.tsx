@@ -1,10 +1,10 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { eraseAllCyclesAction } from "../cycle-actions";
-import { Sheet } from "../../_components/Sheet";
+import { ConfirmSheet } from "../../_components/ConfirmSheet";
 import { useSheet } from "../../_components/useSheet";
 import { useT, useVocab } from "../../../_components/LocaleProvider";
 
@@ -20,6 +20,7 @@ export function EraseCyclesButton() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useT();
+  const vocab = useVocab();
 
   async function handleConfirm() {
     setPending(true);
@@ -44,72 +45,19 @@ export function EraseCyclesButton() {
       </button>
 
       {confirming && (
-        <EraseCyclesConfirmSheet pending={pending} error={error} onConfirm={handleConfirm} onCancel={close} {...sheetProps} />
+        <ConfirmSheet
+          title={t.profile.eraseCycles.confirmTitle}
+          body={t.profile.eraseCycles.confirmBody(vocab)}
+          confirmLabel={t.profile.eraseCycles.yes}
+          pendingLabel={t.profile.eraseCycles.erasing}
+          cancelLabel={t.profile.eraseCycles.cancel}
+          pending={pending}
+          error={error}
+          onConfirm={handleConfirm}
+          onCancel={close}
+          {...sheetProps}
+        />
       )}
     </>
-  );
-}
-
-function EraseCyclesConfirmSheet({
-  pending,
-  error,
-  onConfirm,
-  onCancel,
-  returnFocusTo,
-}: {
-  pending: boolean;
-  error: string | null;
-  onConfirm: () => void;
-  onCancel: () => void;
-  returnFocusTo: HTMLElement | null;
-}) {
-  const [visible, setVisible] = useState(false);
-  const t = useT();
-  const vocab = useVocab();
-
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
-  function handleCancel() {
-    setVisible(false);
-    setTimeout(onCancel, 200);
-  }
-
-  return (
-    <Sheet
-      visible={visible}
-      title={t.profile.eraseCycles.confirmTitle}
-      titleStyle={{ marginBottom: "0.5rem" }}
-      onClose={handleCancel}
-      closeOnBackdropClick={!pending}
-      returnFocusTo={returnFocusTo}
-    >
-      <p className="field-hint" style={{ marginBottom: "0.5rem" }}>
-        {t.profile.eraseCycles.confirmBody(vocab)}
-      </p>
-      {error && (
-        <p className="error-text" role="alert" style={{ marginBottom: "0.5rem" }}>
-          {error}
-        </p>
-      )}
-      <button
-        type="button"
-        className="button button--danger sheet-submit"
-        onClick={onConfirm}
-        disabled={pending}
-      >
-        {pending ? t.profile.eraseCycles.erasing : t.profile.eraseCycles.yes}
-      </button>
-      <button
-        type="button"
-        className="button button--secondary sheet-submit"
-        onClick={handleCancel}
-        disabled={pending}
-      >
-        {t.profile.eraseCycles.cancel}
-      </button>
-    </Sheet>
   );
 }

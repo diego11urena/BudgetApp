@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useSheetVisibility } from "./useSheet";
 import { useRouter } from "next/navigation";
 import {
   addTransactionAction,
@@ -101,7 +102,7 @@ export function QuickAddSheet({
   const [movePending, setMovePending] = useState(false);
   const pendingSubmitFormData = useRef<FormData | null>(null);
 
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [type, setType] = useState<TxType>(editingTransaction?.type ?? initialType);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
@@ -218,14 +219,8 @@ export function QuickAddSheet({
   // someone opened the sheet to fix.
   const [showMore, setShowMore] = useState(isEditing);
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    closeThen(onClose);
   }
 
   // Runs the same checks the date/amount inputs' native `required`/`min`/
@@ -324,7 +319,7 @@ export function QuickAddSheet({
     // disagrees with where the row is expected to end up, hold the submit
     // and ask first (see handleConfirmMove/handleCancelMove).
     if (moveCheckCycleId) {
-      const resolved = await resolveCycleForDateAction(occurredAt);
+      const resolved = await resolveCycleForDateAction(occurredAt, isEditing ? undefined : targetCycleId);
       if (resolved && resolved.cycleId !== moveCheckCycleId) {
         pendingSubmitFormData.current = formData;
         setPendingMove(resolved);

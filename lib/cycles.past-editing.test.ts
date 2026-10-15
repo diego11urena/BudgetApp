@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "./prisma";
-import { assessPayDateChange } from "./cycles";
+import { assessPayDateChange, findCycleForDate, findCycleForDatePreferring } from "./cycles";
 import { getCycleFinancials } from "./cycle-financials";
 import { en } from "./i18n/dictionaries/en";
 
@@ -175,5 +175,19 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     // Nothing should have moved as a side effect of merely assessing this.
     const stillInPrevious = await prisma.cycleTransaction.count({ where: { cycleId: previous.id } });
     expect(stillInPrevious).toBe(1);
+  });
+  it("findCycleForDate skips a zero-length closed cycle from pay day on, unless that cycle is explicitly preferred", async () => {
+    const start = panama(2026, 10, 10);
+    const empty = await prisma.budgetCycle.create({
+      data: { userId, label: "empty", periodStart: start, periodEnd: start, status: "CLOSED" },
+    });
+    const active = await prisma.budgetCycle.create({
+      data: { userId, label: "active", periodStart: start, status: "ACTIVE" },
+    });
+
+    expect((await findCycleForDate(userId, panama(2026, 10, 12)))?.id).toBe(active.id);
+    expect((await findCycleForDate(userId, start))?.id).toBe(active.id);
+    expect((await findCycleForDatePreferring(userId, start, empty.id))?.id).toBe(empty.id);
+    expect((await findCycleForDatePreferring(userId, panama(2026, 10, 12), empty.id))?.id).toBe(active.id);
   });
 });

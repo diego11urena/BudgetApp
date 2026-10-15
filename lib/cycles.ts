@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { getCycleFinancials, TRANSACTION_SELECT, type CycleFinancials } from "@/lib/cycle-financials";
+import { TRANSACTION_SELECT } from "@/lib/cycle-financials";
 import type { BudgetCycle, CycleIncomeEntry, IncomeFrequency, Prisma, PrismaClient } from "@/app/generated/prisma/client";
 import {
   addDays,
@@ -521,14 +521,6 @@ export const getOrCreateDraftCycle = cache(async (userId: string): Promise<Budge
   }
 });
 
-/** The user's most recently closed cycle, if any — for a "last paycheck" summary. */
-export function getMostRecentClosedCycle(userId: string) {
-  return prisma.budgetCycle.findFirst({
-    where: { userId, status: "CLOSED" },
-    orderBy: { periodEnd: "desc" },
-  });
-}
-
 /**
  * Which cycle actually covers a given date — the most recently-started
  * cycle whose periodStart is on or before it. Cycle membership has always
@@ -545,10 +537,11 @@ export function getMostRecentClosedCycle(userId: string) {
  * whichever of the two existed first (the one that was open for most of
  * that day), rather than an arbitrary/unstable pick.
  *
- * A closed cycle that ended the instant it started (periodEnd == periodStart,
- * e.g. closed immediately after a same-day close) never covered any time, so
- * it's excluded -- otherwise the createdAt-asc tiebreak above picks it over
- * the real open cycle and every transaction on that day lands in the empty one.
+ * A cycle that had already ended by the date is excluded -- otherwise a
+ * zero-length closed cycle (closed the same instant it started) wins the
+ * createdAt-asc tiebreak above against the real open cycle, and every
+ * transaction from pay day on lands in the empty one. Adding into such a
+ * cycle on purpose goes through findCycleForDatePreferring instead.
  */
 export function findCycleForDate(userId: string, date: Date) {
   return prisma.budgetCycle.findFirst({
@@ -559,6 +552,27 @@ export function findCycleForDate(userId: string, date: Date) {
     },
     orderBy: [{ periodStart: "desc" }, { createdAt: "asc" }],
   });
+}
+
+/**
+ * findCycleForDate, except `preferredCycleId` wins whenever its own range
+ * covers the date (end inclusive) -- for adding from a past cycle's own
+ * History page, where the user explicitly picked that cycle (e.g. one
+ * closed the same day it started, which findCycleForDate never returns).
+ */
+export async function findCycleForDatePreferring(userId: string, date: Date, preferredCycleId?: string) {
+  if (preferredCycleId) {
+    const preferred = await prisma.budgetCycle.findFirst({
+      where: {
+        id: preferredCycleId,
+        userId,
+        periodStart: { lte: date },
+        OR: [{ periodEnd: null }, { periodEnd: { gte: date } }],
+      },
+    });
+    if (preferred) return preferred;
+  }
+  return findCycleForDate(userId, date);
 }
 
 /**
@@ -822,7 +836,6 @@ export function getClosedCycles(userId: string, limit = 20) {
 export interface CloseCycleResult {
   closedCycle: BudgetCycle;
   newCycle: BudgetCycle;
-  closedCycleFinancials: CycleFinancials;
 }
 
 /**
@@ -861,7 +874,6 @@ export async function closeCycleAndStartNext(
 ): Promise<CloseCycleResult> {
   const { carryIncomeForward = true } = options;
   const currentCycle = await getOrCreateDraftCycle(userId);
-  const closedCycleFinancials = await getCycleFinancials(currentCycle.id);
 
   let closedCycle: BudgetCycle;
   let newCycle: BudgetCycle;
@@ -953,5 +965,5 @@ export async function closeCycleAndStartNext(
     newCycle = reReadNew;
   }
 
-  return { closedCycle, newCycle, closedCycleFinancials };
+  return { closedCycle, newCycle };
 }

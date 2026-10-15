@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { Sheet } from "../../_components/Sheet";
 import { formatCycleLabel, nowInPanama, PAY_DATE_LOOKBACK_DAYS } from "@/lib/pay-date";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
@@ -64,7 +65,7 @@ export function ConfirmJustGotPaidSheet({
 }) {
   const t = useT().dashboard;
   const vocab = useVocab();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   // Guards against a fast double-tap on "Yes, I got paid" firing onConfirm
   // twice — closeCycleAndStartNext has no idempotency guard of its own
   // (unlike everything it creates), so two concurrent calls would each
@@ -82,15 +83,9 @@ export function ConfirmJustGotPaidSheet({
   const minDate = formatCycleLabel(daysAgo(PAY_DATE_LOOKBACK_DAYS));
   const maxDate = formatCycleLabel(nowInPanama());
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleCancel() {
     if (confirmed) return;
-    setVisible(false);
-    setTimeout(onCancel, 200);
+    closeThen(onCancel);
   }
 
   function handleConfirm() {
@@ -107,8 +102,7 @@ export function ConfirmJustGotPaidSheet({
     }
     setError(null);
     setConfirmed(true);
-    setVisible(false);
-    setTimeout(() => onConfirm(payDate), 200);
+    closeThen(() => onConfirm(payDate));
   }
 
   return (

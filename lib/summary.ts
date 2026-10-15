@@ -1,11 +1,4 @@
 import type { CycleFinancials } from "./cycle-financials";
-import type { GoalWithProgress } from "./goals";
-
-/** Series point for the 6-period sparkline — label + spent amount. */
-export interface SparklinePoint {
-  label: string;
-  spent: number;
-}
 
 /**
  * Spend comparison against a baseline (e.g. "your last three quincenas").
@@ -24,32 +17,10 @@ export interface SpendComparison {
   sincePeriodStart: Date | null;
 }
 
-/** Goal rows classified for Summary (completed vs. in-progress). */
-export interface ClassifiedGoals {
-  completed: GoalWithProgress[];
-  inProgress: (GoalWithProgress & {
-    contributionThisCycle: number;
-    percentOfTarget: number;
-  })[];
-}
-
 /** Uncategorized transaction warning (if any). */
 export interface UncategorizedWarning {
   count: number;
   totalAmount: number;
-}
-
-/**
- * Sparkline data: transforms last N cycles into {label, spent}[] for rendering.
- * No lower bound — renders with whatever periods exist (1 point = just dot, no line).
- */
-export function computeSparklineSeries(
-  cycles: { financials: CycleFinancials; periodLabel?: string }[]
-): SparklinePoint[] {
-  return cycles.map((cycle) => ({
-    label: cycle.periodLabel ?? "",
-    spent: cycle.financials.totalExpenses,
-  }));
 }
 
 /**
@@ -93,39 +64,6 @@ export function computeSpendComparison(
   }
 
   return { deltaAmount, isLighter, label, sincePeriodStart };
-}
-
-/**
- * Classify goals into completed (target reached) and in-progress (with contribution
- * and % of target this cycle). Completed = savedSoFar >= lifetimeTargetAmount AND
- * lifetimeTargetAmount > 0 (i.e., flagged as a goal, not just a savings category).
- */
-export function classifyGoalRowsForSummary(
-  goals: GoalWithProgress[]
-): ClassifiedGoals {
-  const completed: GoalWithProgress[] = [];
-  const inProgress: (GoalWithProgress & {
-    contributionThisCycle: number;
-    percentOfTarget: number;
-  })[] = [];
-
-  for (const goal of goals) {
-    if (goal.lifetimeTargetAmount > 0 && goal.savedSoFar >= goal.lifetimeTargetAmount) {
-      completed.push(goal);
-    } else if (goal.lifetimeTargetAmount > 0) {
-      // In-progress goal: compute contribution this cycle.
-      // Note: this requires caller to have passed SAVINGS transactions for this cycle
-      // and matched them to the category. For now, we'll rely on caller providing
-      // the contribution amount or compute it from passed transactions.
-      inProgress.push({
-        ...goal,
-        contributionThisCycle: 0, // Caller must hydrate this.
-        percentOfTarget: (goal.savedSoFar / goal.lifetimeTargetAmount) * 100,
-      });
-    }
-  }
-
-  return { completed, inProgress };
 }
 
 /**

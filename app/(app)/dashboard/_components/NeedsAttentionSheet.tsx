@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
 import { categorizeTransactionAction, describeTransactionAction } from "../../_actions/transactions";
@@ -46,17 +47,11 @@ export function NeedsAttentionSheet({
         : incomeCategoryNames;
   }
   const t = useT().dashboard;
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [transactions, setTransactions] = useState(initialTransactions);
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    closeThen(onClose);
   }
 
   function handleDone(transactionId: string) {

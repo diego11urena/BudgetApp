@@ -150,8 +150,6 @@ export function generateInsights(
   // Capped at 2, not 3 -- with the fuller rule set above, most cycles now
   // legitimately have 0-2 things worth saying; a 3rd slot just means
   // reaching further down the priority list for something less urgent.
-  // Streak deliberately isn't a candidate here at all anymore -- see
-  // computeStreak's own comment for where it moved.
   return candidates
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 2)
@@ -482,25 +480,6 @@ function paceAwareCandidate(current: CycleFinancials, phase: CyclePhase, now: Da
     text: t.onTrackPace,
     priority: PRIORITY.ON_TRACK,
   };
-}
-
-/**
- * Counts consecutive (newest-first) closed cycles finishing with
- * amountLeft >= 0, stopping at the first that didn't -- the same counting
- * logic this used to run as its own dashboard Insights candidate. Moved out
- * to a plain exported function (no longer a Candidate-producing rule here
- * at all): a streak is being WON the moment a cycle closes, so it now
- * renders on CycleClosedCard instead, right when it's actually earned,
- * rather than competing all cycle long for an Insights slot most users with
- * 2+ other things going on would never see it win anyway.
- */
-export function computeStreak(previousClosedFinancials: CycleFinancials[]): number {
-  let streak = 0;
-  for (const cycle of previousClosedFinancials) {
-    if (cycle.amountLeft < 0) break;
-    streak++;
-  }
-  return streak;
 }
 
 /**

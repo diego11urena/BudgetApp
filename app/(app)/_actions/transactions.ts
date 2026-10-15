@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   findCycleForDate,
+  findCycleForDatePreferring,
   formatCycleRangeText,
   getOrCreateDraftCycle,
   getUserBudgetFrequency,
@@ -173,7 +174,7 @@ export const addTransactionAction = withActionErrorHandling(async function addTr
   // from the date itself, same as updateTransactionAction does on edit.
   const targetCycleId =
     typeof hintedCycleId === "string" && hintedCycleId
-      ? ((await findCycleForDate(userId, occurredAtDate))?.id ?? cycle.id)
+      ? ((await findCycleForDatePreferring(userId, occurredAtDate, cycle.id))?.id ?? cycle.id)
       : cycle.id;
 
   // Every type has a category concept now — Extra income included.
@@ -716,6 +717,8 @@ export interface CyclePreview {
  */
 export const resolveCycleForDateAction = withActionErrorHandling(async function resolveCycleForDateAction(
   dateStr: string,
+  /** The cycle a History-page add was hinted into -- same preference addTransactionAction applies. */
+  preferredCycleId?: string,
 ): Promise<CyclePreview | null> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -726,7 +729,7 @@ export const resolveCycleForDateAction = withActionErrorHandling(async function 
   const date = parseDateOnly(dateStr);
   if (!date) return null;
 
-  const cycle = await findCycleForDate(userId, date);
+  const cycle = await findCycleForDatePreferring(userId, date, preferredCycleId);
   if (!cycle) return null;
 
   const budgetFrequency = await getUserBudgetFrequency(userId);

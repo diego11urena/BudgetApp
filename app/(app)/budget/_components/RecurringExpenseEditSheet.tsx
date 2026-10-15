@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useSheetVisibility } from "../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
 import { useToast } from "../../_components/ToastProvider";
@@ -57,7 +58,7 @@ export function RecurringExpenseEditSheet({
   const router = useRouter();
   const { showToast } = useToast();
   const t = useT();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [name, setName] = useState(existing?.name ?? "");
   const [amount, setAmount] = useState(existing ? existing.targetAmount.toFixed(2) : "");
   const [recurring, setRecurring] = useState(existing?.recurring ?? true);
@@ -73,14 +74,8 @@ export function RecurringExpenseEditSheet({
   const dueDayId = `${uid}-due-day`;
   const errorId = `${uid}-error`;
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

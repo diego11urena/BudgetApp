@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSheetVisibility } from "../../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../../_components/Sheet";
 import { deleteCategoryAction } from "../../category-actions";
@@ -26,19 +27,13 @@ export function DeleteCategoryConfirm({
   returnFocusTo?: HTMLElement | null;
 }) {
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useT();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onDone, 200);
+    closeThen(onDone);
   }
 
   async function handleDelete() {

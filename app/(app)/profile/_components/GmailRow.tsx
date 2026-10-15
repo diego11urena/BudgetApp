@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Sheet } from "../../_components/Sheet";
-import { useSheet } from "../../_components/useSheet";
+import { useSheet, useSheetVisibility } from "../../_components/useSheet";
 import { GmailConnectionCard, type GmailConnectionInfo } from "./GmailConnectionCard";
 import { useT, useLocale } from "../../../_components/LocaleProvider";
 
@@ -62,17 +61,11 @@ function GmailSheetContent({
   returnFocusTo: HTMLElement | null;
   onClose: () => void;
 }) {
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const t = useT();
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    closeThen(onClose);
   }
 
   return (

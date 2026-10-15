@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addTransactionAction, deleteTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import { useToast } from "../../_components/ToastProvider";
 import { Sheet } from "../../_components/Sheet";
 import { CurrencyInput } from "../../_components/CurrencyInput";
-import { useSheet } from "../../_components/useSheet";
+import { useSheet, useSheetVisibility } from "../../_components/useSheet";
 import { useT } from "@/app/_components/LocaleProvider";
 
 export function ContributeButton({ categoryName }: { categoryName: string }) {
@@ -46,7 +46,7 @@ function ContributeSheet({
   const t = useT();
   const router = useRouter();
   const { showToast } = useToast();
-  const [visible, setVisible] = useState(false);
+  const { visible, closeThen } = useSheetVisibility();
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,14 +54,8 @@ function ContributeSheet({
   const amountId = `${uid}-amount`;
   const errorId = `${uid}-error`;
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
   function handleClose() {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    closeThen(onClose);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
