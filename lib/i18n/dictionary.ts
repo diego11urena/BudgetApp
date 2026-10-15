@@ -666,6 +666,15 @@ export type Dictionary = {
     addToQuincena: (vocab: PeriodVocab) => string;
     viewSummary: string;
     viewBreakdown: string;
+    deleteCycle: {
+      button: string;
+      confirmTitle: string;
+      confirmBody: (vocab: PeriodVocab) => string;
+      deleting: string;
+      yes: string;
+      cancel: string;
+      notFound: string;
+    };
   };
 
   profile: {

@@ -93,3 +93,30 @@ export const eraseAllCyclesAction = withActionErrorHandling(async function erase
 
   revalidateAppPages();
 });
+
+/**
+ * Deletes one CLOSED cycle (cascading its transactions, targets and income
+ * entries). The active cycle is refused -- deleting it would leave the user
+ * with no open cycle; "Erase all cycles" is the way to reset that one.
+ * Scoped by userId so a guessed cycleId can't touch someone else's data.
+ */
+export const deleteCycleAction = withActionErrorHandling(async function deleteCycleAction(
+  cycleId: string,
+): Promise<ActionResult | undefined> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+  const t = getDictionary(await getRequestLocale());
+
+  const rateLimit = await checkRateLimit(`delete-cycle:${userId}`, ERASE_CYCLES_RATE_LIMIT);
+  if (!rateLimit.allowed) {
+    return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
+  }
+
+  const { count } = await prisma.budgetCycle.deleteMany({ where: { id: cycleId, userId, status: "CLOSED" } });
+  if (count === 0) return { error: t.history.deleteCycle.notFound };
+
+  revalidateAppPages();
+});

@@ -22,6 +22,7 @@ import { TopCategoriesChart } from "../../dashboard/_components/TopCategoriesCha
 import { EditPayInfoButton } from "../../dashboard/_components/EditPayInfoButton";
 import { MonthlyIncomeEntriesButton } from "../../dashboard/_components/MonthlyIncomeEntriesButton";
 import { AddToCycleButton } from "../_components/AddToCycleButton";
+import { DeleteCycleButton } from "../_components/DeleteCycleButton";
 import { CategoryProgressRow } from "../../budget/_components/CategoryProgressRow";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
@@ -210,6 +211,12 @@ export default async function CycleHistoryPage({
           emptyMessage={t.history.empty2(resolveVocab(t, budgetFrequency))}
         />
       </div>
+
+      {closed && (
+        <div className="dashboard-section">
+          <DeleteCycleButton cycleId={cycle.id} />
+        </div>
+      )}
     </div>
   );
 }

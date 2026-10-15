@@ -615,6 +615,16 @@ export const en: Dictionary = {
     addToQuincena: (vocab) => `Add to ${vocab.thisPeriod}`,
     viewSummary: "View summary",
     viewBreakdown: "Breakdown",
+    deleteCycle: {
+      button: "Delete this cycle",
+      confirmTitle: "Delete this cycle?",
+      confirmBody: (vocab) =>
+        `Permanently deletes this ${vocab.noun} and every transaction, budget target, and income record in it. This can't be undone.`,
+      deleting: "Deleting...",
+      yes: "Yes, delete it",
+      cancel: "Cancel",
+      notFound: "This cycle can't be deleted.",
+    },
   },
 
   profile: {
