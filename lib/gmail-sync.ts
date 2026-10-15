@@ -209,6 +209,10 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
     // So connecting Gmail doesn't suddenly dump old purchases into whatever
     // cycle happens to be open right now.
     const sinceMs = syncWindowStartMs(connection);
+    // Captured BEFORE listing, and saved as lastSyncedAt below -- stamping
+    // the finish time instead would permanently skip any email that
+    // arrived while this sync was still fetching/inserting.
+    const listedAt = new Date();
     const candidateIds = await listMessageIds(client, Math.floor(sinceMs / 1000));
 
     // Tracks whether every candidate message was actually imported (or
@@ -339,7 +343,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
     if (allProcessed) {
       await prisma.gmailConnection.update({
         where: { userId },
-        data: { lastSyncedAt: new Date(), lastSyncError: null },
+        data: { lastSyncedAt: listedAt, lastSyncError: null },
       });
     }
   } catch (error) {
