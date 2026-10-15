@@ -128,10 +128,13 @@ export async function recomputeCategoryBudgetGoal(db: Db, cycleId: string, categ
 
 /**
  * Snapshots every one of a user's recurring (recurring: true) RecurringExpense
- * rows that should carry into a newly-created cycle (per
- * shouldCarryForwardToCycle, evaluated per-expense against its own
- * hasFixedDate/dueDay) into that cycle's CycleRecurringExpense rows, then
- * recomputes each affected category's CycleBudgetGoal aggregate. Reused by
+ * rows into a newly-created cycle's CycleRecurringExpense rows, then
+ * recomputes each affected category's CycleBudgetGoal aggregate. Marking
+ * something recurring means it carries into EVERY cycle until deleted --
+ * dueDay is only for display and due-soon nudges here, never a carry filter
+ * (it used to be: a nominal half-month window around the due day, which
+ * silently dropped bills whenever real cycles didn't line up with the
+ * calendar halves, e.g. a cycle left open for a full month). Reused by
  * both closeCycleAndStartNext (normal "just got paid" flow) and
  * eraseAllCyclesAction — unlike the old CycleBudgetGoal-copying loop this
  * replaces, there's no "previous cycle's goals" to read: a RecurringExpense
@@ -142,15 +145,11 @@ export async function carryForwardRecurringExpenses(
   db: Db,
   userId: string,
   newCycleId: string,
-  newCyclePeriodStart: Date,
-  budgetFrequency: BudgetFrequency,
 ): Promise<void> {
   const recurringExpenses = await db.recurringExpense.findMany({ where: { userId, recurring: true } });
   const affectedCategoryIds = new Set<string>();
 
   for (const recurringExpense of recurringExpenses) {
-    if (!shouldCarryForwardToCycle(recurringExpense, newCyclePeriodStart, budgetFrequency)) continue;
-
     // upsert, not create: makes this idempotent against a retry, so a
     // recurring expense can never end up with two snapshots for the same
     // new cycle.
@@ -929,7 +928,7 @@ export async function closeCycleAndStartNext(
         });
       }
 
-      await carryForwardRecurringExpenses(tx, userId, created.id, created.periodStart, user.budgetFrequency);
+      await carryForwardRecurringExpenses(tx, userId, created.id);
 
       return { closed, created };
     });

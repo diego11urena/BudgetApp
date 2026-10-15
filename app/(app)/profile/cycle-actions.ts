@@ -88,7 +88,7 @@ export const eraseAllCyclesAction = withActionErrorHandling(async function erase
       });
     }
 
-    await carryForwardRecurringExpenses(tx, userId, cycle.id, now, user.budgetFrequency);
+    await carryForwardRecurringExpenses(tx, userId, cycle.id);
   });
 
   revalidateAppPages();
