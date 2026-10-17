@@ -46,7 +46,7 @@ export const en: Dictionary = {
     confirm: "Confirm",
     close: "Close",
     budgetFrequency: { quincenal: "Biweekly", monthly: "Monthly" },
-    payFrequency: { monthly: "Once a month", semimonthly: "Biweekly" },
+    payFrequency: { monthly: "Monthly", semimonthly: "Biweekly" },
     error: {
       appBody: "We hit a snag loading this page. Your data is safe — try again.",
       rootBody: "We hit a snag. Try again.",

@@ -17,7 +17,7 @@ export interface IncomeFormInitial {
 }
 
 const BUDGET_FREQUENCY_VALUES: BudgetFrequency[] = ["QUINCENAL", "MONTHLY"];
-const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["MONTHLY", "SEMIMONTHLY"];
+const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["SEMIMONTHLY", "MONTHLY"];
 
 const PAY_FREQUENCY_LABEL_KEY: Record<IncomeFrequency, "monthly" | "semimonthly"> = {
   MONTHLY: "monthly",
