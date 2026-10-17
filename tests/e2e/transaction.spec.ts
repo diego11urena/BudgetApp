@@ -96,7 +96,11 @@ test.describe("logging a transaction", () => {
       await page.click('button:has-text("Log it")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 
-      const untouchedRow = page.locator(".transaction-row", { hasText: "Transportation" }).last();
+      // Exact name match: the earlier "Panapass - Corredor Norte" row also
+      // contains "Transportation" (its category line).
+      const untouchedRow = page
+        .locator(".transaction-row")
+        .filter({ has: page.locator(".transaction-name", { hasText: /^Transportation$/ }) });
       await expect(untouchedRow.locator(".transaction-name")).toHaveText("Transportation");
       // Name === category -- no redundant secondary line.
       await expect(untouchedRow.locator(".transaction-sub")).toHaveCount(0);

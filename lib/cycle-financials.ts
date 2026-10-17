@@ -204,7 +204,9 @@ export async function getCycleFinancials(cycleId: string): Promise<CycleFinancia
     prisma.cycleTransaction.findMany({
       where: { cycleId },
       include: { expenseCategory: true },
-      orderBy: { occurredAt: "desc" },
+      // Same-day transactions share an occurredAt -- newest-added first, so
+      // the list order is stable across reloads.
+      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
     }),
   ]);
 

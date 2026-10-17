@@ -69,5 +69,15 @@ test.describe("CurrencyInput on an autoFocused sheet", () => {
     await amount.click();
     await amount.pressSequentially("120000", { delay: 30 });
     await expect(amount).toHaveValue("1,200.00");
+
+    // The CI flake, made deterministic: a tap that leaves a bare caret
+    // mid-value instead of a selection. Typing must still replace, and
+    // nothing typed may land mid-number.
+    await amount.click();
+    await amount.evaluate((el: HTMLInputElement) => el.setSelectionRange(3, 3));
+    await amount.pressSequentially("50000", { delay: 30 });
+    await expect(amount).toHaveValue("500.00");
+    await amount.press("Backspace");
+    await expect(amount).toHaveValue("50.00");
   });
 });
