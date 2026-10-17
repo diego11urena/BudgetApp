@@ -6,7 +6,7 @@ import type { BudgetFrequency } from "@/lib/quincena-pace";
 import { setBudgetFrequencyAction, setIncomeFrequencyAction } from "../actions";
 import { useT } from "../../../_components/LocaleProvider";
 
-const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["MONTHLY", "SEMIMONTHLY"];
+const PAY_FREQUENCY_VALUES: IncomeFrequency[] = ["SEMIMONTHLY", "MONTHLY"];
 const PAY_FREQUENCY_LABEL_KEY: Record<IncomeFrequency, "monthly" | "semimonthly"> = {
   MONTHLY: "monthly",
   SEMIMONTHLY: "semimonthly",

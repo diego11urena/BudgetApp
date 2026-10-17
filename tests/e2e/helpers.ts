@@ -50,14 +50,15 @@ export async function signUpAndOnboard(
   await page.goto("/", { waitUntil: "commit" });
   await page.waitForURL(/onboarding\/income/, { timeout: 60_000, waitUntil: "commit" });
 
-  // Pay frequency is asked first (its own picker), and choosing "Once a
-  // month" force-selects Monthly budget frequency on its own -- clicking
+  // Pay frequency is asked first (its own picker), and choosing Monthly
+  // pay force-selects Monthly budget frequency on its own -- clicking
   // the budget picker's own "Monthly" button afterward would be redundant
-  // (and it's disabled there anyway once pay frequency is MONTHLY).
+  // (and it's disabled there anyway once pay frequency is MONTHLY). Both
+  // pickers have a "Monthly" button, so each click is scoped to its group.
   if (payFrequency === "MONTHLY") {
-    await page.click('button:has-text("Once a month")');
+    await page.getByRole("group", { name: "How often do you get paid?" }).getByRole("button", { name: "Monthly" }).click();
   } else if (budgetFrequency === "MONTHLY") {
-    await page.click('button:has-text("Monthly")');
+    await page.getByRole("group", { name: "How do you want to budget?" }).getByRole("button", { name: "Monthly" }).click();
   }
   // The amount field's own label is cadence-aware ("Net pay per quincena
   // (USD)" vs "Net pay per month (USD)") -- matching on the leading "Net

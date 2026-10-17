@@ -1358,7 +1358,7 @@ button.line-item--link {
    The Profile spec stacks these ("15px/600 label on top, full-width
    segmented control below ... optional 12px faint hint under the
    control") rather than putting the control inline to the right: at four
-   options ("Once a month" / "Biweekly") an inline track squeezed the
+   options ("Biweekly" / "Monthly") an inline track squeezed the
    label to an ellipsis on a narrow phone. Overrides .line-item's own
    row direction. */
 .profile-theme-row {

@@ -21,7 +21,7 @@ import { signUpAndOnboard, signInAs, dismissCycleSummary } from "./helpers";
  * the two never collide under Playwright's strict mode.
  */
 test.describe("pay/budget frequency combination lock", () => {
-  test("onboarding: choosing Once a month pay force-selects and locks Monthly budget", async ({ page }) => {
+  test("onboarding: choosing Monthly pay force-selects and locks Monthly budget", async ({ page }) => {
     const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
     await page.context().addCookies([{ name: "balboa-locale", value: "en", url: baseURL }]);
 
@@ -37,13 +37,13 @@ test.describe("pay/budget frequency combination lock", () => {
     // Default is Biweekly pay -- both budget options selectable, Biweekly
     // budget is the default and not disabled.
     await expect(biweeklyBudgetButton).toBeEnabled();
-    await expect(payGroup.locator("button", { hasText: "Once a month" })).toBeVisible();
+    await expect(payGroup.locator("button", { hasText: "Monthly" })).toBeVisible();
     await expect(payGroup.locator("button", { hasText: "Biweekly" })).toBeVisible();
 
-    // Switching pay frequency to "Once a month" force-selects Monthly
+    // Switching pay frequency to "Monthly" force-selects Monthly
     // budget and disables Biweekly -- not just visually unclickable, but
     // actually disabled (a real click can't select it).
-    await payGroup.locator("button", { hasText: "Once a month" }).click();
+    await payGroup.locator("button", { hasText: "Monthly" }).click();
     await expect(budgetGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
     await expect(biweeklyBudgetButton).toBeDisabled();
     await expect(page.getByText("Since you're paid once a month, your budget cycle is monthly too.")).toBeVisible();
@@ -101,7 +101,7 @@ test.describe("pay/budget frequency combination lock", () => {
     await expect(page.getByText("No paychecks logged yet this month.")).toBeVisible();
   });
 
-  test("Settings: switching pay frequency to Once a month force-locks budget frequency to Monthly", async ({
+  test("Settings: switching pay frequency to Monthly force-locks budget frequency to Monthly", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "800" });
@@ -112,7 +112,7 @@ test.describe("pay/budget frequency combination lock", () => {
 
     await expect(budgetGroup.locator("button", { hasText: "Biweekly" })).toHaveClass(/is-active/);
 
-    await payGroup.locator("button", { hasText: "Once a month" }).click();
+    await payGroup.locator("button", { hasText: "Monthly" }).click();
     await expect(budgetGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
     await expect(budgetGroup.locator("button", { hasText: "Biweekly" })).toBeDisabled();
 

@@ -45,7 +45,7 @@ export const es: Dictionary = {
     confirm: "Confirmar",
     close: "Cerrar",
     budgetFrequency: { quincenal: "Quincenal", monthly: "Mensual" },
-    payFrequency: { monthly: "Una vez al mes", semimonthly: "Quincenal" },
+    payFrequency: { monthly: "Mensual", semimonthly: "Quincenal" },
     error: {
       appBody: "Tuvimos un problema al cargar esta página. Tus datos están seguros — intenta de nuevo.",
       rootBody: "Tuvimos un problema. Intenta de nuevo.",
