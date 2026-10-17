@@ -184,7 +184,7 @@ export default async function Home() {
         </div>
         <div className="landing-footer-links">
           <Link href="/privacy">{t.footerPrivacy}</Link>
-          <a href="#terms">{t.footerTerms}</a>
+          <Link href="/terms">{t.footerTerms}</Link>
           {/* Support is listed in the desktop footer only. */}
           <a href="#support" className="landing-footer-support">
             {t.footerSupport}

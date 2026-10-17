@@ -8,7 +8,7 @@ import { seedDefaultIncomeCategories } from "@/lib/categories";
 import { isUniqueConstraintViolation } from "@/lib/prisma-errors";
 import { LOCALE_COOKIE, getRequestLocale } from "@/lib/i18n/locale";
 
-const userSelect = { id: true, sessionVersion: true, locale: true } as const;
+const userSelect = { id: true, locale: true, termsAcceptedAt: true } as const;
 
 /**
  * Google is the only way in, so first sign-in IS signup. Matched by email
@@ -23,12 +23,21 @@ async function findOrCreateUser(email: string, name: string | null | undefined) 
     where: { email: { equals: email, mode: "insensitive" } },
     select: userSelect,
   });
-  if (existing) return existing;
+  if (existing) {
+    // Predates the Terms checkbox; signing in now went through it.
+    if (!existing.termsAcceptedAt) {
+      await prisma.user.update({ where: { id: existing.id }, data: { termsAcceptedAt: new Date() } });
+    }
+    return existing;
+  }
 
   const locale = (await getRequestLocale()).toUpperCase() as "EN" | "ES";
   try {
     return await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({ data: { email, name, locale }, select: userSelect });
+      const user = await tx.user.create({
+        data: { email, name, locale, termsAcceptedAt: new Date() },
+        select: userSelect,
+      });
       await seedDefaultIncomeCategories(tx, user.id);
       return user;
     });
@@ -54,8 +63,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (account && user?.email) {
         const dbUser = await findOrCreateUser(user.email, user.name);
         token.id = dbUser.id;
-        // Compared against the live value in session() below -- see there.
-        token.sessionVersion = dbUser.sessionVersion;
         // A fresh browser should show the account's own language, not the
         // anonymous-visitor default.
         (await cookies()).set(LOCALE_COOKIE, dbUser.locale.toLowerCase(), {
@@ -67,23 +74,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     // Overrides authConfig's edge-safe session() with a Postgres-backed
-    // one. Compares the version baked into this token at sign-in against
-    // the account's current one; a mismatch means "Log out everywhere"
-    // was used since this session was issued, so it's treated as logged
-    // out from this point on (every page already does
+    // one: a deleted account's still-valid JWT (another device) is treated
+    // as logged out from its next request on (every page already does
     // `if (!session?.user?.id) redirect(...)`).
     async session({ session, token }) {
       if (!session.user || typeof token.id !== "string") {
         return session;
       }
-      const dbUser = await prisma.user.findUnique({
-        where: { id: token.id },
-        select: { sessionVersion: true },
-      });
-      if (!dbUser || dbUser.sessionVersion !== (token.sessionVersion ?? 0)) {
-        return session;
-      }
-      session.user.id = token.id;
+      const dbUser = await prisma.user.findUnique({ where: { id: token.id }, select: { id: true } });
+      if (dbUser) session.user.id = dbUser.id;
       return session;
     },
   },

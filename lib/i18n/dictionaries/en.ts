@@ -110,6 +110,11 @@ export const en: Dictionary = {
       submitting: "Redirecting to Google...",
       submit: "Continue with Google",
       error: "Couldn't sign in with Google. Please try again.",
+      agreeBefore: "I agree to the ",
+      termsLink: "Terms of Use",
+      agreeAnd: " and ",
+      privacyLink: "Privacy Policy",
+      termsRequired: "Please accept the Terms of Use and Privacy Policy to continue.",
     },
   },
 
@@ -584,9 +589,6 @@ export const en: Dictionary = {
       "Monthly: one budget per month; both paychecks land in it and you close it yourself.",
     pastQuincenas: (vocab) => `Past ${vocab.nounPlural}`,
     manageCategories: "Manage categories",
-    account: "Account",
-    signOutEverywhere: "Sign out everywhere",
-    signOutEverywhereHint: "Use this if someone else may have access",
     dangerZone: "Danger zone",
     signOut: "Sign out",
     developerTools: "Developer tools",
@@ -599,6 +601,16 @@ export const en: Dictionary = {
       confirm:
         "This permanently deletes your CURRENT cycle — every transaction, income entry, and budget/goal target logged in it — and sends you back to onboarding. This cannot be undone. Continue?",
       button: "Reset onboarding (dev only)",
+    },
+    deleteAccount: {
+      button: "Delete account",
+      hint: "Deletes your account and all its data.",
+      confirmTitle: "Delete your account?",
+      confirmBody:
+        "Permanently deletes your account and everything in it: transactions, budgets, goals, categories and your Gmail connection. You'll be signed out on every device. This can't be undone.",
+      deleting: "Deleting...",
+      yes: "Yes, delete my account",
+      cancel: "Cancel",
     },
     eraseCycles: {
       button: "Erase all cycles",

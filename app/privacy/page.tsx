@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getRequestLocale } from "@/lib/i18n/locale";
+import { LegalPage, CONTACT_EMAIL } from "@/app/_components/LegalPage";
 
-const CONTACT_EMAIL = "diego11urena@gmail.com";
 const UPDATED = { en: "October 17, 2026", es: "17 de octubre de 2026" };
 
-// Legal text lives here, not in the i18n dictionaries: it's one long
-// page read as a whole, never reused piecemeal across the UI.
 const CONTENT = {
   en: {
     title: "Privacy Policy",
-    updated: "Last updated",
-    back: "Back to Balboa",
     sections: [
       {
         h: "Who we are",
@@ -54,9 +49,9 @@ const CONTENT = {
       {
         h: "Keeping and deleting your data",
         p: [
-          "Your data is kept while your account exists. You can erase your budget history from Profile at any time. To delete your whole account and everything in it, email " +
+          "Your data is kept while your account exists. You can erase your budget history, or delete your whole account and everything in it, from Profile at any time. Deleting your account removes your data from our database immediately. If you can't access your account, email " +
             CONTACT_EMAIL +
-            " from your account's address, and we'll delete it within 30 days.",
+            " from your account's address and we'll delete it within 30 days.",
         ],
       },
       {
@@ -67,8 +62,6 @@ const CONTENT = {
   },
   es: {
     title: "Política de privacidad",
-    updated: "Última actualización",
-    back: "Volver a Balboa",
     sections: [
       {
         h: "Quiénes somos",
@@ -111,7 +104,7 @@ const CONTENT = {
       {
         h: "Conservación y eliminación",
         p: [
-          "Tus datos se conservan mientras tu cuenta exista. Puedes borrar tu historial de presupuesto desde tu Perfil en cualquier momento. Para eliminar tu cuenta completa y todo su contenido, escribe a " +
+          "Tus datos se conservan mientras tu cuenta exista. Puedes borrar tu historial de presupuesto, o eliminar tu cuenta completa y todo su contenido, desde tu Perfil en cualquier momento. Al eliminar tu cuenta, tus datos se borran de nuestra base de datos de inmediato. Si no puedes acceder a tu cuenta, escribe a " +
             CONTACT_EMAIL +
             " desde el correo de tu cuenta y la eliminaremos en un plazo de 30 días.",
         ],
@@ -130,22 +123,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function PrivacyPage() {
   const locale = await getRequestLocale();
-  const c = CONTENT[locale];
-  return (
-    <main className="legal-page">
-      <Link href="/">{c.back}</Link>
-      <h1>{c.title}</h1>
-      <p className="field-hint">
-        {c.updated}: {UPDATED[locale]}
-      </p>
-      {c.sections.map((s) => (
-        <section key={s.h}>
-          <h2>{s.h}</h2>
-          {s.p.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
-        </section>
-      ))}
-    </main>
-  );
+  return <LegalPage {...CONTENT[locale]} updated={UPDATED[locale]} locale={locale} />;
 }

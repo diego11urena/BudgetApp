@@ -125,6 +125,11 @@ export type Dictionary = {
       submitting: string;
       submit: string;
       error: string;
+      agreeBefore: string;
+      termsLink: string;
+      agreeAnd: string;
+      privacyLink: string;
+      termsRequired: string;
     };
   };
 
@@ -636,9 +641,6 @@ export type Dictionary = {
     budgetFrequencyMonthlyHint: string;
     pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
-    account: string;
-    signOutEverywhere: string;
-    signOutEverywhereHint: string;
     dangerZone: string;
     signOut: string;
     developerTools: string;
@@ -653,6 +655,15 @@ export type Dictionary = {
     devReset: {
       confirm: string;
       button: string;
+    };
+    deleteAccount: {
+      button: string;
+      hint: string;
+      confirmTitle: string;
+      confirmBody: string;
+      deleting: string;
+      yes: string;
+      cancel: string;
     };
     eraseCycles: {
       button: string;

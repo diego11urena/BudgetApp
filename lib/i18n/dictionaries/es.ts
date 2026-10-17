@@ -109,6 +109,11 @@ export const es: Dictionary = {
       submitting: "Abriendo Google...",
       submit: "Continuar con Google",
       error: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+      agreeBefore: "Acepto los ",
+      termsLink: "Términos de uso",
+      agreeAnd: " y la ",
+      privacyLink: "Política de privacidad",
+      termsRequired: "Acepta los Términos de uso y la Política de privacidad para continuar.",
     },
   },
 
@@ -602,9 +607,6 @@ export const es: Dictionary = {
       "Mensual: un presupuesto por mes; ambos pagos entran en él y tú lo cierras.",
     pastQuincenas: (vocab) => `${capitalize(vocab.nounPlural)} ${vocab.noun === "mes" ? "pasados" : "pasadas"}`,
     manageCategories: "Administrar categorías",
-    account: "Cuenta",
-    signOutEverywhere: "Cerrar sesión en todos los dispositivos",
-    signOutEverywhereHint: "Usa esto si alguien más pudo haber accedido",
     dangerZone: "Zona de peligro",
     signOut: "Cerrar sesión",
     developerTools: "Herramientas de desarrollo",
@@ -617,6 +619,16 @@ export const es: Dictionary = {
       confirm:
         "Esto elimina permanentemente tu ciclo ACTUAL — cada transacción, ingreso, y meta de presupuesto/ahorro registrada en él — y te regresa al proceso de configuración inicial. Esto no se puede deshacer. ¿Continuar?",
       button: "Reiniciar configuración inicial (solo desarrollo)",
+    },
+    deleteAccount: {
+      button: "Eliminar cuenta",
+      hint: "Elimina tu cuenta y todos sus datos.",
+      confirmTitle: "¿Eliminar tu cuenta?",
+      confirmBody:
+        "Elimina para siempre tu cuenta y todo su contenido: transacciones, presupuestos, metas, categorías y tu conexión con Gmail. Se cerrará tu sesión en todos los dispositivos. Esto no se puede deshacer.",
+      deleting: "Eliminando...",
+      yes: "Sí, eliminar mi cuenta",
+      cancel: "Cancelar",
     },
     eraseCycles: {
       button: "Borrar todos los ciclos",

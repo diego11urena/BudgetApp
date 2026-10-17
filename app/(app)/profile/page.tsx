@@ -7,10 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { DevResetButton } from "./_components/DevResetButton";
 import { GmailRow } from "./_components/GmailRow";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
+import { DeleteAccountButton } from "./_components/DeleteAccountButton";
 import { ThemeRow } from "./_components/ThemeRow";
 import { LanguageRow } from "./_components/LanguageRow";
 import { PayAndBudgetFrequencyRows } from "./_components/PayAndBudgetFrequencyRows";
-import { signOutAction, logOutEverywhereAction } from "./actions";
+import { signOutAction } from "./actions";
 import { resetOnboardingAction } from "./dev-actions";
 import type { ThemePreferenceValue } from "@/lib/theme";
 import type { LocaleValue } from "@/lib/i18n/locale";
@@ -130,24 +131,10 @@ export default async function ProfilePage({
       </section>
 
       <section className="profile-group">
-        <p className="profile-section-label">{t.profile.account}</p>
-        <div className="dashboard-section profile-card">
-          <form action={logOutEverywhereAction}>
-            <button type="submit" className="line-item line-item--link">
-              <span>
-                <span className="line-item-title">{t.profile.signOutEverywhere}</span>
-                <span className="field-hint">{t.profile.signOutEverywhereHint}</span>
-              </span>
-              <ChevronRight size={18} aria-hidden="true" />
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="profile-group">
         <p className="profile-section-label profile-section-label--danger">{t.profile.dangerZone}</p>
         <div className="dashboard-section profile-card">
           <EraseCyclesButton />
+          <DeleteAccountButton />
         </div>
       </section>
 

@@ -173,18 +173,19 @@ export const setIncomeFrequencyAction = withActionErrorHandling(async function s
   }
 });
 
-export const logOutEverywhereAction = withActionErrorHandling(async function logOutEverywhereAction() {
+/**
+ * Deletes the user row; every table hanging off it cascades (see
+ * schema.prisma's onDelete: Cascade relations), so this is the whole
+ * account. Other devices' sessions die on their next request too --
+ * lib/auth.ts's session() callback treats a missing user as logged out.
+ */
+export const deleteAccountAction = withActionErrorHandling(async function deleteAccountAction(): Promise<
+  ActionResult | undefined
+> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { sessionVersion: { increment: 1 } },
-  });
-  // Also signs this device out (its own session's baked-in version now
-  // fails the same check every other device's does on its next request)
-  // -- clicking "log out everywhere" ending the very session you clicked
-  // it from is the expected behavior, not an oversight.
-  await signOut({ redirectTo: "/login" });
+  await prisma.user.deleteMany({ where: { id: session.user.id } });
+  await signOut({ redirectTo: "/" });
 });

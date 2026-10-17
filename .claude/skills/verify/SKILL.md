@@ -272,6 +272,10 @@ Grew well beyond user info + sign-out since this doc was last accurate. Current 
 - **Manage categories** -> `/profile/categories` (`ManageCategories.tsx`,
   `CategorySearchList.tsx`, `profile/category-actions.ts`) — rename/merge categories.
 - **History** -> `/history` (+ `/history/[cycleId]`) — list of past closed quincenas.
+- **Delete account** (`DeleteAccountButton.tsx` -> `deleteAccountAction`): deletes the `User` row
+  (everything cascades) and signs out to `/`. Other devices drop on their next request, since
+  `lib/auth.ts`'s `session()` treats a missing user as logged out. `/login` requires ticking the
+  Terms/Privacy checkbox (also enforced server-side); `/terms` and `/privacy` are public.
 - **Reset** section, `EraseCyclesButton.tsx` -> `profile/cycle-actions.ts` — a
   **user-facing, production-available** "wipe your quincena history, keep categories/income
   setup" reset. This is distinct from the dev-only onboarding reset below; don't confuse the
