@@ -77,9 +77,11 @@ export function CurrencyInput({
   // Mirrors for the native beforeinput listener below, which is attached
   // once and would otherwise see stale props/state.
   const centsRef = useRef(cents);
-  centsRef.current = cents;
   const onValueChangeRef = useRef(onValueChange);
-  onValueChangeRef.current = onValueChange;
+  useEffect(() => {
+    centsRef.current = cents;
+    onValueChangeRef.current = onValueChange;
+  });
   // True from a focus or tap until the next keystroke: that keystroke
   // replaces the whole amount. Tracked here rather than read off the DOM
   // selection, which a tap can collapse to a caret mid-value.
@@ -113,6 +115,7 @@ export function CurrencyInput({
       const typed = isInsert ? (e.data ?? e.dataTransfer?.getData("text") ?? "") : null;
       const next = applyCurrencyKey(centsRef.current, typed, replaceNext.current, allowEmpty);
       replaceNext.current = false;
+      centsRef.current = next; // a fast next keystroke may arrive before the effect re-syncs
       setCents(next);
       onValueChangeRef.current?.(next === null ? "" : centsToDecimalString(next));
     }
