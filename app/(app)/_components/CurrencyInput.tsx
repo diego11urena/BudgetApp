@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { centsToDecimalString, centsToDisplay, decimalStringToCents, digitsFromRawInput } from "@/lib/currency-input";
+import {
+  applyCurrencyKey,
+  centsToDecimalString,
+  centsToDisplay,
+  decimalStringToCents,
+  digitsFromRawInput,
+} from "@/lib/currency-input";
 
 /**
  * An implicit-decimal money input: the user only ever types digits (the
@@ -68,6 +74,18 @@ export function CurrencyInput({
     return decimalStringToCents(defaultValue);
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  // Mirrors for the native beforeinput listener below, which is attached
+  // once and would otherwise see stale props/state.
+  const centsRef = useRef(cents);
+  const onValueChangeRef = useRef(onValueChange);
+  useEffect(() => {
+    centsRef.current = cents;
+    onValueChangeRef.current = onValueChange;
+  });
+  // True from a focus or tap until the next keystroke: that keystroke
+  // replaces the whole amount. Tracked here rather than read off the DOM
+  // selection, which a tap can collapse to a caret mid-value.
+  const replaceNext = useRef(false);
 
   const display = cents === null ? "" : centsToDisplay(cents);
   const decimalValue = cents === null ? "" : centsToDecimalString(cents);
@@ -82,6 +100,28 @@ export function CurrencyInput({
       el.setSelectionRange(display.length, display.length);
     }
   }, [display]);
+
+  // Typing and deleting are applied to `cents` directly and the DOM edit is
+  // cancelled, so where the caret happens to be never matters. A digit
+  // landing mid-value used to be re-parsed as part of the number (tapping
+  // "1,000.00" then typing 1-2-0-0-0-0 gave $1,001,000,200.00 in CI).
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    function onBeforeInput(e: InputEvent) {
+      const isInsert = e.inputType.startsWith("insert");
+      if (!isInsert && !e.inputType.startsWith("delete")) return; // undo etc.: let onChange reparse
+      e.preventDefault();
+      const typed = isInsert ? (e.data ?? e.dataTransfer?.getData("text") ?? "") : null;
+      const next = applyCurrencyKey(centsRef.current, typed, replaceNext.current, allowEmpty);
+      replaceNext.current = false;
+      centsRef.current = next; // a fast next keystroke may arrive before the effect re-syncs
+      setCents(next);
+      onValueChangeRef.current?.(next === null ? "" : centsToDecimalString(next));
+    }
+    el.addEventListener("beforeinput", onBeforeInput);
+    return () => el.removeEventListener("beforeinput", onBeforeInput);
+  }, [allowEmpty]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const digits = digitsFromRawInput(e.target.value);
@@ -99,7 +139,10 @@ export function CurrencyInput({
         inputMode="numeric"
         value={display}
         onChange={handleChange}
-        onFocus={(e) => e.target.select()}
+        onFocus={(e) => {
+          replaceNext.current = true;
+          e.target.select();
+        }}
         // Also on click, not just focus. onFocus fires only on the
         // focus TRANSITION, so a field that's already focused -- any sheet
         // whose amount input carries autoFocus, which is most of them --
@@ -113,7 +156,10 @@ export function CurrencyInput({
         // already had focus -- the invariant this widget's own doc comment
         // above claims ("tapping anywhere in the field still behaves the
         // same as tapping at the end") but couldn't keep.
-        onClick={(e) => e.currentTarget.select()}
+        onClick={(e) => {
+          replaceNext.current = true;
+          e.currentTarget.select();
+        }}
         placeholder={placeholder}
         autoFocus={autoFocus}
         className={className}

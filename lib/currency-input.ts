@@ -35,3 +35,28 @@ export function centsToDisplay(cents: number): string {
   const centsPart = String(cents % 100).padStart(2, "0");
   return `${dollars.toLocaleString("en-US")}.${centsPart}`;
 }
+
+/**
+ * One keystroke against the current amount. `typed` is the inserted text
+ * (null for a delete). `replace` is set for the first keystroke after a
+ * focus/tap, when the whole amount counts as selected: a digit starts a
+ * new amount and a delete clears it. Otherwise digits append and a delete
+ * drops the last digit. Non-digit input leaves the amount unchanged.
+ */
+export function applyCurrencyKey(
+  cents: number | null,
+  typed: string | null,
+  replace: boolean,
+  allowEmpty: boolean,
+): number | null {
+  const empty = allowEmpty ? null : 0;
+  if (typed === null) {
+    if (replace || cents === null) return empty;
+    const shorter = String(cents).slice(0, -1);
+    return shorter === "" ? empty : Number(shorter);
+  }
+  const digits = typed.replace(/\D/g, "");
+  if (!digits) return cents;
+  const base = replace || !cents ? "" : String(cents);
+  return Number(digitsFromRawInput(base + digits));
+}

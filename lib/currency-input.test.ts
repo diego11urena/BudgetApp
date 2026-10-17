@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyCurrencyKey,
   centsToDecimalString,
   centsToDisplay,
   decimalStringToCents,
@@ -65,5 +66,35 @@ describe("digitsFromRawInput", () => {
     const tooLong = "1".repeat(MAX_CURRENCY_DIGITS + 3);
     expect(digitsFromRawInput(tooLong)).toHaveLength(MAX_CURRENCY_DIGITS);
     expect(digitsFromRawInput("1234567890123")).toBe("234567890123");
+  });
+});
+
+describe("applyCurrencyKey", () => {
+  it("appends digits, POS-style", () => {
+    let c: number | null = 0;
+    for (const d of "125050") c = applyCurrencyKey(c, d, false, false);
+    expect(c).toBe(125050);
+  });
+
+  it("the first keystroke after a tap replaces a pre-filled amount", () => {
+    let c: number | null = applyCurrencyKey(100000, "1", true, false);
+    for (const d of "20000") c = applyCurrencyKey(c, d, false, false);
+    expect(c).toBe(120000);
+  });
+
+  it("delete drops the last digit, or clears everything right after a tap", () => {
+    expect(applyCurrencyKey(125050, null, false, false)).toBe(12505);
+    expect(applyCurrencyKey(125050, null, true, false)).toBe(0);
+    expect(applyCurrencyKey(5, null, false, false)).toBe(0);
+  });
+
+  it("allowEmpty: deleting the last digit returns to blank", () => {
+    expect(applyCurrencyKey(5, null, false, true)).toBeNull();
+    expect(applyCurrencyKey(null, "7", false, true)).toBe(7);
+  });
+
+  it("ignores non-digits and keeps the 12-digit cap", () => {
+    expect(applyCurrencyKey(4550, "a.,", false, false)).toBe(4550);
+    expect(applyCurrencyKey(999999999999, "1", false, false)).toBe(999999999991);
   });
 });

@@ -87,7 +87,7 @@ export default async function TransactionsPage({
   ] = await Promise.all([
       prisma.cycleTransaction.findMany({
         where,
-        orderBy: { occurredAt: "desc" },
+        orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
         take: 100,
         // TRANSACTION_SELECT covers everything toCycleTransactionSummary
         // reads off the row itself; this page also names the cycle it
