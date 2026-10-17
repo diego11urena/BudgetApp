@@ -50,7 +50,7 @@ export default async function Home() {
           <Link href="/login" className="button button--chip landing-header-login">
             {t.logIn}
           </Link>
-          <Link href="/signup" className="button landing-header-cta">
+          <Link href="/login" className="button landing-header-cta">
             {t.getStarted}
           </Link>
         </div>
@@ -70,7 +70,7 @@ export default async function Home() {
 
           {/* Desktop: two buttons side by side. */}
           <div className="landing-hero-buttons">
-            <Link href="/signup" className="button landing-cta-primary">
+            <Link href="/login" className="button landing-cta-primary">
               {t.getStarted}
             </Link>
             <Link href="/login" className="button button--chip landing-cta-secondary">
@@ -86,7 +86,7 @@ export default async function Home() {
               is the only other auth entry; do not add a second Log in
               button" per the handoff. */}
           <div className="landing-hero-mobile-cta">
-            <Link href="/signup" className="button landing-cta-primary">
+            <Link href="/login" className="button landing-cta-primary">
               {t.getStarted}
             </Link>
             <p className="landing-mobile-login-link">
@@ -159,7 +159,7 @@ export default async function Home() {
           <p>{t.ctaBody}</p>
         </div>
         <div className="landing-cta-band-buttons">
-          <Link href="/signup" className="button landing-cta-band-primary">
+          <Link href="/login" className="button landing-cta-band-primary">
             {t.getStarted}
           </Link>
           <Link href="/login" className="button landing-cta-band-secondary">
@@ -183,8 +183,8 @@ export default async function Home() {
           <span>{t.footerCopyright}</span>
         </div>
         <div className="landing-footer-links">
-          <a href="#privacy">{t.footerPrivacy}</a>
-          <a href="#terms">{t.footerTerms}</a>
+          <Link href="/privacy">{t.footerPrivacy}</Link>
+          <Link href="/terms">{t.footerTerms}</Link>
           {/* Support is listed in the desktop footer only. */}
           <a href="#support" className="landing-footer-support">
             {t.footerSupport}

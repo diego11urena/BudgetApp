@@ -1,7 +1,7 @@
 /**
  * Shared between the root layout (reads the cookie server-side to resolve
  * which dictionary to render), the language-picker form on Profile (writes
- * it), and login/signup (sync the cookie to the account's real DB value on
+ * it), and lib/auth.ts (syncs the cookie to the account's real DB value on
  * sign-in). Lowercase, matching the cookie value directly -- the DB column
  * stores the uppercase Prisma enum instead (EN/ES); see setLocaleAction.
  *
@@ -22,9 +22,9 @@ export const LOCALE_LABEL: Record<LocaleValue, string> = {
 
 /**
  * What an anonymous visitor with no cookie yet sees (the landing page,
- * /login, /signup, /forgot-password) -- Spanish, since the app is built
+ * /login) -- Spanish, since the app is built
  * for the Panama market. A brand-new signup with no prior preference
- * inherits this too (see signupAction); an EXISTING account never does,
+ * inherits this too (see lib/auth.ts's findOrCreateUser); an EXISTING account never does,
  * since its DB row already has an explicit locale (defaulted to EN by the
  * migration that added this column -- see schema.prisma's own comment).
  */

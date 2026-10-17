@@ -122,36 +122,14 @@ export type Dictionary = {
       title: string;
       subtitle: (vocab: PeriodVocab) => string;
       metaTitle: string;
-      emailLabel: string;
-      passwordLabel: string;
-      forgot: string;
-      showPassword: string;
-      hidePassword: string;
       submitting: string;
       submit: string;
-      newToBalboa: string;
-      createAccount: string;
-      invalidCredentials: string;
-    };
-    signup: {
-      title: (vocab: PeriodVocab) => string;
-      subtitle: string;
-      metaTitle: string;
-      nameLabel: string;
-      emailLabel: string;
-      passwordLabel: string;
-      passwordHint: string;
-      submitting: string;
-      submit: string;
-      alreadyHaveAccount: string;
-      logIn: string;
-      emailTaken: string;
-    };
-    forgotPassword: {
-      metaTitle: string;
-      title: string;
-      subtitle: string;
-      backToLogin: string;
+      error: string;
+      agreeBefore: string;
+      termsLink: string;
+      agreeAnd: string;
+      privacyLink: string;
+      termsRequired: string;
     };
   };
 
@@ -663,9 +641,6 @@ export type Dictionary = {
     budgetFrequencyMonthlyHint: string;
     pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
-    account: string;
-    signOutEverywhere: string;
-    signOutEverywhereHint: string;
     dangerZone: string;
     signOut: string;
     developerTools: string;
@@ -677,22 +652,18 @@ export type Dictionary = {
     budgetFrequency: string;
     /** IncomeFrequencyRow's own row label -- the three option labels themselves are shared via common.payFrequency. */
     payFrequency: string;
-    changePassword: {
-      row: string;
-      title: string;
-      currentLabel: string;
-      newLabel: string;
-      confirmLabel: string;
-      mismatch: string;
-      updated: string;
-      saving: string;
-      submit: string;
-      accountNotFound: string;
-      currentPasswordIncorrect: string;
-    };
     devReset: {
       confirm: string;
       button: string;
+    };
+    deleteAccount: {
+      button: string;
+      hint: string;
+      confirmTitle: string;
+      confirmBody: string;
+      deleting: string;
+      yes: string;
+      cancel: string;
     };
     eraseCycles: {
       button: string;
@@ -966,14 +937,6 @@ export type Dictionary = {
     invalidAmount: string;
     amountNotPositive: string;
     giveItAName: string;
-    nameRequired: string;
-    invalidEmail: string;
-    passwordMinLength: string;
-    passwordMaxLength: string;
-    passwordRequired: string;
-    currentPasswordRequired: string;
-    newPasswordMinLength: string;
-    newPasswordMaxLength: string;
     amountTooLarge: string;
     dueDayRequiredForMonthly: string;
   };

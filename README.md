@@ -25,16 +25,15 @@ retaining full history for every past budget cycle.
    ```bash
    npm run dev
    ```
-5. Visit `http://localhost:3000` — you'll be redirected to sign up, then through onboarding (income → expenses → savings).
+5. Visit `http://localhost:3000` — log in with Google (set it up first, below), then go through onboarding (income → expenses → savings).
 
-Optional: `npm run db:seed` creates a demo user (`demo@example.com` / `password123`).
+## Google sign-in & Gmail import setup
 
-## Gmail import setup (optional)
-
-Profile has a "Connect Gmail" feature that auto-imports transaction
-notification emails (Banco General card purchases, Yappy sent/received) as
-transactions. It's entirely optional — the rest of the app works fully
-without it. To enable it locally:
+"Continue with Google" is the only way to log in (first sign-in creates the
+account; an existing account with the same email is reused). The same OAuth
+client also powers Profile's optional "Connect Gmail", which auto-imports
+transaction notification emails (Banco General card purchases, Yappy
+sent/received). To set it up locally:
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com), create a
    new project, and enable the **Gmail API** (APIs & Services → Library).
@@ -44,12 +43,14 @@ without it. To enable it locally:
    user. Add the `.../auth/gmail.readonly` scope.
 3. APIs & Services → Credentials → Create Credentials → **OAuth client ID**,
    application type **Web application**. Add these as Authorized redirect URIs:
-   - `http://localhost:3000/api/gmail/callback` (local dev)
-   - `https://<your-deployed-domain>/api/gmail/callback` (once deployed — see below)
+   - `http://localhost:3000/api/auth/callback/google` (sign-in, local dev)
+   - `http://localhost:3000/api/gmail/callback` (Gmail import, local dev)
+   - the same two paths on `https://<your-deployed-domain>` once deployed
 4. Copy the generated Client ID and Secret into `.env` as `GOOGLE_CLIENT_ID`
    / `GOOGLE_CLIENT_SECRET`, and generate a `GMAIL_TOKEN_ENCRYPTION_KEY`
    (`openssl rand -base64 32`) — this encrypts the stored refresh token.
-5. Restart the dev server, go to Profile, click "Connect Gmail."
+5. Restart the dev server and log in with Google; for Gmail import, go to
+   Profile and click "Connect Gmail."
 
 Only emails from Banco General (`transaccionesbg@bgeneral.com`) and Yappy
 (`notificaciones@yappy.com.pa`) are ever queried — see `lib/gmail-parsers.ts`
@@ -57,7 +58,7 @@ to add support for other senders/email formats.
 
 ## Rate limiting setup
 
-Login, signup, change-password, and the Gmail OAuth routes are rate-limited
+The Gmail OAuth routes and a few write actions are rate-limited
 against a shared [Upstash](https://upstash.com) Redis database (free tier) —
 required so limits are actually enforced across every serverless instance
 Vercel runs, not just whichever one happens to handle a given request.

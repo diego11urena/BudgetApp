@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, dismissCycleSummary } from "./helpers";
+import { signUpAndOnboard, signInAs, dismissCycleSummary } from "./helpers";
 
 /**
  * Coverage for the pay-frequency/budget-frequency simplification: the old
@@ -26,11 +26,8 @@ test.describe("pay/budget frequency combination lock", () => {
     await page.context().addCookies([{ name: "balboa-locale", value: "en", url: baseURL }]);
 
     const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
-    await page.goto("/signup");
-    await page.fill('input[name="name"]', "E2E Tester");
-    await page.fill('input[name="email"]', email);
-    await page.fill('input[name="password"]', "password123");
-    await page.click('button[type="submit"]');
+    await signInAs(page, email);
+    await page.goto("/", { waitUntil: "commit" });
     await page.waitForURL(/onboarding\/income/, { timeout: 60_000, waitUntil: "commit" });
 
     const payGroup = page.getByRole("group", { name: "How often do you get paid?" });

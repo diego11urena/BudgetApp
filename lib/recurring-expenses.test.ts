@@ -14,7 +14,6 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     const user = await prisma.user.create({
       data: {
         email: `recurring-expenses-query-${randomUUID()}@example.test`,
-        hashedPassword: "not-a-real-hash",
       },
     });
     userId = user.id;

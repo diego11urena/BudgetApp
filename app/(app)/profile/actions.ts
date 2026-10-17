@@ -3,84 +3,16 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { signIn, signOut } from "@/lib/auth";
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, verifyPassword } from "@/lib/password";
-import { checkRateLimit } from "@/lib/rate-limit";
-import { changePasswordSchema } from "@/lib/validations/onboarding";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { THEME_COOKIE, THEME_VALUES, type ThemePreferenceValue } from "@/lib/theme";
-import { LOCALE_COOKIE, isLocaleValue, getRequestLocale } from "@/lib/i18n/locale";
+import { LOCALE_COOKIE, isLocaleValue } from "@/lib/i18n/locale";
 import type { BudgetFrequency } from "@/lib/quincena-pace";
 import type { IncomeFrequency } from "@/app/generated/prisma/client";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
-import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 
 export const signOutAction = withActionErrorHandling(async function signOutAction() {
   await signOut({ redirectTo: "/login" });
-});
-
-export type ChangePasswordFormState = ActionResult | undefined;
-
-const CHANGE_PASSWORD_RATE_LIMIT = { max: 5, windowMs: 60_000 };
-
-export const changePasswordAction = withActionErrorHandling(async function changePasswordAction(
-  _prevState: ChangePasswordFormState,
-  formData: FormData,
-): Promise<ChangePasswordFormState> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-  const userId = session.user.id;
-  const t = getDictionary(await getRequestLocale());
-
-  const rateLimit = await checkRateLimit(`changepw:${userId}`, CHANGE_PASSWORD_RATE_LIMIT, {
-    failClosed: true,
-  });
-  if (!rateLimit.allowed) {
-    return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
-  }
-
-  const parsed = changePasswordSchema.safeParse({
-    currentPassword: formData.get("currentPassword"),
-    newPassword: formData.get("newPassword"),
-  });
-  if (!parsed.success) {
-    return { error: translateValidationMessage(parsed.error.issues[0]?.message ?? "", t) || t.common.invalidInput };
-  }
-  const { currentPassword, newPassword } = parsed.data;
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { hashedPassword: true, email: true },
-  });
-  if (!user) {
-    return { error: t.profile.changePassword.accountNotFound };
-  }
-
-  const isValid = await verifyPassword(currentPassword, user.hashedPassword);
-  if (!isValid) {
-    return { error: t.profile.changePassword.currentPasswordIncorrect };
-  }
-
-  const hashedPassword = await hashPassword(newPassword);
-  // Incrementing sessionVersion here (not just the password hash) is what
-  // actually revokes every other device's session -- see lib/auth.ts's
-  // session() callback, which compares this against what's baked into
-  // each existing JWT and treats a mismatch as logged out.
-  await prisma.user.update({
-    where: { id: userId },
-    data: { hashedPassword, sessionVersion: { increment: 1 } },
-  });
-  // ...which includes THIS device's JWT too -- re-issue it with the new
-  // sessionVersion so the person who just changed their password stays
-  // signed in here. Then redirect rather than return: returning re-renders
-  // this page inside the same request, where auth() still reads the OLD
-  // cookie from the request headers and bounces straight to /login.
-  await signIn("credentials", { email: user.email, password: newPassword, redirect: false });
-  redirect("/profile?password=updated");
 });
 
 /**
@@ -241,18 +173,19 @@ export const setIncomeFrequencyAction = withActionErrorHandling(async function s
   }
 });
 
-export const logOutEverywhereAction = withActionErrorHandling(async function logOutEverywhereAction() {
+/**
+ * Deletes the user row; every table hanging off it cascades (see
+ * schema.prisma's onDelete: Cascade relations), so this is the whole
+ * account. Other devices' sessions die on their next request too --
+ * lib/auth.ts's session() callback treats a missing user as logged out.
+ */
+export const deleteAccountAction = withActionErrorHandling(async function deleteAccountAction(): Promise<
+  ActionResult | undefined
+> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { sessionVersion: { increment: 1 } },
-  });
-  // Also signs this device out (its own session's baked-in version now
-  // fails the same check every other device's does on its next request)
-  // -- clicking "log out everywhere" ending the very session you clicked
-  // it from is the expected behavior, not an oversight.
-  await signOut({ redirectTo: "/login" });
+  await prisma.user.deleteMany({ where: { id: session.user.id } });
+  await signOut({ redirectTo: "/" });
 });

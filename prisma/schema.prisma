@@ -13,14 +13,15 @@ datasource db {
 model User {
   id                     String    @id @default(cuid())
   email                  String    @unique
-  hashedPassword         String
+  // Left over from email/password login (Google-only now). Nullable so
+  // Google-created accounts have none; drop once nothing needs the old hashes.
+  hashedPassword         String?
   name                   String?
   onboardingCompletedAt  DateTime?
-  // Bumped on password change (and by "Log out everywhere") -- the JWT
-  // session callback compares this against the value baked into the
-  // token at sign-in, so every other still-signed-in session stops
-  // passing the moment either happens, on its very next request.
-  sessionVersion         Int       @default(0)
+  // When the user ticked "I agree to the Terms of Use and Privacy Policy"
+  // on /login -- stamped on first sign-in (see lib/auth.ts). Null only for
+  // accounts that predate the checkbox and haven't signed in since.
+  termsAcceptedAt        DateTime?
   // Source of truth for the app's theme (Profile's own Theme row) --
   // mirrored into a cookie on every change so the root layout can render
   // the right [data-theme] attribute server-side without a DB round trip

@@ -30,7 +30,6 @@ describe.skipIf(!process.env.DATABASE_URL)("past-quincena editing", () => {
     const user = await prisma.user.create({
       data: {
         email: `past-editing-${randomUUID()}@example.test`,
-        hashedPassword: "not-a-real-hash",
       },
     });
     userId = user.id;
