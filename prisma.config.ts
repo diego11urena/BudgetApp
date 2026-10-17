@@ -9,6 +9,11 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrations take a session-level Postgres advisory lock. Through
+    // Neon's pgbouncer pooler that lock can outlive the build that took it
+    // (the pooled server connection stays open), blocking every later
+    // deploy. So the CLI uses the direct URL when Vercel/Neon provides one;
+    // the app itself still connects via the pooled DATABASE_URL.
+    url: process.env["DATABASE_URL_UNPOOLED"] ?? process.env["DATABASE_URL"],
   },
 });
