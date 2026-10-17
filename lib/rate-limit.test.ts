@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // checkRateLimit's own logic is now just "map Upstash's response shape to
 // ours, and cache one Ratelimit instance per distinct (max, windowMs)
@@ -28,11 +28,6 @@ vi.mock("@upstash/ratelimit", () => ({
   ),
 }));
 
-const headersGetMock = vi.fn();
-vi.mock("next/headers", () => ({
-  headers: async () => ({ get: headersGetMock }),
-}));
-
 // rate-limit.ts checks these at module load to distinguish "Upstash isn't
 // configured in this environment at all" from "it's configured but the
 // call failed" (see the "not configured" describe block below, which
@@ -42,7 +37,7 @@ vi.mock("next/headers", () => ({
 process.env.UPSTASH_REDIS_REST_URL = "https://fake-upstash.example.com";
 process.env.UPSTASH_REDIS_REST_TOKEN = "fake-token";
 
-const { checkRateLimit, getClientIp } = await import("./rate-limit");
+const { checkRateLimit } = await import("./rate-limit");
 
 describe("checkRateLimit", () => {
   beforeEach(() => {
@@ -75,7 +70,7 @@ describe("checkRateLimit", () => {
 
   // Regression anchor: a rate limiter is defense-in-depth, not the primary
   // gate. If Redis is unreachable (missing credentials, a network blip, an
-  // Upstash outage), login/signup/etc. must still work -- failing the same
+  // Upstash outage), the features behind it must still work -- failing the same
   // way as a real user hitting the limit (allowed:false) would take the
   // whole app down over an infrastructure hiccup, which is a far worse
   // outcome than briefly having no brute-force throttling.
@@ -120,9 +115,8 @@ describe("checkRateLimit when Upstash was never configured in this environment",
   // disturb the "configured" module instance (and its env vars) every
   // other test in this file shares. This is the exact regression this
   // guards: an environment with no Upstash wired up at all (this repo's
-  // own CI) must never be treated as "Upstash is down," or fail-closed
-  // callers (login/signup/change-password) would reject every request.
-  it("is always allowed, even with failClosed:true, and never touches the Ratelimit machinery", async () => {
+  // own CI) must never be treated as "Upstash is down."
+  it("is always allowed, and never touches the Ratelimit machinery", async () => {
     const originalUrl = process.env.UPSTASH_REDIS_REST_URL;
     const originalToken = process.env.UPSTASH_REDIS_REST_TOKEN;
     delete process.env.UPSTASH_REDIS_REST_URL;
@@ -131,11 +125,7 @@ describe("checkRateLimit when Upstash was never configured in this environment",
     try {
       const { checkRateLimit: checkRateLimitUnconfigured } = await import("./rate-limit");
       ratelimitCtor.mockClear();
-      const result = await checkRateLimitUnconfigured(
-        "some-key",
-        { max: 5, windowMs: 60_000 },
-        { failClosed: true },
-      );
+      const result = await checkRateLimitUnconfigured("some-key", { max: 5, windowMs: 60_000 });
       expect(result).toEqual({ allowed: true, retryAfterSeconds: 0 });
       expect(ratelimitCtor).not.toHaveBeenCalled();
     } finally {
@@ -146,23 +136,3 @@ describe("checkRateLimit when Upstash was never configured in this environment",
   });
 });
 
-describe("getClientIp", () => {
-  afterEach(() => {
-    headersGetMock.mockReset();
-  });
-
-  it("returns the first address in a comma-separated x-forwarded-for header", async () => {
-    headersGetMock.mockReturnValue("203.0.113.7, 10.0.0.1");
-    expect(await getClientIp()).toBe("203.0.113.7");
-  });
-
-  it("trims whitespace around the first address", async () => {
-    headersGetMock.mockReturnValue(" 203.0.113.7 , 10.0.0.1");
-    expect(await getClientIp()).toBe("203.0.113.7");
-  });
-
-  it("falls back to \"unknown\" when there's no x-forwarded-for header", async () => {
-    headersGetMock.mockReturnValue(null);
-    expect(await getClientIp()).toBe("unknown");
-  });
-});

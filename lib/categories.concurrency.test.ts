@@ -17,7 +17,6 @@ describe.skipIf(!process.env.DATABASE_URL)("getOrCreateCategory concurrency", ()
     const user = await prisma.user.create({
       data: {
         email: `categories-concurrency-${randomUUID()}@example.test`,
-        hashedPassword: "not-a-real-hash",
       },
     });
     userId = user.id;

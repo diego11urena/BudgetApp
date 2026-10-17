@@ -46,11 +46,8 @@ export async function signUpAndOnboard(
   const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
   await page.context().addCookies([{ name: "balboa-locale", value: "en", url: baseURL }]);
 
-  await page.goto("/signup");
-  await page.fill('input[name="name"]', "E2E Tester");
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', "password123");
-  await page.click('button[type="submit"]');
+  await signInAs(page, email);
+  await page.goto("/", { waitUntil: "commit" });
   await page.waitForURL(/onboarding\/income/, { timeout: 60_000, waitUntil: "commit" });
 
   // Pay frequency is asked first (its own picker), and choosing "Once a
@@ -83,6 +80,17 @@ export async function signUpAndOnboard(
   await page.waitForURL(/dashboard/, { timeout: 60_000, waitUntil: "commit" });
 
   return { email };
+}
+
+/**
+ * Signs in (creating the account on first use) through the test-only "e2e"
+ * provider in lib/auth.ts -- the real login is Google, whose consent screen
+ * a test can't drive. page.request shares the browser context's cookies,
+ * so the session cookie it gets back is the page's too.
+ */
+export async function signInAs(page: Page, email: string): Promise<void> {
+  const { csrfToken } = await (await page.request.get("/api/auth/csrf")).json();
+  await page.request.post("/api/auth/callback/e2e", { form: { csrfToken, email } });
 }
 
 /** Opens the bottom-nav "+" and picks one of the three quick-add types. */

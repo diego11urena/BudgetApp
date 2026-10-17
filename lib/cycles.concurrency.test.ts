@@ -17,7 +17,6 @@ describe.skipIf(!process.env.DATABASE_URL)("getOrCreateDraftCycle concurrency", 
     const user = await prisma.user.create({
       data: {
         email: `cycles-concurrency-${randomUUID()}@example.test`,
-        hashedPassword: "not-a-real-hash",
       },
     });
     userId = user.id;

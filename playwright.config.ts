@@ -107,6 +107,8 @@ export default defineConfig({
     // present in the environment, so this pins the server to the same
     // local database global-setup.ts just verified, regardless of what
     // `.env.local` says.
-    env: { DATABASE_URL: process.env.DATABASE_URL ?? "" },
+    // E2E_TEST_LOGIN turns on lib/auth.ts's test-only sign-in provider
+    // (see tests/e2e/helpers.ts's signInAs).
+    env: { DATABASE_URL: process.env.DATABASE_URL ?? "", E2E_TEST_LOGIN: "1" },
   },
 });

@@ -37,7 +37,12 @@ Before hand-writing a script, check `tests/e2e/` — `npx playwright test` (or o
 `npx playwright test tests/e2e/history.spec.ts`) already drives most flows. It starts its own
 `npm run dev` (`reuseExistingServer: false`), so stop any dev server on :3000 first; DB comes
 from `.env` (local `budgetapp_dev`).
-Flow to drive (3 steps, no accounts step): `/signup` -> `/onboarding/income` (fill name +
+**Login is Google-only** (`lib/auth.ts`). A script can't drive Google's consent screen, so
+start the server with `E2E_TEST_LOGIN=1` (Playwright's config already does) and sign in via
+`signInAs(page, email)` from `tests/e2e/helpers.ts` — a test-only `e2e` credentials provider
+that creates the account on first use. It never exists without that env var, nor on Vercel.
+
+Flow to drive (3 steps, no accounts step): sign in -> `/onboarding/income` (fill name +
 `#netQuincenaAmount` — **net take-home pay for one quincena, entered directly**, no
 payroll math involved) -> `/onboarding/expenses` (fixed expenses — starts with **zero
 rows**, click "+ Add a fixed expense" to add each one, no pre-added categories) ->
@@ -80,7 +85,7 @@ not onboarding). Revisiting an earlier step **pre-fills** it with what was last 
 `CycleBudgetGoal` rows filtered by category type) — unsaved in-progress edits on the step
 you're leaving are discarded if you navigate away without submitting, same as any web form.
 
-Worth probing: duplicate signup email (clean `.error-text`), logged-out access to
+Worth probing: logged-out access to
 `/onboarding` or `/dashboard` (bounces to `/login`), jumping ahead to a later onboarding
 step before finishing an earlier one (bounces back to the earliest incomplete step),
 revisiting `/onboarding` after completion (bounces to `/dashboard`), **submitting
@@ -261,8 +266,6 @@ Grew well beyond user info + sign-out since this doc was last accurate. Current 
   confirm a protected route (e.g. `/dashboard`) now bounces to `/login` too (session actually
   cleared) -> sign back in.
 - **Edit income** (`EditIncomeSheet.tsx`, see "Editing income later" above).
-- **Change password** (`ChangePasswordSheet.tsx` / `ChangePasswordForm.tsx` ->
-  `changePasswordAction`, rate-limited via `lib/rate-limit.ts`'s `checkRateLimit`).
 - **Connect Gmail** (`GmailConnectionCard.tsx`) — import status/errors surfaced via
   `?gmail=error` / `?gmail=rate_limited` query params; see `profile/gmail-actions.ts` and
   `lib/gmail-sync.ts`.

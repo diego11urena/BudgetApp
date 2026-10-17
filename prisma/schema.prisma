@@ -13,7 +13,9 @@ datasource db {
 model User {
   id                     String    @id @default(cuid())
   email                  String    @unique
-  hashedPassword         String
+  // Left over from email/password login (Google-only now). Nullable so
+  // Google-created accounts have none; drop once nothing needs the old hashes.
+  hashedPassword         String?
   name                   String?
   onboardingCompletedAt  DateTime?
   // Bumped on password change (and by "Log out everywhere") -- the JWT

@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { DevResetButton } from "./_components/DevResetButton";
 import { GmailRow } from "./_components/GmailRow";
 import { EraseCyclesButton } from "./_components/EraseCyclesButton";
-import { ChangePasswordSheet } from "./_components/ChangePasswordSheet";
 import { ThemeRow } from "./_components/ThemeRow";
 import { LanguageRow } from "./_components/LanguageRow";
 import { PayAndBudgetFrequencyRows } from "./_components/PayAndBudgetFrequencyRows";
@@ -28,14 +27,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ gmail?: string; password?: string }>;
+  searchParams: Promise<{ gmail?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
   }
   const userId = session.user.id;
-  const { gmail, password } = await searchParams;
+  const { gmail } = await searchParams;
   const locale = await getRequestLocale();
   const t = getDictionary(locale);
 
@@ -88,12 +87,6 @@ export default async function ProfilePage({
         </div>
       </div>
 
-      {password === "updated" && (
-        <p className="field-hint" role="status" style={{ margin: 0 }}>
-          {t.profile.changePassword.updated}
-        </p>
-      )}
-
       {(gmail === "error" || gmail === "rate_limited") && (
         <p className="error-text profile-inline-error">
           {gmail === "error" ? t.profile.gmailError : t.profile.gmailRateLimited}
@@ -139,7 +132,6 @@ export default async function ProfilePage({
       <section className="profile-group">
         <p className="profile-section-label">{t.profile.account}</p>
         <div className="dashboard-section profile-card">
-          <ChangePasswordSheet />
           <form action={logOutEverywhereAction}>
             <button type="submit" className="line-item line-item--link">
               <span>

@@ -29,7 +29,6 @@ describe.skipIf(!process.env.DATABASE_URL)("decoupled paycheck logging", () => {
     const user = await prisma.user.create({
       data: {
         email: `paycheck-logging-${randomUUID()}@example.test`,
-        hashedPassword: "not-a-real-hash",
       },
     });
     userId = user.id;

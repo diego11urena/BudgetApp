@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import { useT } from "@/app/_components/LocaleProvider";
 
-/** Shared shell for /login and /signup -- same layout, swapped copy, per the design system handoff's Auth screens section. */
+/** The /login screen's layout, per the design system handoff's Auth screens section. */
 export function AuthShell({
   title,
   subtitle,
