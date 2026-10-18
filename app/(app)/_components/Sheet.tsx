@@ -68,6 +68,7 @@ export function Sheet({
   children,
 }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number | null>(null);
   const headingId = useId();
 
@@ -78,6 +79,26 @@ export function Sheet({
   useEffect(() => {
     if (visible && panelRef.current) panelRef.current.style.transform = "";
   }, [visible]);
+
+  // Keyboard-aware: size the backdrop to the visual viewport, which shrinks
+  // when the on-screen keyboard opens, so the bottom-anchored panel (and its
+  // max-height) sit above the keyboard instead of behind it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const backdrop = backdropRef.current;
+    if (!vv || !backdrop) return;
+    function fit() {
+      backdrop!.style.top = `${vv!.offsetTop}px`;
+      backdrop!.style.height = `${vv!.height}px`;
+    }
+    fit();
+    vv.addEventListener("resize", fit);
+    vv.addEventListener("scroll", fit);
+    return () => {
+      vv.removeEventListener("resize", fit);
+      vv.removeEventListener("scroll", fit);
+    };
+  }, []);
 
   // Drag the handle down to dismiss. Pointer events cover touch and mouse;
   // pointer capture keeps the drag alive once the finger leaves the handle.
@@ -109,6 +130,7 @@ export function Sheet({
 
   return (
     <div
+      ref={backdropRef}
       className={`sheet-backdrop ${visible ? "is-visible" : ""}`}
       onClick={closeOnBackdropClick ? onClose : undefined}
       role="presentation"

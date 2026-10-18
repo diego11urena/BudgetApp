@@ -16,6 +16,7 @@ function seedTransaction(payload: {
   amount: number;
   paymentMethod?: "YAPPY";
   description?: string | null;
+  recurringExpense?: { name: string; amount: number };
 }) {
   execFileSync(
     "npx",
@@ -82,5 +83,104 @@ test.describe("dashboard 'needs attention' banner", () => {
     await expect(row).not.toContainText("Sent to");
     await expect(row.locator('input[placeholder="Choose or enter a category"]')).toHaveCount(1);
     await expect(row.locator('input[placeholder="Rent, lunch, gift…"]')).toHaveCount(0);
+  });
+
+  const CATEGORY = 'input[placeholder="Choose or enter a category"]';
+
+  test("Done for now saves the one transaction that was categorized, leaves the other, and the sheet stays closed", async ({
+    page,
+  }) => {
+    const { email } = await signUpAndOnboard(page);
+    // Newest first in the sheet: Cafe Unido is row 1, Super 99 row 2.
+    seedTransaction({ email, name: "Super 99", amount: 30, description: "Groceries" });
+    seedTransaction({ email, name: "Cafe Unido", amount: 4.5, description: "Coffee" });
+
+    await page.goto("/dashboard");
+    await expect(page.locator(".banner--action")).toContainText("2 transactions need more info");
+    await expect(page.getByText("Needs a category")).toHaveCount(2);
+
+    await page.click(".banner--action");
+    const rows = page.locator(".categorize-imports-row");
+    await expect(rows).toHaveCount(2);
+    await rows.filter({ hasText: "Cafe Unido" }).locator(CATEGORY).fill("Coffee");
+    await page.getByRole("button", { name: "Done for now" }).click();
+
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator(".banner--action")).toContainText("1 transaction needs more info");
+    await expect(page.getByText("Needs a category")).toHaveCount(1);
+    await page.waitForTimeout(1500);
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
+
+    await page.goto("/transactions");
+    await expect(page.locator(".transaction-row", { hasText: "Cafe Unido" }).locator(".transaction-sub")).toContainText(
+      "Coffee",
+    );
+    await expect(page.locator(".transaction-row", { hasText: "Super 99" }).locator(".transaction-sub")).toContainText(
+      "Needs a category",
+    );
+  });
+
+  test("with the keyboard up and recurring toggled, Save stays visible; Done for now skips a half-filled row but saves the valid one", async ({
+    page,
+  }) => {
+    // Short viewport stands in for a phone with the keyboard open.
+    await page.setViewportSize({ width: 390, height: 520 });
+    const { email } = await signUpAndOnboard(page);
+    seedTransaction({ email, name: "Super 99", amount: 30, description: "Groceries" });
+    seedTransaction({
+      email,
+      name: "Electric Co",
+      amount: 40,
+      description: "Power bill",
+      recurringExpense: { name: "Electricity", amount: 40 },
+    });
+
+    await page.goto("/dashboard");
+    await page.click(".banner--action");
+    const electric = page.locator(".categorize-imports-row").filter({ hasText: "Electric Co" });
+    const electricSave = electric.getByRole("button", { name: "Save", exact: true });
+
+    await electric.locator(CATEGORY).fill("Utilities");
+    await electric.locator(".category-name-input-dropdown button", { hasText: /^Utilities$/ }).click();
+    await expect(electric.locator(CATEGORY)).not.toBeFocused(); // picking an option dismisses the keyboard
+
+    for (const checked of [true, false, true]) {
+      await electric.getByLabel("This is a recurring expense").setChecked(checked);
+      await expect(electricSave).toBeInViewport();
+    }
+    const recurringInput = electric.locator(".recurring-picker input[type=text]");
+    await recurringInput.fill("Elec"); // focused, dropdown open
+    await expect(electric.locator(".recurring-picker-dropdown")).toBeInViewport();
+    await expect(electricSave).toBeInViewport();
+
+    // Half-filled: recurring checked but no recurring expense named -> not saved.
+    await recurringInput.fill("");
+    const groceries = page.locator(".categorize-imports-row").filter({ hasText: "Super 99" });
+    await groceries.locator(CATEGORY).fill("Groceries");
+    await page.getByRole("button", { name: "Done for now" }).click();
+
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator(".banner--action")).toContainText("1 transaction needs more info");
+    await page.goto("/transactions");
+    await expect(page.locator(".transaction-row", { hasText: "Super 99" }).locator(".transaction-sub")).toContainText(
+      "Groceries",
+    );
+    await expect(page.locator(".transaction-row", { hasText: "Electric Co" }).locator(".transaction-sub")).toContainText(
+      "Needs a category",
+    );
+
+    // Reopen from Review and finish it with a picked recurring expense: Save closes the sheet.
+    await page.goto("/dashboard");
+    await page.click(".banner--action");
+    await electric.locator(CATEGORY).fill("Utilities");
+    await electric.locator(".category-name-input-dropdown button", { hasText: /^Utilities$/ }).click();
+    await electric.getByLabel("This is a recurring expense").check();
+    await recurringInput.fill("Elec");
+    await electric.locator(".recurring-picker-dropdown button", { hasText: "Electricity" }).click();
+    await electricSave.click();
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator(".banner--action")).toHaveCount(0);
+    await page.waitForTimeout(1500);
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
   });
 });
