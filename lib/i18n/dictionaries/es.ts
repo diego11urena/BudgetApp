@@ -218,6 +218,7 @@ export const es: Dictionary = {
     closingQuincena: (vocab) => `Cerrando ${vocab.noun}...`,
     iJustGotPaid: "Ya me pagaron",
     insightsTitle: "Análisis",
+    dismissInsight: "Descartar",
     needsAttention: (n) => `${n} ${plural(n, "transacción necesita", "transacciones necesitan")} más información`,
     review: "Revisar",
     finishTransactionsTitle: "Completa estas transacciones",
@@ -722,16 +723,15 @@ export const es: Dictionary = {
   },
 
   insights: {
-    dueToday: "vence hoy",
-    dueTomorrow: "vence mañana",
-    dueInDays: (n) => `vence en ${n} días`,
-    wasDueYesterday: "venció ayer",
-    wasDueDaysAgo: (n) => `venció hace ${n} días`,
-    scheduledDueSoon: (name, amount, dueText) => `${name} (${amount}) ${dueText} y no está marcada como pagada.`,
-    unpaidRecurring: (count, remaining) =>
-      `${count} ${plural(count, "cuenta recurrente no se ha", "cuentas recurrentes no se han")} pagado todavía este ciclo (${remaining} restante).`,
-    duplicateCharge: (amount, name, date) => `Dos cargos de ${amount} de ${name} el ${date} — ¿duplicado?`,
-    duplicateChargeRange: (amount, name, dateRange) => `Dos cargos de ${amount} de ${name} entre ${dateRange} — ¿duplicado?`,
+    chargeComingUp: (name, amount, daysUntil) =>
+      `${name} (${amount}) se cobrará ${daysUntil === 0 ? "hoy" : daysUntil === 1 ? "mañana" : `en ${daysUntil} días`}.`,
+    chargesComingUp: (count, withinDays, total) => `${count} cobros en los próximos ${withinDays} días (${total} en total).`,
+    chargeMissing: (name, amount, date) => `Se esperaba ${name} (${amount}) el ${date}, pero aún no aparece.`,
+    stillToCharge: (count, remaining) =>
+      `${count} ${plural(count, "gasto recurrente falta", "gastos recurrentes faltan")} por cobrarse este ciclo (${remaining}).`,
+    duplicateSameDay: (name, amount, date) => `Posible duplicado: ${name} (${amount}) cobrado dos veces el ${date}.`,
+    duplicateTwoDays: (name, amount, firstDate, secondDate) =>
+      `${name} (${amount}) cobrado el ${firstDate} y el ${secondDate}. ¿Uno es duplicado?`,
     categoryAnomaly: (categoryName, amount) => `El gasto en ${categoryName} subió ${amount} respecto a tu promedio reciente.`,
     categoryDelta: (categoryName, amount) => `El gasto en ${categoryName} subió ${amount} respecto al ciclo anterior.`,
     overBudget: (amount, days) =>

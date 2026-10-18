@@ -106,18 +106,31 @@ export function startOfDay(date: Date): Date {
   return panamaMidnight(year, month, day);
 }
 
-/**
- * Resolves a recurring expense's dueDay (1-31) to a real Date in
- * the current Panama-calendar month -- null when that day doesn't exist
- * this month (e.g. dueDay 31 in a 30-day month). Extracted from
- * lib/insights.ts's own daysUntilMonthlyDue (still there, now a thin
- * wrapper) so lib/recurring-fulfillment.ts's summarizeRecurringFulfillment
- * can share the exact same due-date math instead of reimplementing it.
- */
-export function resolveMonthlyDueDate(now: Date, dueDay: number): Date | null {
+/** The dueDay's occurrence in a given month, clamped to that month's last day -- a bill dated the 31st lands on Sep 30 or Feb 28, never skipped. Same clamp as dueDayFallsWithinCycle. */
+function clampedDueDate(year: number, month: number, dueDay: number): Date {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return panamaMidnight(year, month, Math.min(dueDay, lastDay));
+}
+
+/** A recurring expense's dueDay (1-31) as a real Date in `now`'s own Panama-calendar month, clamped to the month's last day. */
+export function resolveMonthlyDueDate(now: Date, dueDay: number): Date {
   const { year, month } = panamaDateParts(now);
-  const dueDateStr = `${year}-${String(month).padStart(2, "0")}-${String(dueDay).padStart(2, "0")}`;
-  return parseDateOnly(dueDateStr);
+  return clampedDueDate(year, month, dueDay);
+}
+
+/**
+ * The dueDay occurrence closest to `now` -- last, this or next month. "Due
+ * in 2 days" on Oct 30 for a bill on the 1st means Nov 1, not Oct 1.
+ */
+export function nearestMonthlyDueDate(now: Date, dueDay: number): Date {
+  const { year, month } = panamaDateParts(now);
+  const today = startOfDay(now).getTime();
+  return [-1, 0, 1]
+    .map((offset) => {
+      const m = month + offset;
+      return m < 1 ? clampedDueDate(year - 1, 12, dueDay) : m > 12 ? clampedDueDate(year + 1, 1, dueDay) : clampedDueDate(year, m, dueDay);
+    })
+    .reduce((best, d) => (Math.abs(d.getTime() - today) < Math.abs(best.getTime() - today) ? d : best));
 }
 
 /**

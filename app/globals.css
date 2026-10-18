@@ -2440,6 +2440,24 @@ button.line-item--link {
   color: var(--color-chevron);
 }
 
+/* 44px tap target around a small glyph, so it can't be hit by accident. */
+.insights-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -12px;
+  border: none;
+  background: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+}
+
+.insights-dismiss:active {
+  opacity: 0.6;
+}
+
 .breakdown-legend-row.is-selected {
   background: var(--color-bg-secondary);
 }

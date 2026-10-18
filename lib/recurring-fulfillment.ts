@@ -11,7 +11,7 @@ import type { CategoryWithRecurringExpenses } from "./recurring-expenses";
 export interface RecurringFulfillmentException {
   name: string;
   kind: "missing" | "upcoming";
-  /** Null for an item with no set date, or a dueDay that doesn't resolve this month (see resolveMonthlyDueDate). */
+  /** Null for an item with no set date. */
   dueDate: Date | null;
 }
 

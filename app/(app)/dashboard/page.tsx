@@ -13,6 +13,7 @@ import {
 import { getCycleFinancials, summarizeCycleFinancials } from "@/lib/cycle-financials";
 import { getOrderedCategoryNames } from "@/lib/category-order";
 import { generateInsights } from "@/lib/insights";
+import { getInsightMemory } from "@/lib/insight-memory";
 import { getRecurringExpenseOptions, getRecurringExpensesForCycle, summarizeRecurringExpenses } from "@/lib/recurring-expenses";
 import { getGoalsWithProgress } from "@/lib/goals";
 import { getNeedsAttentionTransactions } from "@/lib/needs-attention";
@@ -70,6 +71,7 @@ export default async function DashboardPage() {
     budgetFrequency,
     payFrequency,
     activeIncomeSource,
+    insightMemory,
   ] = await Promise.all([
     getCycleFinancials(cycle.id),
     getAdjacentCycles(userId, cycle),
@@ -84,6 +86,7 @@ export default async function DashboardPage() {
     getUserBudgetFrequency(userId),
     getUserPayFrequency(userId),
     getActiveIncomeSource(prisma, userId),
+    getInsightMemory(userId),
   ]);
 
   // Exclusive neighbor boundary -> inclusive HTML date-input min, same
@@ -131,6 +134,8 @@ export default async function DashboardPage() {
   const periodName = formatMonthLabel(cycle.periodStart, locale);
 
   const insights = generateInsights(financials, previousClosedFinancials, {
+    cycleId: cycle.id,
+    memory: insightMemory,
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
     goals,

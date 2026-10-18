@@ -214,6 +214,7 @@ export const en: Dictionary = {
     closingQuincena: (vocab) => `Closing ${vocab.noun}...`,
     iJustGotPaid: "I just got paid",
     insightsTitle: "Insights",
+    dismissInsight: "Dismiss",
     needsAttention: (n) => `${n} ${plural(n, "transaction needs", "transactions need")} more info`,
     review: "Review",
     finishTransactionsTitle: "Finish these transactions",
@@ -703,16 +704,15 @@ export const en: Dictionary = {
   },
 
   insights: {
-    dueToday: "due today",
-    dueTomorrow: "due tomorrow",
-    dueInDays: (n) => `due in ${n} days`,
-    wasDueYesterday: "was due yesterday",
-    wasDueDaysAgo: (n) => `was due ${n} days ago`,
-    scheduledDueSoon: (name, amount, dueText) => `${name} (${amount}) ${dueText} and isn't marked paid.`,
-    unpaidRecurring: (count, remaining) =>
-      `${count} ${plural(count, "recurring expense hasn't", "recurring expenses haven't")} been paid yet this cycle (${remaining} left).`,
-    duplicateCharge: (amount, name, date) => `Two charges of ${amount} from ${name} on ${date} — duplicate?`,
-    duplicateChargeRange: (amount, name, dateRange) => `Two charges of ${amount} from ${name} between ${dateRange} — duplicate?`,
+    chargeComingUp: (name, amount, daysUntil) =>
+      `${name} (${amount}) will be charged ${daysUntil === 0 ? "today" : daysUntil === 1 ? "tomorrow" : `in ${daysUntil} days`}.`,
+    chargesComingUp: (count, withinDays, total) => `${count} charges coming up in the next ${withinDays} days (${total} total).`,
+    chargeMissing: (name, amount, date) => `${name} (${amount}) was expected on ${date} but hasn't shown up yet.`,
+    stillToCharge: (count, remaining) =>
+      `${count} recurring ${plural(count, "expense is", "expenses are")} still to be charged this cycle (${remaining}).`,
+    duplicateSameDay: (name, amount, date) => `Possible duplicate: ${name} (${amount}) charged twice on ${date}.`,
+    duplicateTwoDays: (name, amount, firstDate, secondDate) =>
+      `${name} (${amount}) charged on ${firstDate} and ${secondDate}. Is one a duplicate?`,
     categoryAnomaly: (categoryName, amount) => `${categoryName} spending is up ${amount} vs your recent average.`,
     categoryDelta: (categoryName, amount) => `${categoryName} spending is up ${amount} vs last cycle.`,
     overBudget: (amount, days) => `You're ${amount} over budget this cycle so far, with ${days} ${plural(days, "day", "days")} left.`,

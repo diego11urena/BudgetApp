@@ -231,6 +231,8 @@ export type Dictionary = {
     closingQuincena: (vocab: PeriodVocab) => string;
     iJustGotPaid: string;
     insightsTitle: string;
+    /** Accessible name of the × that hides an insight. */
+    dismissInsight: string;
     needsAttention: (n: number) => string;
     review: string;
     finishTransactionsTitle: string;
@@ -751,17 +753,17 @@ export type Dictionary = {
    * scheduledDueSoon rather than a full sentence on its own.
    */
   insights: {
-    dueToday: string;
-    dueTomorrow: string;
-    dueInDays: (n: number) => string;
-    wasDueYesterday: string;
-    wasDueDaysAgo: (n: number) => string;
-    /** Dated expenses only -- see dueSoonCandidate's own doc comment. */
-    scheduledDueSoon: (name: string, amount: string, dueText: string) => string;
-    unpaidRecurring: (count: number, remaining: string) => string;
-    duplicateCharge: (amount: string, name: string, date: string) => string;
-    /** Same rule as duplicateCharge, but the two transactions don't share a calendar day -- names the true date range (e.g. "Aug 8 – Aug 9") instead of implying a single shared date. */
-    duplicateChargeRange: (amount: string, name: string, dateRange: string) => string;
+    /** Heads-up for one recurring charge: "Spotify ($0.99) will be charged in 2 days." daysUntil 0 = today, 1 = tomorrow. */
+    chargeComingUp: (name: string, amount: string, daysUntil: number) => string;
+    /** Several charges in the window combined: "3 charges coming up in the next 3 days ($42.00 total)." */
+    chargesComingUp: (count: number, withinDays: number, total: string) => string;
+    /** A charge date passed with nothing showing up: "Spotify ($0.99) was expected on Oct 16 but hasn't shown up yet." */
+    chargeMissing: (name: string, amount: string, date: string) => string;
+    /** Informational -- Safe to spend already reserves this money. */
+    stillToCharge: (count: number, remaining: string) => string;
+    duplicateSameDay: (name: string, amount: string, date: string) => string;
+    /** The two charges landed on different days -- both dates are always named. */
+    duplicateTwoDays: (name: string, amount: string, firstDate: string, secondDate: string) => string;
     categoryAnomaly: (categoryName: string, amount: string) => string;
     categoryDelta: (categoryName: string, amount: string) => string;
     overBudget: (amount: string, days: number) => string;
