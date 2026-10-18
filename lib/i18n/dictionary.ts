@@ -254,15 +254,12 @@ export type Dictionary = {
     needsAttention: (n: number) => string;
     review: string;
     finishTransactionsTitle: string;
+    finishTransactionsBody: string;
     doneForNow: string;
-    needsAttentionProgress: (current: number, total: number) => string;
-    categoryLabel: string;
-    /** Last chip in each NeedsAttentionSheet chip list -- the only path that opens the keyboard. */
-    createNew: string;
-    newCategoryPlaceholder: string;
-    newRecurringPlaceholder: string;
     sentTo: (name: string) => string;
     receivedFrom: (name: string) => string;
+    chooseCategoryPlaceholder: string;
+    chooseCategoryError: string;
     tellUsWhatItWasForError: string;
     isRecurringExpense: string;
     /** Label above RecurringExpensePicker, shown only once the "This is a recurring expense" checkbox is on -- an existing one can be searched/picked here, or a new one named by typing, instead of the toggle only ever doing an exact name match. */

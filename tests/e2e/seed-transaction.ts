@@ -18,19 +18,10 @@ async function main() {
     type?: "EXPENSE" | "INCOME" | "SAVINGS";
     paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
     description?: string | null;
-    /** Seeds an existing recurring expense (in a new "Utilities" category) alongside the transaction. */
-    recurringExpense?: { name: string; amount: number };
   };
 
   const user = await prisma.user.findUniqueOrThrow({ where: { email: payload.email } });
   const cycle = await prisma.budgetCycle.findFirstOrThrow({ where: { userId: user.id } });
-
-  if (payload.recurringExpense) {
-    const category = await prisma.expenseCategory.create({ data: { userId: user.id, name: "Utilities" } });
-    await prisma.recurringExpense.create({
-      data: { userId: user.id, categoryId: category.id, ...payload.recurringExpense },
-    });
-  }
 
   await prisma.cycleTransaction.create({
     data: {
