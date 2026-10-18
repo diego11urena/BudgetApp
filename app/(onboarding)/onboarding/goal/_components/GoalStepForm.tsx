@@ -54,7 +54,6 @@ export function GoalStepForm({ savingsCategoryNames }: { savingsCategoryNames: s
             name="name"
             categoryNames={savingsCategoryNames}
             placeholder={t.onboarding.goal.namePlaceholder}
-            showChips={false}
             required={false}
             onValueChange={setName}
           />

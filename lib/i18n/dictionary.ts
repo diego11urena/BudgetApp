@@ -149,10 +149,8 @@ export type Dictionary = {
       continue: string;
       /** The budget-cadence picker's own label -- above the two budgetFrequency options (see common.budgetFrequency). Asks how the user wants to BUDGET, not how they get paid -- see payCadenceLabel below for the separate, genuinely-about-paychecks question. */
       cadenceLabel: string;
-      /** The pay-cadence picker's own label -- above the two payFrequency options (see common.payFrequency). Purely descriptive on its own, but constrains cadenceLabel's own picker: MONTHLY pay forces/locks MONTHLY budget (see monthlyPayLocksMonthlyBudget below). */
+      /** The pay-cadence picker's own label -- above the two payFrequency options (see common.payFrequency). Purely descriptive on its own, but constrains cadenceLabel's own picker: MONTHLY pay forces MONTHLY budget and hides that picker. */
       payCadenceLabel: string;
-      /** Shown under the budget-frequency picker only while payFrequency is MONTHLY -- explains why Quincenal is disabled there instead of just silently unclickable. */
-      monthlyPayLocksMonthlyBudget: string;
     };
     expenses: {
       metaTitle: string;

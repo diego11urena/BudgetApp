@@ -84,38 +84,29 @@ export function IncomeForm({ initial }: { initial?: IncomeFormInitial }) {
         </div>
       </div>
 
-      <div className="field">
-        <label>{t.onboarding.income.cadenceLabel}</label>
-        <input type="hidden" name="budgetFrequency" value={budgetFrequency} />
-        <div className="theme-picker" role="group" aria-label={t.onboarding.income.cadenceLabel}>
-          {BUDGET_FREQUENCY_VALUES.map((value) => {
-            // Monthly pay has no second paycheck to split a quincena
-            // around -- disabled, not hidden, so it's still visible *why*
-            // only one option is choosable, matching the pattern used
-            // wherever else this app locks a control instead of removing
-            // it. handlePayFrequencyChange already forced budgetFrequency
-            // to MONTHLY the moment payFrequency became MONTHLY, so this
-            // can never actually be clicked into a QUINCENAL selection --
-            // disabled is belt-and-suspenders against a stray click event.
-            const disabled = value === "QUINCENAL" && payFrequency === "MONTHLY";
-            return (
+      {/* Monthly pay has no second paycheck to split a quincena around, so
+          the budget is always monthly -- hidden rather than shown with a
+          disabled option, which read like a bug. The hidden input still
+          submits it. */}
+      <input type="hidden" name="budgetFrequency" value={budgetFrequency} />
+      {payFrequency !== "MONTHLY" && (
+        <div className="field">
+          <label>{t.onboarding.income.cadenceLabel}</label>
+          <div className="theme-picker" role="group" aria-label={t.onboarding.income.cadenceLabel}>
+            {BUDGET_FREQUENCY_VALUES.map((value) => (
               <button
                 key={value}
                 type="button"
                 className={`theme-picker-option${budgetFrequency === value ? " is-active" : ""}`}
                 aria-pressed={budgetFrequency === value}
-                disabled={disabled}
                 onClick={() => setBudgetFrequency(value)}
               >
                 {value === "QUINCENAL" ? t.common.budgetFrequency.quincenal : t.common.budgetFrequency.monthly}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
-        {payFrequency === "MONTHLY" && (
-          <span className="field-hint">{t.onboarding.income.monthlyPayLocksMonthlyBudget}</span>
-        )}
-      </div>
+      )}
 
       {state?.error && (
         <p id="income-amount-error" className="error-text" role="alert">

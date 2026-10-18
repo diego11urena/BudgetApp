@@ -1,23 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useT } from "@/app/_components/LocaleProvider";
 
-const TOP_CHIP_COUNT = 6;
-const MAX_SUGGESTIONS = 8;
+const NEW = "__new__";
 
 /**
- * A name input with quick-select chips for the top used categories plus a
- * filtered, case-insensitive dropdown of the rest. Selecting a suggestion
- * fills the input with its *exact* stored spelling/casing — the actual fix
- * for the near-miss duplicate problem (typing "rent" when "Rent" already
- * exists used to silently create a second, separate category). A "Create
- * new" option only appears when the typed value doesn't already match an
- * existing category case-insensitively, so creating one is an explicit
- * choice rather than whatever falls out of what you happened to type.
- * getOrCreateCategory (lib/categories.ts) is a second, server-side safety
- * net doing the same case-insensitive match — this UI is guidance, not the
- * only thing standing between a typo and a duplicate category.
+ * A native <select> over the user's existing categories (iOS shows its own
+ * wheel picker, no keyboard) plus a "+ New category…" option that reveals a
+ * text field -- the same pattern QuickAddSheet's category field uses.
+ * Picking from the list submits the category's *exact* stored spelling, so
+ * typing "rent" when "Rent" exists can't silently create a second category;
+ * getOrCreateCategory (lib/categories.ts) is the server-side safety net
+ * doing the same case-insensitive match. With no existing categories
+ * there's nothing to pick, so it's just the text field.
  */
 export function CategoryNameInput({
   id,
@@ -26,7 +22,6 @@ export function CategoryNameInput({
   defaultValue,
   placeholder,
   required = true,
-  showChips = true,
   invalid = false,
   describedBy,
   onValueChange,
@@ -37,143 +32,71 @@ export function CategoryNameInput({
   defaultValue?: string;
   placeholder?: string;
   required?: boolean;
-  /** Set false to render just the text input + dropdown as a single combobox, with no chip row above it. */
-  showChips?: boolean;
-  /** Applies the shared .is-invalid treatment to the text input — same conditional-class pattern as QuickAddSheet's category input. */
+  /** Applies the shared .is-invalid treatment -- same conditional-class pattern as QuickAddSheet's category field. */
   invalid?: boolean;
-  /** id of the caller's error message, when invalid — wired to aria-describedby so screen readers announce why, same convention as every other field in the app. */
+  /** id of the caller's error message, when invalid -- wired to aria-describedby. */
   describedBy?: string;
-  /**
-   * Most callers just let this input submit `name` on the form and never
-   * look at the value in between — but a caller that derives something
-   * else live from the category as the user picks/types it (e.g.
-   * QuickAddSheet pre-filling its merchant-name field from the category
-   * until the user types their own) needs the current value on every
-   * change, not just at submit time.
-   */
+  /** For callers that derive something live from the current value (e.g. GoalStepForm), not just read it at submit. */
   onValueChange?: (value: string) => void;
 }) {
   const t = useT();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState(defaultValue ?? "");
-  const [open, setOpen] = useState(false);
-  const topCategories = categoryNames.slice(0, TOP_CHIP_COUNT);
+  const initial = defaultValue ?? "";
+  const match = categoryNames.find((c) => c.toLowerCase() === initial.trim().toLowerCase());
+  const [choice, setChoice] = useState(match ?? (initial && categoryNames.length > 0 ? NEW : ""));
+  const [newName, setNewName] = useState(match ? "" : initial);
+  // Only when the user picks "+ New category…" -- not when a sheet opens pre-set to a custom name.
+  const [focusNew, setFocusNew] = useState(false);
+  const creating = categoryNames.length === 0 || choice === NEW;
+  const a11y = {
+    "aria-invalid": invalid || undefined,
+    "aria-describedby": invalid ? describedBy : undefined,
+    className: invalid ? "is-invalid" : "",
+  };
 
-  const query = value.trim().toLowerCase();
-  const suggestions = (
-    query ? categoryNames.filter((c) => c.toLowerCase().includes(query)) : categoryNames
-  ).slice(0, MAX_SUGGESTIONS);
-  const hasExactMatch = categoryNames.some((c) => c.toLowerCase() === query);
-  const showCreateOption = query.length > 0 && !hasExactMatch;
-
-  // Closing on an outside click (not just blur) so a mousedown on a
-  // dropdown option — which would otherwise blur the input first — doesn't
-  // race the option's own onClick and close the list before the click
-  // registers.
-  useEffect(() => {
-    function handlePointerDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, []);
-
-  function select(next: string) {
-    setValue(next);
-    setOpen(false);
-    // Picking an option is a finished choice: drop focus so the on-screen keyboard closes.
-    inputRef.current?.blur();
-    onValueChange?.(next);
-  }
+  const textInput = (
+    <input
+      id={categoryNames.length === 0 ? id : undefined}
+      name={name}
+      type="text"
+      value={newName}
+      placeholder={categoryNames.length === 0 ? placeholder : t.quickAdd.newCategoryPlaceholder}
+      aria-label={categoryNames.length === 0 ? undefined : t.quickAdd.newCategoryPlaceholder}
+      required={required}
+      autoComplete="off"
+      autoFocus={focusNew}
+      {...a11y}
+      onChange={(e) => {
+        setNewName(e.target.value);
+        onValueChange?.(e.target.value);
+      }}
+    />
+  );
+  if (categoryNames.length === 0) return textInput;
 
   return (
-    <div className="category-name-input" ref={containerRef}>
-      {showChips && topCategories.length > 0 && (
-        <div className="category-chips category-chips--compact">
-          {topCategories.map((categoryName) => (
-            <button
-              key={categoryName}
-              type="button"
-              className={`category-chip ${value === categoryName ? "is-active" : ""}`}
-              onClick={() => select(categoryName)}
-            >
-              {categoryName}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="category-name-input-combobox">
-        <input
-          ref={inputRef}
-          id={id}
-          name={name}
-          type="text"
-          value={value}
-          placeholder={placeholder}
-          required={required}
-          autoComplete="off"
-          aria-invalid={invalid || undefined}
-          aria-describedby={invalid ? describedBy : undefined}
-          className={invalid ? "is-invalid" : ""}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setOpen(true);
-            onValueChange?.(e.target.value);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={(e) => {
-            // Consume Escape ourselves when the dropdown is open, so it
-            // closes just the suggestions, not the whole sheet --
-            // useModalFocus's own Escape-to-close listener is a SEPARATE
-            // document.addEventListener("keydown", ...) call, and React
-            // attaches its own delegated listener to `document` too (App
-            // Router hydrates onto `document`), so both listeners live on
-            // the very same node. Plain stopPropagation() only blocks
-            // propagation to *other* nodes -- it does nothing to a sibling
-            // listener already registered on this same node. Only
-            // stopImmediatePropagation() on the underlying native event
-            // stops that sibling call from firing at all, which is what
-            // actually keeps this key press from also closing the sheet.
-            // Dropdown already closed -- let Escape bubble/fire normally
-            // and close the sheet.
-            if (e.key === "Escape" && open) {
-              e.nativeEvent.stopImmediatePropagation();
-              setOpen(false);
-            }
-          }}
-        />
-        {open && (suggestions.length > 0 || showCreateOption) && (
-          <ul className="category-name-input-dropdown">
-            {suggestions.map((categoryName) => (
-              <li key={categoryName}>
-                <button
-                  type="button"
-                  className={value === categoryName ? "is-active" : ""}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => select(categoryName)}
-                >
-                  {categoryName}
-                </button>
-              </li>
-            ))}
-            {showCreateOption && (
-              <li>
-                <button
-                  type="button"
-                  className="category-name-input-create"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => select(value.trim())}
-                >
-                  {t.quickAdd.createNew(value.trim())}
-                </button>
-              </li>
-            )}
-          </ul>
-        )}
-      </div>
-    </div>
+    <>
+      <select
+        id={id}
+        value={choice}
+        required={required && !creating}
+        {...(creating ? {} : a11y)}
+        onChange={(e) => {
+          setChoice(e.target.value);
+          setFocusNew(e.target.value === NEW);
+          onValueChange?.(e.target.value === NEW ? newName : e.target.value);
+        }}
+      >
+        <option value="" disabled={required}>
+          {t.quickAdd.chooseCategoryOption}
+        </option>
+        {categoryNames.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+        <option value={NEW}>{t.quickAdd.newCategoryOption}</option>
+      </select>
+      {creating ? textInput : <input type="hidden" name={name} value={choice} />}
+    </>
   );
 }

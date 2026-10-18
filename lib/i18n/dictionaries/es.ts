@@ -143,7 +143,6 @@ export const es: Dictionary = {
       continue: "Continuar",
       cadenceLabel: "¿Cómo quieres presupuestar?",
       payCadenceLabel: "¿Con qué frecuencia te pagan?",
-      monthlyPayLocksMonthlyBudget: "Como te pagan una vez al mes, tu ciclo de presupuesto también es mensual.",
     },
     expenses: {
       metaTitle: "Recurrentes",
@@ -545,7 +544,7 @@ export const es: Dictionary = {
     justUpdate: "No, solo actualizar la meta",
     cancel: "Cancelar",
     save: "Guardar",
-    goalNamePlaceholder: "Buscar o agregar una meta…",
+    goalNamePlaceholder: "p. ej. Fondo de emergencia",
     perCyclePlaceholder: "200.00",
     alreadySavedQuestion: "¿Ya tienes dinero ahorrado para esta meta?",
     alreadySavedPlaceholder: "450.00",

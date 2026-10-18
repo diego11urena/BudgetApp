@@ -152,7 +152,6 @@ export function EditGoalSheet({
             name="name"
             categoryNames={categoryNames}
             defaultValue={goal.name}
-            showChips={false}
             invalid={errorField === "name"}
             describedBy={errorId}
           />

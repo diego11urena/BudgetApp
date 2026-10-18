@@ -21,7 +21,7 @@ import { signUpAndOnboard, signInAs, dismissCycleSummary } from "./helpers";
  * the two never collide under Playwright's strict mode.
  */
 test.describe("pay/budget frequency combination lock", () => {
-  test("onboarding: choosing Monthly pay force-selects and locks Monthly budget", async ({ page }) => {
+  test("onboarding: choosing Monthly pay hides the budget picker; Biweekly brings it back", async ({ page }) => {
     const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
     await page.context().addCookies([{ name: "balboa-locale", value: "en", url: baseURL }]);
 
@@ -34,25 +34,18 @@ test.describe("pay/budget frequency combination lock", () => {
     const budgetGroup = page.getByRole("group", { name: "How do you want to budget?" });
     const biweeklyBudgetButton = budgetGroup.locator("button", { hasText: "Biweekly" });
 
-    // Default is Biweekly pay -- both budget options selectable, Biweekly
-    // budget is the default and not disabled.
-    await expect(biweeklyBudgetButton).toBeEnabled();
-    await expect(payGroup.locator("button", { hasText: "Monthly" })).toBeVisible();
-    await expect(payGroup.locator("button", { hasText: "Biweekly" })).toBeVisible();
+    // Default is Biweekly pay -- the budget picker is shown.
+    await expect(biweeklyBudgetButton).toBeVisible();
 
-    // Switching pay frequency to "Monthly" force-selects Monthly
-    // budget and disables Biweekly -- not just visually unclickable, but
-    // actually disabled (a real click can't select it).
+    // Monthly pay hides the budget picker entirely (budget is always monthly then).
     await payGroup.locator("button", { hasText: "Monthly" }).click();
-    await expect(budgetGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
-    await expect(biweeklyBudgetButton).toBeDisabled();
-    await expect(page.getByText("Since you're paid once a month, your budget cycle is monthly too.")).toBeVisible();
+    await expect(budgetGroup).toHaveCount(0);
 
-    // Switching back to Biweekly pay re-enables Biweekly budget (doesn't
-    // force it back on its own -- Monthly budget stays selected until the
-    // user picks otherwise).
+    // Back to Biweekly pay brings it back, still on Monthly until the user picks otherwise.
     await payGroup.locator("button", { hasText: "Biweekly" }).click();
-    await expect(biweeklyBudgetButton).toBeEnabled();
+    await expect(budgetGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
+    await biweeklyBudgetButton.click();
+    await expect(biweeklyBudgetButton).toHaveClass(/is-active/);
   });
 
   test("Monthly pay + Monthly budget: one paycheck belongs to the cycle, closed separately", async ({ page }) => {
@@ -101,7 +94,7 @@ test.describe("pay/budget frequency combination lock", () => {
     await expect(page.getByText("No paychecks logged yet this month.")).toBeVisible();
   });
 
-  test("Settings: switching pay frequency to Monthly force-locks budget frequency to Monthly", async ({
+  test("Settings: Monthly pay hides budget frequency (forced Monthly); Biweekly pay shows it again", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "800" });
@@ -113,13 +106,17 @@ test.describe("pay/budget frequency combination lock", () => {
     await expect(budgetGroup.locator("button", { hasText: "Biweekly" })).toHaveClass(/is-active/);
 
     await payGroup.locator("button", { hasText: "Monthly" }).click();
-    await expect(budgetGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
-    await expect(budgetGroup.locator("button", { hasText: "Biweekly" })).toBeDisabled();
+    await expect(budgetGroup).toHaveCount(0);
+    // Wait for the save before reloading.
+    await expect(payGroup.locator("button", { hasText: "Monthly" })).toBeEnabled();
 
-    // Survives a reload -- proves the server actually persisted the forced
-    // budgetFrequency, not just this component's own optimistic state.
+    // Survives a reload, and the server forced budgetFrequency to MONTHLY too.
     await page.reload();
+    await expect(payGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
+    await expect(budgetGroup).toHaveCount(0);
+
+    // Back to Biweekly pay: the budget row reappears, showing the Monthly the server stored.
+    await payGroup.locator("button", { hasText: "Biweekly" }).click();
     await expect(budgetGroup.locator("button", { hasText: "Monthly" })).toHaveClass(/is-active/);
-    await expect(budgetGroup.locator("button", { hasText: "Biweekly" })).toBeDisabled();
   });
 });

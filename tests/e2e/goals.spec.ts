@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUpAndOnboard, fillAmount } from "./helpers";
+import { signUpAndOnboard, fillAmount, fillCategory } from "./helpers";
 
 test.describe("savings goals", () => {
   test("creating a goal and contributing to it updates saved-so-far and Safe to spend", async ({
@@ -261,7 +261,7 @@ test.describe("savings goals", () => {
     for (const name of ["First Goal", "Second Goal"]) {
       await page.click('button:has-text("+ Add goal")');
       await page.waitForSelector("#goal-name");
-      await page.fill("#goal-name", name);
+      await fillCategory(page, name, "Goal name");
       await fillAmount(page.locator("#goal-lifetime"), "1000");
       await page.click('button:has-text("Save goal")');
       await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
@@ -269,10 +269,7 @@ test.describe("savings goals", () => {
 
     const secondRow = page.locator(".goal-row", { hasText: "Second Goal" });
     await secondRow.getByRole("button", { name: "Edit" }).click();
-    const editGoalName = page.getByLabel("Goal name");
-    await editGoalName.waitFor();
-    await editGoalName.fill("");
-    await editGoalName.fill("First Goal");
+    await page.getByLabel("Goal name").selectOption("First Goal");
     await page.locator(".sheet").getByRole("button", { name: "Save", exact: true }).click();
 
     await expect(page.getByText('A goal named "First Goal" already exists')).toBeVisible();

@@ -198,7 +198,7 @@ test.describe("managing categories", () => {
     await recurringNameField.waitFor();
     await recurringNameField.fill("Spotify");
     await fillAmount(page.getByLabel("Amount (USD)"), "9.99");
-    await page.getByLabel("Category").fill("Subscriptions");
+    await fillCategory(page, "Subscriptions");
     await page.click('.sheet button[type="submit"]');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
 

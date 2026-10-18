@@ -41,7 +41,6 @@ export function GoalForm({
           name="name"
           categoryNames={categoryNames}
           placeholder={t.goals.goalNamePlaceholder}
-          showChips={false}
         />
       </div>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
