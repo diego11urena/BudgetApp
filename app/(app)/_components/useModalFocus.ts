@@ -12,12 +12,14 @@ const FOCUSABLE_SELECTOR =
 // React Strict Mode's dev-only mount -> cleanup -> mount double-invoke
 // nets out to the same lock state a single real mount would have left.
 let openModalCount = 0;
-let previousBodyOverflow = "";
+let previousRootOverflow = "";
 
+// <html>, not <body>: globals.css gives both overflow-x: hidden, which
+// makes <html> the page's scroller -- hiding <body>'s overflow did nothing.
 function lockBodyScroll() {
   if (openModalCount === 0) {
-    previousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    previousRootOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
   }
   openModalCount++;
 }
@@ -25,7 +27,7 @@ function lockBodyScroll() {
 function unlockBodyScroll() {
   openModalCount--;
   if (openModalCount === 0) {
-    document.body.style.overflow = previousBodyOverflow;
+    document.documentElement.style.overflow = previousRootOverflow;
   }
 }
 

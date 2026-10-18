@@ -224,7 +224,6 @@
   --shadow-row: 0 3px 14px rgba(16, 22, 28, 0.06);
   --shadow-hero: 0 10px 28px rgba(23, 57, 92, 0.24);
   --shadow-cta: 0 8px 22px rgba(23, 57, 92, 0.26);
-  --shadow-fab: 0 8px 20px rgba(23, 57, 92, 0.35);
 
   /* z-index ladder — every stacking layer in the app references one of
      these instead of a one-off magic number. */
@@ -379,11 +378,10 @@
 
 /* Full second theme, not a filter -- attribute-based (not
    @media(prefers-color-scheme)) so both an explicit user override and the
-   resolved "system" preference land on the exact same selector. The
-   "system" case is resolved to a concrete data-theme value client-side
-   (see app/_components/ThemeScript.tsx) before first paint; the explicit
-   light/dark case is set server-side straight from the stored cookie (see
-   app/layout.tsx) so there's no flash either way. Values below are this
+   resolved "system" preference land on the exact same selector. Every
+   case is resolved to a concrete data-theme value by an inline script
+   before first paint (see app/_components/ThemeScript.tsx), so there's
+   no flash. Values below are this
    session's Personal Finance Design System dark-mode token table, mapped
    onto the SAME --color-* names light mode uses (never renamed) --
    consistent with how this whole file has been retinted from the start.
@@ -475,7 +473,6 @@
   /* The hero keeps its separation from --color-hero-border instead. */
   --shadow-hero: none;
   --shadow-cta: 0 8px 22px rgba(47, 108, 176, 0.36);
-  --shadow-fab: 0 8px 20px rgba(47, 108, 176, 0.45);
   /* Deeper than light mode's 0.45: a 45%-black scrim over an already
      near-black page barely separates the sheet from what's behind it. */
   --color-scrim: rgba(16, 22, 28, 0.64);
@@ -2209,6 +2206,7 @@ button.line-item--link {
   max-width: 30rem;
   max-height: 85dvh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-card);
   border-radius: 28px 28px 0 0;
   padding: 10px 24px calc(30px + env(safe-area-inset-bottom));
@@ -3183,7 +3181,6 @@ button.line-item--link {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-fab);
   cursor: pointer;
   transition: background-color 0.12s ease;
 }

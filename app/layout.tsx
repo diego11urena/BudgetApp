@@ -74,7 +74,6 @@ export default async function RootLayout({
   const storedTheme: ThemePreferenceValue = THEME_VALUES.includes(themeRaw as ThemePreferenceValue)
     ? (themeRaw as ThemePreferenceValue)
     : "system";
-  const dataTheme = storedTheme === "light" || storedTheme === "dark" ? storedTheme : undefined;
 
   const locale = await resolveLocale();
   const budgetFrequency = await resolveBudgetFrequency();
@@ -82,7 +81,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      data-theme={dataTheme}
+      data-theme-pref={storedTheme}
       className={`${manrope.variable} ${sourceSans.variable}`}
       suppressHydrationWarning
     >
