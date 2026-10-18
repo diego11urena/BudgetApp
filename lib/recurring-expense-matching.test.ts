@@ -6,7 +6,7 @@ const spotify: RecurringExpenseForMatching = {
   name: "Spotify",
   amount: 9.99,
   categoryId: "cat-subscriptions",
-  hasFixedDate: true,
+  dueDay: 1,
 };
 
 function candidate(overrides: Partial<MatchCandidateTransaction>): MatchCandidateTransaction {
@@ -32,7 +32,7 @@ describe("findMatchSuggestion", () => {
       name: "Netflix Premium",
       amount: 15.99,
       categoryId: "cat-subscriptions",
-      hasFixedDate: true,
+      dueDay: 1,
     };
     const result = findMatchSuggestion(netflix, [candidate({ name: "Netflix", amount: 15.99 })]);
     expect(result?.id).toBe("tx-1");
@@ -82,7 +82,7 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
     name: "Claude",
     amount: 20,
     categoryId: "cat-software",
-    hasFixedDate: true,
+    dueDay: 1,
   };
 
   it("matches on a shared significant word when neither name contains the other whole", () => {
@@ -106,7 +106,7 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
       name: "Amazon Prime",
       amount: 14.99,
       categoryId: "cat-subscriptions",
-      hasFixedDate: true,
+      dueDay: 1,
     };
     const result = findMatchSuggestion(netflix, [
       candidate({ name: "PRIME VIDEO*AMZN", amount: 14.99, categoryId: "cat-subscriptions" }),
@@ -119,7 +119,7 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
     // far too short/generic to mean anything -- MIN_SIGNIFICANT_TOKEN_LENGTH
     // filters it out, so this must not match.
     const result = findMatchSuggestion(
-      { id: "re-us", name: "US Bank", amount: 5, categoryId: "cat-fees", hasFixedDate: true },
+      { id: "re-us", name: "US Bank", amount: 5, categoryId: "cat-fees", dueDay: 1 },
       [candidate({ name: "Bus Pass", amount: 5, categoryId: "cat-fees" })],
     );
     expect(result).toBeNull();
@@ -153,24 +153,22 @@ describe("findMatchSuggestion -- word-overlap matching and the category-null fix
   });
 });
 
-describe("findMatchSuggestion -- Ongoing items skip the amount-tolerance gate", () => {
-  // Panapass: recurs, but no fixed date and no exact target -- its own
-  // amount is a typical/estimated one (see RecurringExpenseForMatching's
-  // own doc comment). A real toll payment can land far outside the 10%
-  // AMOUNT_TOLERANCE_FRACTION a Scheduled item is held to.
+describe("findMatchSuggestion -- undated items skip the amount-tolerance gate", () => {
+  // Panapass: recurs, but no set date, and top-ups vary (see
+  // RecurringExpenseForMatching's own doc comment). A real toll payment can
+  // land far outside the 10% AMOUNT_TOLERANCE_FRACTION a dated item is held to.
   const panapass: RecurringExpenseForMatching = {
     id: "re-panapass",
     name: "Panapass",
     amount: 20,
     categoryId: "cat-transport",
-    hasFixedDate: false,
+    dueDay: null,
   };
 
-  it("matches an Ongoing item even when the amount is far outside AMOUNT_TOLERANCE_FRACTION", () => {
-    // $8 vs. a $20 typical amount is a 60% swing -- well past the 10%
-    // tolerance a Scheduled item would be held to (see the parallel
-    // "does not match when the amount is outside the tolerance band" test
-    // above, which asserts the opposite for a Scheduled expense).
+  it("matches an undated item even when the amount is far outside AMOUNT_TOLERANCE_FRACTION", () => {
+    // $8 vs. $20 is a 60% swing -- well past the 10% tolerance a dated
+    // item is held to (see the parallel "does not match when the amount is
+    // outside the tolerance band" test above).
     const result = findMatchSuggestion(panapass, [candidate({ name: "Panapass", amount: 8, categoryId: "cat-transport" })]);
     expect(result?.id).toBe("tx-1");
   });
@@ -182,7 +180,7 @@ describe("findMatchSuggestion -- Ongoing items skip the amount-tolerance gate", 
     expect(result).toBeNull();
   });
 
-  it("still breaks ties by closest amount among multiple Ongoing-eligible candidates", () => {
+  it("still breaks ties by closest amount among multiple undated-eligible candidates", () => {
     const result = findMatchSuggestion(panapass, [
       candidate({ id: "tx-far", name: "Panapass", amount: 2, categoryId: "cat-transport" }),
       candidate({ id: "tx-close", name: "Panapass", amount: 18, categoryId: "cat-transport" }),

@@ -10,8 +10,8 @@ function expense(overrides: Partial<RecurringExpenseWithStatus>): RecurringExpen
     targetAmount: 100,
     actual: 0,
     recurring: true,
-    hasFixedDate: true,
     dueDay: null,
+    chargedThisCycle: true,
     status: "not-started",
     suggestedMatch: null,
     ...overrides,
@@ -30,109 +30,124 @@ function category(expenses: RecurringExpenseWithStatus[]): CategoryWithRecurring
 }
 
 describe("summarizeRecurringFulfillment", () => {
-  it("counts Scheduled items as charged once any payment has landed (not-started only counts against total)", () => {
+  it("counts items as charged once any payment has landed (not-started only counts against total)", () => {
     const result = summarizeRecurringFulfillment(
       [
         category([
-          expense({ name: "Rent", hasFixedDate: true, status: "paid" }),
-          expense({ name: "Internet", hasFixedDate: true, status: "partial" }),
-          expense({ name: "Netflix", hasFixedDate: true, status: "not-started" }),
+          expense({ name: "Rent", status: "paid" }),
+          expense({ name: "Internet", status: "partial" }),
+          expense({ name: "Netflix", status: "not-started" }),
         ]),
       ],
       new Date("2026-08-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.total).toBe(3);
-    expect(result.scheduled.chargedOnTime).toBe(2);
+    expect(result.total).toBe(3);
+    expect(result.chargedOnTime).toBe(2);
   });
 
   it("names the not-started exception, distinguishing overdue (missing) from upcoming", () => {
     const result = summarizeRecurringFulfillment(
       [
         category([
-          expense({ name: "Netflix", hasFixedDate: true, status: "not-started", dueDay: 10 }), // Aug 10, before "now" -- overdue
+          expense({ name: "Netflix", status: "not-started", dueDay: 10 }), // Aug 10, before "now" -- overdue
         ]),
       ],
       new Date("2026-08-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.exception).toEqual({ name: "Netflix", kind: "missing", dueDate: new Date("2026-08-10T05:00:00.000Z") });
+    expect(result.exception).toEqual({ name: "Netflix", kind: "missing", dueDate: new Date("2026-08-10T05:00:00.000Z") });
   });
 
   it("marks a due-today item as missing, not upcoming (matches lib/insights.ts's own overdue convention)", () => {
     const result = summarizeRecurringFulfillment(
-      [category([expense({ name: "Rent", hasFixedDate: true, status: "not-started", dueDay: 15 })])],
+      [category([expense({ name: "Rent", status: "not-started", dueDay: 15 })])],
       new Date("2026-08-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.exception?.kind).toBe("missing");
+    expect(result.exception?.kind).toBe("missing");
   });
 
   it("marks a not-yet-due item as upcoming", () => {
     const result = summarizeRecurringFulfillment(
-      [category([expense({ name: "Internet", hasFixedDate: true, status: "not-started", dueDay: 30 })])],
+      [category([expense({ name: "Internet", status: "not-started", dueDay: 30 })])],
       new Date("2026-08-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.exception).toEqual({ name: "Internet", kind: "upcoming", dueDate: new Date("2026-08-30T05:00:00.000Z") });
+    expect(result.exception).toEqual({ name: "Internet", kind: "upcoming", dueDate: new Date("2026-08-30T05:00:00.000Z") });
   });
 
   it("picks the most urgent not-started item -- overdue beats upcoming, and among same-kind picks the closest date", () => {
     const result = summarizeRecurringFulfillment(
       [
         category([
-          expense({ name: "Due later", hasFixedDate: true, status: "not-started", dueDay: 28 }), // upcoming, far
-          expense({ name: "Most overdue", hasFixedDate: true, status: "not-started", dueDay: 1 }), // overdue by 14 days
-          expense({ name: "Just overdue", hasFixedDate: true, status: "not-started", dueDay: 14 }), // overdue by 1 day
+          expense({ name: "Due later", status: "not-started", dueDay: 28 }), // upcoming, far
+          expense({ name: "Most overdue", status: "not-started", dueDay: 1 }), // overdue by 14 days
+          expense({ name: "Just overdue", status: "not-started", dueDay: 14 }), // overdue by 1 day
         ]),
       ],
       new Date("2026-08-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.exception?.name).toBe("Most overdue");
+    expect(result.exception?.name).toBe("Most overdue");
   });
 
   it("sorts an unresolvable dueDay (e.g. the 31st in a 30-day month) last", () => {
     const result = summarizeRecurringFulfillment(
       [
         category([
-          expense({ name: "Unresolvable", hasFixedDate: true, status: "not-started", dueDay: 31 }), // April has 30 days
-          expense({ name: "Real date", hasFixedDate: true, status: "not-started", dueDay: 20 }),
+          expense({ name: "Unresolvable", status: "not-started", dueDay: 31 }), // April has 30 days
+          expense({ name: "Real date", status: "not-started", dueDay: 20 }),
         ]),
       ],
       new Date("2026-04-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.exception?.name).toBe("Real date");
+    expect(result.exception?.name).toBe("Real date");
   });
 
-  it("returns exception: null when every Scheduled item is charged", () => {
+  it("returns exception: null when every item is charged", () => {
     const result = summarizeRecurringFulfillment(
-      [category([expense({ name: "Rent", hasFixedDate: true, status: "paid" })])],
+      [category([expense({ name: "Rent", status: "paid" })])],
       new Date("2026-08-15T12:00:00.000Z"),
     );
 
-    expect(result.scheduled.exception).toBeNull();
+    expect(result.exception).toBeNull();
   });
 
-  it("ongoing.loggedNames only includes Ongoing items with status logged, alphabetically sorted, never a Scheduled item", () => {
+  it("names an undated not-started item as missing, but only when nothing dated is waiting", () => {
+    const asOf = new Date("2026-08-15T12:00:00.000Z");
+    const onlyUndated = summarizeRecurringFulfillment(
+      [category([expense({ name: "Haircut", status: "not-started", dueDay: null })])],
+      asOf,
+    );
+    expect(onlyUndated.exception).toEqual({ name: "Haircut", kind: "missing", dueDate: null });
+
+    const withDated = summarizeRecurringFulfillment(
+      [
+        category([
+          expense({ name: "Haircut", status: "not-started", dueDay: null }),
+          expense({ name: "Internet", status: "not-started", dueDay: 30 }),
+        ]),
+      ],
+      asOf,
+    );
+    expect(withDated.exception?.name).toBe("Internet");
+  });
+
+  it("leaves items not charged this cycle out of the count and the exception", () => {
     const result = summarizeRecurringFulfillment(
       [
         category([
-          expense({ name: "Panapass", hasFixedDate: false, status: "logged" }),
-          expense({ name: "Haircut", hasFixedDate: false, status: "logged" }),
-          expense({ name: "Groceries", hasFixedDate: false, status: "not-logged" }),
-          expense({ name: "Rent", hasFixedDate: true, status: "paid" }),
+          expense({ name: "Rent", status: "paid", dueDay: 1 }),
+          expense({ name: "Car tax", status: "not-started", dueDay: 20, chargedThisCycle: false }),
         ]),
       ],
-      new Date("2026-08-15T12:00:00.000Z"),
+      new Date("2026-08-05T12:00:00.000Z"),
     );
-
-    expect(result.ongoing.loggedNames).toEqual(["Haircut", "Panapass"]);
-    // The "N of N logged" row: every Ongoing item counts toward the
-    // total, and the ones with nothing logged are named for the subline.
-    expect(result.ongoing.total).toBe(3);
-    expect(result.ongoing.missingNames).toEqual(["Groceries"]);
+    expect(result.total).toBe(1);
+    expect(result.chargedOnTime).toBe(1);
+    expect(result.exception).toBeNull();
   });
 });
 
@@ -148,14 +163,14 @@ describe("summarizeRecurringFulfillment -- asOf is the period's own frame, not t
   const augustCycleEnd = new Date("2026-08-31T12:00:00.000Z");
   const octoberToday = new Date("2026-10-05T12:00:00.000Z");
   const categories = [
-    category([expense({ name: "Netflix", hasFixedDate: true, dueDay: 20, status: "not-started" })]),
+    category([expense({ name: "Netflix", dueDay: 20, status: "not-started" })]),
   ];
 
   it("reports a never-charged item as missing when judged from the closed cycle's end", () => {
     const result = summarizeRecurringFulfillment(categories, augustCycleEnd);
-    expect(result.scheduled.exception).not.toBeNull();
-    expect(result.scheduled.exception!.name).toBe("Netflix");
-    expect(result.scheduled.exception!.kind).toBe("missing");
+    expect(result.exception).not.toBeNull();
+    expect(result.exception!.name).toBe("Netflix");
+    expect(result.exception!.kind).toBe("missing");
   });
 
   it("would have called that same item upcoming if judged from today", () => {
@@ -163,19 +178,19 @@ describe("summarizeRecurringFulfillment -- asOf is the period's own frame, not t
     // get by passing new Date(), kept as an explicit record of why they
     // now pass the cycle's end instead.
     const result = summarizeRecurringFulfillment(categories, octoberToday);
-    expect(result.scheduled.exception!.kind).toBe("upcoming");
+    expect(result.exception!.kind).toBe("upcoming");
   });
 
   it("resolves the due date into the month asOf falls in", () => {
     const closed = summarizeRecurringFulfillment(categories, augustCycleEnd);
     const today = summarizeRecurringFulfillment(categories, octoberToday);
-    expect(closed.scheduled.exception!.dueDate?.getUTCMonth()).toBe(7); // August
-    expect(today.scheduled.exception!.dueDate?.getUTCMonth()).toBe(9); // October
+    expect(closed.exception!.dueDate?.getUTCMonth()).toBe(7); // August
+    expect(today.exception!.dueDate?.getUTCMonth()).toBe(9); // October
   });
 
   it("still ranks a LIVE period from today, where an unreached due day is genuinely upcoming", () => {
     const midAugust = new Date("2026-08-15T12:00:00.000Z");
     const result = summarizeRecurringFulfillment(categories, midAugust);
-    expect(result.scheduled.exception!.kind).toBe("upcoming");
+    expect(result.exception!.kind).toBe("upcoming");
   });
 });

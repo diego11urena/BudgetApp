@@ -1,26 +1,27 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { findMatchSuggestion, type MatchCandidateTransaction } from "@/lib/recurring-expense-matching";
-import {
-  getOngoingRecurringExpenseStatus,
-  getRecurringExpensePaymentStatus,
-  type OngoingRecurringExpenseStatus,
-  type ScheduledRecurringExpenseStatus,
-} from "@/lib/recurring-expense-status";
+import { getRecurringExpensePaymentStatus, type RecurringExpensePaymentStatus } from "@/lib/recurring-expense-status";
+import { dueDayFallsWithinCycle } from "@/lib/quincena-pace";
 
 export interface RecurringExpenseWithStatus {
   id: string;
   name: string;
-  /** Scheduled: the real target to hit. Ongoing: a typical/estimated amount, not an exact one -- see hasFixedDate. */
   targetAmount: number;
   /** Sum of this cycle's CycleTransaction rows actually linked to this recurring expense (via recordRecurringExpensePaymentAction or a confirmed match) -- never includes an unmatched transaction just because it's in the same category. */
   actual: number;
   recurring: boolean;
-  /** Scheduled (true, a real due date) vs Ongoing (false, recurs but no set date). */
-  hasFixedDate: boolean;
+  /** Day of the month it's charged, or null for no set date. */
   dueDay: number | null;
-  /** getRecurringExpensePaymentStatus's 5-state result when hasFixedDate, getOngoingRecurringExpenseStatus's 2-state result otherwise -- computed once here so every caller (Insights, the Recurring tab's rows, summarizeRecurringExpenses) branches on hasFixedDate the same way, instead of each re-deriving it. */
-  status: ScheduledRecurringExpenseStatus | OngoingRecurringExpenseStatus;
+  /**
+   * Whether it's charged during this cycle: no set date, a dueDay that
+   * falls inside the cycle, or a payment already linked this cycle (paid
+   * early or late still counts where it was paid). False puts it under
+   * the Plan tab's "Not charged this cycle" and out of every total here,
+   * so safe to spend never reserves money for it.
+   */
+  chargedThisCycle: boolean;
+  status: RecurringExpensePaymentStatus;
   suggestedMatch: { transactionId: string; name: string; amount: number } | null;
 }
 
@@ -40,12 +41,10 @@ export interface CategoryWithRecurringExpenses {
    */
   budgetTotal: number;
   /**
-   * Sum of expenses[].actual, Scheduled items only -- only spend actually
-   * linked to one of this category's Scheduled recurring expenses, NOT
+   * Sum of expenses[].actual for items charged this cycle -- only spend
+   * actually linked to one of this category's recurring expenses, NOT
    * every transaction posted to the category (that's a different number --
-   * see financials.categoryTotals) and NOT Ongoing items (see
-   * RecurringExpensesSummary's own doc comment for why those are excluded
-   * from every dollar aggregate). Scoping it this way means adding or
+   * see financials.categoryTotals). Scoping it this way means adding or
    * removing a recurring-expense template can only ever move the target
    * side of this bar, never the actual side, and an unlinked transaction
    * in the category can't inflate or deflate a total that's supposed to
@@ -60,15 +59,15 @@ export interface CategoryWithRecurringExpenses {
 }
 
 export interface RecurringExpensesSummary {
-  /** Sum of every Scheduled recurring expense's own target this cycle, across every category. Ongoing items are excluded -- see this interface's own doc comment. */
+  /** Sum of every charged-this-cycle recurring expense's own target, across every category. */
   totalTarget: number;
-  /** Sum of every Scheduled recurring expense's own linked actual this cycle, across every category -- same actual/targetAmount pair /budget's own rows use, never financials.categoryTotals' unscoped category spend. */
+  /** Sum of every charged-this-cycle recurring expense's own linked actual -- never financials.categoryTotals' unscoped category spend. */
   totalActual: number;
-  /** How many Scheduled recurring expenses exist this cycle, across every category. */
+  /** How many recurring expenses are charged this cycle. */
   totalCount: number;
-  /** How many Scheduled expenses have been paid to at least their own target (status paid, paid-over, or exceeded). */
+  /** How many of those have been paid to at least their own target (status paid, paid-over, or exceeded). */
   paidCount: number;
-  /** Sum of (targetAmount - actual), floored at 0, across Scheduled expenses not yet fully paid -- what's left to pay this cycle. */
+  /** Sum of (targetAmount - actual), floored at 0, across charged-this-cycle expenses not yet fully paid -- what's left to pay this cycle. */
   pendingAmount: number;
 }
 
@@ -80,11 +79,9 @@ export interface RecurringExpensesSummary {
  * "over budget by" figure (via getBudgetUsage(totalActual, totalTarget)),
  * so none of them can quote a different number for the same question.
  *
- * Scheduled items only -- an Ongoing item's amount is a typical/estimated
- * one, not a real target, so folding it in here would mean "safe to
- * spend" partly rests on a guess rather than a known obligation (confirmed
- * design decision). An Ongoing item still appears in category.expenses for
- * display; it just never contributes to any total this function returns.
+ * Only items charged this cycle count (see chargedThisCycle): one dated
+ * outside the cycle still appears in category.expenses for display, under
+ * "Not charged this cycle", but never contributes to any total here.
  */
 export function summarizeRecurringExpenses(categories: CategoryWithRecurringExpenses[]): RecurringExpensesSummary {
   let totalTarget = 0;
@@ -95,7 +92,7 @@ export function summarizeRecurringExpenses(categories: CategoryWithRecurringExpe
 
   for (const category of categories) {
     for (const expense of category.expenses) {
-      if (!expense.hasFixedDate) continue;
+      if (!expense.chargedThisCycle) continue;
       totalTarget += expense.targetAmount;
       totalActual += expense.actual;
       totalCount++;
@@ -126,11 +123,15 @@ export async function getRecurringExpensesForCycle(
   options: { computeSuggestions?: boolean } = {},
 ): Promise<CategoryWithRecurringExpenses[]> {
   const { computeSuggestions = true } = options;
-  const snapshots = await prisma.cycleRecurringExpense.findMany({
-    where: { cycleId, recurringExpense: { userId } },
-    include: { recurringExpense: { include: { category: true } } },
-    orderBy: { recurringExpense: { createdAt: "asc" } },
-  });
+  const [snapshots, cycle, user] = await Promise.all([
+    prisma.cycleRecurringExpense.findMany({
+      where: { cycleId, recurringExpense: { userId } },
+      include: { recurringExpense: { include: { category: true } } },
+      orderBy: { recurringExpense: { createdAt: "asc" } },
+    }),
+    prisma.budgetCycle.findUniqueOrThrow({ where: { id: cycleId }, select: { periodStart: true } }),
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { budgetFrequency: true } }),
+  ]);
   if (snapshots.length === 0) return [];
 
   const recurringExpenseIds = snapshots.map((s) => s.recurringExpenseId);
@@ -208,7 +209,7 @@ export async function getRecurringExpensesForCycle(
           name: recurringExpense.name,
           amount: targetAmount,
           categoryId: category.id,
-          hasFixedDate: recurringExpense.hasFixedDate,
+          dueDay: recurringExpense.dueDay,
         },
         candidates,
       );
@@ -228,8 +229,12 @@ export async function getRecurringExpensesForCycle(
       });
     }
 
+    const dueDay = recurringExpense.dueDay;
+    const chargedThisCycle =
+      dueDay === null || actual > 0 || dueDayFallsWithinCycle(dueDay, cycle.periodStart, user.budgetFrequency);
+
     const entry = categoriesMap.get(category.id)!;
-    if (recurringExpense.hasFixedDate) {
+    if (chargedThisCycle) {
       entry.budgetTotal += targetAmount;
       entry.actual += actual;
     }
@@ -239,25 +244,20 @@ export async function getRecurringExpensesForCycle(
       targetAmount,
       actual,
       recurring: recurringExpense.recurring,
-      hasFixedDate: recurringExpense.hasFixedDate,
-      dueDay: recurringExpense.dueDay,
-      status: recurringExpense.hasFixedDate
-        ? getRecurringExpensePaymentStatus(actual, targetAmount)
-        : getOngoingRecurringExpenseStatus(actual),
+      dueDay,
+      chargedThisCycle,
+      status: getRecurringExpensePaymentStatus(actual, targetAmount),
       suggestedMatch,
     });
   }
 
-  // Scheduled items first, soonest due day at the top (an unset due day
-  // sinks to the bottom of that group via Infinity); Ongoing items after,
+  // Dated items first, soonest due day at the top; undated ones after,
   // alphabetically -- there's no calendar day to rank them by, and a name
   // order is what makes "did I already add Panapass?" scannable.
   for (const category of categoriesMap.values()) {
-    category.expenses.sort((a, b) => {
-      if (a.hasFixedDate !== b.hasFixedDate) return a.hasFixedDate ? -1 : 1;
-      if (a.hasFixedDate) return (a.dueDay ?? Infinity) - (b.dueDay ?? Infinity);
-      return a.name.localeCompare(b.name);
-    });
+    category.expenses.sort(
+      (a, b) => (a.dueDay ?? Infinity) - (b.dueDay ?? Infinity) || a.name.localeCompare(b.name),
+    );
   }
 
   return [...categoriesMap.values()];
@@ -271,7 +271,7 @@ export interface RecurringExpenseOption {
 
 /**
  * Every EXPENSE-category recurring expense the user has ever defined
- * (Scheduled or Ongoing, recurring or one-time, in any cycle) -- feeds the
+ * (dated or not, recurring or one-time, in any cycle) -- feeds the
  * transaction sheet's "Which recurring expense?" picker (see
  * RecurringExpensePicker.tsx), where a transaction can be linked to an
  * existing one by an explicit choice rather than only an exact name match

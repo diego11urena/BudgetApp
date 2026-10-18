@@ -3,7 +3,7 @@ import { calendarDaysBetween } from "./quincena-pace";
 import type { CategoryWithRecurringExpenses } from "./recurring-expenses";
 
 /**
- * The single most urgent still-unpaid Scheduled item, named so a person
+ * The single most urgent still-unpaid recurring item, named so a person
  * can act on it without opening every row -- same "name the one that
  * matters" framing lib/insights.ts's dueSoonCandidate already uses, just
  * surfaced here instead of (or in addition to) the Insights card.
@@ -11,47 +11,27 @@ import type { CategoryWithRecurringExpenses } from "./recurring-expenses";
 export interface RecurringFulfillmentException {
   name: string;
   kind: "missing" | "upcoming";
-  /** Null when dueDay doesn't resolve this month (e.g. 31st in a 30-day month) -- see resolveMonthlyDueDate. */
+  /** Null for an item with no set date, or a dueDay that doesn't resolve this month (see resolveMonthlyDueDate). */
   dueDate: Date | null;
 }
 
-export interface ScheduledFulfillment {
+export interface RecurringFulfillment {
   chargedOnTime: number;
   total: number;
   exception: RecurringFulfillmentException | null;
 }
 
-export interface OngoingFulfillment {
-  /** Alphabetical -- joined "A, B and C" at the display layer via Intl.ListFormat, not here (that's locale-specific presentation, not data). */
-  loggedNames: string[];
-  /** Every Ongoing item this cycle, logged or not -- the "N of N logged" denominator. */
-  total: number;
-  /** Ongoing items with nothing logged yet, alphabetical -- the row's subline names the first. */
-  missingNames: string[];
-}
-
-export interface RecurringFulfillment {
-  scheduled: ScheduledFulfillment;
-  ongoing: OngoingFulfillment;
-}
-
 /**
  * Shared by Summary's Recurring section and Breakdown's chapter 02 -- one
  * function so the two screens can never disagree about "7 of 8 charged
- * on time" or which item is the named exception. Deliberately its own
- * file rather than living in lib/breakdown-v2.ts (Summary needs it too,
- * and "breakdown" naming would mislead) or lib/recurring-expenses.ts
- * (that file's charter is producing the CategoryWithRecurringExpenses
- * data model itself -- narrative framing for these two specific screens
- * is a layer on top, the same way lib/insights.ts and lib/summary.ts
- * already sit on top of it without living inside it).
+ * on time" or which item is the named exception.
  *
- * chargedOnTime counts Scheduled items with status !== "not-started" --
- * i.e. *some* payment has landed, even if under or over target. That's a
- * different question from "paid in full" (which summarizeRecurringExpenses
- * already answers for the Recurring tab's own progress bar) -- "charged"
- * is about whether the bill showed up at all, not whether the amount
- * matches.
+ * Counts only items charged this cycle (see chargedThisCycle). chargedOnTime
+ * counts those with status !== "not-started" -- i.e. *some* payment has
+ * landed, even if under or over target. That's a different question from
+ * "paid in full" (which summarizeRecurringExpenses already answers for the
+ * Plan tab's own progress bar) -- "charged" is about whether the bill
+ * showed up at all, not whether the amount matches.
  */
 /**
  * `asOf` is the moment the period is being judged from, NOT necessarily
@@ -73,23 +53,15 @@ export function summarizeRecurringFulfillment(
   let total = 0;
   let chargedOnTime = 0;
   const notStarted: { name: string; dueDay: number | null }[] = [];
-  const loggedOngoing: string[] = [];
-  const missingOngoing: string[] = [];
-  let ongoingTotal = 0;
 
   for (const category of categories) {
     for (const expense of category.expenses) {
-      if (expense.hasFixedDate) {
-        total++;
-        if (expense.status === "not-started") {
-          notStarted.push({ name: expense.name, dueDay: expense.dueDay });
-        } else {
-          chargedOnTime++;
-        }
+      if (!expense.chargedThisCycle) continue;
+      total++;
+      if (expense.status === "not-started") {
+        notStarted.push({ name: expense.name, dueDay: expense.dueDay });
       } else {
-        ongoingTotal++;
-        if (expense.status === "logged") loggedOngoing.push(expense.name);
-        else missingOngoing.push(expense.name);
+        chargedOnTime++;
       }
     }
   }
@@ -100,7 +72,7 @@ export function summarizeRecurringFulfillment(
     for (const item of notStarted) {
       const dueDate = item.dueDay !== null ? resolveMonthlyDueDate(asOf, item.dueDay) : null;
       // Most-overdue first (most negative rank), then soonest-upcoming;
-      // an unresolvable dueDay (Infinity) sorts last -- named only if
+      // an item with no date (Infinity) sorts last -- named only if
       // nothing with a real date is also waiting.
       const rank = dueDate ? calendarDaysBetween(asOf, dueDate) : Infinity;
       if (!best || rank < best.rank) best = { name: item.name, dueDate, rank };
@@ -112,18 +84,12 @@ export function summarizeRecurringFulfillment(
         // (unpaidRecurringCandidate's hasOverdue is daysUntilDue <= 0): a
         // bill due today and not yet charged reads as "hasn't shown up
         // yet," not "due today," once asOf has actually reached it.
-        kind: best.rank <= 0 ? "missing" : "upcoming",
+        // No date to be "due" on: it simply hasn't shown up yet.
+        kind: best.rank <= 0 || best.dueDate === null ? "missing" : "upcoming",
         dueDate: best.dueDate,
       };
     }
   }
 
-  return {
-    scheduled: { chargedOnTime, total, exception },
-    ongoing: {
-      loggedNames: loggedOngoing.sort((a, b) => a.localeCompare(b)),
-      total: ongoingTotal,
-      missingNames: missingOngoing.sort((a, b) => a.localeCompare(b)),
-    },
-  };
+  return { chargedOnTime, total, exception };
 }

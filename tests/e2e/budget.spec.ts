@@ -24,7 +24,13 @@ async function clickSheetButton(page: Page, text: string) {
   await page.locator(".sheet").getByRole("button", { name: text, exact: true }).click();
 }
 
-/** Ongoing by default (no dueDay passed) -- matches EditableRecurringExpense's own default. Pass dueDay to create a Scheduled one instead (checks "Has a set date" and fills the day). */
+/** Day of the month (as the picker's option value) `offset` days from today, in Panama time -- the app's own clock. */
+function panamaDayOfMonth(offset: number): string {
+  const day = new Date(Date.now() + offset * 86_400_000).toLocaleString("en-US", { timeZone: "America/Panama", day: "numeric" });
+  return String(Number(day));
+}
+
+/** No charge date by default -- matches EditableRecurringExpense's own default. Pass dueDay to pick one. */
 async function createRecurringExpense(
   page: Page,
   opts: { name: string; amount: string; category: string; dueDay?: string },
@@ -36,8 +42,7 @@ async function createRecurringExpense(
   await fillAmount(page.getByLabel("Amount (USD)"), opts.amount);
   await fillCategory(page, opts.category);
   if (opts.dueDay) {
-    await page.getByLabel("Has a set date").check();
-    await page.getByLabel("Due day (1–31)").fill(opts.dueDay);
+    await page.getByLabel("Charge date (optional)").selectOption(opts.dueDay);
   }
   await clickSheetButton(page, "Save");
   await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -62,55 +67,74 @@ test.describe("Plan screen (Recurring)", () => {
 
     await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions" });
     // Flat by default -- no category-folder wrapper, no expand needed.
-    // createRecurringExpense doesn't set a due day (Ongoing default, no
-    // due-day field shown), so the meta line is just the category name.
+    // createRecurringExpense doesn't set a charge date, so the meta line is
+    // just the category name.
     await expect(page.locator(".recurring-expense-row")).toHaveCount(1);
     await expect(page.locator(".recurring-expense-row-meta")).toHaveText("Subscriptions");
 
     await createRecurringExpense(page, { name: "Netflix", amount: "15.99", category: "Subscriptions" });
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2);
-    // Alphabetical, not creation order -- both are Ongoing (no due day to
-    // rank by), and Ongoing items sort by name (see RecurringSection's own
-    // doc comment).
+    // Alphabetical, not creation order -- neither has a date to rank by.
     await expect(page.locator(".recurring-expense-row-name")).toContainText(["Netflix", "Spotify"]);
   });
 
-  test("recording a payment marks a Scheduled recurring expense Paid, and hides Record", async ({ page }) => {
-    // Scheduled (a dueDay set), not Ongoing -- Record staying available
-    // after settling is Ongoing-specific behavior (there's no target to
-    // "finish"), asserted separately; a Scheduled item's own Record really
-    // does disappear once paid, which is what this test checks.
+  for (const dated of [true, false]) {
+    test(`recording a payment marks ${dated ? "a dated" : "an undated"} recurring expense Paid, and hides Record`, async ({
+      page,
+    }) => {
+      await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+      await page.goto("/plan");
+      await createRecurringExpense(page, {
+        name: "Spotify",
+        amount: "9.99",
+        category: "Subscriptions",
+        dueDay: dated ? panamaDayOfMonth(0) : undefined,
+      });
+
+      await expect(page.locator(".recurring-expense-row--paid")).toHaveCount(0);
+      await expect(page.locator('button:has-text("Record")')).toBeVisible();
+
+      await page.click('button:has-text("Record")');
+      await page.getByLabel("Amount (USD)").waitFor();
+      await clickSheetButton(page, "Record payment");
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+
+      await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
+      await expect(page.locator('button:has-text("Record")')).toHaveCount(0);
+    });
+  }
+
+  test("items dated outside the cycle go under 'Not charged this cycle' and stay out of safe to spend", async ({
+    page,
+  }) => {
+    // A new account's cycle starts today and runs ~15 days.
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
     await page.goto("/plan");
-    await createRecurringExpense(page, { name: "Spotify", amount: "9.99", category: "Subscriptions", dueDay: "1" });
-
-    await expect(page.locator(".recurring-expense-row--paid")).toHaveCount(0);
-    await expect(page.locator('button:has-text("Record")')).toBeVisible();
-
-    await page.click('button:has-text("Record")');
-    await page.getByLabel("Amount (USD)").waitFor();
-    await clickSheetButton(page, "Record payment");
-    await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
-
-    await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
-    await expect(page.locator('button:has-text("Record")')).toHaveCount(0);
-  });
-
-  test("recording a payment on an Ongoing expense marks it Logged, but keeps Record available", async ({ page }) => {
-    await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
-    await page.goto("/plan");
-    // No dueDay -- Ongoing, an estimated amount with no target to "finish".
+    await createRecurringExpense(page, { name: "Rent", amount: "300.00", category: "Housing", dueDay: panamaDayOfMonth(0) });
     await createRecurringExpense(page, { name: "Panapass", amount: "20.00", category: "Transport" });
+    await createRecurringExpense(page, { name: "Car tax", amount: "60.00", category: "Car", dueDay: panamaDayOfMonth(20) });
 
-    await page.click('button:has-text("Record")');
-    await page.getByLabel("Amount (USD)").waitFor();
-    await clickSheetButton(page, "Record payment");
+    const mainList = page.locator(".recurring-expense-card").first();
+    await expect(mainList.locator(".recurring-expense-row-name")).toHaveText(["Rent", "Panapass"]);
+    await expect(page.locator(".recurring-subsection-heading")).toHaveText("Not charged this cycle");
+    const notCharged = page.locator(".recurring-subsection-heading + .recurring-expense-card");
+    await expect(notCharged.locator(".recurring-expense-row-name")).toHaveText(["Car tax"]);
+
+    // Safe to spend: $1,000 - $300 rent - $20 undated Panapass; the $60 car tax isn't charged this cycle.
+    await page.goto("/dashboard");
+    await expect(page.locator(".hero-value")).toHaveText("$680.00");
+
+    // Moving the car tax's date into this cycle moves it into the main list and into safe to spend.
+    await page.goto("/plan");
+    await notCharged.locator(".recurring-expense-row-main").click();
+    await page.getByLabel("Charge date (optional)").selectOption(panamaDayOfMonth(0));
+    await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator(".recurring-subsection-heading")).toHaveCount(0);
+    await expect(page.locator(".recurring-expense-row")).toHaveCount(3);
 
-    // Logged (settled indicator shows), but Record stays -- a second toll
-    // payment mid-cycle is still a real thing to log.
-    await expect(page.locator(".recurring-expense-row--paid")).toBeVisible();
-    await expect(page.locator('button:has-text("Record")')).toBeVisible();
+    await page.goto("/dashboard");
+    await expect(page.locator(".hero-value")).toHaveText("$620.00");
   });
 
   test("editing a recurring expense's amount is reflected on its own row", async ({ page }) => {
@@ -148,7 +172,7 @@ test.describe("Plan screen (Recurring)", () => {
     await expect(page.locator(".recurring-expense-row")).toHaveCount(2, { timeout: 15_000 });
   });
 
-  test("unchecking 'Repeats' creates a one-time expense with no due-day field, and it doesn't carry into a new cycle", async ({
+  test("unchecking 'Repeats' creates a one-time expense with no charge date, and it doesn't carry into a new cycle", async ({
     page,
   }) => {
     await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
@@ -158,12 +182,10 @@ test.describe("Plan screen (Recurring)", () => {
     await page.getByLabel("Name").fill("Car registration");
     await fillAmount(page.getByLabel("Amount (USD)"), "60.00");
     await fillCategory(page, "Car");
-    // "Repeats" and "Has a set date" are independent (see
-    // EditableRecurringExpense's own doc comment) -- unchecking Repeats
-    // alone doesn't touch the due-day field, which is gated by "Has a set
-    // date" (unchecked by default) instead.
+    // "Repeats" and the charge date are independent (see
+    // EditableRecurringExpense's own doc comment).
     await page.getByLabel("Repeats").uncheck();
-    await expect(page.getByLabel("Due day (1–31)")).toHaveCount(0);
+    await expect(page.getByLabel("Charge date (optional)")).toHaveValue("");
     await clickSheetButton(page, "Save");
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.locator(".recurring-expense-row", { hasText: "Car registration" })).toBeVisible();
@@ -417,10 +439,7 @@ test.describe("merging categories moves their recurring expenses", () => {
     // Both sides had a current-cycle snapshot for "Netflix", so they sum
     // (same "sum instead of drop" rule the rest of this merge uses) rather
     // than one silently overwriting the other: $15.99 + $15.99, and $7.99.
-    // "~" on both -- neither was given a due day, so both are Ongoing
-    // (an estimated amount, not an exact target -- see RecurringExpenseRow's
-    // own doc comment). Hulu before Netflix: Ongoing items sort
-    // alphabetically (see RecurringSection).
-    await expect(page.locator(".recurring-expense-row-amount")).toHaveText(["~$7.99", "~$31.98"]);
+    // Hulu before Netflix: undated items sort alphabetically (see RecurringSection).
+    await expect(page.locator(".recurring-expense-row-amount")).toHaveText(["$7.99", "$31.98"]);
   });
 });

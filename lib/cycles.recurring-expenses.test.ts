@@ -88,10 +88,10 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
   });
 
   describe("carryForwardRecurringExpenses", () => {
-    it("carries an Ongoing recurring expense into every new cycle and recomputes its category's aggregate", async () => {
+    it("carries an undated recurring expense into every new cycle and recomputes its category's aggregate", async () => {
       const category = await makeExpenseCategory("Transport");
       const panapass = await prisma.recurringExpense.create({
-        data: { userId, categoryId: category.id, name: "PanaPass", amount: 20, hasFixedDate: false },
+        data: { userId, categoryId: category.id, name: "PanaPass", amount: 20 },
       });
       const newCycle = await makeCycle(new Date(2026, 7, 20));
 
@@ -108,7 +108,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       expect(goal?.targetAmount.toNumber()).toBe(20);
     });
 
-    it("carries a Scheduled recurring expense into every cycle, whatever its due day", async () => {
+    it("carries a dated recurring expense into every cycle, whatever its due day", async () => {
       const category = await makeExpenseCategory("Fitness");
       await prisma.recurringExpense.create({
         data: {
@@ -116,7 +116,6 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
           categoryId: category.id,
           name: "Gym",
           amount: 45,
-          hasFixedDate: true,
           dueDay: 28,
         },
       });
@@ -228,7 +227,7 @@ describe.skipIf(!process.env.DATABASE_URL)("recurring expenses: aggregate + carr
       });
       expect(recurringExpense.name).toBe("Panapass");
       expect(recurringExpense.amount.toNumber()).toBe(20);
-      expect(recurringExpense.hasFixedDate).toBe(false);
+      expect(recurringExpense.dueDay).toBeNull();
 
       const snapshot = await prisma.cycleRecurringExpense.findUnique({
         where: { cycleId_recurringExpenseId: { cycleId: cycle.id, recurringExpenseId: recurringExpense.id } },

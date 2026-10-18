@@ -202,7 +202,7 @@ export default function BreakdownScreenNew({
             <p className="breakdown-chapter-takeaway">{t.breakdown.chapter2Takeaway(vocab, state)}</p>
           </div>
           <div className="breakdown-chapter-card">
-            <RecurringChapter fulfillment={recurringFulfillment} live={state === "LIVE"} />
+            <RecurringChapter fulfillment={recurringFulfillment} />
           </div>
         </section>
 

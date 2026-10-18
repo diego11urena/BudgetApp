@@ -118,7 +118,7 @@
      not subject to the 4.5:1 text floor; --color-savings on top of it
      clears 4.66:1 regardless. */
   --color-savings-bg: #eef4ff;
-  /* Recurring = Scheduled + Ongoing, and the Cash-flow bar's "Fixed"
+  /* Recurring, and the Cash-flow bar's "Fixed"
      segment -- one gold for the whole concept (DESIGN.md S1). This is the
      gold that used to sit on --color-savings; it moved here, it did not
      disappear. The spec's literal #b3781a only clears 3.74:1 as text on
@@ -823,7 +823,7 @@ a {
   cursor: pointer;
 }
 
-/* ----- Onboarding step 2: Scheduled / Ongoing groups ----- */
+/* ----- Onboarding step 2: recurring items ----- */
 .expenses-step-group {
   display: flex;
   flex-direction: column;
@@ -831,20 +831,6 @@ a {
   margin-top: 0;
   padding-top: 24px;
 }
-
-/* "Two groups, separated by a 1px divider." */
-.expenses-step-group--divided {
-  margin-top: 22px;
-  padding-top: 22px;
-  border-top: 1px solid var(--color-divider);
-}
-
-/* Ongoing's amount wears a "~" to say the number is typical, not exact.
-   The prefix sits inside the field's own box so it reads as part of the
-   input rather than a separate label. */
-
-
-
 
 .tip-block {
   background: var(--color-bg-secondary);
@@ -3315,9 +3301,9 @@ button.line-item--link {
   margin-top: 0;
 }
 
-/* The Recurring tab's own Scheduled/Ongoing group headings -- same eyebrow
+/* The Plan tab's "Not charged this cycle" heading -- same eyebrow
    treatment as .summary-section-eyebrow, one step down from the section's
-   own h2, just enough separation to read as two lists within one section. */
+   own h2, just enough separation to read as a second list within one section. */
 .recurring-subsection-heading {
   font-size: 0.75rem;
   font-weight: 700;
@@ -5483,8 +5469,8 @@ button.line-item--link {
   background: var(--flow-fixed);
 }
 
-/* "Scheduled" / "Ongoing" -- the label half of the row, left-aligned next
-   to the swatch. The status/logged-names text (below) is the right half,
+/* The label half of the row, left-aligned next to the swatch. The status
+   text (below) is the right half,
    pushed there by its own margin-left:auto. */
 /* 14px/600 (DESIGN.md S6's "label 14/600"). */
 .recurring-fulfillment-label {
@@ -5503,13 +5489,6 @@ button.line-item--link {
   color: var(--color-recurring);
   font-family: var(--font-display);
 }
-
-/* Ongoing's own status half ("Panapass and haircut logged") is plain
-   13px muted text, not the bold status-ok green Scheduled's "N of M
-   charged" gets -- there's no target to be "on track" against here (see
-   lib/recurring-expense-status.ts's OngoingRecurringExpenseStatus doc
-   comment: an Ongoing item's own amount is an estimate, not a number to
-   hit or miss). */
 
 /* 17px -- aligns with the label text past the swatch (10px + the row's
    own 0.5rem/8px gap comes close; the extra sliver matches the design
@@ -5796,121 +5775,6 @@ button.line-item--link {
   }
 }
 
-
-/* ----- Explainer bubble (DESIGN.md S6) -----
-   A disclosure, not a tooltip: --primary fill, 13px copy, radius 14, and
-   a 10px rotated square acting as the caret. The ⓘ sits inline after the
-   heading and the bubble spans the full width below, so the caret hangs
-   off the TOGGLE rather than off the bubble -- that way it tracks the
-   button's position automatically, which a fixed offset on the bubble
-   could not do once "Scheduled" becomes "Programados". */
-.explainer {
-  display: flex;
-  flex-direction: column;
-}
-
-.explainer-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.explainer-heading {
-  font-family: var(--font-display);
-  font-size: 1.0625rem;
-  font-weight: 800;
-  margin: 0;
-}
-
-/* 24px visual, padded out to the 44px minimum hit area by a transparent
-   ::before rather than by growing the circle itself. */
-.explainer-toggle {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.explainer-toggle::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 44px;
-  height: 44px;
-  transform: translate(-50%, -50%);
-}
-
-.explainer-toggle.is-open {
-  background: var(--color-button-bg);
-  color: var(--color-on-accent);
-}
-
-/* The caret: a 10px square rotated 45deg, sitting in the gap between the
-   toggle and the bubble below it. Only drawn while open, since there is
-   nothing for it to point at otherwise. */
-.explainer-toggle.is-open::after {
-  content: "";
-  position: absolute;
-  bottom: -19px;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  background: var(--color-button-bg);
-  transform: translateX(-50%) rotate(45deg);
-  border-radius: 2px;
-}
-
-.explainer-toggle:active {
-  background: var(--color-bg-secondary-hover);
-}
-
-.explainer-toggle:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 4px var(--focus-ring);
-}
-
-
-.explainer-bubble {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--color-button-bg);
-  color: var(--color-on-accent);
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  text-wrap: pretty;
-}
-
-/* Dark: the open ⓘ becomes the accent blue with a dark glyph, and the
-   bubble lifts to its own #243444 surface -- HANDOFF's onboarding dark
-   notes give those two different values, so the caret follows the ⓘ's
-   colour (it belongs to the button) while the bubble keeps its own. */
-:root[data-theme="dark"] .explainer-toggle.is-open {
-  background: var(--color-accent-green);
-  color: var(--color-bg);
-}
-
-:root[data-theme="dark"] .explainer-toggle.is-open::after,
-:root[data-theme="dark"] .explainer-bubble {
-  background: #243444;
-}
-
-:root[data-theme="dark"] .explainer-bubble {
-  color: var(--color-text-primary);
-}
 
 /* Sheet kicker -- the uppercase line above a sheet's title ("PAYCHECK 2
    OF 2", "SEP 1 – SEP 30 · DAY 13 OF 30"). Same treatment as the
@@ -6544,14 +6408,6 @@ button.line-item--link {
 
 .expenses-step-amount-field {
   flex: 0 0 112px;
-}
-
-.expenses-step-amount-field--ongoing {
-  flex-basis: 104px;
-}
-
-.expenses-step-amount-field--ongoing + .expenses-step-add-button {
-  width: 72px;
 }
 
 .expenses-step-add-button:active {

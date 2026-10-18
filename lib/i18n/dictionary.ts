@@ -158,33 +158,15 @@ export type Dictionary = {
       question: (vocab: PeriodVocab) => string;
       explainer: (vocab: PeriodVocab) => string;
       untitled: string;
-      /** "Scheduled" (with its due day, when set) or "Ongoing" -- see RecurringExpenseEditSheet's own Scheduled/Ongoing choice. */
-      scheduleSummary: (hasFixedDate: boolean, dueDay: number | null) => string;
+      /** Meta line under an added row: its charge date, or that it has none. */
+      rowMeta: (dueDay: number | null) => string;
       removeAria: (name: string) => string;
       namePlaceholder: string;
       amountPlaceholder: string;
       nameAria: string;
-      hasFixedDateLabel: string;
       dueDayAria: string;
       dueDayOption: string;
       addButton: string;
-      /**
-       * Step 2 is split into the two groups the recurring model actually
-       * has (hasFixedDate true/false). Each heading gets an explainer
-       * bubble behind an info button, because the distinction decides how
-       * the app judges the item later -- a Scheduled item is checked for
-       * being charged, an Ongoing one is only noted when logged.
-       */
-      scheduledHeading: string;
-      ongoingHeading: string;
-      scheduledExplainer: string;
-      ongoingExplainer: string;
-      scheduledExplainerAria: string;
-      ongoingExplainerAria: string;
-      /** Ongoing's amount field -- a typical amount, not an exact one, hence the "~". */
-      typicalAmountPlaceholder: string;
-      /** Meta line under an added Ongoing row. */
-      ongoingMeta: string;
       tipLabel: string;
       tipBody: string;
       saving: string;
@@ -221,7 +203,7 @@ export type Dictionary = {
     dateRange: (vocab: PeriodVocab, range: string) => string;
     heroFinalAvailable: string;
     heroSafeToSpend: string;
-    heroAvailableSummary: (left: string, pendingScheduled: string) => string;
+    heroAvailableSummary: (left: string, pendingRecurring: string) => string;
     heroDaysLeft: (n: number) => string;
     /** Replaces heroDaysLeft once a monthly cycle has reached or passed its last day. */
     heroPeriodEnded: (vocab: PeriodVocab) => string;
@@ -277,7 +259,7 @@ export type Dictionary = {
     statIncome: string;
     statSpent: string;
     statSaved: string;
-    statScheduledLeft: string;
+    statRecurringLeft: string;
     scheduledLabel: string;
     scheduledPaidOfTotal: (paid: number, total: number) => string;
     pendingAmount: (amount: string) => string;
@@ -420,11 +402,9 @@ export type Dictionary = {
       title: string;
       addNew: string;
       empty: string;
-      /** Subsection heading above Scheduled items -- a real due date (Spotify, iCloud). */
-      scheduledHeading: string;
-      /** Subsection heading above Ongoing items -- recurs, but no set date (Panapass, a haircut). */
-      ongoingHeading: string;
-      /** Scheduled items only -- see summarizeRecurringExpenses's own doc comment. */
+      /** Sub-section for items whose charge date falls outside the current cycle -- left out of safe to spend. */
+      notChargedHeading: (vocab: PeriodVocab) => string;
+      /** Items charged this cycle only -- see summarizeRecurringExpenses's own doc comment. */
       paidOfTotal: (vocab: PeriodVocab, paid: string, total: string) => string;
     };
     goals: {
@@ -506,15 +486,15 @@ export type Dictionary = {
       nameLabel: string;
       namePlaceholder: string;
       amountLabel: string;
-      /** Amount label when hasFixedDate is off (Ongoing) -- its own amount is a typical/estimated one, not an exact target, so the label says so. */
-      typicalAmountLabel: string;
       categoryLabel: string;
       categoryPlaceholder: string;
-      /** "Repeats every cycle" checkbox -- independent of hasFixedDateLabel below (see EditableRecurringExpense's own doc comment: repeats vs. has-a-set-date are two separate axes, not one three-way choice). */
+      /** "Repeats every cycle" checkbox -- independent of the optional charge date below. */
       repeatsLabel: string;
-      /** "Has a set date" checkbox -- reveals dueDayLabel's own field when checked. */
-      hasFixedDateLabel: string;
+      /** The optional charge-date picker's label. */
       dueDayLabel: string;
+      /** The picker's blank option: no set date. */
+      noDueDay: string;
+      dueDayOption: (day: number) => string;
       saving: string;
       save: string;
       deleted: string;
@@ -528,10 +508,6 @@ export type Dictionary = {
       paid: string;
       paidOverTarget: string;
       exceeded: string;
-      /** Ongoing item, at least one payment logged this cycle. */
-      logged: string;
-      /** Ongoing item, nothing logged yet this cycle. */
-      notLogged: string;
     };
     dueDay: (day: number) => string;
     record: string;
@@ -780,7 +756,7 @@ export type Dictionary = {
     dueInDays: (n: number) => string;
     wasDueYesterday: string;
     wasDueDaysAgo: (n: number) => string;
-    /** Scheduled expenses only -- see dueSoonCandidate's own doc comment. */
+    /** Dated expenses only -- see dueSoonCandidate's own doc comment. */
     scheduledDueSoon: (name: string, amount: string, dueText: string) => string;
     unpaidRecurring: (count: number, remaining: string) => string;
     duplicateCharge: (amount: string, name: string, date: string) => string;
@@ -856,7 +832,7 @@ export type Dictionary = {
     /** Cash-flow legend label for the truly-unallocated remainder (income - fixed - everythingElse - saved, clamped >= 0). */
     leftoverLabel: string;
 
-    /** Chapter 02 -- Recurring (Scheduled/Ongoing fulfillment, no progress bar -- see recurringFulfillment below and Summary's own scheduledEyebrow section, which DOES show a bar). */
+    /** Chapter 02 -- Recurring (see recurringFulfillment below). */
     chapter2Title: string;
     chapter2Takeaway: (vocab: PeriodVocab, state: "LIVE" | "CLOSED") => string;
 
@@ -921,20 +897,12 @@ export type Dictionary = {
 
   /** Shared by Summary's Recurring section and Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's own doc comment for why this is one function/copy source instead of two. */
   recurringFulfillment: {
-    /** The row label before the "N of M charged" status -- distinct from Summary's own section eyebrow, which now says "Recurring" (the container), not "Scheduled" (one of the two groups inside it). */
-    scheduledLabel: string;
-    /** The row label before the Ongoing subline. */
-    ongoingLabel: string;
+    /** The row label before the "N of M charged" status. */
+    label: string;
     chargedOnTime: (chargedCount: number, total: number) => string;
     allChargedOnTime: string;
     missing: (name: string) => string;
     upcoming: (name: string, date: string) => string;
-    /** live=true appends "so far" -- an in-progress cycle's Ongoing list can only ever grow, never be final the way a closed cycle's is. */
-    ongoingLogged: (names: string, live: boolean) => string;
-    /** "2 of 3 logged" -- the Ongoing row's count, mirroring chargedOnTime. */
-    ongoingLoggedCount: (logged: number, total: number) => string;
-    /** "No gas logged this quincena" -- names the Ongoing item with nothing logged. */
-    ongoingMissing: (vocab: PeriodVocab, name: string) => string;
   };
 
   validations: {

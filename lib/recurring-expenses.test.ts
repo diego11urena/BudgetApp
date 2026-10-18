@@ -33,21 +33,17 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     });
   }
 
-  // hasFixedDate: true (Scheduled) by default -- these tests are about
-  // generic recurring-expense aggregation (paid-count, pending amount),
-  // which only has real stakes for Scheduled items (see
-  // summarizeRecurringExpenses's own doc comment: Ongoing items are
-  // excluded from every total it returns). The dedicated Ongoing-exclusion
-  // test below overrides this explicitly.
+  // Undated by default (always charged this cycle); pass a dueDay to test
+  // the this-cycle / not-this-cycle split.
   async function makeRecurringExpenseWithSnapshot(
     categoryId: string,
     cycleId: string,
     name: string,
     amount: number,
-    hasFixedDate = true,
+    dueDay: number | null = null,
   ) {
     const recurringExpense = await prisma.recurringExpense.create({
-      data: { userId, categoryId, name, amount, hasFixedDate },
+      data: { userId, categoryId, name, amount, dueDay },
     });
     await prisma.cycleRecurringExpense.create({
       data: { cycleId, recurringExpenseId: recurringExpense.id, targetAmount: amount },
@@ -179,23 +175,41 @@ describe.skipIf(!process.env.DATABASE_URL)("getRecurringExpensesForCycle", () =>
     expect(summary.pendingAmount).toBeCloseTo(15.99);
   });
 
-  it("excludes Ongoing items from every summarizeRecurringExpenses total, but still lists them in expenses[]", async () => {
+  it("counts undated items and items dated inside the cycle, and leaves ones dated outside it out of every total", async () => {
     const category = await makeExpenseCategory("Subscriptions");
+    // QUINCENAL cycle starting Aug 3 runs to ~Aug 17.
     const cycle = await makeCycle(new Date(2026, 7, 3));
-    // Scheduled, unpaid -- counts toward every total.
-    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Netflix", 15.99, true);
-    // Ongoing, unpaid -- an estimate, not a real target, so it must never
-    // appear in totalCount/paidCount/pendingAmount (see
-    // summarizeRecurringExpenses's own doc comment), even though it's a
-    // perfectly real row the Recurring tab still shows.
-    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Panapass", 20, false);
+    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Netflix", 15.99, 10); // inside
+    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Panapass", 20); // undated
+    await makeRecurringExpenseWithSnapshot(category.id, cycle.id, "Car tax", 60, 25); // outside
 
     const categories = await getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false });
-    const summary = summarizeRecurringExpenses(categories);
+    const byName = Object.fromEntries(categories[0].expenses.map((e) => [e.name, e.chargedThisCycle]));
+    expect(byName).toEqual({ Netflix: true, Panapass: true, "Car tax": false });
 
-    expect(categories[0].expenses).toHaveLength(2);
-    expect(summary.totalCount).toBe(1);
-    expect(summary.totalTarget).toBeCloseTo(15.99);
-    expect(summary.pendingAmount).toBeCloseTo(15.99);
+    const summary = summarizeRecurringExpenses(categories);
+    expect(summary.totalCount).toBe(2);
+    expect(summary.totalTarget).toBeCloseTo(35.99);
+    expect(summary.pendingAmount).toBeCloseTo(35.99);
+    expect(categories[0].budgetTotal).toBeCloseTo(35.99);
+  });
+
+  it("moves an item dated outside the cycle into the cycle that contains its date", async () => {
+    const category = await makeExpenseCategory("Taxes");
+    // One open cycle per user, so the earlier one is closed.
+    const first = await prisma.budgetCycle.create({
+      data: { userId, label: "test", periodStart: new Date(2026, 7, 3), status: "CLOSED" },
+    });
+    const second = await makeCycle(new Date(2026, 7, 18));
+    const carTax = await makeRecurringExpenseWithSnapshot(category.id, first.id, "Car tax", 60, 25);
+    await prisma.cycleRecurringExpense.create({
+      data: { cycleId: second.id, recurringExpenseId: carTax.id, targetAmount: 60 },
+    });
+
+    const inFirst = await getRecurringExpensesForCycle(userId, first.id, { computeSuggestions: false });
+    const inSecond = await getRecurringExpensesForCycle(userId, second.id, { computeSuggestions: false });
+    expect(inFirst[0].expenses[0].chargedThisCycle).toBe(false);
+    expect(inSecond[0].expenses[0].chargedThisCycle).toBe(true);
+    expect(summarizeRecurringExpenses(inSecond).pendingAmount).toBeCloseTo(60);
   });
 });
