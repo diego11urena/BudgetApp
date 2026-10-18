@@ -7,18 +7,22 @@ import { Sheet } from "../../_components/Sheet";
 import { categorizeTransactionAction, describeTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
-import { CategoryNameInput } from "../../_components/CategoryNameInput";
-import { RecurringExpensePicker, type RecurringOption } from "../../_components/RecurringExpensePicker";
+import type { RecurringOption } from "../../_components/RecurringExpensePicker";
 import { useT } from "@/app/_components/LocaleProvider";
 
+const MAX_RECURRING_SUGGESTIONS = 6;
+const NEW = "__new__";
+
 /**
- * Replaces what used to be two separate banners/sheets (Categorize
- * transactions, What were these for?) -- a transaction imported with
- * neither a category nor a description (a Yappy transfer with no learned
- * merchant category, most commonly) used to show up in BOTH, forcing two
- * separate trips through two separate sheets to finish the same row. One
- * sheet now, one row per transaction, showing exactly whichever field(s)
- * that transaction is actually missing.
+ * One sheet for every imported transaction that's missing a category, a
+ * description, or both -- one transaction at a time, advancing in place
+ * after each Save and closing after the last. Opened only from
+ * NeedsAttentionBanner's Review button, never automatically.
+ *
+ * Every choice is a tap target (chips), so the keyboard only opens when
+ * the user picks "Create new" or fills the description. Save and Done for
+ * now live in a footer pinned to the sheet's bottom edge; Sheet itself
+ * keeps the panel above the on-screen keyboard.
  */
 export function NeedsAttentionSheet({
   initialTransactions,
@@ -30,142 +34,131 @@ export function NeedsAttentionSheet({
   onClose,
 }: {
   initialTransactions: NeedsAttentionTransaction[];
-  /** Each row picks its list by its own type — a Savings row must never be offered Expense category names, and vice versa. */
+  /** Each transaction picks its list by its own type — a Savings row must never be offered Expense category names, and vice versa. */
   expenseCategoryNames: string[];
   incomeCategoryNames: string[];
   savingsCategoryNames: string[];
-  /** Feeds each EXPENSE row's own "Which recurring expense?" picker, once its "This is a recurring expense" checkbox is on. */
+  /** Feeds an EXPENSE transaction's "Which recurring expense?" chips, once "This is a recurring expense" is on. */
   recurringOptions: RecurringOption[];
   returnFocusTo?: HTMLElement | null;
   onClose: () => void;
 }) {
-  function categoryNamesForType(type: NeedsAttentionTransaction["type"]): string[] {
-    return type === "EXPENSE"
-      ? expenseCategoryNames
-      : type === "SAVINGS"
-        ? savingsCategoryNames
-        : incomeCategoryNames;
-  }
   const t = useT().dashboard;
   const { visible, closeThen } = useSheetVisibility();
-  const [transactions, setTransactions] = useState(initialTransactions);
+  // Snapshot: the dashboard re-fetches after each save, but this sheet walks
+  // the list it opened with.
+  const [queue] = useState(initialTransactions);
+  const [index, setIndex] = useState(0);
+  const current = queue[index];
 
   function handleClose() {
     closeThen(onClose);
   }
 
-  function handleDone(transactionId: string) {
-    // Computed from the current `transactions` state directly, not a
-    // setTransactions functional updater -- React may invoke an updater
-    // more than once (StrictMode, a concurrent re-render), which would
-    // fire handleClose()'s side effects (onClose, the close animation)
-    // twice. Each row calls this from its own completed async action, one
-    // at a time, so there's no risk of missing a concurrent removal that
-    // the functional form was guarding against.
-    const next = transactions.filter((t) => t.id !== transactionId);
-    setTransactions(next);
-    if (next.length === 0) handleClose();
+  function handleSaved() {
+    if (index + 1 < queue.length) setIndex(index + 1);
+    else handleClose();
   }
+
+  const categoryNames =
+    current.type === "EXPENSE" ? expenseCategoryNames : current.type === "SAVINGS" ? savingsCategoryNames : incomeCategoryNames;
 
   return (
     <Sheet
       visible={visible}
       title={t.finishTransactionsTitle}
+      kicker={queue.length > 1 ? t.needsAttentionProgress(index + 1, queue.length) : undefined}
       titleStyle={{ marginBottom: "0.5rem" }}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
-      // autoFocus off: this sheet should appear passively, with no field
-      // grabbing the keyboard/cursor until the user deliberately taps one
-      // -- same reasoning as the two sheets this one replaces (see
-      // useModalFocus's own doc comment).
+      // Passive open: nothing grabs the keyboard until the user asks for it.
       autoFocus={false}
+      className="needs-attention-sheet"
     >
-      <p className="field-hint" style={{ marginBottom: "1rem" }}>
-        {t.finishTransactionsBody}
-      </p>
-
-      <div className="categorize-imports-list">
-        {transactions.map((transaction) => (
-          <NeedsAttentionRow
-            key={transaction.id}
-            transaction={transaction}
-            categoryNames={categoryNamesForType(transaction.type)}
-            recurringOptions={recurringOptions}
-            onDone={() => handleDone(transaction.id)}
-          />
-        ))}
-      </div>
-
-      <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-        {t.doneForNow}
-      </button>
+      <NeedsAttentionForm
+        key={current.id}
+        transaction={current}
+        categoryNames={categoryNames}
+        recurringOptions={recurringOptions}
+        onSaved={handleSaved}
+        onDoneForNow={handleClose}
+      />
     </Sheet>
   );
 }
 
-function NeedsAttentionRow({
+/** Existing recurring expenses whose name overlaps the transaction's come first. */
+function rankRecurringOptions(options: RecurringOption[], transactionName: string): RecurringOption[] {
+  const name = transactionName.toLowerCase();
+  const matches = (o: RecurringOption) => {
+    const n = o.name.toLowerCase();
+    return n.includes(name) || name.includes(n);
+  };
+  return [...options.filter(matches), ...options.filter((o) => !matches(o))].slice(0, MAX_RECURRING_SUGGESTIONS);
+}
+
+function NeedsAttentionForm({
   transaction,
   categoryNames,
   recurringOptions,
-  onDone,
+  onSaved,
+  onDoneForNow,
 }: {
   transaction: NeedsAttentionTransaction;
   categoryNames: string[];
   recurringOptions: RecurringOption[];
-  onDone: () => void;
+  onSaved: () => void;
+  onDoneForNow: () => void;
 }) {
   const t = useT().dashboard;
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [categoryValue, setCategoryValue] = useState("");
+  // A category name, NEW (typing a custom one), or "" (nothing picked yet).
+  const [category, setCategory] = useState("");
+  const [newCategory, setNewCategory] = useState("");
   const [recurring, setRecurring] = useState(false);
-  // Defaults to the row's own display name -- same
-  // create-a-new-one-with-this-name default RecurringExpensePicker/
-  // QuickAddSheet use, kept in sync here since this row builds its own
-  // FormData by hand rather than reading the native form on submit.
-  const [recurringSelection, setRecurringSelection] = useState<{
-    recurringExpenseId: string | null;
-    recurringExpenseName: string;
-  }>({
-    recurringExpenseId: null,
-    recurringExpenseName: transaction.name,
-  });
+  // A RecurringExpense id, NEW, or "".
+  const [recurringId, setRecurringId] = useState("");
+  const [newRecurringName, setNewRecurringName] = useState(transaction.name);
   const [description, setDescription] = useState("");
 
-  const label =
-    transaction.needsDescription
-      ? (transaction.direction === "sent" ? t.sentTo(transaction.name) : t.receivedFrom(transaction.name))
-      : transaction.name;
+  const suggestions = rankRecurringOptions(recurringOptions, transaction.name);
+  const categoryName = category === NEW ? newCategory.trim() : category;
+  const canRecur = transaction.needsCategory && transaction.type === "EXPENSE";
+  const valid =
+    (!transaction.needsCategory || categoryName !== "") &&
+    (!canRecur || !recurring || (recurringId === NEW ? newRecurringName.trim() !== "" : recurringId !== "")) &&
+    (!transaction.needsDescription || description.trim() !== "");
+
+  const label = transaction.needsDescription
+    ? transaction.direction === "sent"
+      ? t.sentTo(transaction.name)
+      : t.receivedFrom(transaction.name)
+    : transaction.name;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!valid || pending) return;
+    (document.activeElement as HTMLElement | null)?.blur();
     setError(null);
-
-    if (transaction.needsCategory && !categoryValue.trim()) {
-      setError(t.chooseCategoryError);
-      return;
-    }
-    if (transaction.needsDescription && !description.trim()) {
-      setError(t.tellUsWhatItWasForError);
-      return;
-    }
-
     setPending(true);
 
-    // Sequential, not parallel -- categorizeTransactionAction can create a
-    // brand-new category (getOrCreateCategory) that the description update
-    // has no reason to race against; keeping these as two independent
-    // round trips to the two existing, already-battle-tested actions
-    // avoids duplicating either one's own validation/ownership logic here.
+    // Two round trips to the two existing actions rather than a new combined
+    // one -- each keeps its own validation/ownership checks. Category first:
+    // it may create a category the description update shouldn't race.
     if (transaction.needsCategory) {
       const fd = new FormData();
       fd.set("transactionId", transaction.id);
-      fd.set("category", categoryValue.trim());
-      if (recurring) {
+      fd.set("category", categoryName);
+      if (canRecur && recurring) {
         fd.set("recurring", "true");
-        if (recurringSelection.recurringExpenseId) fd.set("recurringExpenseId", recurringSelection.recurringExpenseId);
-        fd.set("recurringExpenseName", recurringSelection.recurringExpenseName);
+        if (recurringId === NEW) {
+          fd.set("recurringExpenseName", newRecurringName.trim());
+        } else {
+          fd.set("recurringExpenseId", recurringId);
+          fd.set("recurringExpenseName", recurringOptions.find((o) => o.id === recurringId)?.name ?? transaction.name);
+        }
       }
       const result = await categorizeTransactionAction(fd);
       if ("error" in result) {
@@ -188,81 +181,135 @@ function NeedsAttentionRow({
     }
 
     router.refresh();
-    onDone();
+    onSaved();
   }
 
   return (
-    <form className="categorize-imports-row" onSubmit={handleSubmit} noValidate>
+    <form
+      className="needs-attention-form"
+      onSubmit={handleSubmit}
+      noValidate
+      // Tapping anything that isn't a text field (a chip, the background)
+      // dismisses the keyboard -- iOS keeps it up otherwise.
+      onPointerDown={(e) => {
+        const active = document.activeElement as HTMLElement | null;
+        if (active?.matches("input[type=text]") && !(e.target as HTMLElement).closest("input[type=text]")) active.blur();
+      }}
+    >
       <div className="categorize-imports-row-header">
         <span className="categorize-imports-row-name">{label}</span>
         <span className="categorize-imports-row-amount">{formatCurrency(transaction.amount)}</span>
       </div>
 
       {transaction.needsCategory && (
-        <>
-          <div className="categorize-imports-row-input">
-            <CategoryNameInput
-              id={`needs-attention-category-${transaction.id}`}
-              name="category"
-              categoryNames={categoryNames}
-              placeholder={t.chooseCategoryPlaceholder}
-              showChips={false}
-              onValueChange={setCategoryValue}
+        <fieldset className="needs-attention-group">
+          <legend className="needs-attention-label">{t.categoryLabel}</legend>
+          <ChipChoice
+            options={categoryNames.map((name) => ({ value: name, label: name }))}
+            value={category}
+            onChange={setCategory}
+            createLabel={t.createNew}
+          />
+          {category === NEW && (
+            <input
+              type="text"
+              className="needs-attention-input"
+              aria-label={t.newCategoryPlaceholder}
+              placeholder={t.newCategoryPlaceholder}
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              maxLength={60}
+              autoComplete="off"
+              autoFocus
             />
-          </div>
-          {transaction.type === "EXPENSE" && categoryValue.trim() && (
-            <>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          )}
+        </fieldset>
+      )}
+
+      {canRecur && (
+        <>
+          <label className="needs-attention-check">
+            <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
+            {t.isRecurringExpense}
+          </label>
+          {recurring && (
+            <fieldset className="needs-attention-group">
+              <legend className="needs-attention-label">{t.whichRecurringExpenseLabel}</legend>
+              <ChipChoice
+                options={suggestions.map((o) => ({ value: o.id, label: `${o.name} · ${formatCurrency(o.amount)}` }))}
+                value={recurringId}
+                onChange={setRecurringId}
+                createLabel={t.createNew}
+              />
+              {recurringId === NEW && (
                 <input
-                  type="checkbox"
-                  checked={recurring}
-                  onChange={(e) => {
-                    setRecurring(e.target.checked);
-                    // Reset to the row's own name each time the toggle
-                    // turns on -- a prior open/select shouldn't linger if
-                    // the user unchecked and re-checked it.
-                    if (e.target.checked) {
-                      setRecurringSelection({ recurringExpenseId: null, recurringExpenseName: transaction.name });
-                    }
-                  }}
+                  type="text"
+                  className="needs-attention-input"
+                  aria-label={t.newRecurringPlaceholder}
+                  placeholder={t.newRecurringPlaceholder}
+                  value={newRecurringName}
+                  onChange={(e) => setNewRecurringName(e.target.value)}
+                  maxLength={60}
+                  autoComplete="off"
+                  autoFocus
                 />
-                {t.isRecurringExpense}
-              </label>
-              {recurring && (
-                <div className="categorize-imports-row-input">
-                  <label htmlFor={`needs-attention-recurring-${transaction.id}`} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
-                    {t.whichRecurringExpenseLabel}
-                  </label>
-                  <RecurringExpensePicker
-                    id={`needs-attention-recurring-${transaction.id}`}
-                    options={recurringOptions}
-                    defaultValue={transaction.name}
-                    onSelectionChange={setRecurringSelection}
-                  />
-                </div>
               )}
-            </>
+            </fieldset>
           )}
         </>
       )}
 
       {transaction.needsDescription && (
-        <div className="categorize-imports-row-input">
-          <input
-            type="text"
-            placeholder={t.whatWasThisForPlaceholder}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            maxLength={200}
-            autoComplete="off"
-          />
-        </div>
+        <input
+          type="text"
+          className="needs-attention-input"
+          aria-label={t.whatWasThisForPlaceholder}
+          placeholder={t.whatWasThisForPlaceholder}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={200}
+          autoComplete="off"
+        />
       )}
 
       {error && <p className="error-text">{error}</p>}
-      <button type="submit" className="button button--small" disabled={pending}>
-        {pending ? t.saving : t.save}
-      </button>
+
+      <div className="needs-attention-footer">
+        <button type="submit" className="button sheet-submit" disabled={!valid || pending}>
+          {pending ? t.saving : t.save}
+        </button>
+        <button type="button" className="button button--ghost sheet-submit" onClick={onDoneForNow}>
+          {t.doneForNow}
+        </button>
+      </div>
     </form>
+  );
+}
+
+function ChipChoice({
+  options,
+  value,
+  onChange,
+  createLabel,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+  createLabel: string;
+}) {
+  return (
+    <div className="category-chips category-chips--wrap">
+      {[...options, { value: NEW, label: createLabel }].map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          className={`category-chip${value === o.value ? " is-active" : ""}`}
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
