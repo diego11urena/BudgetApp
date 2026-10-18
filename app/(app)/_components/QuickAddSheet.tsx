@@ -41,8 +41,6 @@ export interface EditingTransaction {
   recurringExpenseId: string | null;
 }
 
-const SWIPE_DISMISS_THRESHOLD = 90;
-
 export function QuickAddSheet({
   initialType,
   expenseCategoryNames,
@@ -104,8 +102,6 @@ export function QuickAddSheet({
 
   const { visible, closeThen } = useSheetVisibility();
   const [type, setType] = useState<TxType>(editingTransaction?.type ?? initialType);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number | null>(null);
   const uid = useId();
   const amountId = `${uid}-amount`;
   const nameId = `${uid}-name`;
@@ -407,37 +403,12 @@ export function QuickAddSheet({
     setIsCreatingCategory(nextCategoryNames.length === 0);
   }
 
-  function handleDragStart(e: React.TouchEvent) {
-    dragStartY.current = e.touches[0].clientY;
-    if (sheetRef.current) sheetRef.current.style.transition = "none";
-  }
-
-  function handleDragMove(e: React.TouchEvent) {
-    if (dragStartY.current === null || !sheetRef.current) return;
-    const delta = e.touches[0].clientY - dragStartY.current;
-    if (delta > 0) {
-      sheetRef.current.style.transform = `translateY(${delta}px)`;
-    }
-  }
-
-  function handleDragEnd(e: React.TouchEvent) {
-    if (dragStartY.current === null || !sheetRef.current) return;
-    const delta = e.changedTouches[0].clientY - dragStartY.current;
-    sheetRef.current.style.transition = "";
-    sheetRef.current.style.transform = "";
-    dragStartY.current = null;
-    if (delta > SWIPE_DISMISS_THRESHOLD) {
-      handleClose();
-    }
-  }
-
   return (
     <Sheet
       visible={visible}
       ariaLabel={isEditing ? t.quickAdd.editAria : t.quickAdd.logAria}
       onClose={handleClose}
       returnFocusTo={returnFocusTo}
-      panelRef={sheetRef}
       // autoFocus off: this sheet should open passively, with no field
       // grabbing the keyboard/cursor until the user deliberately taps one
       // -- same reasoning as NeedsAttentionSheet (see useModalFocus's own
@@ -446,11 +417,6 @@ export function QuickAddSheet({
       // own default would have done; now that it doesn't, this needs to
       // be explicit.
       autoFocus={false}
-      // Swipe-to-dismiss listens on the handle only, matching
-      // .sheet-handle's own touch-action: none in globals.css -- attached
-      // to the whole sheet, these would fight finger-scrolling through the
-      // sheet's own (now scrollable, see 0.2) body.
-      handleProps={{ onTouchStart: handleDragStart, onTouchMove: handleDragMove, onTouchEnd: handleDragEnd }}
     >
       <div className="type-toggle">
         {TYPE_OPTIONS.map((opt) => (
