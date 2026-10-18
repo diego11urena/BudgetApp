@@ -121,3 +121,41 @@ export const updateRecurringAmountAction = withActionErrorHandling(async functio
   });
   revalidateAppPages();
 });
+
+/**
+ * Moves a closed cycle's leftover into a goal: a savings contribution
+ * logged in that closed cycle, on its last day. The leftover never rolled
+ * into the current cycle, so taking it from there would count it twice.
+ */
+export const moveClosedLeftoverToGoalAction = withActionErrorHandling(async function moveClosedLeftoverToGoalAction(input: {
+  cycleId: string;
+  goalName: string;
+  amount: string;
+}): Promise<{ transactionId: string } | { error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const userId = session.user.id;
+  const amount = decimalString.safeParse(input.amount);
+  if (!amount.success) return { error: amount.error.issues[0]?.message ?? "Invalid amount" };
+  const [cycle, goal] = await Promise.all([
+    prisma.budgetCycle.findFirst({ where: { id: input.cycleId, userId, status: "CLOSED" } }),
+    prisma.expenseCategory.findFirst({ where: { userId, type: "SAVINGS", name: input.goalName } }),
+  ]);
+  if (!cycle || !goal) return { error: "Not found" };
+  const created = await prisma.cycleTransaction.create({
+    data: {
+      cycleId: cycle.id,
+      userId,
+      type: "SAVINGS",
+      name: goal.name,
+      amount: amount.data,
+      expenseCategoryId: goal.id,
+      occurredAt: cycle.periodEnd ?? cycle.periodStart,
+    },
+    select: { id: true },
+  });
+  revalidateAppPages();
+  return { transactionId: created.id };
+});

@@ -746,6 +746,12 @@ export const es: Dictionary = {
       `${name} (${amount}) está muy por encima de tu compra habitual en ${category} (${usual}).`,
     newRecurring: (name, amount) => `${name} (${amount}) se repite. ¿Es un gasto recurrente?`,
     leftover: (amount) => `Te quedan ${amount}. ¿Los pasas a una meta?`,
+    goalMilestone: (percent, name) => `Acabas de pasar el ${percent}% de tu ${name}.`,
+    closedUnder: (amount) => `Terminaste el ciclo anterior con ${amount} de sobra.`,
+    goalContributionMade: (vocab, planned, name) => `Pusiste los ${planned} planeados en ${name} ${vocab.thisPeriod}.`,
+    spentLess: (category, amount) => `${category} va ${amount} por debajo de lo habitual en este ciclo.`,
+    aheadOfPace: (amount) => `Tienes ${amount} más de lo esperado a esta altura del ciclo.`,
+    streak: (cycles) => `${cycles} ciclos seguidos por debajo de tu gasto habitual.`,
     goalContributionBehind: (vocab, planned, actual, name, days) =>
       `Planeaste ${planned} para ${name} ${vocab.thisPeriod} — solo se ha registrado ${actual} hasta ahora, con ${days} ${plural(days, "día restante", "días restantes")}.`,
   },

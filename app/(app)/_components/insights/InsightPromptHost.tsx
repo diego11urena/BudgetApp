@@ -97,7 +97,7 @@ export async function InsightPromptHost({ prompt, userId }: { prompt: InsightPro
         orderBy: { name: "asc" },
       });
       if (goals.length === 0) return null;
-      return <LeftoverPrompt key={key} amount={prompt.amount} goalNames={goals.map((g) => g.name)} />;
+      return <LeftoverPrompt key={key} amount={prompt.amount} goalNames={goals.map((g) => g.name)} closedCycleId={prompt.cycle} />;
     }
 
     case "uncategorized":

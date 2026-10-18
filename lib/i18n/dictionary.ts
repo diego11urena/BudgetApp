@@ -776,6 +776,13 @@ export type Dictionary = {
     largePurchase: (amount: string, name: string, category: string, usual: string) => string;
     newRecurring: (name: string, amount: string) => string;
     leftover: (amount: string) => string;
+    goalMilestone: (percent: number, name: string) => string;
+    /** The cycle that just closed ended with money left. */
+    closedUnder: (amount: string) => string;
+    goalContributionMade: (vocab: PeriodVocab, planned: string, name: string) => string;
+    spentLess: (category: string, amount: string) => string;
+    aheadOfPace: (amount: string) => string;
+    streak: (cycles: number) => string;
     goalContributionBehind: (vocab: PeriodVocab, planned: string, actual: string, name: string, days: number) => string;
   };
 

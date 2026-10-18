@@ -85,7 +85,8 @@ export default async function DashboardPage({
     getOrderedCategoryNames(userId, cycle.id, "SAVINGS"),
     getOrderedCategoryNames(userId, cycle.id, "INCOME"),
     getRecurringExpenseOptions(userId),
-    getRecentCycles(userId),
+    // 8, not the default 5: the insights streak and category averages look back up to 7 closed cycles.
+    getRecentCycles(userId, 8),
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),
     getGoalsWithProgress(userId, cycle.id),
     getNeedsAttentionTransactions(cycle.id),
@@ -146,6 +147,7 @@ export default async function DashboardPage({
     memory: insightMemory,
     needsCategoryCount: needsAttentionTransactions.filter((tx) => tx.needsCategory).length,
     recurringExpenseNames: recurringOptions.map((o) => o.name),
+    lastClosedCycleId: closedCycles[0]?.id,
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
     goals,

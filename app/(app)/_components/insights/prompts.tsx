@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   addTransactionToRecurringAction,
+  moveClosedLeftoverToGoalAction,
   rememberInsightAction,
   updateRecurringAmountAction,
 } from "../../_actions/insights";
@@ -229,8 +230,20 @@ export function CategoryUpPrompt({ insightKey, categoryName }: { insightKey: str
   );
 }
 
-/** Near the end of a cycle with money left: move it to a goal (native picker), logged as a savings contribution. */
-export function LeftoverPrompt({ amount, goalNames }: { amount: string; goalNames: string[] }) {
+/**
+ * Money left -- near the end of this cycle, or from the cycle that just
+ * closed (closedCycleId) -- moved to a goal (native picker) as a savings
+ * contribution.
+ */
+export function LeftoverPrompt({
+  amount,
+  goalNames,
+  closedCycleId,
+}: {
+  amount: string;
+  goalNames: string[];
+  closedCycleId?: string;
+}) {
   const t = useT();
   const p = t.insightPrompts;
   const router = useRouter();
@@ -250,7 +263,9 @@ export function LeftoverPrompt({ amount, goalNames }: { amount: string; goalName
     fd.set("type", "SAVINGS");
     fd.set("name", goal);
     fd.set("amount", value);
-    const result = await addTransactionAction(undefined, fd);
+    const result = closedCycleId
+      ? await moveClosedLeftoverToGoalAction({ cycleId: closedCycleId, goalName: goal, amount: value })
+      : await addTransactionAction(undefined, fd);
     if (result && "error" in result) {
       setPending(false);
       setError(result.error);

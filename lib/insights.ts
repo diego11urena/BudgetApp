@@ -34,6 +34,13 @@ export const PRIORITY = {
   SAVINGS_GOAL: 60,
   LEFTOVER: 58,
   STILL_TO_CHARGE: 55,
+  // Positives (green dot) -- below every money-risk and to-do insight.
+  GOAL_MILESTONE: 50,
+  CLOSED_UNDER: 49,
+  GOAL_CONTRIBUTION_MADE: 47,
+  SPENT_LESS: 46,
+  AHEAD_OF_PACE: 45,
+  STREAK: 44,
   ON_TRACK: 40,
 } as const;
 
@@ -93,6 +100,17 @@ export const NEW_RECURRING_GAPS: readonly [number, number][] = [
 /** Same-merchant amounts within this fraction count as "the same amount". */
 export const NEW_RECURRING_AMOUNT_FRACTION = 0.05;
 
+/** "Spent less than usual" and "ahead of pace" wait until this fraction of the cycle has passed -- early on, everything looks under pace. */
+export const POSITIVE_MIN_PERCENT_ELAPSED = 0.5;
+/** "Ahead of pace": at least this fraction under the expected day-to-day spending so far... */
+export const AHEAD_OF_PACE_MIN_FRACTION = 0.25;
+/** ...and at least this many dollars. */
+export const AHEAD_OF_PACE_MIN_DOLLARS = 25;
+/** "You finished with $X left" shows during the first this-many days of the next cycle. */
+export const CLOSED_UNDER_FIRST_DAYS = 3;
+/** Cycles in a row under usual spending before it's a streak worth mentioning. */
+export const STREAK_MIN_CYCLES = 3;
+
 /** "Move what's left to a goal?" shows in the last this-many days of a cycle (or once it's past its end). */
 export const LEFTOVER_LAST_DAYS = 2;
 /** ...when at least this much is left. */
@@ -100,8 +118,8 @@ export const LEFTOVER_MIN_DOLLARS = 20;
 
 /* ------------------------------------------------------------------ */
 
-/** critical = red (money risk), recurring = gold (recurring charges), uncategorized = orange. Absent = neutral. */
-export type InsightSeverity = "critical" | "recurring" | "uncategorized";
+/** critical = red (money risk), recurring = gold (recurring charges), uncategorized = orange, positive = green. Absent = neutral. */
+export type InsightSeverity = "critical" | "recurring" | "uncategorized" | "positive";
 
 export interface Insight {
   /** Stable identity, e.g. "missed:<recurringId>:2026-10-16" -- what a dismissal is stored under. */
@@ -159,6 +177,8 @@ export interface InsightExtras {
   needsCategoryCount?: number;
   /** Every recurring expense the user has, by name -- so a known one is never "suspected" as new. */
   recurringExpenseNames?: string[];
+  /** The most recent closed cycle's id (previousClosedFinancials[0]) -- its leftover can go to a goal. */
+  lastClosedCycleId?: string;
 }
 
 /**
@@ -203,6 +223,12 @@ export function generateInsights(
     ...paceCandidates(ctx),
     ...goalContributionCandidates(ctx),
     ...savingsGoalCandidates(ctx),
+    ...goalMilestoneCandidates(ctx),
+    ...closedUnderCandidates(ctx),
+    ...goalContributionMadeCandidates(ctx),
+    ...spentLessCandidates(ctx),
+    ...aheadOfPaceCandidates(ctx),
+    ...streakCandidates(ctx),
   ];
 
   return selectInsights(candidates, extras.memory ?? [], now);
@@ -531,12 +557,11 @@ function contributedThisCycle(current: CycleFinancials, goalCategoryId: string):
 
 /**
  * Close to a savings goal: within one cycle's planned contribution of the
- * target, or a milestone (GOAL_MILESTONES) crossed by this cycle's
- * contributions. Neither holds forever: the first ends when the goal is
- * done, the second when the cycle closes.
+ * target -- so it ends when the goal is done instead of firing forever.
+ * Milestones crossed on the way have their own positive insight.
  */
 function savingsGoalCandidates(ctx: RuleContext): Candidate[] {
-  const { extras, current, now, t } = ctx;
+  const { extras, now, t } = ctx;
   const out: (Candidate & { percentage: number })[] = [];
   for (const goal of extras.goals) {
     if (goal.lifetimeTargetAmount <= 0) continue;
@@ -550,15 +575,12 @@ function savingsGoalCandidates(ctx: RuleContext): Candidate[] {
     if (projection.isComplete) continue;
 
     const planned = goal.currentCycleRecurringAmount ?? 0;
-    const withinOneContribution = planned > 0 && projection.remaining <= planned;
-    const before = ((goal.savedSoFar - contributedThisCycle(current, goal.categoryId)) / goal.lifetimeTargetAmount) * 100;
-    const crossed = [...GOAL_MILESTONES].reverse().find((m) => before < m && projection.percentage >= m);
-    if (!withinOneContribution && crossed === undefined) continue;
+    if (!(planned > 0 && projection.remaining <= planned)) continue;
 
     out.push({
       rule: "goal-close",
       key: `goal-close:${goal.categoryId}`,
-      fingerprint: withinOneContribution ? `remaining:${projection.remaining.toFixed(2)}` : `milestone:${crossed}`,
+      fingerprint: projection.remaining.toFixed(2),
       text: t.savingsGoalClose(formatCurrency(projection.remaining), goal.name),
       priority: PRIORITY.SAVINGS_GOAL,
       href: "/plan",
@@ -722,6 +744,164 @@ function leftoverCandidates(ctx: RuleContext): Candidate[] {
       text: ctx.t.leftover(formatCurrency(left)),
       priority: PRIORITY.LEFTOVER,
       ...withPrompt("/plan", { kind: "leftover", key, amount: left.toFixed(2) }),
+    },
+  ];
+}
+
+/* ------------------------------ Positives ------------------------------ */
+
+/** "You just passed 50% of your Emergency fund" -- this cycle's contributions crossed a milestone. Once per milestone. */
+function goalMilestoneCandidates(ctx: RuleContext): Candidate[] {
+  const out: (Candidate & { milestone: number })[] = [];
+  for (const goal of ctx.extras.goals) {
+    if (goal.lifetimeTargetAmount <= 0 || goal.savedSoFar >= goal.lifetimeTargetAmount) continue;
+    const pct = (amount: number) => (amount / goal.lifetimeTargetAmount) * 100;
+    const before = pct(goal.savedSoFar - contributedThisCycle(ctx.current, goal.categoryId));
+    const crossed = [...GOAL_MILESTONES].reverse().find((m) => before < m && pct(goal.savedSoFar) >= m);
+    if (crossed === undefined) continue;
+    out.push({
+      rule: "goal-milestone",
+      key: `goal-milestone:${goal.categoryId}:${crossed}`,
+      fingerprint: "",
+      text: ctx.t.goalMilestone(crossed, goal.name),
+      priority: PRIORITY.GOAL_MILESTONE,
+      href: "/plan",
+      severity: "positive",
+      milestone: crossed,
+    });
+  }
+  return out.sort((a, b) => b.milestone - a.milestone);
+}
+
+/**
+ * The cycle that just closed ended with money left: "You finished with $X
+ * left." Offers moving it to a goal, logged in that closed cycle -- the
+ * leftover doesn't roll into this one.
+ */
+function closedUnderCandidates(ctx: RuleContext): Candidate[] {
+  const last = ctx.previous[0];
+  const { extras, phase } = ctx;
+  if (!last || !extras.lastClosedCycleId || phase.elapsedDays > CLOSED_UNDER_FIRST_DAYS) return [];
+  if (last.amountLeft < LEFTOVER_MIN_DOLLARS) return [];
+  const key = `closed-under:${extras.lastClosedCycleId}`;
+  const amount = last.amountLeft.toFixed(2);
+  return [
+    {
+      rule: "closed-under",
+      key,
+      fingerprint: amount,
+      text: ctx.t.closedUnder(formatCurrency(last.amountLeft)),
+      priority: PRIORITY.CLOSED_UNDER,
+      severity: "positive",
+      ...(extras.goals.length > 0
+        ? withPrompt("/plan", { kind: "leftover", key, amount, cycle: extras.lastClosedCycleId })
+        : {}),
+    },
+  ];
+}
+
+/** The planned contribution for a goal is met this cycle. */
+function goalContributionMadeCandidates(ctx: RuleContext): Candidate[] {
+  const { extras, current, t } = ctx;
+  return extras.goals
+    .filter((goal) => (goal.currentCycleRecurringAmount ?? 0) > 0 && contributedThisCycle(current, goal.categoryId) >= goal.currentCycleRecurringAmount!)
+    .map((goal) => ({
+      rule: "goal-made",
+      key: `goal-made:${extras.cycleId}:${goal.categoryId}`,
+      fingerprint: "",
+      text: t.goalContributionMade(extras.vocab, formatCurrency(goal.currentCycleRecurringAmount!), goal.name),
+      priority: PRIORITY.GOAL_CONTRIBUTION_MADE,
+      href: "/plan",
+      severity: "positive" as const,
+    }));
+}
+
+/**
+ * Mirror of category up: a category spending less than its prorated usual,
+ * with the same floors. Waits for POSITIVE_MIN_PERCENT_ELAPSED of the cycle
+ * -- on day 2 every category is "below usual".
+ */
+function spentLessCandidates(ctx: RuleContext): Candidate[] {
+  const { current, previous, phase, extras, t } = ctx;
+  if (previous.length < ANOMALY_MIN_HISTORY || phase.percentElapsed < POSITIVE_MIN_PERCENT_ELAPSED) return [];
+  const window = previous.slice(0, ANOMALY_WINDOW_SIZE);
+  const minAverage = anomalyMinAverage(extras.budgetFrequency);
+  const minDollarDelta = anomalyMinDollarDelta(extras.budgetFrequency);
+  const categories = new Map(window.flatMap((f) => f.categoryTotals).map((c) => [c.categoryId, c.categoryName]));
+
+  const out: (Candidate & { dollarDelta: number })[] = [];
+  for (const [categoryId, categoryName] of categories) {
+    const average = window.reduce((s, f) => s + (f.categoryTotals.find((c) => c.categoryId === categoryId)?.amount ?? 0), 0) / window.length;
+    if (average < minAverage) continue;
+    const expected = average * phase.percentElapsed;
+    const spent = current.categoryTotals.find((c) => c.categoryId === categoryId)?.amount ?? 0;
+    const dollarDelta = expected - spent;
+    if (dollarDelta < minDollarDelta || dollarDelta / expected < ANOMALY_THRESHOLD_FRACTION) continue;
+    out.push({
+      rule: "spent-less",
+      key: `spent-less:${extras.cycleId}:${categoryId}`,
+      fingerprint: "",
+      text: t.spentLess(categoryName, formatCurrency(dollarDelta)),
+      priority: PRIORITY.SPENT_LESS,
+      href: `/transactions?category=${categoryId}`,
+      severity: "positive",
+      dollarDelta,
+    });
+  }
+  return out.sort((a, b) => b.dollarDelta - a.dollarDelta);
+}
+
+/**
+ * Halfway or later, day-to-day spending well under pace: how much more the
+ * user has than expected. Expected spending so far = what was spendable at
+ * the start (Safe to spend + day-to-day spent) times how far in we are.
+ */
+function aheadOfPaceCandidates(ctx: RuleContext): Candidate[] {
+  const { current, phase, extras, t } = ctx;
+  if (phase.percentElapsed < POSITIVE_MIN_PERCENT_ELAPSED) return [];
+  const safeToSpend = current.amountLeft - summarizeRecurringExpenses(extras.recurringExpenseCategories).pendingAmount;
+  if (safeToSpend <= 0) return [];
+  const dayToDaySpent = current.transactions
+    .filter((tx) => tx.type === "EXPENSE" && tx.recurringExpenseId === null)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  const expected = (safeToSpend + dayToDaySpent) * phase.percentElapsed;
+  const ahead = expected - dayToDaySpent;
+  if (ahead < AHEAD_OF_PACE_MIN_DOLLARS || ahead < expected * AHEAD_OF_PACE_MIN_FRACTION) return [];
+  return [
+    {
+      rule: "ahead",
+      key: `ahead:${extras.cycleId}`,
+      fingerprint: "",
+      text: t.aheadOfPace(formatCurrency(ahead)),
+      priority: PRIORITY.AHEAD_OF_PACE,
+      href: "/transactions/breakdown",
+      severity: "positive",
+    },
+  ];
+}
+
+/**
+ * Consecutive closed cycles (newest first) each spending less than the
+ * average of the up-to-ANOMALY_WINDOW_SIZE cycles before it.
+ */
+function streakCandidates(ctx: RuleContext): Candidate[] {
+  const { previous, extras, t } = ctx;
+  let streak = 0;
+  for (let i = 0; i < previous.length - 1; i++) {
+    const before = previous.slice(i + 1, i + 1 + ANOMALY_WINDOW_SIZE);
+    const usual = before.reduce((s, f) => s + f.totalExpenses, 0) / before.length;
+    if (!(previous[i].totalExpenses < usual)) break;
+    streak++;
+  }
+  if (streak < STREAK_MIN_CYCLES) return [];
+  return [
+    {
+      rule: "streak",
+      key: `streak:${extras.cycleId}`,
+      fingerprint: String(streak),
+      text: t.streak(streak),
+      priority: PRIORITY.STREAK,
+      severity: "positive",
     },
   ];
 }

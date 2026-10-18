@@ -282,7 +282,7 @@ describe("category up", () => {
 
   it("stays silent with no history, for a decrease, or for a category usually under $25", () => {
     expect(find(financials([groceries(150)]), [], extras({ now: halfway }), /Groceries/)).toBeUndefined();
-    expect(find(financials([groceries(50)]), [financials([groceries(200)])], extras({ now: halfway }), /Groceries/)).toBeUndefined();
+    expect(find(financials([groceries(50)]), [financials([groceries(200)])], extras({ now: halfway }), /spending is up/)).toBeUndefined();
     expect(find(financials([groceries(60)]), [financials([groceries(20)])], extras({ now: halfway }), /Groceries/)).toBeUndefined();
   });
 });
@@ -295,9 +295,9 @@ describe("close to a savings goal", () => {
     expect(find(financials(), [], ex, /away from hitting/)!.text).toBe("You're $80.00 away from hitting your Emergency fund target.");
   });
 
-  it("fires when this cycle's contribution crosses a milestone", () => {
+  it("leaves milestones to the goal-milestone insight", () => {
     const ex = extras({ goals: [goal({ savedSoFar: 520 })] });
-    expect(find(financials([saving(100)]), [], ex, /away from hitting/)).toBeDefined();
+    expect(find(financials([saving(100)]), [], ex, /away from hitting/)).toBeUndefined();
   });
 
   it("does not keep firing for a goal sitting near the target with no milestone crossed this cycle", () => {
@@ -543,5 +543,110 @@ describe("tie-break", () => {
       CYCLE_START,
     );
     expect(result.map((i) => i.key)).toEqual(["actionable", "plain"]);
+  });
+});
+
+describe("positive insights", () => {
+  const saving = (amount: number) => tx({ type: "SAVINGS", amount, expenseCategoryId: "goal-1" });
+
+  it("are green and rank below every money-risk and to-do insight", () => {
+    const positives = [PRIORITY.GOAL_MILESTONE, PRIORITY.CLOSED_UNDER, PRIORITY.GOAL_CONTRIBUTION_MADE, PRIORITY.SPENT_LESS, PRIORITY.AHEAD_OF_PACE, PRIORITY.STREAK];
+    const others = [PRIORITY.OVER_BUDGET, PRIORITY.PACE_WARNING, PRIORITY.MISSED_CHARGE, PRIORITY.DUPLICATE_CHARGE, PRIORITY.UPCOMING_CHARGES, PRIORITY.STILL_TO_CHARGE];
+    expect(Math.max(...positives)).toBeLessThan(Math.min(...others));
+  });
+
+  describe("goal milestone", () => {
+    it("fires once this cycle's contributions cross 50%, green", () => {
+      const insight = find(financials([saving(100)]), [], extras({ goals: [goal({ savedSoFar: 520 })] }), /just passed/)!;
+      expect(insight.text).toBe("You just passed 50% of your Emergency fund.");
+      expect(insight.severity).toBe("positive");
+      expect(insight.key).toBe("goal-milestone:goal-1:50");
+    });
+
+    it("names the highest milestone crossed", () => {
+      expect(find(financials([saving(500)]), [], extras({ goals: [goal({ savedSoFar: 800 })] }), /just passed/)!.text).toMatch(/75%/);
+    });
+
+    it("stays silent when no milestone was crossed this cycle, or the goal is done", () => {
+      expect(find(financials([saving(10)]), [], extras({ goals: [goal({ savedSoFar: 600 })] }), /just passed/)).toBeUndefined();
+      expect(find(financials([saving(200)]), [], extras({ goals: [goal({ savedSoFar: 1000 })] }), /just passed/)).toBeUndefined();
+    });
+  });
+
+  describe("cycle closed under budget", () => {
+    const last = financials([tx({ amount: 1700 })]); // $300 left
+    it("fires in the first days of the next cycle, with the move-to-goal prompt when there's a goal", () => {
+      const insight = find(financials(), [last], extras({ lastClosedCycleId: "c0", goals: [goal()] }), /finished last cycle/)!;
+      expect(insight.text).toBe("You finished last cycle with $300.00 left.");
+      expect(insight.href).toBe("/plan?prompt=leftover&insight=closed-under%3Ac0&amount=300.00&cycle=c0");
+    });
+
+    it("has no prompt without a goal", () => {
+      expect(find(financials(), [last], extras({ lastClosedCycleId: "c0" }), /finished last cycle/)!.href).toBeUndefined();
+    });
+
+    it("stays silent after the first 3 days, or when little was left", () => {
+      expect(find(financials(), [last], extras({ lastClosedCycleId: "c0", now: day("2026-08-07") }), /finished/)).toBeUndefined();
+      expect(find(financials(), [financials([tx({ amount: 1990 })])], extras({ lastClosedCycleId: "c0" }), /finished/)).toBeUndefined();
+    });
+  });
+
+  describe("goal contribution made", () => {
+    it("fires once the planned contribution is met", () => {
+      const ex = extras({ goals: [goal({ currentCycleRecurringAmount: 100 })] });
+      expect(find(financials([saving(100)]), [], ex, /planned \$100/)!.text).toBe("You put your planned $100.00 into Emergency fund this paycheck.");
+    });
+
+    it("stays silent below the plan or with no plan", () => {
+      expect(find(financials([saving(60)]), [], extras({ goals: [goal({ currentCycleRecurringAmount: 100 })] }), /You put/)).toBeUndefined();
+      expect(find(financials([saving(60)]), [], extras({ goals: [goal()] }), /You put/)).toBeUndefined();
+    });
+  });
+
+  describe("spent less than usual", () => {
+    const food = (amount: number) => tx({ amount, expenseCategoryId: "cat-f", categoryName: "Food" });
+    it("mirrors category up past halfway, using the same floors", () => {
+      // Day 8 of 15: expected 300 * 8/15 = 160; spent 100 is $60 (37%) below.
+      expect(find(financials([food(100)]), [financials([food(300)])], extras({ now: day("2026-08-10") }), /below your usual/)!.text).toBe(
+        "Food is $60.00 below your usual so far this cycle.",
+      );
+    });
+
+    it("counts a category with nothing spent yet", () => {
+      expect(find(financials(), [financials([food(300)])], extras({ now: day("2026-08-10") }), /Food is/)).toBeDefined();
+    });
+
+    it("stays silent before halfway, or under the $15 floor", () => {
+      expect(find(financials([food(10)]), [financials([food(300)])], extras({ now: day("2026-08-06") }), /below your usual/)).toBeUndefined();
+      expect(find(financials([food(150)]), [financials([food(300)])], extras({ now: day("2026-08-10") }), /below your usual/)).toBeUndefined();
+    });
+  });
+
+  describe("ahead of pace", () => {
+    it("fires past halfway when day-to-day spending is well under pace", () => {
+      // Day 8 of 15, $200 spent of $2,000: expected ~1066.67 by now, $866.67 ahead.
+      expect(find(financials([tx({ amount: 200 })]), [], extras({ now: day("2026-08-10") }), /more than expected/)!.text).toBe(
+        "You have $866.67 more than expected at this point in the cycle.",
+      );
+    });
+
+    it("stays silent before halfway or when on pace", () => {
+      expect(find(financials([tx({ amount: 200 })]), [], extras({ now: day("2026-08-06") }), /more than expected/)).toBeUndefined();
+      expect(find(financials([tx({ amount: 1000 })]), [], extras({ now: day("2026-08-10") }), /more than expected/)).toBeUndefined();
+    });
+  });
+
+  describe("streak", () => {
+    const spent = (amount: number) => financials([tx({ amount })]);
+    it("fires after 3 cycles in a row under the usual spending", () => {
+      // Newest first: 300, 400, 500 each below the average of the ones before it.
+      expect(find(financials(), [spent(300), spent(400), spent(500), spent(900)], extras(), /in a row/)!.text).toBe(
+        "3 cycles in a row under your usual spending.",
+      );
+    });
+
+    it("stays silent for a shorter streak", () => {
+      expect(find(financials(), [spent(300), spent(400), spent(900), spent(500)], extras(), /in a row/)).toBeUndefined();
+    });
   });
 });

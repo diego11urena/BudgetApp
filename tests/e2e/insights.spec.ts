@@ -286,3 +286,30 @@ test.describe("Leftover prompt", () => {
     await expect(page.locator(".insights-row", { hasText: "Move it to a goal?" })).toBeVisible();
   });
 });
+
+test.describe("Cycle closed under budget prompt", () => {
+  test("Move to goal logs the leftover in the closed cycle, not this one", async ({ page }) => {
+    const { email } = await signUpAndOnboard(page, { netQuincenaAmount: "1000" });
+    await page.goto("/plan");
+    await page.click('button:has-text("+ Add goal")');
+    await page.fill("#goal-name", "Emergency Fund");
+    await fillAmount(page.locator("#goal-lifetime"), "3000");
+    await page.click('button:has-text("Save goal")');
+    await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
+    seed({
+      email,
+      closedCycles: [{ startDaysAgo: 20, endDaysAgo: 1, income: 1000, transactions: [{ name: "Rent", amount: 700, daysAgo: 10, category: "Housing" }] }],
+    });
+
+    const insight = page.locator(".insights-row", { hasText: "You finished last cycle with $300.00 left." });
+    await page.goto("/dashboard");
+    await expect(insight.locator(".insights-dot--positive")).toBeVisible();
+    const dialog = await openInsight(page, "You finished last cycle with $300.00 left.", "Move it to a goal?");
+    await dialog.getByRole("button", { name: "Move to goal" }).click();
+    await expect(page.locator(".toast", { hasText: "Moved $300.00 to Emergency Fund" })).toBeVisible();
+    await expect(page.locator(".goal-row", { hasText: "Emergency Fund" }).getByText("$300.00 of $3,000.00")).toBeVisible();
+
+    await expectInsightGone(page, "You finished last cycle");
+    await expect(page.locator(".hero-value")).toHaveText("$1,000.00");
+  });
+});

@@ -726,6 +726,12 @@ export const en: Dictionary = {
       `${name} (${amount}) is far above your usual ${category} purchase (${usual}).`,
     newRecurring: (name, amount) => `${name} (${amount}) keeps coming back. Is it a recurring expense?`,
     leftover: (amount) => `You have ${amount} left. Move it to a goal?`,
+    goalMilestone: (percent, name) => `You just passed ${percent}% of your ${name}.`,
+    closedUnder: (amount) => `You finished last cycle with ${amount} left.`,
+    goalContributionMade: (vocab, planned, name) => `You put your planned ${planned} into ${name} ${vocab.thisPeriod}.`,
+    spentLess: (category, amount) => `${category} is ${amount} below your usual so far this cycle.`,
+    aheadOfPace: (amount) => `You have ${amount} more than expected at this point in the cycle.`,
+    streak: (cycles) => `${cycles} cycles in a row under your usual spending.`,
     goalContributionBehind: (vocab, planned, actual, name, days) =>
       `You planned ${planned} for ${name} ${vocab.thisPeriod} — only ${actual} logged so far, with ${days} ${plural(days, "day", "days")} left.`,
   },

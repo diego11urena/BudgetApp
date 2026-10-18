@@ -36,7 +36,7 @@ export function ActionSheet({
           <button
             key={option.label}
             type="button"
-            className={`button sheet-submit ${option.destructive ? "button--danger" : "button--secondary"}`}
+            className={`action-sheet-option${option.destructive ? " action-sheet-option--destructive" : ""}`}
             onClick={() => closeThen(option.onSelect)}
           >
             {option.label}

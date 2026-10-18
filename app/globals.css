@@ -2409,6 +2409,10 @@ button.line-item--link {
   background: var(--color-recurring);
 }
 
+.insights-dot--positive {
+  background: var(--color-success);
+}
+
 /* Orange means uncategorized and nothing else (see the note above). */
 .insights-dot--uncategorized {
   background: var(--color-warning);
@@ -2459,9 +2463,38 @@ button.line-item--link {
   line-height: 1.5;
 }
 
+/* iOS action sheet: one rounded group of full-width rows, accent-colored
+   labels, hairline separators; the destructive choice in red. */
 .action-sheet-options {
   display: flex;
   flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  margin-bottom: 8px;
+}
+
+.action-sheet-option {
+  min-height: 56px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 1.0625rem;
+  color: var(--color-accent-green);
+  cursor: pointer;
+}
+
+.action-sheet-option + .action-sheet-option {
+  border-top: 1px solid var(--color-divider);
+}
+
+.action-sheet-option:active {
+  background: var(--color-divider);
+}
+
+.action-sheet-option--destructive {
+  color: var(--color-error);
+  font-weight: 600;
 }
 
 /* 44px tap target around a small glyph, so it can't be hit by accident. */

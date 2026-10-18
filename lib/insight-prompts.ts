@@ -15,8 +15,8 @@ export type InsightPrompt =
   | { kind: "large" | "new-recurring"; key: string; target: string }
   /** target = the category. */
   | { kind: "category-up"; key: string; target: string }
-  /** amount = what's left, e.g. "123.45". */
-  | { kind: "leftover"; key: string; amount: string };
+  /** amount = what's left, e.g. "123.45"; cycle = a closed cycle the leftover belongs to (absent: the current one). */
+  | { kind: "leftover"; key: string; amount: string; cycle?: string };
 
 export type InsightPromptKind = InsightPrompt["kind"];
 
@@ -29,7 +29,10 @@ export function promptHref(path: string, prompt: InsightPrompt, query: Record<st
   params.set("insight", prompt.key);
   if (prompt.kind === "duplicate") params.set("ids", prompt.ids.join(","));
   if ("target" in prompt) params.set("target", prompt.target);
-  if (prompt.kind === "leftover") params.set("amount", prompt.amount);
+  if (prompt.kind === "leftover") {
+    params.set("amount", prompt.amount);
+    if (prompt.cycle) params.set("cycle", prompt.cycle);
+  }
   return `${path}?${params.toString()}`;
 }
 
@@ -50,7 +53,9 @@ export function parsePrompt(searchParams: Record<string, string | string[] | und
   if (kind === "uncategorized") return { kind, key };
   if (kind === "leftover") {
     const amount = get("amount");
-    return /^\d{1,9}(\.\d{1,2})?$/.test(amount) ? { kind, key, amount } : null;
+    const cycle = get("cycle");
+    if (!/^\d{1,9}(\.\d{1,2})?$/.test(amount) || (cycle && !ID.test(cycle))) return null;
+    return cycle ? { kind, key, amount, cycle } : { kind, key, amount };
   }
   if ((TARGET_KINDS as readonly string[]).includes(kind)) {
     const target = get("target");

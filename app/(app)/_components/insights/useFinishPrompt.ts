@@ -9,7 +9,7 @@ export function useFinishPrompt() {
   const searchParams = useSearchParams();
   return () => {
     const params = new URLSearchParams(searchParams.toString());
-    for (const k of ["prompt", "insight", "ids", "target"]) params.delete(k);
+    for (const k of ["prompt", "insight", "ids", "target", "amount", "cycle"]) params.delete(k);
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     router.refresh();
