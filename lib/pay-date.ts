@@ -107,7 +107,7 @@ export function startOfDay(date: Date): Date {
 }
 
 /**
- * Resolves a Scheduled recurring expense's dueDay (1-31) to a real Date in
+ * Resolves a recurring expense's dueDay (1-31) to a real Date in
  * the current Panama-calendar month -- null when that day doesn't exist
  * this month (e.g. dueDay 31 in a 30-day month). Extracted from
  * lib/insights.ts's own daysUntilMonthlyDue (still there, now a thin

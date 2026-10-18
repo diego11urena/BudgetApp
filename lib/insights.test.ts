@@ -7,7 +7,7 @@ import type { GoalWithProgress } from "./goals";
 import type { Dictionary, PeriodVocab } from "./i18n/dictionary";
 import { en } from "./i18n/dictionaries/en";
 import type { BudgetFrequency } from "./quincena-pace";
-import { getOngoingRecurringExpenseStatus, getRecurringExpensePaymentStatus } from "./recurring-expense-status";
+import { getRecurringExpensePaymentStatus } from "./recurring-expense-status";
 
 let nextTransactionId = 0;
 function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
@@ -84,23 +84,15 @@ function makeRecurringCategory(
   const built: RecurringExpenseWithStatus[] = expenses.map((e, i) => {
     const targetAmount = e.targetAmount ?? 20;
     const actual = e.actual ?? 0;
-    // Scheduled by default -- these tests are almost all about "an unpaid
-    // recurring expense," which only has real due-soon/unpaid-total stakes
-    // when it's Scheduled (see unpaidRecurringCandidate/dueSoonCandidate's
-    // own hasFixedDate gates). Individual tests override to false where
-    // Ongoing-specific exclusion is the actual thing under test.
-    const hasFixedDate = e.hasFixedDate ?? true;
     return {
       id: e.id ?? `re-${i}`,
       name: e.name ?? `Expense ${i}`,
       targetAmount,
       actual,
       recurring: e.recurring ?? true,
-      hasFixedDate,
       dueDay: e.dueDay ?? null,
-      status:
-        e.status ??
-        (hasFixedDate ? getRecurringExpensePaymentStatus(actual, targetAmount) : getOngoingRecurringExpenseStatus(actual)),
+      chargedThisCycle: e.chargedThisCycle ?? true,
+      status: e.status ?? getRecurringExpensePaymentStatus(actual, targetAmount),
       suggestedMatch: e.suggestedMatch ?? null,
     };
   });
@@ -222,7 +214,7 @@ describe("generateInsights", () => {
 
     it("fires before the 50% mark anyway when a specific Scheduled expense's own due day already passed", () => {
       const categories = [
-        makeRecurringCategory([{ actual: 0, targetAmount: 650, hasFixedDate: true, dueDay: 1 }]),
+        makeRecurringCategory([{ actual: 0, targetAmount: 650, dueDay: 1 }]),
       ];
       // now = Aug 3, day 1 of the cycle (well under 50% elapsed) -- but
       // dueDay 1 already passed relative to Aug 3.
@@ -509,9 +501,9 @@ describe("generateInsights", () => {
     const aug3 = parseDateOnly("2026-08-03")!;
     const aug5 = parseDateOnly("2026-08-05")!;
 
-    it("produces no candidate for an Ongoing expense, even with a dueDay set", () => {
+    it("produces no candidate for an expense not charged this cycle, even with a dueDay set", () => {
       const categories = [
-        makeRecurringCategory([{ actual: 0, targetAmount: 650, hasFixedDate: false, dueDay: 5 }]),
+        makeRecurringCategory([{ actual: 0, targetAmount: 650, dueDay: 5, chargedThisCycle: false }]),
       ];
       const insights = generateInsights(
         makeFinancials(),
@@ -523,7 +515,7 @@ describe("generateInsights", () => {
 
     it("produces no candidate once the expense is already paid", () => {
       const categories = [
-        makeRecurringCategory([{ actual: 650, targetAmount: 650, hasFixedDate: true, dueDay: 5 }]),
+        makeRecurringCategory([{ actual: 650, targetAmount: 650, dueDay: 5 }]),
       ];
       const insights = generateInsights(
         makeFinancials(),
@@ -535,7 +527,7 @@ describe("generateInsights", () => {
 
     it("names the expense, amount, and days-out for an unpaid Scheduled expense due soon", () => {
       const categories = [
-        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, hasFixedDate: true, dueDay: 5 }]),
+        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, dueDay: 5 }]),
       ];
       // now = Aug 3 -> Aug 5 due date is 2 days out.
       const insights = generateInsights(
@@ -548,7 +540,7 @@ describe("generateInsights", () => {
 
     it("still fires for an expense whose due day already passed, unpaid", () => {
       const categories = [
-        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, hasFixedDate: true, dueDay: 3 }]),
+        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, dueDay: 3 }]),
       ];
       // now = Aug 5 -> Aug 3 due date was 2 days ago.
       const insights = generateInsights(
@@ -561,7 +553,7 @@ describe("generateInsights", () => {
 
     it("produces no candidate when the due day is further out than the due-soon window", () => {
       const categories = [
-        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, hasFixedDate: true, dueDay: 20 }]),
+        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, dueDay: 20 }]),
       ];
       const insights = generateInsights(
         makeFinancials(),

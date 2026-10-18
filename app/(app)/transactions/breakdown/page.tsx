@@ -80,7 +80,7 @@ export default async function BreakdownPage({
     getUserBudgetFrequency(userId),
     getCycleFinancials(cycle.id),
     getClosedCycles(userId, HISTORY_DEPTH),
-    // computeSuggestions: false -- Breakdown only reads status/hasFixedDate/dueDay
+    // computeSuggestions: false -- Breakdown only reads status/dueDay/chargedThisCycle
     // (see summarizeRecurringFulfillment), never the match-suggestion machinery
     // Plan's own picker UI needs.
     getRecurringExpensesForCycle(userId, cycle.id, { computeSuggestions: false }),

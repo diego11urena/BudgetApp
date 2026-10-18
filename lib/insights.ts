@@ -79,7 +79,7 @@ function anomalyMinAverage(budgetFrequency: BudgetFrequency): number {
 const SAVINGS_GOAL_PROXIMITY_THRESHOLD_PERCENT = 60;
 /** How many days out (in either direction -- "due in N days" or "N days overdue") a MONTHLY recurring expense's own due day has to fall within, unpaid, before it's worth a dedicated call-out. */
 const DUE_SOON_WITHIN_DAYS = 3;
-/** unpaidRecurringCandidate doesn't fire before this fraction of the cycle has elapsed (unless a specific Scheduled expense is already overdue -- see its own comment) -- every recurring expense is "unpaid" on day 1 by definition, so firing immediately is true but useless, and would occupy the #1 slot for the first half of every quincena. */
+/** unpaidRecurringCandidate doesn't fire before this fraction of the cycle has elapsed (unless a specific dated expense is already overdue -- see its own comment) -- every recurring expense is "unpaid" on day 1 by definition, so firing immediately is true but useless, and would occupy the #1 slot for the first half of every quincena. */
 const UNPAID_RECURRING_MIN_PERCENT_ELAPSED = 0.5;
 /** goalContributionCandidate doesn't fire before this fraction of the cycle has elapsed -- a goal contribution logged anytime this cycle still counts, so there's nothing to flag until enough of the cycle has passed that "haven't moved it yet" actually means something. */
 const GOAL_CONTRIBUTION_MIN_PERCENT_ELAPSED = 0.6;
@@ -177,7 +177,7 @@ function cyclePhase(
   return { totalDays, elapsedDays, daysRemaining, percentElapsed: elapsedDays / totalDays };
 }
 
-/** How many days until (positive) or since (negative) a Scheduled expense's dueDay falls this month -- null when dueDay doesn't exist in the current month (e.g. 31st in a 30-day month). Shared by dueSoonCandidate and unpaidRecurringCandidate's own overdue check. */
+/** How many days until (positive) or since (negative) a dated expense's dueDay falls this month -- null when dueDay doesn't exist in the current month (e.g. 31st in a 30-day month). Shared by dueSoonCandidate and unpaidRecurringCandidate's own overdue check. */
 function daysUntilMonthlyDue(now: Date, dueDay: number): number | null {
   const dueDate = resolveMonthlyDueDate(now, dueDay);
   if (!dueDate) return null;
@@ -185,22 +185,22 @@ function daysUntilMonthlyDue(now: Date, dueDay: number): number | null {
 }
 
 /**
- * Names the single most urgent still-unpaid Scheduled recurring expense
+ * Names the single most urgent still-unpaid dated recurring expense
  * whose own due day falls within DUE_SOON_WITHIN_DAYS of today (including
  * already-overdue) -- dueDay has always been captured (see
  * RecurringExpenseEditSheet) but never surfaced anywhere a user just
  * glances at the list; this is the one place it actually changes what
  * someone does. Only ever names the single most urgent one (never a count,
  * unlike unpaidRecurringCandidate) since "which one, and when" is the whole
- * point. Ongoing expenses have no fixed calendar day to compare against,
- * so they're not eligible here.
+ * point. Undated expenses have no calendar day to compare against, and ones
+ * not charged this cycle aren't due in it, so neither is eligible here.
  */
 function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[], t: InsightsDictionary): Candidate | null {
   let best: { name: string; amount: number; daysUntilDue: number } | null = null;
 
   for (const category of categories) {
     for (const expense of category.expenses) {
-      if (!expense.hasFixedDate || expense.dueDay === null) continue;
+      if (expense.dueDay === null || !expense.chargedThisCycle) continue;
       if (expense.status !== "not-started" && expense.status !== "partial") continue;
 
       const daysUntilDue = daysUntilMonthlyDue(now, expense.dueDay);
@@ -234,17 +234,15 @@ function dueSoonCandidate(now: Date, categories: CategoryWithRecurringExpenses[]
 }
 
 /**
- * Counts this cycle's Scheduled recurring expenses still "not-started" or
+ * Counts this cycle's charged recurring expenses still "not-started" or
  * "partial" (see lib/recurring-expense-status.ts) and sums what's left to
  * pay on each (target minus actual, floored at 0 -- one already paid past
- * its target contributes nothing here). Ongoing expenses are excluded
- * entirely, same as every other recurring-expense dollar aggregate (see
- * summarizeRecurringExpenses's own doc comment) -- their amount is an
- * estimate, not a real target, so "$X left to pay" wouldn't mean the same
- * thing for one. The highest-value gap this rework closes: Insights
+ * its target contributes nothing here). Ones not charged this cycle are
+ * excluded, same as every other recurring-expense dollar aggregate (see
+ * summarizeRecurringExpenses's own doc comment). The highest-value gap this rework closes: Insights
  * previously had no idea Recurring Expenses existed at all.
  *
- * Gated by UNPAID_RECURRING_MIN_PERCENT_ELAPSED unless a specific Scheduled
+ * Gated by UNPAID_RECURRING_MIN_PERCENT_ELAPSED unless a specific dated
  * expense's own due day has already passed -- every recurring expense is
  * "unpaid" by definition on day 1 of a cycle, so firing immediately is
  * true but useless (see dueSoonCandidate for the single-account version of
@@ -262,7 +260,7 @@ function unpaidRecurringCandidate(
   let hasOverdue = false;
   for (const category of categories) {
     for (const expense of category.expenses) {
-      if (!expense.hasFixedDate) continue;
+      if (!expense.chargedThisCycle) continue;
       if (expense.status === "not-started" || expense.status === "partial") {
         count++;
         remaining += Math.max(expense.targetAmount - expense.actual, 0);

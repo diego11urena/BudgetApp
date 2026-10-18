@@ -16,14 +16,10 @@ import {
 import { useT } from "@/app/_components/LocaleProvider";
 
 /**
- * Two independent controls, not one three-way dropdown -- "repeats every
- * cycle" (recurring) and "has a set date" (hasFixedDate) are unrelated
- * questions (see the schema's own doc comment on RecurringExpense): a
- * one-time car registration fee still has a real due date, and a
- * genuinely recurring haircut still has none. The old BIWEEKLY/MONTHLY/
- * ONE_TIME dropdown conflated the two -- recurring=false was folded into
- * the same control that otherwise meant "how often," and dueDay was only
- * ever reachable through MONTHLY.
+ * Two independent controls -- "repeats every cycle" (recurring) and the
+ * optional charge date (dueDay) are unrelated questions: a one-time car
+ * registration fee still has a real date, and a genuinely recurring
+ * haircut still has none.
  */
 export interface EditableRecurringExpense {
   id: string;
@@ -31,18 +27,13 @@ export interface EditableRecurringExpense {
   targetAmount: number;
   categoryName: string;
   recurring: boolean;
-  hasFixedDate: boolean;
   dueDay: number | null;
 }
 
 /**
  * Create + edit share one sheet (optional `existing` prop pre-fills
  * fields and adds Delete), matching this app's established CategoryFormSheet/
- * EditGoalSheet convention for dual-mode sheets. Both the "Repeats /
- * One-time" and "Scheduled / Ongoing" choices are available on both create
- * and edit -- e.g. a car registration fee due only this quincena
- * (one-time, but still has a real date) is a real choice at creation too,
- * not just something you'd switch to later.
+ * EditGoalSheet convention for dual-mode sheets.
  */
 export function RecurringExpenseEditSheet({
   categoryNames,
@@ -62,7 +53,6 @@ export function RecurringExpenseEditSheet({
   const [name, setName] = useState(existing?.name ?? "");
   const [amount, setAmount] = useState(existing ? existing.targetAmount.toFixed(2) : "");
   const [recurring, setRecurring] = useState(existing?.recurring ?? true);
-  const [hasFixedDate, setHasFixedDate] = useState(existing?.hasFixedDate ?? false);
   const [dueDay, setDueDay] = useState(existing?.dueDay !== null && existing?.dueDay !== undefined ? String(existing.dueDay) : "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,10 +71,8 @@ export function RecurringExpenseEditSheet({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    // Both are plain checkboxes below (no name attribute -- see the form
-    // markup), so their real values are set here directly instead.
+    // A plain checkbox below (no name attribute), so its value is set here.
     fd.set("recurring", String(recurring));
-    fd.set("hasFixedDate", String(hasFixedDate));
     if (existing) {
       fd.set("id", existing.id);
     }
@@ -162,9 +150,7 @@ export function RecurringExpenseEditSheet({
 
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label htmlFor={amountId}>
-              {hasFixedDate ? t.budget.recurringEdit.amountLabel : t.budget.recurringEdit.typicalAmountLabel}
-            </label>
+            <label htmlFor={amountId}>{t.budget.recurringEdit.amountLabel}</label>
             <CurrencyInput
               id={amountId}
               name="amount"
@@ -189,9 +175,6 @@ export function RecurringExpenseEditSheet({
           </div>
         </div>
 
-        {/* Two independent checkboxes, not one dropdown -- see
-            EditableRecurringExpense's own doc comment for why "repeats"
-            and "has a set date" don't collapse into a single choice. */}
         <div className="field">
           <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
@@ -199,31 +182,26 @@ export function RecurringExpenseEditSheet({
           </label>
         </div>
 
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <input type="checkbox" checked={hasFixedDate} onChange={(e) => setHasFixedDate(e.target.checked)} />
-              {t.budget.recurringEdit.hasFixedDateLabel}
-            </label>
-          </div>
-          {hasFixedDate && (
-            <div className="field" style={{ flex: 1, minWidth: "8rem" }}>
-              <label htmlFor={dueDayId}>{t.budget.recurringEdit.dueDayLabel}</label>
-              <input
-                id={dueDayId}
-                name="dueDay"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={31}
-                value={dueDay}
-                onChange={(e) => setDueDay(e.target.value)}
-                className={errorField === "dueDay" ? "is-invalid" : ""}
-                aria-invalid={errorField === "dueDay" || undefined}
-                aria-describedby={errorField === "dueDay" ? errorId : undefined}
-              />
-            </div>
-          )}
+        {/* Optional: blank means no set date, and it then always counts as
+            charged this cycle. A native select, so iOS shows its own picker. */}
+        <div className="field">
+          <label htmlFor={dueDayId}>{t.budget.recurringEdit.dueDayLabel}</label>
+          <select
+            id={dueDayId}
+            name="dueDay"
+            value={dueDay}
+            onChange={(e) => setDueDay(e.target.value)}
+            className={errorField === "dueDay" ? "is-invalid" : ""}
+            aria-invalid={errorField === "dueDay" || undefined}
+            aria-describedby={errorField === "dueDay" ? errorId : undefined}
+          >
+            <option value="">{t.budget.recurringEdit.noDueDay}</option>
+            {Array.from({ length: 31 }, (_, i) => (
+              <option key={i + 1} value={String(i + 1)}>
+                {t.budget.recurringEdit.dueDayOption(i + 1)}
+              </option>
+            ))}
+          </select>
         </div>
 
         {error && (

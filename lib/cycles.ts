@@ -50,21 +50,18 @@ export const getUserPayFrequency = cache(async (userId: string): Promise<IncomeF
 });
 
 /**
- * Whether a recurring category's most recent budget target should carry
- * forward into a newly-created cycle. No fixed date (Ongoing, or a SAVINGS
- * goal's own recurring flag) carries into every cycle -- once per cycle,
- * by definition. A fixed date (Scheduled) carries into exactly the
- * cycle(s) whose date range actually contains an occurrence of dueDay --
- * for a QUINCENAL cycle that's exactly one of the month's two cycles
- * (matching the old "which half of the month" behavior exactly); for a
- * MONTHLY cycle (spanning the whole month) it's every cycle, since any day
- * 1-31 falls inside a one-month span.
+ * Whether a recurring SAVINGS goal's most recent budget target should carry
+ * forward into a newly-created cycle. No fixed date carries into every
+ * cycle -- once per cycle, by definition. A fixed date carries into exactly
+ * the cycle(s) whose date range actually contains an occurrence of dueDay
+ * -- for a QUINCENAL cycle that's exactly one of the month's two cycles;
+ * for a MONTHLY cycle (spanning the whole month) it's every cycle, since
+ * any day 1-31 falls inside a one-month span.
  *
- * Shared by both RecurringExpense (hasFixedDate is a real column) and
- * ExpenseCategory/SAVINGS goals (still on the older frequency enum,
- * untouched by the Scheduled/Ongoing rework -- the Goals tab has no
- * concept of individual recurring expenses) -- each caller normalizes its
- * own shape to this one hasFixedDate boolean at the call site.
+ * Goals only: they're still on ExpenseCategory's frequency enum, which each
+ * caller normalizes to this hasFixedDate shape. RecurringExpense rows carry
+ * into every cycle (carryForwardRecurringExpenses) and are split into
+ * charged / not charged this cycle at read time instead.
  */
 export function shouldCarryForwardToCycle(
   rule: { hasFixedDate: boolean; dueDay: number | null },
@@ -189,8 +186,7 @@ export async function createRecurringExpenseWithSnapshot(
     cycleId: string;
     name: string;
     amount: Prisma.Decimal | number | string;
-    /** Scheduled (true, a real due date) vs Ongoing (false, the default -- recurs but no set date). */
-    hasFixedDate?: boolean;
+    /** Day of the month it's charged; null/omitted for no set date. */
     dueDay?: number | null;
     /** Defaults true (the Prisma column's own default) -- false for a one-time expense that shouldn't carry into the next quincena. */
     recurring?: boolean;
@@ -217,8 +213,7 @@ export async function createRecurringExpenseWithSnapshot(
       categoryId: params.categoryId,
       name: params.name,
       amount: params.amount,
-      hasFixedDate: params.hasFixedDate ?? false,
-      dueDay: params.hasFixedDate ? (params.dueDay ?? null) : null,
+      dueDay: params.dueDay ?? null,
       recurring: params.recurring ?? true,
     },
   });
@@ -240,8 +235,8 @@ export async function createRecurringExpenseWithSnapshot(
  * OWN amount as the target -- not this transaction's amount, which might
  * be a one-off variation); no match creates a brand-new one instead,
  * using this transaction's own name/category/amount and defaulting to
- * Ongoing, no fixed date (matching createRecurringExpenseWithSnapshot's own
- * default -- turning it into a Scheduled item with a due day is a later,
+ * no set date (matching createRecurringExpenseWithSnapshot's own
+ * default -- giving it a due day is a later,
  * explicit edit, not this same-moment action's job). Deliberately an exact
  * match, not the fuzzy
  * substring+10%-tolerance suggestion matcher used elsewhere -- this is a

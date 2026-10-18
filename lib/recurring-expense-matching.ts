@@ -3,8 +3,8 @@ export interface RecurringExpenseForMatching {
   name: string;
   amount: number;
   categoryId: string;
-  /** Scheduled (true) gates candidates on AMOUNT_TOLERANCE_FRACTION, same as always. Ongoing (false) skips that gate entirely -- its own amount is a typical/estimated one, not a real target to compare against, so name is the only signal that means anything (see namesLikelyMatch). */
-  hasFixedDate: boolean;
+  /** Dated items are gated on AMOUNT_TOLERANCE_FRACTION. Undated ones (null) skip it -- gas, Panapass top-ups and the like vary, so name is the signal that means anything there (see namesLikelyMatch). */
+  dueDay: number | null;
 }
 
 export interface MatchCandidateTransaction {
@@ -67,12 +67,9 @@ function namesLikelyMatch(nameA: string, nameB: string): boolean {
  * an exact prior name match), and used to be structurally invisible to
  * matching no matter how well its name matched; it's still left alone if
  * it's already sitting in a DIFFERENT real category, since that's a
- * genuine signal it's something else -- and, for a Scheduled expense only,
+ * genuine signal it's something else -- and, for a dated expense only,
  * its amount is within AMOUNT_TOLERANCE_FRACTION of the recurring
- * expense's own amount (an Ongoing expense's own amount is a typical/
- * estimated one, not a real target, so no amount gate applies -- name is
- * the only signal that means anything there). Ties are broken by closest
- * amount either way. Pure and DB-free so this is unit-testable without a
+ * expense's own amount. Ties are broken by closest amount either way. Pure and DB-free so this is unit-testable without a
  * database -- the caller is responsible for fetching the candidate pool
  * (this cycle's transactions with no recurringExpenseId set yet, in the
  * recurring expense's own category or with none at all).
@@ -96,7 +93,7 @@ export function findMatchSuggestion(
     if (!namesLikelyMatch(nameA, nameB)) continue;
 
     const diff = Math.abs(candidate.amount - recurringExpense.amount);
-    if (recurringExpense.hasFixedDate && diff > tolerance) continue;
+    if (recurringExpense.dueDay !== null && diff > tolerance) continue;
 
     if (diff < bestDiff) {
       best = candidate;

@@ -218,7 +218,7 @@ export default async function DashboardPage() {
           periodStart={cycle.periodStart}
           periodEnd={cycle.periodEnd}
           totalExpenses={financials.totalExpenses}
-          pendingScheduled={recurringExpensesSummary.pendingAmount}
+          pendingRecurring={recurringExpensesSummary.pendingAmount}
           budgetFrequency={budgetFrequency}
           baseIncome={financials.baseIncome}
           allPaychecksIn={allPaychecksIn}

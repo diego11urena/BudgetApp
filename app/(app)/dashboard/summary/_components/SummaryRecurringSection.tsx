@@ -9,10 +9,7 @@ interface SummaryRecurringSectionProps {
 }
 
 /**
- * Now shared with Breakdown's chapter 02 via RecurringFulfillmentCard --
- * Summary is the one call site that keeps the on-track progress bar (see
- * that component's own doc comment for why), and is the one that adds
- * the Ongoing subline the old Scheduled-only version here never showed.
+ * Shared with Breakdown's chapter 02 via RecurringFulfillmentCard.
  */
 export default function SummaryRecurringSection({ fulfillment, t }: SummaryRecurringSectionProps) {
   return (
@@ -20,7 +17,7 @@ export default function SummaryRecurringSection({ fulfillment, t }: SummaryRecur
       <h2 className="summary-section-eyebrow">{t.summary.scheduledEyebrow}</h2>
 
       <Link href="/plan" className="summary-recurring-row">
-        <RecurringFulfillmentCard fulfillment={fulfillment} t={t} live={false} />
+        <RecurringFulfillmentCard fulfillment={fulfillment} t={t} />
       </Link>
     </section>
   );

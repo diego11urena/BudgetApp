@@ -111,7 +111,7 @@ export default function SummaryScreen({
         <SummaryGoalsSection goals={goalsWithProgress} contributions={goalContributions} t={t} />
       )}
 
-      {recurringFulfillment.scheduled.total > 0 && (
+      {recurringFulfillment.total > 0 && (
         <SummaryRecurringSection fulfillment={recurringFulfillment} t={t} />
       )}
 

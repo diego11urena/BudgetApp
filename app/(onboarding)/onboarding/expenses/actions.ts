@@ -91,8 +91,7 @@ export async function saveExpensesAction(
           categoryId: category.id,
           name: item.name,
           amount: item.targetAmount,
-          hasFixedDate: item.hasFixedDate ?? false,
-          dueDay: item.hasFixedDate ? (item.dueDay ?? null) : null,
+          dueDay: item.dueDay ?? null,
         },
       });
       await tx.cycleRecurringExpense.create({

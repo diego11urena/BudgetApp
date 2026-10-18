@@ -6,12 +6,11 @@ import type { BudgetFrequency } from "@/lib/quincena-pace";
 
 /**
  * Home's 2x2 stat grid -- replaces BudgetBreakdownCard's stacked
- * Income/Saved row + Scheduled-recurring progress divider (see the Balboa
+ * Income/Saved row + recurring progress divider (see the Balboa
  * design system handoff's Home spec, "Stat grid"). BudgetBreakdownCard
  * itself stays untouched and in use on History's closed-cycle page, which
- * this handoff doesn't cover. recurringExpenses here is Scheduled-only
- * (see RecurringExpensesSummary's own doc comment) -- Ongoing items never
- * factor into this tile.
+ * this handoff doesn't cover. recurringExpenses here covers only items
+ * charged this cycle (see RecurringExpensesSummary's own doc comment).
  */
 export async function StatGrid({
   baseIncome,
@@ -82,7 +81,7 @@ export async function StatGrid({
         <span className="stat-tile-sub">{t.goalsFunded(fundedGoalsCount)}</span>
       </div>
       <div className="stat-tile">
-        <span className="stat-tile-label">{t.statScheduledLeft}</span>
+        <span className="stat-tile-label">{t.statRecurringLeft}</span>
         <span className="stat-tile-value stat-tile-value--recurring">
           {formatCurrency(recurringExpenses.pendingAmount)}
         </span>

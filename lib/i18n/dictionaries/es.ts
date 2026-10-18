@@ -150,25 +150,14 @@ export const es: Dictionary = {
       question: (vocab) => `¿Qué se repite ${vocab.everyPeriod}?`,
       explainer: () => "Agrega lo que sepas ahora, u omítelo y configúralo después desde Plan.",
       untitled: "Sin nombre",
-      scheduleSummary: (hasFixedDate, dueDay) => (hasFixedDate ? (dueDay ? `Vence el día ${dueDay}` : "Programado") : "Continuo"),
+      rowMeta: (dueDay) => (dueDay ? `Día ${dueDay} del mes` : "Sin fecha fija"),
       removeAria: (name) => `Eliminar ${name || "gasto"}`,
       namePlaceholder: "Nombre",
       amountPlaceholder: "$ Monto",
       nameAria: "Nombre",
-      hasFixedDateLabel: "Tiene una fecha fija",
-      dueDayAria: "Día de vencimiento",
-      dueDayOption: "Día de vencimiento (opcional)",
+      dueDayAria: "Fecha de cobro",
+      dueDayOption: "Fecha de cobro (opcional)",
       addButton: "+ Agregar",
-      scheduledHeading: "Programados",
-      ongoingHeading: "Continuos",
-      scheduledExplainer:
-        "El mismo monto en un día fijo — alquiler, internet, Netflix. Verificamos que cada uno se haya cobrado.",
-      ongoingExplainer:
-        "Se repite, pero no en un día fijo ni por un monto exacto — gasolina, un corte de pelo, recargas de Panapass. Agrega un monto habitual; anotamos cuándo lo registras.",
-      scheduledExplainerAria: "¿Qué significa Programados?",
-      ongoingExplainerAria: "¿Qué significa Continuos?",
-      typicalAmountPlaceholder: "Monto habitual",
-      ongoingMeta: "Continuo · monto habitual",
       tipLabel: "Consejo",
       tipBody: "Conecta Gmail desde Perfil más adelante para importar transacciones automáticamente en lugar de escribir cada una.",
       saving: "Guardando...",
@@ -205,7 +194,7 @@ export const es: Dictionary = {
     dateRange: (vocab, range) => `${range} · ${vocab.thisPeriod}`,
     heroFinalAvailable: "Disponible final",
     heroSafeToSpend: "Disponible sin riesgo",
-    heroAvailableSummary: (left, pendingScheduled) => `${left} disponible · ${pendingScheduled} en gastos programados sin pagar`,
+    heroAvailableSummary: (left, pendingRecurring) => `${left} disponible · ${pendingRecurring} en gastos recurrentes sin pagar`,
     heroDaysLeft: (n) => `${n} ${plural(n, "día restante", "días restantes")}`,
     // "Terminó este mes" / "Terminó esta quincena" -- a verb plus
     // thisPeriod, which already carries its own article and gender, so
@@ -255,8 +244,8 @@ export const es: Dictionary = {
     statIncome: "Ingresos",
     statSpent: "Gastado",
     statSaved: "Ahorrado",
-    statScheduledLeft: "Programados pendientes",
-    scheduledLabel: "Programados",
+    statRecurringLeft: "Recurrentes pendientes",
+    scheduledLabel: "Recurrentes",
     // Same agreement as plan.recurring.paidOfTotal -- the participle
     // describes the recurring items counted, not the number itself.
     scheduledPaidOfTotal: (paid, total) => `${paid} de ${total} ${plural(paid, "pagado", "pagados")}`,
@@ -387,8 +376,7 @@ export const es: Dictionary = {
       title: "Recurrentes",
       addNew: "+ Nuevo",
       empty: 'Aún no hay nada recurrente — toca "+ Nuevo" arriba.',
-      scheduledHeading: "Programados",
-      ongoingHeading: "Continuos",
+      notChargedHeading: (vocab) => `No se cobra ${vocab.thisPeriod}`,
       // "pagados", not "pagado": the participle agrees with the recurring
       // items being counted (gastos recurrentes, masculine plural), so it
       // only stays singular when exactly one has been paid.
@@ -474,12 +462,12 @@ export const es: Dictionary = {
       nameLabel: "Nombre",
       namePlaceholder: "Spotify, Netflix, Alquiler…",
       amountLabel: "Monto (USD)",
-      typicalAmountLabel: "Monto típico (USD)",
       categoryLabel: "Categoría",
       categoryPlaceholder: "Buscar o agregar una categoría…",
       repeatsLabel: "Se repite",
-      hasFixedDateLabel: "Tiene una fecha fija",
-      dueDayLabel: "Día de vencimiento (1–31)",
+      dueDayLabel: "Fecha de cobro (opcional)",
+      noDueDay: "Sin fecha fija",
+      dueDayOption: (day) => `Día ${day} del mes`,
       saving: "Guardando...",
       save: "Guardar",
       deleted: "Eliminado",
@@ -493,8 +481,6 @@ export const es: Dictionary = {
       paid: "Pagado",
       paidOverTarget: "Pagado — sobre el objetivo",
       exceeded: "Excedido",
-      logged: "Registrado",
-      notLogged: "Aún no registrado",
     },
     dueDay: (day) => ` · Vence el día ${day}`,
     record: "Registrar",
@@ -798,15 +784,11 @@ export const es: Dictionary = {
   },
 
   recurringFulfillment: {
-    scheduledLabel: "Programados",
-    ongoingLabel: "Continuos",
+    label: "Pagos",
     chargedOnTime: (chargedCount, total) => `${chargedCount} de ${total} cobrados a tiempo`,
     allChargedOnTime: "Todos cobrados a tiempo",
     missing: (name) => `${name} aún no aparece`,
     upcoming: (name, date) => `${name} vence ${date}`,
-    ongoingLogged: (names, live) => `${names} registrado${live ? " hasta ahora" : ""}`,
-    ongoingLoggedCount: (logged, total) => `${logged} de ${total} registrados`,
-    ongoingMissing: (vocab, name) => `Sin ${name.toLowerCase()} registrado ${vocab.thisPeriod}`,
   },
 
   breakdown: {

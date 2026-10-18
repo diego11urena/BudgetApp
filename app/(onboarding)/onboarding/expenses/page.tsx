@@ -36,7 +36,6 @@ export default async function ExpensesStepPage() {
   const initialItems = existing.map((e) => ({
     name: e.name,
     amount: e.amount.toString(),
-    hasFixedDate: e.hasFixedDate,
     dueDay: e.dueDay !== null ? String(e.dueDay) : "",
   }));
 

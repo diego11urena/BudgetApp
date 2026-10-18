@@ -10,6 +10,7 @@ import { useT, useVocab } from "@/app/_components/LocaleProvider";
 
 interface FlatRecurringExpense extends RecurringExpenseRowData {
   categoryName: string;
+  chargedThisCycle: boolean;
 }
 
 /**
@@ -35,22 +36,20 @@ export function RecurringSection({
   /** Computed server-side (summarizeRecurringExpenses) and passed down --
    * that function lives in lib/recurring-expenses.ts, which also imports
    * lib/prisma.ts, so calling it from this "use client" component would
-   * pull Prisma/pg into the browser bundle. Scheduled items only -- see
-   * summarizeRecurringExpenses's own doc comment. */
+   * pull Prisma/pg into the browser bundle. Items charged this cycle only
+   * -- see summarizeRecurringExpenses's own doc comment. */
   summary: RecurringExpensesSummary;
 }) {
   const { open: adding, triggerProps, sheetProps, close } = useSheet();
   const items = flattenRecurringExpenses(categories);
-  // Two groups, not one flat dueDay-sorted list -- Scheduled (a real due
-  // date) and Ongoing (recurs, but no set date) answer genuinely different
-  // questions ("is this paid on time?" vs "have I logged this recently?"),
-  // so they read as two lists within the section rather than interleaved.
-  // Each group keeps getRecurringExpensesForCycle's own per-category sort
-  // (soonest due day / alphabetical), so this split doesn't need to
-  // re-sort -- flattening preserves each category's own order, and every
-  // Scheduled entry already precedes every Ongoing one within a category.
-  const scheduled = items.filter((item) => item.hasFixedDate);
-  const ongoing = items.filter((item) => !item.hasFixedDate);
+  // One list of what's charged this cycle (undated items always are), then
+  // the items dated outside it -- recomputed from the cycle on every load,
+  // so an item moves between the two as its date enters or leaves the cycle.
+  // Same order as getRecurringExpensesForCycle: soonest due day, undated last.
+  const byDueDay = (a: FlatRecurringExpense, b: FlatRecurringExpense) =>
+    (a.dueDay ?? Infinity) - (b.dueDay ?? Infinity) || a.name.localeCompare(b.name);
+  const charged = items.filter((item) => item.chargedThisCycle).sort(byDueDay);
+  const notCharged = items.filter((item) => !item.chargedThisCycle).sort(byDueDay);
   const t = useT();
   const vocab = useVocab();
 
@@ -99,20 +98,17 @@ export function RecurringSection({
         </div>
       )}
 
-      {scheduled.length > 0 && (
-        <>
-          <h3 className="recurring-subsection-heading">{t.plan.recurring.scheduledHeading}</h3>
-          <div className="recurring-expense-list recurring-expense-list--flat recurring-expense-card">
-            {scheduled.map(renderRow)}
-          </div>
-        </>
+      {charged.length > 0 && (
+        <div className="recurring-expense-list recurring-expense-list--flat recurring-expense-card">
+          {charged.map(renderRow)}
+        </div>
       )}
 
-      {ongoing.length > 0 && (
+      {notCharged.length > 0 && (
         <>
-          <h3 className="recurring-subsection-heading">{t.plan.recurring.ongoingHeading}</h3>
+          <h3 className="recurring-subsection-heading">{t.plan.recurring.notChargedHeading(vocab)}</h3>
           <div className="recurring-expense-list recurring-expense-list--flat recurring-expense-card">
-            {ongoing.map(renderRow)}
+            {notCharged.map(renderRow)}
           </div>
         </>
       )}

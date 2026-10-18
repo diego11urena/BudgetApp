@@ -37,7 +37,6 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
     name: formData.get("name"),
     amount: formData.get("amount"),
     categoryName: formData.get("categoryName"),
-    hasFixedDate: formData.get("hasFixedDate") ?? undefined,
     dueDay: formData.get("dueDay") || undefined,
     recurring: formData.get("recurring") ?? undefined,
   });
@@ -48,7 +47,7 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
-  const { name, amount, categoryName, hasFixedDate, dueDay, recurring } = parsed.data;
+  const { name, amount, categoryName, dueDay, recurring } = parsed.data;
 
   const cycle = await getOrCreateDraftCycle(userId);
   const category = await getOrCreateCategory(prisma, userId, categoryName, "EXPENSE");
@@ -60,7 +59,6 @@ export const createRecurringExpenseAction = withActionErrorHandling(async functi
       cycleId: cycle.id,
       name,
       amount,
-      hasFixedDate,
       dueDay,
       recurring,
     });
@@ -106,7 +104,6 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
     name: formData.get("name"),
     amount: formData.get("amount"),
     categoryName: formData.get("categoryName"),
-    hasFixedDate: formData.get("hasFixedDate") ?? undefined,
     dueDay: formData.get("dueDay") || undefined,
   });
   if (!parsed.success) {
@@ -116,7 +113,7 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
       field: issue?.path[0] as "name" | "amount" | "categoryName" | "dueDay" | undefined,
     };
   }
-  const { name, amount, categoryName, hasFixedDate, dueDay } = parsed.data;
+  const { name, amount, categoryName, dueDay } = parsed.data;
   const recurring = formData.get("recurring") !== "false";
 
   const category = await getOrCreateCategory(prisma, userId, categoryName, "EXPENSE");
@@ -130,8 +127,8 @@ export const updateRecurringExpenseAction = withActionErrorHandling(async functi
         name,
         amount,
         categoryId: category.id,
-        hasFixedDate,
-        dueDay: hasFixedDate ? (dueDay ?? null) : null,
+        // Blank clears the date.
+        dueDay: dueDay ?? null,
         recurring,
       },
     });
