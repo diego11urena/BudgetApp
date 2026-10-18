@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useRef, type CSSProperties, type HTMLAttributes, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useRef, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { useModalFocus } from "./useModalFocus";
 
 const DEFAULT_TITLE_STYLE: CSSProperties = { marginBottom: "1rem" };
+const DRAG_DISMISS_PX = 80;
 
 export interface SheetProps {
   /**
@@ -41,10 +42,6 @@ export interface SheetProps {
   autoFocus?: boolean;
   /** Extra class(es) appended after "sheet" on the dialog panel (e.g. IconPickerSheet's own "icon-picker-sheet" modifier). */
   className?: string;
-  /** Only needed by a sheet that reads/writes its own panel's DOM directly (QuickAddSheet's swipe-to-dismiss drag handlers) -- every other sheet lets Sheet own its ref internally. */
-  panelRef?: RefObject<HTMLDivElement | null>;
-  /** Overrides the plain handle div's own props (QuickAddSheet's swipe-to-dismiss touch handlers) -- omit for the ordinary static handle. */
-  handleProps?: HTMLAttributes<HTMLDivElement>;
   children: ReactNode;
 }
 
@@ -68,15 +65,47 @@ export function Sheet({
   returnFocusTo = null,
   autoFocus = true,
   className = "",
-  panelRef: externalRef,
-  handleProps,
   children,
 }: SheetProps) {
-  const internalRef = useRef<HTMLDivElement>(null);
-  const panelRef = externalRef ?? internalRef;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
   const headingId = useId();
 
   useModalFocus(panelRef, onClose, returnFocusTo, autoFocus);
+
+  // A drag-dismiss leaves the panel parked off-screen via inline style; clear
+  // it when a sheet that hides without unmounting (CategoryFormSheet) reopens.
+  useEffect(() => {
+    if (visible && panelRef.current) panelRef.current.style.transform = "";
+  }, [visible]);
+
+  // Drag the handle down to dismiss. Pointer events cover touch and mouse;
+  // pointer capture keeps the drag alive once the finger leaves the handle.
+  // Respects closeOnBackdropClick, so a sheet mid-submit can't be flung away.
+  const dragHandlers = closeOnBackdropClick
+    ? {
+        onPointerDown(e: PointerEvent<HTMLDivElement>) {
+          dragStartY.current = e.clientY;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          panelRef.current!.style.transition = "none";
+        },
+        onPointerMove(e: PointerEvent<HTMLDivElement>) {
+          if (dragStartY.current === null) return;
+          const delta = Math.max(0, e.clientY - dragStartY.current);
+          panelRef.current!.style.transform = `translateY(${delta}px)`;
+        },
+        onPointerUp(e: PointerEvent<HTMLDivElement>) {
+          if (dragStartY.current === null) return;
+          const panel = panelRef.current!;
+          const dismiss = e.clientY - dragStartY.current > DRAG_DISMISS_PX;
+          dragStartY.current = null;
+          panel.style.transition = "";
+          // Slide out from where the finger let go instead of snapping back first.
+          panel.style.transform = dismiss ? "translateY(100%)" : "";
+          if (dismiss) onClose();
+        },
+      }
+    : {};
 
   return (
     <div
@@ -94,7 +123,9 @@ export function Sheet({
         aria-label={title ? undefined : ariaLabel}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sheet-handle" {...handleProps} />
+        <div className="sheet-handle-area" {...dragHandlers} onPointerCancel={dragHandlers.onPointerUp}>
+          <div className="sheet-handle" />
+        </div>
         {kicker && <p className="sheet-kicker">{kicker}</p>}
         {title && (
           <h2 id={headingId} style={titleStyle ?? DEFAULT_TITLE_STYLE}>
