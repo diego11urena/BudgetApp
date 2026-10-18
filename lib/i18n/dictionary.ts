@@ -258,13 +258,16 @@ export type Dictionary = {
     doneForNow: string;
     sentTo: (name: string) => string;
     receivedFrom: (name: string) => string;
-    chooseCategoryPlaceholder: string;
     chooseCategoryError: string;
     tellUsWhatItWasForError: string;
     isRecurringExpense: string;
     /** Label above RecurringExpensePicker, shown only once the "This is a recurring expense" checkbox is on -- an existing one can be searched/picked here, or a new one named by typing, instead of the toggle only ever doing an exact name match. */
     whichRecurringExpenseLabel: string;
     whatWasThisForPlaceholder: string;
+    chooseRecurringError: string;
+    /** Last option in the "Which recurring expense?" native select -- reveals a text field for a new name. */
+    otherRecurringOption: string;
+    newRecurringPlaceholder: string;
     saving: string;
     save: string;
     netPayLabel: string;

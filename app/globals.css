@@ -1575,6 +1575,24 @@ button.line-item--link {
   font-family: inherit;
 }
 
+/* "This is a recurring expense" -- a native switch in Safari 17.4+
+   (input[switch]); accent-color tints it with the app's green. */
+.needs-attention-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  margin-bottom: 0.5rem;
+}
+
+.needs-attention-switch input {
+  accent-color: var(--color-accent-green);
+}
+
+.categorize-imports-row-input select:disabled {
+  opacity: 0.5;
+}
+
 .home-page {
   display: flex;
   flex-direction: column;

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 import { signUpAndOnboard } from "./helpers";
 
 /**
@@ -23,6 +23,18 @@ function seedTransaction(payload: {
     ["tsx", path.join(__dirname, "seed-transaction.ts"), JSON.stringify(payload)],
     { cwd: path.join(__dirname, "..", ".."), stdio: "inherit" },
   );
+}
+
+/** Picks an existing category in the row's native select, or "+ New category…" and types it. */
+async function setCategory(row: Locator, name: string) {
+  const select = row.getByLabel("Category", { exact: true });
+  const existing = await select.locator("option").allTextContents();
+  if (existing.includes(name)) {
+    await select.selectOption(name);
+  } else {
+    await select.selectOption({ label: "+ New category…" });
+    await row.getByPlaceholder("New category name").fill(name);
+  }
 }
 
 test.describe("dashboard 'needs attention' banner", () => {
@@ -50,12 +62,12 @@ test.describe("dashboard 'needs attention' banner", () => {
     await expect(page.locator(".categorize-imports-row")).toHaveCount(1);
     const row = page.locator(".categorize-imports-row");
     await expect(row).toContainText("Sent to Juan Perez");
-    // CategoryNameInput's single always-visible input -- no separate
-    // "new category" field to reveal, it accepts free text directly.
-    await expect(row.locator('input[placeholder="Choose or enter a category"]')).toHaveCount(1);
+    // A native category select; the text field only appears for "+ New category…".
+    await expect(row.getByLabel("Category", { exact: true })).toHaveCount(1);
+    await expect(row.getByPlaceholder("New category name")).toHaveCount(0);
     await expect(row.locator('input[placeholder="Rent, lunch, gift…"]')).toHaveCount(1);
 
-    await row.locator('input[placeholder="Choose or enter a category"]').fill("Transportation");
+    await setCategory(row, "Transportation");
     await row.locator('input[placeholder="Rent, lunch, gift…"]').fill("Taxi fare");
     await row.getByRole("button", { name: "Save", exact: true }).click();
 
@@ -81,11 +93,9 @@ test.describe("dashboard 'needs attention' banner", () => {
     const row = page.locator(".categorize-imports-row");
     await expect(row).toContainText("Cafe Unido");
     await expect(row).not.toContainText("Sent to");
-    await expect(row.locator('input[placeholder="Choose or enter a category"]')).toHaveCount(1);
+    await expect(row.getByLabel("Category", { exact: true })).toHaveCount(1);
     await expect(row.locator('input[placeholder="Rent, lunch, gift…"]')).toHaveCount(0);
   });
-
-  const CATEGORY = 'input[placeholder="Choose or enter a category"]';
 
   test("Done for now saves the one transaction that was categorized, leaves the other, and the sheet stays closed", async ({
     page,
@@ -102,7 +112,7 @@ test.describe("dashboard 'needs attention' banner", () => {
     await page.click(".banner--action");
     const rows = page.locator(".categorize-imports-row");
     await expect(rows).toHaveCount(2);
-    await rows.filter({ hasText: "Cafe Unido" }).locator(CATEGORY).fill("Coffee");
+    await setCategory(rows.filter({ hasText: "Cafe Unido" }), "Coffee");
     await page.getByRole("button", { name: "Done for now" }).click();
 
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -140,23 +150,31 @@ test.describe("dashboard 'needs attention' banner", () => {
     const electric = page.locator(".categorize-imports-row").filter({ hasText: "Electric Co" });
     const electricSave = electric.getByRole("button", { name: "Save", exact: true });
 
-    await electric.locator(CATEGORY).fill("Utilities");
-    await electric.locator(".category-name-input-dropdown button", { hasText: /^Utilities$/ }).click();
-    await expect(electric.locator(CATEGORY)).not.toBeFocused(); // picking an option dismisses the keyboard
+    await setCategory(electric, "Utilities");
 
+    // Toggling recurring never moves Save.
+    const recurringSwitch = electric.getByLabel("This is a recurring expense");
+    const recurringSelect = electric.getByLabel("Which recurring expense?");
+    // Position within the row (not the viewport, which scrolls to reach the switch).
+    const saveY = () => electricSave.evaluate((el) => (el as HTMLElement).offsetTop);
+    const before = await saveY();
+    await expect(recurringSelect).toBeDisabled();
     for (const checked of [true, false, true]) {
-      await electric.getByLabel("This is a recurring expense").setChecked(checked);
-      await expect(electricSave).toBeInViewport();
+      await recurringSwitch.setChecked(checked);
+      expect(await saveY()).toBe(before);
     }
-    const recurringInput = electric.locator(".recurring-picker input[type=text]");
-    await recurringInput.fill("Elec"); // focused, dropdown open
-    await expect(electric.locator(".recurring-picker-dropdown")).toBeInViewport();
+    await expect(recurringSelect).toBeEnabled();
+
+    // "Other…" is the only path to a text field (keyboard); Save stays in view while typing.
+    await recurringSelect.selectOption({ label: "Other…" });
+    const recurringName = electric.getByPlaceholder("Recurring expense name");
+    await expect(recurringName).toBeFocused();
     await expect(electricSave).toBeInViewport();
 
-    // Half-filled: recurring checked but no recurring expense named -> not saved.
-    await recurringInput.fill("");
+    // Half-filled: recurring on but no recurring expense named -> not saved.
+    await recurringName.fill("");
     const groceries = page.locator(".categorize-imports-row").filter({ hasText: "Super 99" });
-    await groceries.locator(CATEGORY).fill("Groceries");
+    await setCategory(groceries, "Groceries");
     await page.getByRole("button", { name: "Done for now" }).click();
 
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
@@ -172,11 +190,9 @@ test.describe("dashboard 'needs attention' banner", () => {
     // Reopen from Review and finish it with a picked recurring expense: Save closes the sheet.
     await page.goto("/dashboard");
     await page.click(".banner--action");
-    await electric.locator(CATEGORY).fill("Utilities");
-    await electric.locator(".category-name-input-dropdown button", { hasText: /^Utilities$/ }).click();
-    await electric.getByLabel("This is a recurring expense").check();
-    await recurringInput.fill("Elec");
-    await electric.locator(".recurring-picker-dropdown button", { hasText: "Electricity" }).click();
+    await setCategory(electric, "Utilities");
+    await recurringSwitch.check();
+    await recurringSelect.selectOption({ label: "Electricity · $40.00" });
     await electricSave.click();
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.locator(".banner--action")).toHaveCount(0);
