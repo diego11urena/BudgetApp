@@ -15,6 +15,8 @@ import { useT } from "../../../_components/LocaleProvider";
  */
 function applyThemeClientSide(value: ThemePreferenceValue) {
   const root = document.documentElement;
+  // ThemeScript's OS-change listener reads this to know whether to follow the OS.
+  root.setAttribute("data-theme-pref", value);
   if (value === "system") {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     root.setAttribute("data-theme", prefersDark ? "dark" : "light");
