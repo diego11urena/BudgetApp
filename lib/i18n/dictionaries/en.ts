@@ -344,7 +344,7 @@ export const en: Dictionary = {
   transactions: {
     metaTitle: "Activity",
     title: "Activity",
-    seeWhereItWent: "See where it went",
+    breakdownCta: "Breakdown",
     count: (n) => `${n} ${plural(n, "transaction", "transactions")}`,
     noMatch: "No transactions match your search.",
     noneYet: "No transactions logged yet.",
@@ -739,6 +739,7 @@ export const en: Dictionary = {
   },
 
   summary: {
+    seeWhereItWent: "See where it went",
     headlinePrefix: (vocab, spent) => `You spent ${spent} and `,
     headlineSavedFragment: (saved) => `saved ${saved}.`,
     subcopyDelta: (vocab, amount, isLighter) =>

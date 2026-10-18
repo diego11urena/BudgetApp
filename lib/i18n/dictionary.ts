@@ -379,7 +379,8 @@ export type Dictionary = {
   transactions: {
     metaTitle: string;
     title: string;
-    seeWhereItWent: string;
+    /** The active cycle's link to its breakdown. A closed cycle's summary uses summary.seeWhereItWent instead. */
+    breakdownCta: string;
     count: (n: number) => string;
     noMatch: string;
     noneYet: string;
@@ -795,6 +796,8 @@ export type Dictionary = {
   };
 
   summary: {
+    /** Link to the closed cycle's breakdown -- shown only on the cycle summary. */
+    seeWhereItWent: string;
     /** "You spent $594 and " -- the caller wraps headlineSavedFragment's return in the gold span, see SummaryHeadline.tsx. Split in two (not one opaque sentence) so the gold coloring doesn't have to fight EN/ES word order. */
     headlinePrefix: (vocab: PeriodVocab, spent: string) => string;
     /** "saved $297." -- see headlinePrefix. */

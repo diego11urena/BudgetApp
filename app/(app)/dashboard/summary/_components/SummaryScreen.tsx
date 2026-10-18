@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, PieChart } from "lucide-react";
+import PageTransitionLink from "@/app/(app)/_components/PageTransitionLink";
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { SpendComparison, UncategorizedWarning } from "@/lib/summary";
@@ -90,6 +91,14 @@ export default function SummaryScreen({
         saved={formatCurrency(financials.totalSavings)}
         t={t}
       />
+
+      <PageTransitionLink
+        href={`/transactions/breakdown?cycle=${cycleId}`}
+        className="button transaction-breakdown-cta"
+      >
+        <PieChart size={17} aria-hidden="true" />
+        {t.summary.seeWhereItWent}
+      </PageTransitionLink>
 
       {/* Only drawn once there's actual history to draw -- a single closed
           cycle is a dot, and zero is nothing at all rather than an invented

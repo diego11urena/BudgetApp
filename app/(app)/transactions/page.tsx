@@ -161,7 +161,7 @@ export default async function TransactionsPage({
           visualizes whatever they currently select. */}
       <Link href="/transactions/breakdown" className="button transaction-breakdown-cta">
         <PieChart size={17} aria-hidden="true" />
-        {t.transactions.seeWhereItWent}
+        {t.transactions.breakdownCta}
       </Link>
       {transactions.length > 0 && (
         <div className="transaction-summary-line">

@@ -351,7 +351,7 @@ export const es: Dictionary = {
   transactions: {
     metaTitle: "Actividad",
     title: "Actividad",
-    seeWhereItWent: "Mira a dónde se fue",
+    breakdownCta: "Desglose",
     count: (n) => `${n} ${plural(n, "transacción", "transacciones")}`,
     noMatch: "Ninguna transacción coincide con tu búsqueda.",
     noneYet: "Aún no hay transacciones registradas.",
@@ -759,6 +759,7 @@ export const es: Dictionary = {
   },
 
   summary: {
+    seeWhereItWent: "Mira a dónde se fue",
     headlinePrefix: (vocab, spent) => `Gastaste ${spent} y `,
     headlineSavedFragment: (saved) => `ahorraste ${saved}.`,
     subcopyDelta: (vocab, amount, isLighter) =>
