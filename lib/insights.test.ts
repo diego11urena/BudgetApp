@@ -1,25 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { generateInsights } from "./insights";
+import { generateInsights, PRIORITY, type InsightExtras, type InsightMemoryRecord } from "./insights";
 import { parseDateOnly } from "./pay-date";
-import type { CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
+import type { CategoryTotal, CycleFinancials, CycleTransactionSummary } from "./cycle-financials";
 import type { CategoryWithRecurringExpenses, RecurringExpenseWithStatus } from "./recurring-expenses";
 import type { GoalWithProgress } from "./goals";
-import type { Dictionary, PeriodVocab } from "./i18n/dictionary";
 import { en } from "./i18n/dictionaries/en";
-import type { BudgetFrequency } from "./quincena-pace";
 import { getRecurringExpensePaymentStatus } from "./recurring-expense-status";
 
-let nextTransactionId = 0;
-function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
-  nextTransactionId++;
+const day = (iso: string) => parseDateOnly(iso)!;
+
+/** The default cycle: a 15-day quincena, Aug 3-17 2026. Day N of it is Aug (2+N). */
+const CYCLE_START = day("2026-08-03");
+
+let nextId = 0;
+function tx(overrides: Partial<CycleTransactionSummary> = {}): CycleTransactionSummary {
+  nextId++;
   return {
-    id: `tx-${nextTransactionId}`,
+    id: `tx-${nextId}`,
     cycleId: "cycle-1",
     type: "EXPENSE",
     name: "Some Merchant",
     amount: 10,
     categoryName: null,
-    occurredAt: parseDateOnly("2026-08-03")!,
+    occurredAt: CYCLE_START,
     isImported: false,
     importSource: "MANUAL",
     paymentMethod: null,
@@ -30,58 +33,49 @@ function makeTransaction(overrides: Partial<CycleTransactionSummary> = {}): Cycl
   };
 }
 
-function makeFinancials(overrides: Partial<CycleFinancials> = {}): CycleFinancials {
+/** Financials derived from the transactions, the way summarizeCycleFinancials would. */
+function financials(transactions: CycleTransactionSummary[] = [], overrides: Partial<CycleFinancials> = {}): CycleFinancials {
+  const baseIncome = overrides.baseIncome ?? 2000;
+  const sum = (type: CycleTransactionSummary["type"]) =>
+    transactions.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
+  const totals = new Map<string, CategoryTotal>();
+  for (const t of transactions) {
+    if (t.type !== "EXPENSE" || !t.expenseCategoryId) continue;
+    const existing = totals.get(t.expenseCategoryId);
+    if (existing) existing.amount += t.amount;
+    else totals.set(t.expenseCategoryId, { categoryId: t.expenseCategoryId, categoryName: t.categoryName ?? "Cat", categoryIcon: null, amount: t.amount });
+  }
+  const categoryTotals = [...totals.values()].sort((a, b) => b.amount - a.amount);
   return {
-    baseIncome: 2000,
+    baseIncome,
     paycheckCount: 1,
-    extraIncome: 0,
-    totalExpenses: 0,
-    totalSavings: 0,
-    amountLeft: 2000,
-    transactions: [],
-    categoryTotals: [],
-    topCategories: [],
+    extraIncome: sum("INCOME"),
+    totalExpenses: sum("EXPENSE"),
+    totalSavings: sum("SAVINGS"),
+    amountLeft: baseIncome + sum("INCOME") - sum("EXPENSE") - sum("SAVINGS"),
+    transactions,
+    categoryTotals,
+    topCategories: categoryTotals.slice(0, 6),
     ...overrides,
   };
 }
 
-/** Day 1 of a 15-day quincena, by default -- pctElapsed is tiny and totalExpenses defaults to 0, so paceAwareCandidate never escalates unless a test deliberately sets otherwise. Matches the periodStart convention used throughout lib/cycles*.test.ts. */
-function makeExtras(
-  overrides: Partial<{
-    cycle: { periodStart: Date; periodEnd: Date | null };
-    recurringExpenseCategories: CategoryWithRecurringExpenses[];
-    goals: GoalWithProgress[];
-    budgetFrequency: BudgetFrequency;
-    vocab: PeriodVocab;
-    now: Date;
-    t: Dictionary["insights"];
-  }> = {},
-) {
-  const periodStart = parseDateOnly("2026-08-03")!;
+function extras(overrides: Partial<InsightExtras> = {}): InsightExtras {
   return {
-    cycle: { periodStart, periodEnd: null },
+    cycleId: "cycle-1",
+    cycle: { periodStart: CYCLE_START, periodEnd: null },
     recurringExpenseCategories: [],
     goals: [],
-    // QUINCENAL fixed here rather than parameterized, for the same reason
-    // `t` below is -- every test's expected daysRemaining/percentElapsed
-    // math is written against a 15-day quincena.
-    budgetFrequency: "QUINCENAL" as BudgetFrequency,
+    budgetFrequency: "QUINCENAL",
     vocab: en.periodVocab.quincenal,
-    now: periodStart,
-    // English fixed here rather than parameterized -- these tests assert on
-    // exact rendered strings (see every `expect(insights).toEqual([{ text:
-    // "..." }])` below), so the dictionary itself is what's under test for
-    // wiring correctness, not a thing that should vary per test run.
+    now: CYCLE_START,
     t: en.insights,
     ...overrides,
   };
 }
 
-function makeRecurringCategory(
-  expenses: Partial<RecurringExpenseWithStatus>[],
-  overrides: Partial<CategoryWithRecurringExpenses> = {},
-): CategoryWithRecurringExpenses {
-  const built: RecurringExpenseWithStatus[] = expenses.map((e, i) => {
+function recurring(expenses: Partial<RecurringExpenseWithStatus>[]): CategoryWithRecurringExpenses[] {
+  const built = expenses.map((e, i) => {
     const targetAmount = e.targetAmount ?? 20;
     const actual = e.actual ?? 0;
     return {
@@ -89,748 +83,570 @@ function makeRecurringCategory(
       name: e.name ?? `Expense ${i}`,
       targetAmount,
       actual,
-      recurring: e.recurring ?? true,
+      recurring: true,
       dueDay: e.dueDay ?? null,
       chargedThisCycle: e.chargedThisCycle ?? true,
       status: e.status ?? getRecurringExpensePaymentStatus(actual, targetAmount),
-      suggestedMatch: e.suggestedMatch ?? null,
+      suggestedMatch: null,
     };
   });
-  return {
-    categoryId: "cat-recurring",
-    categoryName: "Subscriptions",
-    categoryIcon: null,
-    budgetTotal: built.reduce((sum, e) => sum + e.targetAmount, 0),
-    actual: built.reduce((sum, e) => sum + e.actual, 0),
-    expenses: built,
-    ...overrides,
-  };
+  return [{ categoryId: "cat-r", categoryName: "Subscriptions", categoryIcon: null, budgetTotal: 0, actual: 0, expenses: built }];
 }
 
-function makeGoal(overrides: Partial<GoalWithProgress> = {}): GoalWithProgress {
-  return {
-    categoryId: "goal-1",
-    name: "Emergency fund",
-    icon: null,
-    lifetimeTargetAmount: 1000,
-    savedSoFar: 0,
-    currentCycleRecurringAmount: null,
-    ...overrides,
-  };
+function goal(overrides: Partial<GoalWithProgress> = {}): GoalWithProgress {
+  return { categoryId: "goal-1", name: "Emergency fund", icon: null, lifetimeTargetAmount: 1000, savedSoFar: 0, currentCycleRecurringAmount: null, ...overrides };
 }
 
-describe("generateInsights", () => {
-  describe("baseline on-track / over-budget / streak / no-history behavior", () => {
-    // Regression anchor: generateInsights used to blanket-return [] whenever
-    // there was no closed cycle history, hiding the Insights card entirely
-    // for a first-time user -- even the on-track/over-budget rule, which
-    // needs only the current cycle's own numbers and has nothing to do with
-    // history. Only the genuinely comparative rules (category anomaly,
-    // streak) should require history.
-    it("still shows the on-track insight for a brand-new user with no closed cycles yet", () => {
-      const insights = generateInsights(makeFinancials({ amountLeft: 2000 }), [], makeExtras());
-      expect(insights).toEqual([
-        { text: "You're spending at a sustainable pace to make it to your next payday." },
-      ]);
+/** The texts of the insights shown. */
+function texts(current: CycleFinancials, previous: CycleFinancials[], ex: InsightExtras): string[] {
+  return generateInsights(current, previous, ex).map((i) => i.text);
+}
+
+/** The insight matching `match` among the ones shown (tests keep other rules quiet so the one under test makes the top 2). */
+function find(current: CycleFinancials, previous: CycleFinancials[], ex: InsightExtras, match: RegExp) {
+  return generateInsights(current, previous, ex).find((i) => match.test(i.text));
+}
+
+describe("upcoming charges (heads-up)", () => {
+  const now = day("2026-08-05");
+
+  it("names a single charge coming up, with no 'marked paid' wording", () => {
+    const ex = extras({ now, recurringExpenseCategories: recurring([{ name: "Spotify", targetAmount: 0.99, dueDay: 7 }]) });
+    const insight = find(financials(), [], ex, /Spotify/)!;
+    expect(insight.text).toBe("Spotify ($0.99) will be charged in 2 days.");
+    expect(insight.href).toBe("/plan");
+    expect(insight.severity).toBe("recurring");
+  });
+
+  it("says today and tomorrow", () => {
+    const ex = (dueDay: number) => extras({ now, recurringExpenseCategories: recurring([{ name: "Gym", targetAmount: 30, dueDay }]) });
+    expect(find(financials(), [], ex(5), /Gym/)!.text).toBe("Gym ($30.00) will be charged today.");
+    expect(find(financials(), [], ex(6), /Gym/)!.text).toBe("Gym ($30.00) will be charged tomorrow.");
+  });
+
+  it("combines several charges in the next 3 days into one message", () => {
+    const ex = extras({
+      now,
+      recurringExpenseCategories: recurring([
+        { name: "Spotify", targetAmount: 10, dueDay: 6 },
+        { name: "Netflix", targetAmount: 12, dueDay: 7 },
+        { name: "iCloud", targetAmount: 20, dueDay: 8 },
+      ]),
+    });
+    expect(texts(financials(), [], ex)).toContain("3 charges coming up in the next 3 days ($42.00 total).");
+  });
+
+  it("stays silent when the charge is further out, already charged, undated, or not charged this cycle", () => {
+    for (const e of [
+      { dueDay: 9 },
+      { dueDay: 7, actual: 20 },
+      { dueDay: null },
+      { dueDay: 7, chargedThisCycle: false },
+    ]) {
+      const ex = extras({ now, recurringExpenseCategories: recurring([{ name: "Spotify", ...e }]) });
+      expect(find(financials(), [], ex, /will be charged|charges coming up/)).toBeUndefined();
+    }
+  });
+
+  it("looks across the month end: on Oct 30 a bill on the 1st is 2 days away", () => {
+    const ex = extras({
+      now: day("2026-10-30"),
+      cycle: { periodStart: day("2026-10-16"), periodEnd: null },
+      recurringExpenseCategories: recurring([{ name: "Rent", targetAmount: 450, dueDay: 1 }]),
+    });
+    expect(find(financials(), [], ex, /Rent/)!.text).toBe("Rent ($450.00) will be charged in 2 days.");
+  });
+
+  it("clamps a bill on the 31st to the last day of a shorter month instead of skipping it", () => {
+    const ex = extras({
+      now: day("2026-09-28"),
+      cycle: { periodStart: day("2026-09-16"), periodEnd: null },
+      recurringExpenseCategories: recurring([{ name: "Internet", targetAmount: 40, dueDay: 31 }]),
+    });
+    expect(find(financials(), [], ex, /Internet/)!.text).toBe("Internet ($40.00) will be charged in 2 days.");
+  });
+
+  it("ranks at the heads-up priority, below the neutral category and goal rules", () => {
+    expect(PRIORITY.UPCOMING_CHARGES).toBeLessThan(PRIORITY.CATEGORY_ANOMALY);
+    expect(PRIORITY.UPCOMING_CHARGES).toBeLessThan(PRIORITY.GOAL_CONTRIBUTION);
+  });
+});
+
+describe("expected charge missing", () => {
+  const now = day("2026-08-08");
+
+  it("warns when a charge date passed 1-3 days ago with nothing linked", () => {
+    const ex = extras({ now, recurringExpenseCategories: recurring([{ name: "Spotify", targetAmount: 0.99, dueDay: 6 }]) });
+    const insight = find(financials(), [], ex, /Spotify/)!;
+    expect(insight.text).toBe("Spotify ($0.99) was expected on Aug 6 but hasn't shown up yet.");
+    expect(insight.key).toBe("missed:re-0:2026-08-06");
+  });
+
+  it("outranks the heads-up", () => {
+    expect(PRIORITY.MISSED_CHARGE).toBeGreaterThan(PRIORITY.UPCOMING_CHARGES);
+  });
+
+  it("stays silent 4+ days after, once it was charged, or when not charged this cycle", () => {
+    for (const e of [{ dueDay: 4 }, { dueDay: 6, actual: 0.99 }, { dueDay: 6, chargedThisCycle: false }]) {
+      const ex = extras({ now, recurringExpenseCategories: recurring([{ name: "Spotify", targetAmount: 0.99, ...e }]) });
+      expect(find(financials(), [], ex, /expected on/)).toBeUndefined();
+    }
+  });
+});
+
+describe("still to be charged this cycle", () => {
+  const items = recurring([
+    { name: "Rent", targetAmount: 450, dueDay: 15 },
+    { name: "Panapass", targetAmount: 20, actual: 5 },
+    { name: "Paid", targetAmount: 10, actual: 10 },
+  ]);
+
+  it("stays silent before the halfway point", () => {
+    expect(find(financials(), [], extras({ now: day("2026-08-07"), recurringExpenseCategories: items }), /still to be charged/)).toBeUndefined();
+  });
+
+  it("counts not-started and partial items past halfway, with 'still to be charged' wording", () => {
+    const insight = find(financials(), [], extras({ now: day("2026-08-11"), recurringExpenseCategories: items }), /still to be charged/)!;
+    expect(insight.text).toBe("2 recurring expenses are still to be charged this cycle ($465.00).");
+  });
+
+  it("stays silent when everything is charged", () => {
+    const paid = recurring([{ name: "Paid", targetAmount: 10, actual: 10 }]);
+    expect(find(financials(), [], extras({ now: day("2026-08-11"), recurringExpenseCategories: paid }), /still to be charged/)).toBeUndefined();
+  });
+});
+
+describe("pace (based on Safe to spend)", () => {
+  it("is over budget when Safe to spend is negative, even with money left, and links to Breakdown", () => {
+    const ex = extras({ now: day("2026-08-05"), recurringExpenseCategories: recurring([{ name: "Rent", targetAmount: 1500, dueDay: 15 }]) });
+    const insight = find(financials([tx({ amount: 600 })]), [], ex, /over budget/)!;
+    // 2000 - 600 = 1400 left, minus 1500 unpaid rent = -100.
+    expect(insight.text).toBe("You're $100.00 over budget this cycle so far, with 12 days left.");
+    expect(insight.href).toBe("/transactions/breakdown");
+    expect(insight.severity).toBe("critical");
+  });
+
+  it("over budget outranks the neutral category and goal rules", () => {
+    expect(PRIORITY.OVER_BUDGET).toBeGreaterThan(PRIORITY.CATEGORY_ANOMALY);
+    expect(PRIORITY.OVER_BUDGET).toBeGreaterThan(PRIORITY.GOAL_CONTRIBUTION);
+  });
+
+  it("warns about running out once 3 days have passed and the day-to-day rate won't last", () => {
+    // Day 4: $1,200 day-to-day spend = $300/day; $800 left lasts 2 more days, 11 remain.
+    const insight = find(financials([tx({ amount: 1200 })]), [], extras({ now: day("2026-08-06") }), /run out/)!;
+    expect(insight.text).toMatch(/^At your current pace you'll run out of cash around Aug 8/);
+    expect(insight.href).toBe("/transactions/breakdown");
+  });
+
+  it("does not warn about running out before 3 days have passed", () => {
+    const result = texts(financials([tx({ amount: 1200 })]), [], extras({ now: day("2026-08-04") }));
+    expect(result.some((t) => /run out/.test(t))).toBe(false);
+  });
+
+  it("leaves charges linked to recurring expenses out of the daily rate", () => {
+    // $1,200 rent (linked) + $30 day-to-day by day 4: rate is $7.50/day, not $307.50.
+    const current = financials([tx({ amount: 1200, recurringExpenseId: "re-rent" }), tx({ amount: 30 })]);
+    const result = texts(current, [], extras({ now: day("2026-08-06") }));
+    expect(result.some((t) => /run out/.test(t))).toBe(false);
+    expect(result).toContain(en.insights.onTrackPace);
+  });
+
+  it("falls back to on track", () => {
+    expect(texts(financials(), [], extras())).toContain(en.insights.onTrackPace);
+  });
+});
+
+describe("category up", () => {
+  const groceries = (amount: number) => tx({ amount, expenseCategoryId: "cat-g", categoryName: "Groceries" });
+  const halfway = day("2026-08-10"); // day 8 of 15
+
+  it("with one closed cycle, uses the same $15 / 20% thresholds, prorated", () => {
+    const previous = [financials([groceries(200)])];
+    // Expected by day 8: 200 * 8/15 = 106.67. 150 is $43 and 41% over.
+    expect(find(financials([groceries(150)]), previous, extras({ now: halfway }), /Groceries/)!.text).toBe(
+      "Groceries spending is up $43.33 vs last cycle.",
+    );
+  });
+
+  it("with one closed cycle, stays silent for a swing under the $15 floor (the old rule fired at $1)", () => {
+    const previous = [financials([groceries(200)])];
+    expect(find(financials([groceries(115)]), previous, extras({ now: halfway }), /Groceries/)).toBeUndefined();
+  });
+
+  it("with 2+ closed cycles, compares against the average", () => {
+    const previous = [financials([groceries(180)]), financials([groceries(220)])];
+    expect(find(financials([groceries(150)]), previous, extras({ now: halfway }), /Groceries/)!.text).toBe(
+      "Groceries spending is up $43.33 vs your recent average.",
+    );
+  });
+
+  it("stays silent with no history, for a decrease, or for a category usually under $25", () => {
+    expect(find(financials([groceries(150)]), [], extras({ now: halfway }), /Groceries/)).toBeUndefined();
+    expect(find(financials([groceries(50)]), [financials([groceries(200)])], extras({ now: halfway }), /spending is up/)).toBeUndefined();
+    expect(find(financials([groceries(60)]), [financials([groceries(20)])], extras({ now: halfway }), /Groceries/)).toBeUndefined();
+  });
+});
+
+describe("close to a savings goal", () => {
+  const saving = (amount: number) => tx({ type: "SAVINGS", amount, expenseCategoryId: "goal-1" });
+
+  it("fires within one cycle's planned contribution of the target", () => {
+    const ex = extras({ goals: [goal({ savedSoFar: 920, currentCycleRecurringAmount: 100 })] });
+    expect(find(financials(), [], ex, /away from hitting/)!.text).toBe("You're $80.00 away from hitting your Emergency fund target.");
+  });
+
+  it("leaves milestones to the goal-milestone insight", () => {
+    const ex = extras({ goals: [goal({ savedSoFar: 520 })] });
+    expect(find(financials([saving(100)]), [], ex, /away from hitting/)).toBeUndefined();
+  });
+
+  it("does not keep firing for a goal sitting near the target with no milestone crossed this cycle", () => {
+    const ex = extras({ goals: [goal({ savedSoFar: 850, currentCycleRecurringAmount: 50 })] });
+    expect(find(financials(), [], ex, /away from hitting/)).toBeUndefined();
+  });
+
+  it("stays silent for a completed goal", () => {
+    const ex = extras({ goals: [goal({ savedSoFar: 1000, currentCycleRecurringAmount: 100 })] });
+    expect(find(financials(), [], ex, /away from hitting/)).toBeUndefined();
+  });
+});
+
+describe("goal contribution behind", () => {
+  const ex = (now: Date, savings: number) => ({
+    current: financials(savings ? [tx({ type: "SAVINGS", amount: savings, expenseCategoryId: "goal-1" })] : []),
+    ex: extras({ now, goals: [goal({ currentCycleRecurringAmount: 100 })] }),
+  });
+
+  it("fires past 60% of the cycle with less than half the planned amount logged", () => {
+    const { current, ex: e } = ex(day("2026-08-12"), 20);
+    expect(find(current, [], e, /You planned/)!.text).toBe(
+      "You planned $100.00 for Emergency fund this paycheck — only $20.00 logged so far, with 5 days left.",
+    );
+  });
+
+  it("stays silent before 60% or once half is logged", () => {
+    expect(find(ex(day("2026-08-06"), 0).current, [], ex(day("2026-08-06"), 0).ex, /You planned/)).toBeUndefined();
+    expect(find(ex(day("2026-08-12"), 50).current, [], ex(day("2026-08-12"), 50).ex, /You planned/)).toBeUndefined();
+  });
+});
+
+describe("possible duplicate charge", () => {
+  const gmail = (occurredAt: string, overrides: Partial<CycleTransactionSummary> = {}) =>
+    tx({ name: "McDonald's", amount: 5.49, importSource: "GMAIL", isImported: true, occurredAt: day(occurredAt), ...overrides });
+
+  it("same day: 'charged twice on'", () => {
+    const current = financials([gmail("2026-08-05"), gmail("2026-08-05")]);
+    expect(texts(current, [], extras({ now: day("2026-08-05") }))).toContain("Possible duplicate: McDonald's ($5.49) charged twice on Aug 5.");
+  });
+
+  it("different days: always names both dates", () => {
+    const current = financials([gmail("2026-08-06"), gmail("2026-08-05")]);
+    expect(texts(current, [], extras({ now: day("2026-08-06") }))).toContain(
+      "McDonald's ($5.49) charged on Aug 5 and Aug 6. Is one a duplicate?",
+    );
+  });
+
+  it("stays silent for manual entries, 4+ days apart, different amounts, or different merchants", () => {
+    const now = extras({ now: day("2026-08-09") });
+    for (const pair of [
+      [gmail("2026-08-05", { importSource: "MANUAL" }), gmail("2026-08-05")],
+      [gmail("2026-08-05"), gmail("2026-08-09")],
+      [gmail("2026-08-05"), gmail("2026-08-05", { amount: 6 })],
+      [gmail("2026-08-05"), gmail("2026-08-05", { name: "Burger King" })],
+    ]) {
+      expect(find(financials(pair), [], now, /duplicate/i)).toBeUndefined();
+    }
+  });
+
+  it("links to Transactions with the duplicate prompt for exactly this pair", () => {
+    const current = financials([gmail("2026-08-05", { id: "b" }), gmail("2026-08-06", { id: "a" })]);
+    const insight = find(current, [], extras({ now: day("2026-08-06") }), /duplicate/i)!;
+    expect(insight.key).toBe("duplicate:a:b");
+    expect(insight.href).toBe("/transactions?prompt=duplicate&insight=duplicate%3Aa%3Ab&ids=a%2Cb");
+  });
+
+  it("matches merchants ignoring case", () => {
+    const current = financials([gmail("2026-08-05"), gmail("2026-08-05", { name: "MCDONALD'S" })]);
+    expect(find(current, [], extras({ now: day("2026-08-05") }), /duplicate/i)).toBeDefined();
+  });
+});
+
+describe("dismiss memory", () => {
+  const ex = (memory: InsightMemoryRecord[], now = day("2026-08-05")) =>
+    extras({ now, memory, recurringExpenseCategories: recurring([{ name: "Spotify", targetAmount: 0.99, dueDay: 7 }]) });
+  const key = "upcoming:cycle-1";
+  const fingerprint = "re-0@2026-08-07";
+
+  it("hides a dismissed insight while its data is unchanged", () => {
+    expect(find(financials(), [], ex([{ key, fingerprint, until: null }]), /Spotify/)).toBeUndefined();
+  });
+
+  it("shows it again once the data behind it changes", () => {
+    expect(find(financials(), [], ex([{ key, fingerprint: "re-0@2026-08-06", until: null }]), /Spotify/)).toBeDefined();
+  });
+
+  it("'*' hides it whatever the data", () => {
+    expect(find(financials(), [], ex([{ key, fingerprint: "*", until: null }]), /Spotify/)).toBeUndefined();
+  });
+
+  it("a temporary dismissal expires", () => {
+    const until = day("2026-08-05");
+    expect(find(financials(), [], ex([{ key, fingerprint, until }], day("2026-08-06")), /Spotify/)).toBeDefined();
+  });
+
+  it("dismissing one duplicate pair surfaces the next", () => {
+    const g = (id: string, name: string) => tx({ id, name, amount: 5, importSource: "GMAIL", occurredAt: day("2026-08-05") });
+    const current = financials([g("a", "Uber"), g("b", "Uber"), g("c", "Taxi"), g("d", "Taxi")]);
+    const memory = [{ key: "duplicate:a:b", fingerprint: "", until: null }];
+    expect(texts(current, [], extras({ now: day("2026-08-05"), memory }))).toContain("Possible duplicate: Taxi ($5.00) charged twice on Aug 5.");
+  });
+});
+
+describe("selection", () => {
+  it("shows at most 2, highest priority first, one per rule", () => {
+    const g = (id: string) => tx({ id, name: "Uber", amount: 5, importSource: "GMAIL", occurredAt: day("2026-08-05") });
+    const current = financials([g("a"), g("b"), g("c")]);
+    const ex = extras({
+      now: day("2026-08-05"),
+      recurringExpenseCategories: recurring([{ name: "Rent", targetAmount: 1990, dueDay: 7 }]),
+    });
+    const result = generateInsights(current, [], ex);
+    expect(result).toHaveLength(2);
+    expect(result[0].text).toMatch(/over budget/);
+    expect(result[1].text).toMatch(/duplicate/i);
+  });
+});
+
+describe("needs a category", () => {
+  it("fires with the count, orange, opening the Finish these transactions sheet on Home", () => {
+    const insight = find(financials(), [], extras({ needsCategoryCount: 2 }), /need a category/)!;
+    expect(insight.text).toBe("2 transactions need a category.");
+    expect(insight.severity).toBe("uncategorized");
+    expect(insight.href).toBe("/dashboard?prompt=uncategorized&insight=uncategorized%3Acycle-1");
+  });
+
+  it("stays silent when nothing needs a category", () => {
+    expect(find(financials(), [], extras({ needsCategoryCount: 0 }), /category/)).toBeUndefined();
+  });
+});
+
+describe("subscription price changed", () => {
+  const items = recurring([{ id: "re-s", name: "Spotify", targetAmount: 0.99, actual: 1.19 }]);
+  const charge = (amount: number) => tx({ amount, recurringExpenseId: "re-s" });
+
+  it("fires when the one charge this cycle differs from the saved amount", () => {
+    const insight = find(financials([charge(1.19)]), [], extras({ recurringExpenseCategories: items }), /went from/)!;
+    expect(insight.text).toBe("Spotify went from $0.99 to $1.19.");
+    expect(insight.href).toContain("/plan?prompt=price-change");
+  });
+
+  it("stays silent for the same amount, two charges, or a gap too big to be a price change", () => {
+    const ex = extras({ recurringExpenseCategories: items });
+    expect(find(financials([charge(0.99)]), [], ex, /went from/)).toBeUndefined();
+    expect(find(financials([charge(0.6), charge(0.59)]), [], ex, /went from/)).toBeUndefined();
+    expect(find(financials([charge(5)]), [], ex, /went from/)).toBeUndefined();
+  });
+});
+
+describe("unusually large purchase", () => {
+  const tech = (amount: number, id?: string) => tx({ amount, id, name: "Best Buy", expenseCategoryId: "cat-t", categoryName: "Electronics" });
+  const history = [financials([tech(40), tech(60), tech(50)])];
+
+  it("fires for a purchase 3x and $50+ above the category's usual purchase", () => {
+    const insight = find(financials([tech(480, "big")]), history, extras(), /far above/)!;
+    expect(insight.text).toBe("Best Buy ($480.00) is far above your usual Electronics purchase ($50.00).");
+    expect(insight.href).toContain("prompt=large");
+    expect(insight.key).toBe("large:big");
+  });
+
+  it("stays silent without 3 past purchases, under 3x, or under $50 over", () => {
+    expect(find(financials([tech(480)]), [financials([tech(40), tech(60)])], extras(), /far above/)).toBeUndefined();
+    expect(find(financials([tech(140)]), history, extras(), /far above/)).toBeUndefined();
+    const small = [financials([tech(10), tech(10), tech(10)])];
+    expect(find(financials([tech(45)]), small, extras(), /far above/)).toBeUndefined();
+  });
+
+  it("'One-time' leaves the purchase out of category averages", () => {
+    const groceries = (amount: number, id?: string) => tx({ amount, id, expenseCategoryId: "cat-g", categoryName: "Groceries" });
+    const now = day("2026-08-10");
+    const previous = [financials([groceries(200)])];
+    const current = financials([groceries(100), groceries(400, "tv")]);
+    expect(find(current, previous, extras({ now }), /Groceries spending/)).toBeDefined();
+    const memory = [{ key: "large:tv", fingerprint: "*", until: null, response: "one-time" }];
+    expect(find(current, previous, extras({ now, memory }), /Groceries spending/)).toBeUndefined();
+  });
+});
+
+describe("new recurring suspected", () => {
+  const netflix = (daysAgoFromNow: number, amount = 12.99) =>
+    tx({ name: "Netflix", amount, occurredAt: new Date(day("2026-08-05").getTime() - daysAgoFromNow * 86_400_000) });
+
+  it("fires for the same merchant and amount about a month apart", () => {
+    const insight = find(financials([netflix(0)]), [financials([netflix(30)])], extras({ now: day("2026-08-05") }), /Netflix/)!;
+    expect(insight.text).toBe("Netflix ($12.99) keeps coming back. Is it a recurring expense?");
+    expect(insight.href).toContain("prompt=new-recurring");
+  });
+
+  it("fires about a quincena apart", () => {
+    expect(find(financials([netflix(0)]), [financials([netflix(15)])], extras({ now: day("2026-08-05") }), /Netflix/)).toBeDefined();
+  });
+
+  it("stays silent a week apart, for a different amount, or when it's already recurring", () => {
+    const now = day("2026-08-05");
+    expect(find(financials([netflix(0)]), [financials([netflix(7)])], extras({ now }), /Netflix/)).toBeUndefined();
+    expect(find(financials([netflix(0)]), [financials([netflix(30, 20)])], extras({ now }), /Netflix/)).toBeUndefined();
+    expect(
+      find(financials([netflix(0)]), [financials([netflix(30)])], extras({ now, recurringExpenseNames: ["netflix"] }), /Netflix/),
+    ).toBeUndefined();
+  });
+});
+
+describe("leftover near the end of the cycle", () => {
+  const goals = [goal()];
+
+  it("fires in the last 2 days with money left and a goal", () => {
+    const insight = find(financials([tx({ amount: 1800 })]), [], extras({ now: day("2026-08-16"), goals }), /left\. Move/)!;
+    expect(insight.text).toBe("You have $200.00 left. Move it to a goal?");
+    expect(insight.href).toBe("/plan?prompt=leftover&insight=leftover%3Acycle-1&amount=200.00");
+  });
+
+  it("stays silent earlier in the cycle, with no goals, or with less than $20 left", () => {
+    expect(find(financials([tx({ amount: 1800 })]), [], extras({ now: day("2026-08-10"), goals }), /Move it/)).toBeUndefined();
+    expect(find(financials([tx({ amount: 1800 })]), [], extras({ now: day("2026-08-16") }), /Move it/)).toBeUndefined();
+    expect(find(financials([tx({ amount: 1990 })]), [], extras({ now: day("2026-08-16"), goals }), /Move it/)).toBeUndefined();
+  });
+});
+
+describe("prompts on existing rules", () => {
+  it("expected-but-missing links to Plan with its prompt", () => {
+    const ex = extras({ now: day("2026-08-08"), recurringExpenseCategories: recurring([{ id: "re-s", name: "Spotify", dueDay: 6 }]) });
+    expect(find(financials(), [], ex, /expected on/)!.href).toBe("/plan?prompt=missed&insight=missed%3Are-s%3A2026-08-06&target=re-s");
+  });
+
+  it("category up links to the category with its prompt", () => {
+    const g = (amount: number) => tx({ amount, expenseCategoryId: "cat-g", categoryName: "Groceries" });
+    const insight = find(financials([g(150)]), [financials([g(200)])], extras({ now: day("2026-08-10") }), /Groceries/)!;
+    expect(insight.href).toBe("/transactions?category=cat-g&prompt=category-up&insight=category-up%3Acycle-1%3Acat-g&target=cat-g");
+  });
+});
+
+describe("tie-break", () => {
+  it("at equal priority, the insight with a prompt comes first", async () => {
+    const { selectInsights } = await import("./insights");
+    const base = { fingerprint: "", text: "", priority: 50 };
+    const result = selectInsights(
+      [
+        { ...base, rule: "a", key: "plain" },
+        { ...base, rule: "b", key: "actionable", actionable: true },
+      ],
+      [],
+      CYCLE_START,
+    );
+    expect(result.map((i) => i.key)).toEqual(["actionable", "plain"]);
+  });
+});
+
+describe("positive insights", () => {
+  const saving = (amount: number) => tx({ type: "SAVINGS", amount, expenseCategoryId: "goal-1" });
+
+  it("are green and rank below every money-risk and to-do insight", () => {
+    const positives = [PRIORITY.GOAL_MILESTONE, PRIORITY.CLOSED_UNDER, PRIORITY.GOAL_CONTRIBUTION_MADE, PRIORITY.SPENT_LESS, PRIORITY.AHEAD_OF_PACE, PRIORITY.STREAK];
+    const others = [PRIORITY.OVER_BUDGET, PRIORITY.PACE_WARNING, PRIORITY.MISSED_CHARGE, PRIORITY.DUPLICATE_CHARGE, PRIORITY.UPCOMING_CHARGES, PRIORITY.STILL_TO_CHARGE];
+    expect(Math.max(...positives)).toBeLessThan(Math.min(...others));
+  });
+
+  describe("goal milestone", () => {
+    it("fires once this cycle's contributions cross 50%, green", () => {
+      const insight = find(financials([saving(100)]), [], extras({ goals: [goal({ savedSoFar: 520 })] }), /just passed/)!;
+      expect(insight.text).toBe("You just passed 50% of your Emergency fund.");
+      expect(insight.severity).toBe("positive");
+      expect(insight.key).toBe("goal-milestone:goal-1:50");
     });
 
-    it("still shows the over-budget insight for a brand-new user with no closed cycles yet", () => {
-      const insights = generateInsights(
-        makeFinancials({ amountLeft: -50, totalExpenses: 2050 }),
-        [],
-        makeExtras(),
-      );
-      expect(insights).toEqual([
-        {
-          text: "You're $50.00 over budget this cycle so far, with 14 days left.",
-          severity: "critical",
-        },
-      ]);
+    it("names the highest milestone crossed", () => {
+      expect(find(financials([saving(500)]), [], extras({ goals: [goal({ savedSoFar: 800 })] }), /just passed/)!.text).toMatch(/75%/);
     });
 
-    it("never reports a comparative category-anomaly insight with no closed cycles", () => {
-      const current = makeFinancials({
-        amountLeft: 100,
-        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 200 }],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      expect(insights.some((i) => i.text.includes("vs "))).toBe(false);
+    it("stays silent when no milestone was crossed this cycle, or the goal is done", () => {
+      expect(find(financials([saving(10)]), [], extras({ goals: [goal({ savedSoFar: 600 })] }), /just passed/)).toBeUndefined();
+      expect(find(financials([saving(200)]), [], extras({ goals: [goal({ savedSoFar: 1000 })] }), /just passed/)).toBeUndefined();
     });
   });
 
-  describe("priority-based top-2 selection", () => {
-    it("picks the 2 highest-priority candidates when more apply, dropping the rest", () => {
-      const current = makeFinancials({
-        amountLeft: 320,
-        totalExpenses: 0,
-        categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 60 }],
-      });
-      const previous = [
-        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 30 }] }),
-        makeFinancials({ amountLeft: 50, categoryTotals: [{ categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 30 }] }),
-      ];
-      // now = the cycle's own last day, so the category-anomaly rule's
-      // proration is a no-op here (percentElapsed = 1) and the fixture's
-      // dollar amounts read the same as a full-cycle comparison; also past
-      // the unpaid-recurring rule's 50%-elapsed gate.
-      const extras = makeExtras({
-        cycle: { periodStart: parseDateOnly("2026-08-03")!, periodEnd: null },
-        now: parseDateOnly("2026-08-17")!,
-        recurringExpenseCategories: [makeRecurringCategory([{ actual: 0, targetAmount: 20 }])],
-        goals: [makeGoal({ savedSoFar: 850, lifetimeTargetAmount: 1000 })],
-      });
+  describe("cycle closed under budget", () => {
+    const last = financials([tx({ amount: 1700 })]); // $300 left
+    it("fires in the first days of the next cycle, with the move-to-goal prompt when there's a goal", () => {
+      const insight = find(financials(), [last], extras({ lastClosedCycleId: "c0", goals: [goal()] }), /finished last cycle/)!;
+      expect(insight.text).toBe("You finished last cycle with $300.00 left.");
+      expect(insight.href).toBe("/plan?prompt=leftover&insight=closed-under%3Ac0&amount=300.00&cycle=c0");
+    });
 
-      // 4 candidates apply here: unpaid-recurring (90), category-anomaly
-      // (80), savings-goal (60), on-track (40) -- capped at 2, so only
-      // unpaid-recurring and category-anomaly win a slot.
-      const insights = generateInsights(current, previous, extras);
-      expect(insights).toHaveLength(2);
-      expect(insights[0].text).toContain("recurring expense");
-      expect(insights[1].text).toBe("Coffee spending is up $30.00 vs your recent average.");
-      expect(insights.some((i) => i.text.includes("Emergency fund"))).toBe(false);
-      expect(insights.some((i) => i.text.includes("on track"))).toBe(false);
+    it("has no prompt without a goal", () => {
+      expect(find(financials(), [last], extras({ lastClosedCycleId: "c0" }), /finished last cycle/)!.href).toBeUndefined();
+    });
+
+    it("stays silent after the first 3 days, or when little was left", () => {
+      expect(find(financials(), [last], extras({ lastClosedCycleId: "c0", now: day("2026-08-07") }), /finished/)).toBeUndefined();
+      expect(find(financials(), [financials([tx({ amount: 1990 })])], extras({ lastClosedCycleId: "c0" }), /finished/)).toBeUndefined();
     });
   });
 
-  describe("unpaid recurring expenses rule", () => {
-    it("produces no candidate when there are no recurring expenses at all", () => {
-      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: [] }));
-      expect(insights.some((i) => i.text.includes("recurring expense"))).toBe(false);
+  describe("goal contribution made", () => {
+    it("fires once the planned contribution is met", () => {
+      const ex = extras({ goals: [goal({ currentCycleRecurringAmount: 100 })] });
+      expect(find(financials([saving(100)]), [], ex, /planned \$100/)!.text).toBe("You put your planned $100.00 into Emergency fund this paycheck.");
     });
 
-    it("produces no candidate once everything is paid", () => {
-      const categories = [makeRecurringCategory([{ actual: 20, targetAmount: 20 }])];
-      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
-      expect(insights.some((i) => i.text.includes("recurring expense"))).toBe(false);
-    });
-
-    it("does not fire before half the cycle has elapsed", () => {
-      // makeExtras() defaults to day 1 of a 15-day quincena -- everything
-      // is "unpaid" on day 1 by definition, so this rule should stay quiet.
-      const categories = [makeRecurringCategory([{ actual: 0, targetAmount: 20 }])];
-      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
-      expect(insights.some((i) => i.text.includes("recurring expense"))).toBe(false);
-    });
-
-    it("fires before the 50% mark anyway when a specific Scheduled expense's own due day already passed", () => {
-      const categories = [
-        makeRecurringCategory([{ actual: 0, targetAmount: 650, dueDay: 1 }]),
-      ];
-      // now = Aug 3, day 1 of the cycle (well under 50% elapsed) -- but
-      // dueDay 1 already passed relative to Aug 3.
-      const insights = generateInsights(makeFinancials(), [], makeExtras({ recurringExpenseCategories: categories }));
-      expect(insights.some((i) => i.text.includes("recurring expense hasn't"))).toBe(true);
-    });
-
-    it("counts not-started and partial expenses, singular phrasing and remaining amount for exactly one", () => {
-      const categories = [makeRecurringCategory([{ actual: 0, targetAmount: 20 }, { actual: 20, targetAmount: 20 }])];
-      // Past the rule's 50%-elapsed gate -- see "does not fire before half
-      // the cycle has elapsed" below for the gate itself.
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: parseDateOnly("2026-08-17")! }),
-      );
-      const match = insights.find((i) => i.text.includes("recurring expense"));
-      expect(match?.text).toBe("1 recurring expense hasn't been paid yet this cycle ($20.00 left).");
-      expect(match?.href).toBe("/plan");
-    });
-
-    it("pluralizes and sums remaining across multiple unpaid expenses, including a partial one", () => {
-      const categories = [
-        makeRecurringCategory([
-          { id: "a", actual: 0, targetAmount: 20 },
-          { id: "b", actual: 10, targetAmount: 25 },
-          { id: "c", actual: 25, targetAmount: 25 },
-        ]),
-      ];
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: parseDateOnly("2026-08-17")! }),
-      );
-      const match = insights.find((i) => i.text.includes("recurring expenses"));
-      // Unpaid: "a" (remaining 20) + "b" (remaining 15) = 35; "c" already paid.
-      expect(match?.text).toBe("2 recurring expenses haven't been paid yet this cycle ($35.00 left).");
+    it("stays silent below the plan or with no plan", () => {
+      expect(find(financials([saving(60)]), [], extras({ goals: [goal({ currentCycleRecurringAmount: 100 })] }), /You put/)).toBeUndefined();
+      expect(find(financials([saving(60)]), [], extras({ goals: [goal()] }), /You put/)).toBeUndefined();
     });
   });
 
-  describe("category anomaly rule (rolling average, with single-cycle fallback)", () => {
-    it("falls back to a single-previous-cycle comparison with fewer than 2 closed cycles", () => {
-      const current = makeFinancials({
-        topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 200 }],
-      });
-      const previous = makeFinancials({
-        categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 158 }],
-      });
-      const insights = generateInsights(current, [previous], makeExtras());
-      expect(insights.some((i) => i.text === "Groceries spending is up $42.00 vs last cycle.")).toBe(true);
+  describe("spent less than usual", () => {
+    const food = (amount: number) => tx({ amount, expenseCategoryId: "cat-f", categoryName: "Food" });
+    it("mirrors category up past halfway, using the same floors", () => {
+      // Day 8 of 15: expected 300 * 8/15 = 160; spent 100 is $60 (37%) below.
+      expect(find(financials([food(100)]), [financials([food(300)])], extras({ now: day("2026-08-10") }), /below your usual/)!.text).toBe(
+        "Food is $60.00 below your usual so far this cycle.",
+      );
     });
 
-    it("fallback still matches by categoryId across a rename, and never false-matches two categories sharing a name", () => {
-      const renamed = generateInsights(
-        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Food", categoryIcon: null, amount: 200 }] }),
-        [makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 150 }] })],
-        makeExtras(),
-      );
-      expect(renamed.some((i) => i.text === "Food spending is up $50.00 vs last cycle.")).toBe(true);
-
-      const collision = generateInsights(
-        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Travel", categoryIcon: null, amount: 200 }] }),
-        [makeFinancials({ categoryTotals: [{ categoryId: "c2", categoryName: "Travel", categoryIcon: null, amount: 158 }] })],
-        makeExtras(),
-      );
-      expect(collision.some((i) => i.text.includes("Travel spending is"))).toBe(false);
+    it("counts a category with nothing spent yet", () => {
+      expect(find(financials(), [financials([food(300)])], extras({ now: day("2026-08-10") }), /Food is/)).toBeDefined();
     });
 
-    it("with 2+ closed cycles, flags the category with the largest RELATIVE deviation, not the largest absolute dollar amount", () => {
-      const current = makeFinancials({
-        categoryTotals: [
-          { categoryId: "rent", categoryName: "Rent", categoryIcon: null, amount: 1000 },
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 60 },
-        ],
-      });
-      const stableWindowCycle = makeFinancials({
-        categoryTotals: [
-          { categoryId: "rent", categoryName: "Rent", categoryIcon: null, amount: 1000 },
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 30 },
-        ],
-      });
-      // now = the cycle's own last day, so proration is a no-op and the
-      // fixture's dollar amounts read the same as a full-cycle comparison.
-      const insights = generateInsights(
-        current,
-        [stableWindowCycle, stableWindowCycle],
-        makeExtras({ now: parseDateOnly("2026-08-17")! }),
-      );
-      const match = insights.find((i) => i.text.includes("vs your recent average"));
-      expect(match?.text).toBe("Coffee spending is up $30.00 vs your recent average.");
-      expect(match?.href).toBe("/transactions?category=coffee");
-      expect(insights.some((i) => i.text.includes("Rent"))).toBe(false);
-    });
-
-    it("requires at least a 20% relative swing to fire", () => {
-      // now = the cycle's own last day -- see the test above for why.
-      const extras = makeExtras({ now: parseDateOnly("2026-08-17")! });
-      const belowThreshold = generateInsights(
-        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 119 }] }),
-        [
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
-        ],
-        extras,
-      );
-      expect(belowThreshold.some((i) => i.text.includes("Groceries"))).toBe(false);
-
-      const atThreshold = generateInsights(
-        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 120 }] }),
-        [
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
-        ],
-        extras,
-      );
-      expect(atThreshold.some((i) => i.text.includes("Groceries"))).toBe(true);
-    });
-
-    it("ignores a category averaging below the minimum-average floor, even with a large relative swing", () => {
-      const insights = generateInsights(
-        makeFinancials({ categoryTotals: [{ categoryId: "tiny", categoryName: "Parking", categoryIcon: null, amount: 10 }] }),
-        [
-          makeFinancials({ categoryTotals: [{ categoryId: "tiny", categoryName: "Parking", categoryIcon: null, amount: 2 }] }),
-          makeFinancials({ categoryTotals: [{ categoryId: "tiny", categoryName: "Parking", categoryIcon: null, amount: 2 }] }),
-        ],
-        makeExtras({ now: parseDateOnly("2026-08-17")! }),
-      );
-      expect(insights.some((i) => i.text.includes("Parking"))).toBe(false);
-    });
-
-    it("ignores a dollar delta below the minimum-dollar-delta floor, even with a large relative swing", () => {
-      const insights = generateInsights(
-        makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Snacks", categoryIcon: null, amount: 35 }] }),
-        [
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Snacks", categoryIcon: null, amount: 25 }] }),
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Snacks", categoryIcon: null, amount: 25 }] }),
-        ],
-        makeExtras({ now: parseDateOnly("2026-08-17")! }),
-      );
-      // average 25 (clears ANOMALY_MIN_AVERAGE), delta 10 (under ANOMALY_MIN_DOLLAR_DELTA of 15), 40% relative.
-      expect(insights.some((i) => i.text.includes("Snacks"))).toBe(false);
-    });
-
-    describe("MONTHLY cadence roughly doubles both dollar floors", () => {
-      // Explicit periodEnd == now makes phase.percentElapsed exactly 1, so
-      // proration is a no-op and these dollar amounts read at face value --
-      // same trick the tests above use via "now = the cycle's own last day".
-      const monthlyExtras = (overrides: Parameters<typeof makeExtras>[0] = {}) =>
-        makeExtras({
-          budgetFrequency: "MONTHLY",
-          vocab: en.periodVocab.monthly,
-          cycle: { periodStart: parseDateOnly("2026-08-03")!, periodEnd: parseDateOnly("2026-08-03")! },
-          now: parseDateOnly("2026-08-03")!,
-          ...overrides,
-        });
-
-      it("ignores an average that clears QUINCENAL's floor (25) but not MONTHLY's doubled floor (50)", () => {
-        const insights = generateInsights(
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
-          [
-            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 35 }] }),
-            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 35 }] }),
-          ],
-          monthlyExtras(),
-        );
-        // average 35 -- clears the QUINCENAL floor but not MONTHLY's 50.
-        expect(insights.some((i) => i.text.includes("Groceries"))).toBe(false);
-      });
-
-      it("ignores a dollar delta that clears QUINCENAL's floor (15) but not MONTHLY's doubled floor (30)", () => {
-        const insights = generateInsights(
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 85 }] }),
-          [
-            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
-            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
-          ],
-          monthlyExtras(),
-        );
-        // average 60 (clears the 50 floor), delta 25 (clears QUINCENAL's 15
-        // but not MONTHLY's 30), ~42% relative swing (clears the relative floor).
-        expect(insights.some((i) => i.text.includes("Dining"))).toBe(false);
-      });
-
-      it("still fires once both doubled MONTHLY floors are cleared", () => {
-        const insights = generateInsights(
-          makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 100 }] }),
-          [
-            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
-            makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Dining", categoryIcon: null, amount: 60 }] }),
-          ],
-          monthlyExtras(),
-        );
-        // average 60, delta 40 (clears MONTHLY's 30), ~67% relative swing.
-        expect(insights.some((i) => i.text === "Dining spending is up $40.00 vs your recent average.")).toBe(true);
-      });
+    it("stays silent before halfway, or under the $15 floor", () => {
+      expect(find(financials([food(10)]), [financials([food(300)])], extras({ now: day("2026-08-06") }), /below your usual/)).toBeUndefined();
+      expect(find(financials([food(150)]), [financials([food(300)])], extras({ now: day("2026-08-10") }), /below your usual/)).toBeUndefined();
     });
   });
 
-  describe("pace-aware on-track rule", () => {
-    // 15-day quincena (Aug 3-17, 2026); `now` = Aug 10 -> 8 of 15 days
-    // elapsed, 7 remaining. parseDateOnly (Panama-anchored), not a raw
-    // `new Date(y, m, d)` -- paceAwareCandidate's run-out projection feeds
-    // `now` through addDays (Panama-anchored, see lib/pay-date.ts), so a
-    // local-timezone-constructed `now` disagrees with it under any test
-    // runner outside UTC-5/no-DST, e.g. CI's UTC runner.
-    const cycle = { periodStart: parseDateOnly("2026-08-03")!, periodEnd: null };
-    const now = parseDateOnly("2026-08-10")!;
-
-    it("gives a plain, non-repeating reassurance when the current daily rate would comfortably last the rest of the cycle", () => {
-      // $400 spent over 8 days = $50/day; at that rate $600 left lasts 12
-      // more days, well past the 7 remaining -- never at risk.
-      const insights = generateInsights(
-        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 400, amountLeft: 600 }),
-        [],
-        makeExtras({ cycle, now }),
+  describe("ahead of pace", () => {
+    it("fires past halfway when day-to-day spending is well under pace", () => {
+      // Day 8 of 15, $200 spent of $2,000: expected ~1066.67 by now, $866.67 ahead.
+      expect(find(financials([tx({ amount: 200 })]), [], extras({ now: day("2026-08-10") }), /more than expected/)!.text).toBe(
+        "You have $866.67 more than expected at this point in the cycle.",
       );
-      expect(
-        insights.some((i) => i.text === "You're spending at a sustainable pace to make it to your next payday."),
-      ).toBe(true);
     });
 
-    it("projects a concrete run-out date once the current daily rate would exhaust the remaining balance before the cycle ends", () => {
-      // $700 spent over 8 days = $87.50/day; at that rate $300 left lasts
-      // ~3.43 more days (Aug 10 + 3 = Aug 13), 4 days short of the 7 remaining.
-      const insights = generateInsights(
-        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 700, amountLeft: 300 }),
-        [],
-        makeExtras({ cycle, now }),
-      );
-      expect(
-        insights.some(
-          (i) =>
-            i.text ===
-            "At your current pace you'll run out of cash around Aug 13, 2026 — 4 days before your next payday.",
-        ),
-      ).toBe(true);
-      expect(insights.some((i) => i.text.includes("sustainable pace"))).toBe(false);
-    });
-
-    it("over-budget always takes the plain over-budget message, regardless of pace", () => {
-      const insights = generateInsights(
-        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 1050, amountLeft: -50 }),
-        [],
-        makeExtras({ cycle, now }),
-      );
-      expect(
-        insights.some((i) => i.text === "You're $50.00 over budget this cycle so far, with 7 days left."),
-      ).toBe(true);
+    it("stays silent before halfway or when on pace", () => {
+      expect(find(financials([tx({ amount: 200 })]), [], extras({ now: day("2026-08-06") }), /more than expected/)).toBeUndefined();
+      expect(find(financials([tx({ amount: 1000 })]), [], extras({ now: day("2026-08-10") }), /more than expected/)).toBeUndefined();
     });
   });
 
-  describe("category anomaly rule only fires on an increase, never a decrease", () => {
-    it("produces no candidate when a category is spending LESS than its recent average", () => {
-      const current = makeFinancials({
-        categoryTotals: [
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 10 },
-        ],
-      });
-      const stableWindowCycle = makeFinancials({
-        categoryTotals: [
-          { categoryId: "coffee", categoryName: "Coffee", categoryIcon: null, amount: 50 },
-        ],
-      });
-      const insights = generateInsights(current, [stableWindowCycle, stableWindowCycle], makeExtras());
-      expect(insights.some((i) => i.text.includes("Coffee"))).toBe(false);
-    });
-
-    it("the single-cycle fallback also produces no candidate for a decrease", () => {
-      const insights = generateInsights(
-        makeFinancials({ topCategories: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 100 }] }),
-        [makeFinancials({ categoryTotals: [{ categoryId: "c1", categoryName: "Groceries", categoryIcon: null, amount: 158 }] })],
-        makeExtras(),
+  describe("streak", () => {
+    const spent = (amount: number) => financials([tx({ amount })]);
+    it("fires after 3 cycles in a row under the usual spending", () => {
+      // Newest first: 300, 400, 500 each below the average of the ones before it.
+      expect(find(financials(), [spent(300), spent(400), spent(500), spent(900)], extras(), /in a row/)!.text).toBe(
+        "3 cycles in a row under your usual spending.",
       );
-      expect(insights.some((i) => i.text.includes("Groceries"))).toBe(false);
-    });
-  });
-
-  describe("due-soon rule (Scheduled recurring expense due day)", () => {
-    // parseDateOnly (not a raw `new Date(y, m, d)`) for every `now` here --
-    // dueSoonCandidate re-derives a Panama-anchored date purely from
-    // dueDay/panamaDateParts(now), which (unlike the pure-difference math
-    // calendarDaysBetween uses elsewhere in this file) has no built-in
-    // cancellation of a non-Panama-anchored `now`'s own timezone offset.
-    const aug3 = parseDateOnly("2026-08-03")!;
-    const aug5 = parseDateOnly("2026-08-05")!;
-
-    it("produces no candidate for an expense not charged this cycle, even with a dueDay set", () => {
-      const categories = [
-        makeRecurringCategory([{ actual: 0, targetAmount: 650, dueDay: 5, chargedThisCycle: false }]),
-      ];
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
-      );
-      expect(insights.some((i) => i.text.includes("due"))).toBe(false);
     });
 
-    it("produces no candidate once the expense is already paid", () => {
-      const categories = [
-        makeRecurringCategory([{ actual: 650, targetAmount: 650, dueDay: 5 }]),
-      ];
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
-      );
-      expect(insights.some((i) => i.text.includes("due"))).toBe(false);
-    });
-
-    it("names the expense, amount, and days-out for an unpaid Scheduled expense due soon", () => {
-      const categories = [
-        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, dueDay: 5 }]),
-      ];
-      // now = Aug 3 -> Aug 5 due date is 2 days out.
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
-      );
-      expect(insights.some((i) => i.text === "Rent ($650.00) due in 2 days and isn't marked paid.")).toBe(true);
-    });
-
-    it("still fires for an expense whose due day already passed, unpaid", () => {
-      const categories = [
-        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, dueDay: 3 }]),
-      ];
-      // now = Aug 5 -> Aug 3 due date was 2 days ago.
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: aug5 }),
-      );
-      expect(insights.some((i) => i.text === "Rent ($650.00) was due 2 days ago and isn't marked paid.")).toBe(true);
-    });
-
-    it("produces no candidate when the due day is further out than the due-soon window", () => {
-      const categories = [
-        makeRecurringCategory([{ name: "Rent", actual: 0, targetAmount: 650, dueDay: 20 }]),
-      ];
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ recurringExpenseCategories: categories, now: aug3 }),
-      );
-      expect(insights.some((i) => i.text.includes("due"))).toBe(false);
-    });
-  });
-
-  describe("savings-goal proximity rule", () => {
-    it("produces no candidate for a goal that's barely started", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ goals: [makeGoal({ savedSoFar: 50, lifetimeTargetAmount: 1000 })] }),
-      );
-      expect(insights.some((i) => i.text.includes("Emergency fund"))).toBe(false);
-    });
-
-    it("produces a candidate once progress is within 20% of the target", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ goals: [makeGoal({ savedSoFar: 850, lifetimeTargetAmount: 1000 })] }),
-      );
-      const match = insights.find((i) => i.text.includes("Emergency fund"));
-      expect(match?.text).toBe("You're $150.00 away from hitting your Emergency fund target.");
-      expect(match?.href).toBe("/plan");
-    });
-
-    it("skips a goal that's already complete", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ goals: [makeGoal({ savedSoFar: 1000, lifetimeTargetAmount: 1000 })] }),
-      );
-      expect(insights.some((i) => i.text.includes("Emergency fund"))).toBe(false);
-    });
-
-    it("with multiple qualifying goals, surfaces whichever is closest to its target", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({
-          goals: [
-            makeGoal({ name: "Vacation", savedSoFar: 810, lifetimeTargetAmount: 1000 }),
-            makeGoal({ name: "New laptop", savedSoFar: 950, lifetimeTargetAmount: 1000 }),
-          ],
-        }),
-      );
-      expect(insights.some((i) => i.text.includes("New laptop"))).toBe(true);
-      expect(insights.some((i) => i.text.includes("Vacation"))).toBe(false);
-    });
-
-    it("fires at the new, lower 60% proximity threshold (would not have fired at the old 80%)", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ goals: [makeGoal({ savedSoFar: 650, lifetimeTargetAmount: 1000 })] }),
-      );
-      expect(insights.some((i) => i.text.includes("Emergency fund"))).toBe(true);
-    });
-  });
-
-  describe("pace-aware rule links to Breakdown once it escalates", () => {
-    it("the run-out-of-cash warning links to /dashboard/breakdown", () => {
-      const cycle = { periodStart: parseDateOnly("2026-08-03")!, periodEnd: null };
-      const now = parseDateOnly("2026-08-10")!;
-      const insights = generateInsights(
-        makeFinancials({ baseIncome: 1000, extraIncome: 0, totalExpenses: 700, amountLeft: 300 }),
-        [],
-        makeExtras({ cycle, now }),
-      );
-      const match = insights.find((i) => i.text.includes("run out of cash"));
-      expect(match?.href).toBe("/dashboard/breakdown");
-    });
-  });
-
-  describe("goal contribution rule (N2 -- planned vs. actually logged this cycle)", () => {
-    it("does not fire before 60% of the cycle has elapsed", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({ goals: [makeGoal({ currentCycleRecurringAmount: 200 })] }),
-      );
-      expect(insights.some((i) => i.text.includes("planned"))).toBe(false);
-    });
-
-    it("fires once 60%+ elapsed with nothing logged toward a planned contribution", () => {
-      const current = makeFinancials();
-      const insights = generateInsights(
-        current,
-        [],
-        makeExtras({
-          now: parseDateOnly("2026-08-13")!, // day 11 of 15 -> ~73% elapsed
-          goals: [makeGoal({ currentCycleRecurringAmount: 200 })],
-        }),
-      );
-      const match = insights.find((i) => i.text.includes("planned"));
-      expect(match?.text).toBe(
-        "You planned $200.00 for Emergency fund this paycheck — only $0.00 logged so far, with 4 days left.",
-      );
-      expect(match?.href).toBe("/plan");
-    });
-
-    it("does not fire once at least half the planned amount is actually logged this cycle", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({ type: "SAVINGS", expenseCategoryId: "goal-1", amount: 100 }),
-        ],
-      });
-      const insights = generateInsights(
-        current,
-        [],
-        makeExtras({
-          now: parseDateOnly("2026-08-13")!,
-          goals: [makeGoal({ currentCycleRecurringAmount: 200 })],
-        }),
-      );
-      expect(insights.some((i) => i.text.includes("planned"))).toBe(false);
-    });
-
-    it("ignores a goal with no per-cycle plan set", () => {
-      const insights = generateInsights(
-        makeFinancials(),
-        [],
-        makeExtras({
-          now: parseDateOnly("2026-08-13")!,
-          goals: [makeGoal({ currentCycleRecurringAmount: null })],
-        }),
-      );
-      expect(insights.some((i) => i.text.includes("planned"))).toBe(false);
-    });
-  });
-
-  describe("duplicate-charge rule (N6)", () => {
-    it("flags two same-merchant, same-amount Gmail imports a day apart, naming the true date range (not a single shared date)", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-08")!,
-          }),
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-09")!,
-          }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      const match = insights.find((i) => i.text.includes("duplicate"));
-      expect(match?.text).toBe("Two charges of $28.50 from Super 99 between Aug 8 – Aug 9 — duplicate?");
-      expect(match?.href).toBe(`/transactions?q=${encodeURIComponent("Super 99")}`);
-    });
-
-    it("flags two same-merchant, same-amount Gmail imports on the SAME calendar day, naming that one date (not a range)", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-08")!,
-          }),
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-08")!,
-          }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      const match = insights.find((i) => i.text.includes("duplicate"));
-      expect(match?.text).toBe("Two charges of $28.50 from Super 99 on Aug 8, 2026 — duplicate?");
-    });
-
-    it("still flags at exactly the 3-day boundary, naming the true range", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-06")!,
-          }),
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-09")!,
-          }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      const match = insights.find((i) => i.text.includes("duplicate"));
-      expect(match?.text).toBe("Two charges of $28.50 from Super 99 between Aug 6 – Aug 9 — duplicate?");
-    });
-
-    it("does not flag two Gmail charges 4 days apart -- just past the 3-day window", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-05")!,
-          }),
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-09")!,
-          }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
-    });
-
-    it("does not flag two manual entries, even matching on name/amount/date", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "MANUAL" }),
-          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "MANUAL" }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
-    });
-
-    it("does not flag a Gmail/manual pair -- both sides must be Gmail imports", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "GMAIL" }),
-          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "MANUAL" }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
-    });
-
-    it("does not flag two Gmail charges more than 3 days apart", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-01")!,
-          }),
-          makeTransaction({
-            name: "Super 99",
-            amount: 28.5,
-            importSource: "GMAIL",
-            occurredAt: parseDateOnly("2026-08-09")!,
-          }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
-    });
-
-    it("does not flag two different amounts from the same Gmail merchant", () => {
-      const current = makeFinancials({
-        transactions: [
-          makeTransaction({ name: "Super 99", amount: 28.5, importSource: "GMAIL" }),
-          makeTransaction({ name: "Super 99", amount: 15.0, importSource: "GMAIL" }),
-        ],
-      });
-      const insights = generateInsights(current, [], makeExtras());
-      expect(insights.some((i) => i.text.includes("duplicate"))).toBe(false);
+    it("stays silent for a shorter streak", () => {
+      expect(find(financials(), [spent(300), spent(400), spent(900), spent(500)], extras(), /in a row/)).toBeUndefined();
     });
   });
 });

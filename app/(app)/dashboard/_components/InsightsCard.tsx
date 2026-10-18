@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
+import { dismissInsightAction } from "../../_actions/insights";
 import { emphasizeAmounts } from "@/lib/emphasize-amounts";
 import type { Insight } from "@/lib/insights";
 import { getRequestLocale } from "@/lib/i18n/locale";
@@ -17,7 +18,7 @@ export async function InsightsCard({ insights }: { insights: Insight[] }) {
       <h2 className="insights-title">{t.insightsTitle}</h2>
       <ul className="insights-list">
         {insights.map((insight) => (
-          <li key={insight.text} className="insights-row">
+          <li key={insight.key} className="insights-row">
             <span className={`insights-dot insights-dot--${insight.severity ?? "neutral"}`} aria-hidden="true" />
             {insight.href ? (
               <Link href={insight.href} className="insights-list-link">
@@ -27,6 +28,14 @@ export async function InsightsCard({ insights }: { insights: Insight[] }) {
             ) : (
               <span className="insights-text">{emphasizeAmounts(insight.text)}</span>
             )}
+            {/* Hidden until the data behind it changes -- see lib/insight-memory.ts. */}
+            <form action={dismissInsightAction}>
+              <input type="hidden" name="key" value={insight.key} />
+              <input type="hidden" name="fingerprint" value={insight.fingerprint} />
+              <button type="submit" className="insights-dismiss" aria-label={t.dismissInsight}>
+                <X size={16} aria-hidden="true" />
+              </button>
+            </form>
           </li>
         ))}
       </ul>

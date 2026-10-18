@@ -75,6 +75,7 @@ model User {
   budgetCycles      BudgetCycle[]
   gmailConnection   GmailConnection?
   recurringExpenses RecurringExpense[]
+  insightMemories   InsightMemory[]
 }
 
 enum ThemePreference {
@@ -430,4 +431,25 @@ model CycleRecurringExpense {
 
   @@unique([cycleId, recurringExpenseId])
   @@index([cycleId])
+}
+
+// What the user did about a Home insight, so a resolved or dismissed one
+// stays gone. `key` names the insight ("duplicate:<txA>:<txB>",
+// "missed:<recurringId>:2026-10-16"); `fingerprint` snapshots the data it
+// was about -- when the insight's current fingerprint differs, the data
+// changed and it shows again. "*" matches any fingerprint (never again).
+// `until` makes it temporary ("Remind me tomorrow"); `response` records
+// which button was pressed, and a few rules read it back (a transaction
+// marked "one-time" is left out of category averages).
+model InsightMemory {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key         String
+  fingerprint String
+  response    String    @default("dismissed")
+  until       DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, key])
 }

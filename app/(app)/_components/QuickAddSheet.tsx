@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   addTransactionAction,
   deleteTransactionAction,
-  restoreTransactionAction,
   resolveCycleForDateAction,
   updateTransactionAction,
   type CyclePreview,
@@ -17,6 +16,7 @@ import { AMOUNT_NOT_POSITIVE_MESSAGE, validateAmountFormat } from "@/lib/validat
 import { PAYMENT_METHOD_OPTIONS, type PaymentMethod } from "@/lib/payment-method";
 import { TRANSACTION_TYPE_OPTIONS as TYPE_OPTIONS, type TransactionType as TxType } from "@/lib/transaction-type";
 import { useToast } from "./ToastProvider";
+import { restoreDeletedTransaction } from "./restoreDeletedTransaction";
 import { Sheet } from "./Sheet";
 import { CurrencyInput } from "./CurrencyInput";
 import { RecurringExpensePicker, type RecurringOption } from "./RecurringExpensePicker";
@@ -364,19 +364,7 @@ export function QuickAddSheet({
         showToast(t.quickAdd.deleted(formatCurrency(d.amount), d.name), {
           label: t.quickAdd.undo,
           onClick: () => {
-            const restoreFd = new FormData();
-            restoreFd.set("cycleId", d.cycleId);
-            restoreFd.set("type", d.type);
-            restoreFd.set("name", d.name);
-            restoreFd.set("amount", String(d.amount));
-            restoreFd.set("occurredAt", d.occurredAt);
-            if (d.paymentMethod) restoreFd.set("paymentMethod", d.paymentMethod);
-            if (d.description) restoreFd.set("description", d.description);
-            if (d.expenseCategoryId) restoreFd.set("expenseCategoryId", d.expenseCategoryId);
-            if (d.recurringExpenseId) restoreFd.set("recurringExpenseId", d.recurringExpenseId);
-            restoreFd.set("importSource", d.importSource);
-            if (d.sourceMessageId) restoreFd.set("sourceMessageId", d.sourceMessageId);
-            restoreTransactionAction(restoreFd).then(() => router.refresh());
+            restoreDeletedTransaction(d).then(() => router.refresh());
           },
         });
       }

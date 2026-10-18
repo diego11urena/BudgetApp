@@ -231,6 +231,8 @@ export type Dictionary = {
     closingQuincena: (vocab: PeriodVocab) => string;
     iJustGotPaid: string;
     insightsTitle: string;
+    /** Accessible name of the × that hides an insight. */
+    dismissInsight: string;
     needsAttention: (n: number) => string;
     review: string;
     finishTransactionsTitle: string;
@@ -751,24 +753,81 @@ export type Dictionary = {
    * scheduledDueSoon rather than a full sentence on its own.
    */
   insights: {
-    dueToday: string;
-    dueTomorrow: string;
-    dueInDays: (n: number) => string;
-    wasDueYesterday: string;
-    wasDueDaysAgo: (n: number) => string;
-    /** Dated expenses only -- see dueSoonCandidate's own doc comment. */
-    scheduledDueSoon: (name: string, amount: string, dueText: string) => string;
-    unpaidRecurring: (count: number, remaining: string) => string;
-    duplicateCharge: (amount: string, name: string, date: string) => string;
-    /** Same rule as duplicateCharge, but the two transactions don't share a calendar day -- names the true date range (e.g. "Aug 8 – Aug 9") instead of implying a single shared date. */
-    duplicateChargeRange: (amount: string, name: string, dateRange: string) => string;
+    /** Heads-up for one recurring charge: "Spotify ($0.99) will be charged in 2 days." daysUntil 0 = today, 1 = tomorrow. */
+    chargeComingUp: (name: string, amount: string, daysUntil: number) => string;
+    /** Several charges in the window combined: "3 charges coming up in the next 3 days ($42.00 total)." */
+    chargesComingUp: (count: number, withinDays: number, total: string) => string;
+    /** A charge date passed with nothing showing up: "Spotify ($0.99) was expected on Oct 16 but hasn't shown up yet." */
+    chargeMissing: (name: string, amount: string, date: string) => string;
+    /** Informational -- Safe to spend already reserves this money. */
+    stillToCharge: (count: number, remaining: string) => string;
+    duplicateSameDay: (name: string, amount: string, date: string) => string;
+    /** The two charges landed on different days -- both dates are always named. */
+    duplicateTwoDays: (name: string, amount: string, firstDate: string, secondDate: string) => string;
     categoryAnomaly: (categoryName: string, amount: string) => string;
     categoryDelta: (categoryName: string, amount: string) => string;
     overBudget: (amount: string, days: number) => string;
     runOutOfCash: (date: string, days: number) => string;
     onTrackPace: string;
     savingsGoalClose: (amount: string, name: string) => string;
+    /** "2 transactions need a category". */
+    needCategory: (count: number) => string;
+    priceChanged: (name: string, from: string, to: string) => string;
+    largePurchase: (amount: string, name: string, category: string, usual: string) => string;
+    newRecurring: (name: string, amount: string) => string;
+    leftover: (amount: string) => string;
+    goalMilestone: (percent: number, name: string) => string;
+    /** The cycle that just closed ended with money left. */
+    closedUnder: (amount: string) => string;
+    goalContributionMade: (vocab: PeriodVocab, planned: string, name: string) => string;
+    spentLess: (category: string, amount: string) => string;
+    aheadOfPace: (amount: string) => string;
+    streak: (cycles: number) => string;
     goalContributionBehind: (vocab: PeriodVocab, planned: string, actual: string, name: string, days: number) => string;
+  };
+
+  /** Follow-up prompts an insight opens on its destination screen (see lib/insight-prompts.ts). */
+  insightPrompts: {
+    isDuplicate: string;
+    chargedTwiceOn: (date: string) => string;
+    chargedOnTwoDates: (first: string, second: string) => string;
+    yesRemoveOne: string;
+    noBothReal: string;
+    decideLater: string;
+    whichToRemove: string;
+    /** One charge in the pick list; `n` tells two same-day charges apart. */
+    chargeOption: (date: string, amount: string, n: 1 | 2 | null) => string;
+    deleteThisCharge: string;
+    missedTitle: (name: string) => string;
+    missedDetail: (amount: string, date: string) => string;
+    markAsPaid: string;
+    remindTomorrow: string;
+    stopTracking: string;
+    markedPaid: (name: string) => string;
+    stoppedTracking: (name: string) => string;
+    priceTitle: (name: string) => string;
+    priceDetail: (charged: string, saved: string) => string;
+    updateAmount: string;
+    keepOldAmount: string;
+    amountUpdated: (name: string, amount: string) => string;
+    oneTimeTitle: string;
+    oneTimeDetail: (name: string, amount: string, date: string) => string;
+    oneTime: string;
+    normalForMe: string;
+    recurringTitle: string;
+    recurringDetail: (name: string, amount: string) => string;
+    addToRecurring: string;
+    notRecurring: string;
+    addedToRecurring: (name: string) => string;
+    leftoverTitle: string;
+    goalLabel: string;
+    amountLabel: string;
+    moveToGoal: string;
+    notNow: string;
+    movedToGoal: (amount: string, goal: string) => string;
+    categoryUpTitle: (category: string) => string;
+    dismissForCycle: string;
+    deleteCharge: string;
   };
 
   summary: {

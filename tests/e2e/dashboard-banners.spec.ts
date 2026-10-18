@@ -107,7 +107,7 @@ test.describe("dashboard 'needs attention' banner", () => {
 
     await page.goto("/dashboard");
     await expect(page.locator(".banner--action")).toContainText("2 transactions need more info");
-    await expect(page.getByText("Needs a category")).toHaveCount(2);
+    await expect(page.locator(".transaction-row").getByText("Needs a category")).toHaveCount(2);
 
     await page.click(".banner--action");
     const rows = page.locator(".categorize-imports-row");
@@ -117,7 +117,7 @@ test.describe("dashboard 'needs attention' banner", () => {
 
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.locator(".banner--action")).toContainText("1 transaction needs more info");
-    await expect(page.getByText("Needs a category")).toHaveCount(1);
+    await expect(page.locator(".transaction-row").getByText("Needs a category")).toHaveCount(1);
     await page.waitForTimeout(1500);
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0);
 

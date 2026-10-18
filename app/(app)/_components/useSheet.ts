@@ -9,8 +9,8 @@ import { useEffect, useState, type MouseEvent } from "react";
  * later -- see QuickAddSheet's own returnFocusTo doc comment for why),
  * so the sheet can hand focus back to the right place once it closes.
  */
-export function useSheet() {
-  const [open, setOpen] = useState(false);
+export function useSheet(initiallyOpen = false) {
+  const [open, setOpen] = useState(initiallyOpen);
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
   return {

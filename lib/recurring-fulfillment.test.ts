@@ -92,11 +92,11 @@ describe("summarizeRecurringFulfillment", () => {
     expect(result.exception?.name).toBe("Most overdue");
   });
 
-  it("sorts an unresolvable dueDay (e.g. the 31st in a 30-day month) last", () => {
+  it("clamps the 31st to the last day of a 30-day month, so a sooner date still wins", () => {
     const result = summarizeRecurringFulfillment(
       [
         category([
-          expense({ name: "Unresolvable", status: "not-started", dueDay: 31 }), // April has 30 days
+          expense({ name: "Clamped", status: "not-started", dueDay: 31 }), // April 30
           expense({ name: "Real date", status: "not-started", dueDay: 20 }),
         ]),
       ],
