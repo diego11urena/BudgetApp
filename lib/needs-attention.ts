@@ -55,7 +55,7 @@ export async function getNeedsAttentionTransactions(cycleId: string): Promise<Ne
       paymentMethod: true,
       importSource: true,
     },
-    orderBy: { occurredAt: "desc" },
+    orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
   });
 
   return rows.map((t) => ({
