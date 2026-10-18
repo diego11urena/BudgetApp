@@ -416,3 +416,132 @@ describe("selection", () => {
     expect(result[1].text).toMatch(/duplicate/i);
   });
 });
+
+describe("needs a category", () => {
+  it("fires with the count, orange, opening the Finish these transactions sheet on Home", () => {
+    const insight = find(financials(), [], extras({ needsCategoryCount: 2 }), /need a category/)!;
+    expect(insight.text).toBe("2 transactions need a category.");
+    expect(insight.severity).toBe("uncategorized");
+    expect(insight.href).toBe("/dashboard?prompt=uncategorized&insight=uncategorized%3Acycle-1");
+  });
+
+  it("stays silent when nothing needs a category", () => {
+    expect(find(financials(), [], extras({ needsCategoryCount: 0 }), /category/)).toBeUndefined();
+  });
+});
+
+describe("subscription price changed", () => {
+  const items = recurring([{ id: "re-s", name: "Spotify", targetAmount: 0.99, actual: 1.19 }]);
+  const charge = (amount: number) => tx({ amount, recurringExpenseId: "re-s" });
+
+  it("fires when the one charge this cycle differs from the saved amount", () => {
+    const insight = find(financials([charge(1.19)]), [], extras({ recurringExpenseCategories: items }), /went from/)!;
+    expect(insight.text).toBe("Spotify went from $0.99 to $1.19.");
+    expect(insight.href).toContain("/plan?prompt=price-change");
+  });
+
+  it("stays silent for the same amount, two charges, or a gap too big to be a price change", () => {
+    const ex = extras({ recurringExpenseCategories: items });
+    expect(find(financials([charge(0.99)]), [], ex, /went from/)).toBeUndefined();
+    expect(find(financials([charge(0.6), charge(0.59)]), [], ex, /went from/)).toBeUndefined();
+    expect(find(financials([charge(5)]), [], ex, /went from/)).toBeUndefined();
+  });
+});
+
+describe("unusually large purchase", () => {
+  const tech = (amount: number, id?: string) => tx({ amount, id, name: "Best Buy", expenseCategoryId: "cat-t", categoryName: "Electronics" });
+  const history = [financials([tech(40), tech(60), tech(50)])];
+
+  it("fires for a purchase 3x and $50+ above the category's usual purchase", () => {
+    const insight = find(financials([tech(480, "big")]), history, extras(), /far above/)!;
+    expect(insight.text).toBe("Best Buy ($480.00) is far above your usual Electronics purchase ($50.00).");
+    expect(insight.href).toContain("prompt=large");
+    expect(insight.key).toBe("large:big");
+  });
+
+  it("stays silent without 3 past purchases, under 3x, or under $50 over", () => {
+    expect(find(financials([tech(480)]), [financials([tech(40), tech(60)])], extras(), /far above/)).toBeUndefined();
+    expect(find(financials([tech(140)]), history, extras(), /far above/)).toBeUndefined();
+    const small = [financials([tech(10), tech(10), tech(10)])];
+    expect(find(financials([tech(45)]), small, extras(), /far above/)).toBeUndefined();
+  });
+
+  it("'One-time' leaves the purchase out of category averages", () => {
+    const groceries = (amount: number, id?: string) => tx({ amount, id, expenseCategoryId: "cat-g", categoryName: "Groceries" });
+    const now = day("2026-08-10");
+    const previous = [financials([groceries(200)])];
+    const current = financials([groceries(100), groceries(400, "tv")]);
+    expect(find(current, previous, extras({ now }), /Groceries spending/)).toBeDefined();
+    const memory = [{ key: "large:tv", fingerprint: "*", until: null, response: "one-time" }];
+    expect(find(current, previous, extras({ now, memory }), /Groceries spending/)).toBeUndefined();
+  });
+});
+
+describe("new recurring suspected", () => {
+  const netflix = (daysAgoFromNow: number, amount = 12.99) =>
+    tx({ name: "Netflix", amount, occurredAt: new Date(day("2026-08-05").getTime() - daysAgoFromNow * 86_400_000) });
+
+  it("fires for the same merchant and amount about a month apart", () => {
+    const insight = find(financials([netflix(0)]), [financials([netflix(30)])], extras({ now: day("2026-08-05") }), /Netflix/)!;
+    expect(insight.text).toBe("Netflix ($12.99) keeps coming back. Is it a recurring expense?");
+    expect(insight.href).toContain("prompt=new-recurring");
+  });
+
+  it("fires about a quincena apart", () => {
+    expect(find(financials([netflix(0)]), [financials([netflix(15)])], extras({ now: day("2026-08-05") }), /Netflix/)).toBeDefined();
+  });
+
+  it("stays silent a week apart, for a different amount, or when it's already recurring", () => {
+    const now = day("2026-08-05");
+    expect(find(financials([netflix(0)]), [financials([netflix(7)])], extras({ now }), /Netflix/)).toBeUndefined();
+    expect(find(financials([netflix(0)]), [financials([netflix(30, 20)])], extras({ now }), /Netflix/)).toBeUndefined();
+    expect(
+      find(financials([netflix(0)]), [financials([netflix(30)])], extras({ now, recurringExpenseNames: ["netflix"] }), /Netflix/),
+    ).toBeUndefined();
+  });
+});
+
+describe("leftover near the end of the cycle", () => {
+  const goals = [goal()];
+
+  it("fires in the last 2 days with money left and a goal", () => {
+    const insight = find(financials([tx({ amount: 1800 })]), [], extras({ now: day("2026-08-16"), goals }), /left\. Move/)!;
+    expect(insight.text).toBe("You have $200.00 left. Move it to a goal?");
+    expect(insight.href).toBe("/plan?prompt=leftover&insight=leftover%3Acycle-1&amount=200.00");
+  });
+
+  it("stays silent earlier in the cycle, with no goals, or with less than $20 left", () => {
+    expect(find(financials([tx({ amount: 1800 })]), [], extras({ now: day("2026-08-10"), goals }), /Move it/)).toBeUndefined();
+    expect(find(financials([tx({ amount: 1800 })]), [], extras({ now: day("2026-08-16") }), /Move it/)).toBeUndefined();
+    expect(find(financials([tx({ amount: 1990 })]), [], extras({ now: day("2026-08-16"), goals }), /Move it/)).toBeUndefined();
+  });
+});
+
+describe("prompts on existing rules", () => {
+  it("expected-but-missing links to Plan with its prompt", () => {
+    const ex = extras({ now: day("2026-08-08"), recurringExpenseCategories: recurring([{ id: "re-s", name: "Spotify", dueDay: 6 }]) });
+    expect(find(financials(), [], ex, /expected on/)!.href).toBe("/plan?prompt=missed&insight=missed%3Are-s%3A2026-08-06&target=re-s");
+  });
+
+  it("category up links to the category with its prompt", () => {
+    const g = (amount: number) => tx({ amount, expenseCategoryId: "cat-g", categoryName: "Groceries" });
+    const insight = find(financials([g(150)]), [financials([g(200)])], extras({ now: day("2026-08-10") }), /Groceries/)!;
+    expect(insight.href).toBe("/transactions?category=cat-g&prompt=category-up&insight=category-up%3Acycle-1%3Acat-g&target=cat-g");
+  });
+});
+
+describe("tie-break", () => {
+  it("at equal priority, the insight with a prompt comes first", async () => {
+    const { selectInsights } = await import("./insights");
+    const base = { fingerprint: "", text: "", priority: 50 };
+    const result = selectInsights(
+      [
+        { ...base, rule: "a", key: "plain" },
+        { ...base, rule: "b", key: "actionable", actionable: true },
+      ],
+      [],
+      CYCLE_START,
+    );
+    expect(result.map((i) => i.key)).toEqual(["actionable", "plain"]);
+  });
+});

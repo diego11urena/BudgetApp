@@ -7,7 +7,7 @@ import { summarizeRecurringExpenses, type CategoryWithRecurringExpenses } from "
 import type { GoalWithProgress } from "@/lib/goals";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import type { Dictionary, PeriodVocab } from "@/lib/i18n/dictionary";
-import { promptHref } from "@/lib/insight-prompts";
+import { promptHref, type InsightPrompt } from "@/lib/insight-prompts";
 
 type InsightsDictionary = Dictionary["insights"];
 
@@ -24,10 +24,15 @@ export const PRIORITY = {
   PACE_WARNING: 92,
   MISSED_CHARGE: 89,
   DUPLICATE_CHARGE: 88,
+  UNCATEGORIZED: 86,
+  PRICE_CHANGE: 84,
+  LARGE_PURCHASE: 82,
   CATEGORY_ANOMALY: 80,
+  NEW_RECURRING: 76,
   GOAL_CONTRIBUTION: 72,
   UPCOMING_CHARGES: 65,
   SAVINGS_GOAL: 60,
+  LEFTOVER: 58,
   STILL_TO_CHARGE: 55,
   ON_TRACK: 40,
 } as const;
@@ -70,9 +75,33 @@ export const GOAL_CONTRIBUTION_THRESHOLD_FRACTION = 0.5;
 /** Two Gmail imports from the same merchant for the same amount within this many days may be a double charge. */
 export const DUPLICATE_CHARGE_WITHIN_DAYS = 3;
 
+/** A recurring charge differing from its saved amount by more than this fraction is a payment issue, not a price change. */
+export const PRICE_CHANGE_MAX_FRACTION = 0.5;
+
+/** A purchase is "unusually large" at this multiple of the category's usual purchase... */
+export const LARGE_PURCHASE_MULTIPLE = 3;
+/** ...and at least this many dollars above it... */
+export const LARGE_PURCHASE_MIN_DOLLARS = 50;
+/** ...with at least this many past purchases in the category to know what's usual. */
+export const LARGE_PURCHASE_MIN_HISTORY = 3;
+
+/** Gaps (in days) between two same-merchant, same-amount charges that suggest a recurring expense: about every quincena or month. */
+export const NEW_RECURRING_GAPS: readonly [number, number][] = [
+  [13, 17],
+  [28, 33],
+];
+/** Same-merchant amounts within this fraction count as "the same amount". */
+export const NEW_RECURRING_AMOUNT_FRACTION = 0.05;
+
+/** "Move what's left to a goal?" shows in the last this-many days of a cycle (or once it's past its end). */
+export const LEFTOVER_LAST_DAYS = 2;
+/** ...when at least this much is left. */
+export const LEFTOVER_MIN_DOLLARS = 20;
+
 /* ------------------------------------------------------------------ */
 
-export type InsightSeverity = "critical" | "recurring";
+/** critical = red (money risk), recurring = gold (recurring charges), uncategorized = orange. Absent = neutral. */
+export type InsightSeverity = "critical" | "recurring" | "uncategorized";
 
 export interface Insight {
   /** Stable identity, e.g. "missed:<recurringId>:2026-10-16" -- what a dismissal is stored under. */
@@ -94,14 +123,21 @@ export interface InsightMemoryRecord {
   key: string;
   fingerprint: string;
   until: Date | null;
+  /** Which button was pressed -- "one-time" purchases are left out of category averages. */
+  response?: string;
 }
 
-interface Candidate extends Insight {
+export interface Candidate extends Insight {
   priority: number;
   /** Which rule produced it -- at most one per rule reaches the card. */
   rule: string;
   /** Has a follow-up prompt -- wins ties. */
   actionable?: boolean;
+}
+
+/** A candidate whose tap opens `path` with a follow-up prompt. */
+function withPrompt(path: string, prompt: InsightPrompt, query?: Record<string, string>) {
+  return { href: promptHref(path, prompt, query), actionable: true };
 }
 
 export interface InsightExtras {
@@ -119,6 +155,10 @@ export interface InsightExtras {
   t: InsightsDictionary;
   /** Stored dismissals; matching insights are left out. */
   memory?: InsightMemoryRecord[];
+  /** How many of this cycle's transactions still need a category. */
+  needsCategoryCount?: number;
+  /** Every recurring expense the user has, by name -- so a known one is never "suspected" as new. */
+  recurringExpenseNames?: string[];
 }
 
 /**
@@ -135,9 +175,13 @@ export function generateInsights(
   extras: InsightExtras,
 ): Insight[] {
   const now = extras.now ?? nowInPanama();
+  const oneTimeIds = new Set(
+    (extras.memory ?? []).filter((m) => m.response === "one-time").map((m) => m.key.replace(/^large:/, "")),
+  );
   const ctx: RuleContext = {
-    current,
-    previous: previousClosedFinancials,
+    current: withoutOneTime(current, oneTimeIds),
+    rawCurrent: current,
+    previous: previousClosedFinancials.map((f) => withoutOneTime(f, oneTimeIds)),
     extras,
     now,
     t: extras.t,
@@ -146,6 +190,11 @@ export function generateInsights(
   };
 
   const candidates = [
+    ...uncategorizedCandidates(ctx),
+    ...priceChangeCandidates(ctx),
+    ...largePurchaseCandidates(ctx),
+    ...newRecurringCandidates(ctx),
+    ...leftoverCandidates(ctx),
     ...upcomingChargesCandidates(ctx),
     ...missedChargeCandidates(ctx),
     ...stillToChargeCandidates(ctx),
@@ -156,7 +205,15 @@ export function generateInsights(
     ...savingsGoalCandidates(ctx),
   ];
 
-  const memory = extras.memory ?? [];
+  return selectInsights(candidates, extras.memory ?? [], now);
+}
+
+/**
+ * Drops dismissed candidates, keeps each rule's best remaining one, and
+ * returns the top MAX_INSIGHTS by priority -- a tie goes to the one with a
+ * follow-up prompt. Exported for tests.
+ */
+export function selectInsights(candidates: Candidate[], memory: InsightMemoryRecord[], now: Date): Insight[] {
   const isDismissed = (c: Candidate) =>
     memory.some(
       (m) =>
@@ -189,13 +246,30 @@ interface CyclePhase {
 }
 
 interface RuleContext {
+  /** This cycle, with purchases marked "one-time" left out of category totals. */
   current: CycleFinancials;
+  /** This cycle exactly as recorded. */
+  rawCurrent: CycleFinancials;
   previous: CycleFinancials[];
   extras: InsightExtras;
   now: Date;
   t: InsightsDictionary;
   locale: LocaleValue;
   phase: CyclePhase;
+}
+
+/** Category totals without purchases the user marked "one-time", so one big purchase can't skew what "usual" means. */
+function withoutOneTime(f: CycleFinancials, oneTimeIds: Set<string>): CycleFinancials {
+  const excluded = f.transactions.filter((tx) => oneTimeIds.has(tx.id) && tx.type === "EXPENSE" && tx.expenseCategoryId);
+  if (excluded.length === 0) return f;
+  const categoryTotals = f.categoryTotals
+    .map((c) => ({
+      ...c,
+      amount: c.amount - excluded.filter((tx) => tx.expenseCategoryId === c.categoryId).reduce((s, tx) => s + tx.amount, 0),
+    }))
+    .filter((c) => c.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+  return { ...f, categoryTotals, topCategories: categoryTotals.slice(0, 6) };
 }
 
 function cyclePhase(cycle: { periodStart: Date; periodEnd: Date | null }, budgetFrequency: BudgetFrequency, now: Date): CyclePhase {
@@ -267,8 +341,8 @@ function missedChargeCandidates(ctx: RuleContext): Candidate[] {
         fingerprint: String(expense.targetAmount),
         text: ctx.t.chargeMissing(expense.name, formatCurrency(expense.targetAmount), formatShortDate(dueDate, ctx.locale)),
         priority: PRIORITY.MISSED_CHARGE,
-        href: "/plan",
         severity: "recurring" as const,
+        ...withPrompt("/plan", { kind: "missed", key: `missed:${expense.id}:${date}`, target: expense.id }),
       };
     });
 }
@@ -378,7 +452,11 @@ function categoryAnomalyCandidates(ctx: RuleContext): Candidate[] {
       fingerprint: "",
       text: window.length === 1 ? t.categoryDelta(category.categoryName, amount) : t.categoryAnomaly(category.categoryName, amount),
       priority: PRIORITY.CATEGORY_ANOMALY,
-      href: `/transactions?category=${category.categoryId}`,
+      ...withPrompt(
+        "/transactions",
+        { kind: "category-up", key: `category-up:${extras.cycleId}:${category.categoryId}`, target: category.categoryId },
+        { category: category.categoryId },
+      ),
       relativeDelta,
     });
   }
@@ -515,4 +593,135 @@ function goalContributionCandidates(ctx: RuleContext): Candidate[] {
     });
   }
   return out.sort((a, b) => b.shortfall - a.shortfall);
+}
+
+/** "2 transactions need a category" -- tapping opens the Finish these transactions sheet on Home. */
+function uncategorizedCandidates(ctx: RuleContext): Candidate[] {
+  const count = ctx.extras.needsCategoryCount ?? 0;
+  if (count === 0) return [];
+  const key = `uncategorized:${ctx.extras.cycleId}`;
+  return [
+    {
+      rule: "uncategorized",
+      key,
+      fingerprint: String(count),
+      text: ctx.t.needCategory(count),
+      priority: PRIORITY.UNCATEGORIZED,
+      severity: "uncategorized",
+      ...withPrompt("/dashboard", { kind: "uncategorized", key }),
+    },
+  ];
+}
+
+/**
+ * A recurring expense charged exactly once this cycle, for a different
+ * amount than saved -- a price change ("Spotify went from $0.99 to $1.19").
+ * A big gap is more likely a partial or wrong link, so it's ignored.
+ */
+function priceChangeCandidates(ctx: RuleContext): Candidate[] {
+  const out: Candidate[] = [];
+  for (const expense of ctx.extras.recurringExpenseCategories.flatMap((c) => c.expenses)) {
+    if (!expense.chargedThisCycle || expense.targetAmount <= 0) continue;
+    const charges = ctx.rawCurrent.transactions.filter((tx) => tx.recurringExpenseId === expense.id && tx.type === "EXPENSE");
+    if (charges.length !== 1) continue;
+    const charged = charges[0].amount;
+    const diff = Math.abs(charged - expense.targetAmount);
+    if (diff < 0.01 || diff > expense.targetAmount * PRICE_CHANGE_MAX_FRACTION) continue;
+    const key = `price-change:${expense.id}:${charged.toFixed(2)}`;
+    out.push({
+      rule: "price-change",
+      key,
+      fingerprint: expense.targetAmount.toFixed(2),
+      text: ctx.t.priceChanged(expense.name, formatCurrency(expense.targetAmount), formatCurrency(charged)),
+      priority: PRIORITY.PRICE_CHANGE,
+      severity: "recurring",
+      ...withPrompt("/plan", { kind: "price-change", key, target: expense.id }),
+    });
+  }
+  return out;
+}
+
+/**
+ * One purchase far above what the user usually spends per purchase in its
+ * category (LARGE_PURCHASE_MULTIPLE times and LARGE_PURCHASE_MIN_DOLLARS
+ * over), judged against past cycles. Recurring charges are skipped.
+ */
+function largePurchaseCandidates(ctx: RuleContext): Candidate[] {
+  const past = ctx.previous.flatMap((f) => f.transactions).filter((tx) => tx.type === "EXPENSE" && tx.expenseCategoryId);
+  const oneTime = new Set((ctx.extras.memory ?? []).filter((m) => m.response === "one-time").map((m) => m.key));
+  const out: (Candidate & { ratio: number })[] = [];
+  for (const tx of ctx.rawCurrent.transactions) {
+    if (tx.type !== "EXPENSE" || !tx.expenseCategoryId || tx.recurringExpenseId) continue;
+    const history = past.filter((p) => p.expenseCategoryId === tx.expenseCategoryId && !oneTime.has(`large:${p.id}`));
+    if (history.length < LARGE_PURCHASE_MIN_HISTORY) continue;
+    const usual = history.reduce((s, p) => s + p.amount, 0) / history.length;
+    if (tx.amount < usual * LARGE_PURCHASE_MULTIPLE || tx.amount - usual < LARGE_PURCHASE_MIN_DOLLARS) continue;
+    const key = `large:${tx.id}`;
+    out.push({
+      rule: "large-purchase",
+      key,
+      fingerprint: tx.amount.toFixed(2),
+      text: ctx.t.largePurchase(formatCurrency(tx.amount), tx.name, tx.categoryName ?? "", formatCurrency(usual)),
+      priority: PRIORITY.LARGE_PURCHASE,
+      ...withPrompt("/transactions", { kind: "large", key, target: tx.id }),
+      ratio: tx.amount / usual,
+    });
+  }
+  return out.sort((a, b) => b.ratio - a.ratio);
+}
+
+/**
+ * The same merchant for about the same amount, about every quincena or
+ * month (NEW_RECURRING_GAPS), and not already a recurring expense: "Is
+ * this a recurring expense?"
+ */
+function newRecurringCandidates(ctx: RuleContext): Candidate[] {
+  const known = new Set((ctx.extras.recurringExpenseNames ?? []).map((n) => n.trim().toLowerCase()));
+  const all = [...ctx.previous.flatMap((f) => f.transactions), ...ctx.rawCurrent.transactions].filter(
+    (tx) => tx.type === "EXPENSE" && tx.recurringExpenseId === null,
+  );
+  const seen = new Set<string>();
+  const out: Candidate[] = [];
+  for (const latest of [...ctx.rawCurrent.transactions].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())) {
+    if (latest.type !== "EXPENSE" || latest.recurringExpenseId !== null) continue;
+    const merchant = latest.name.trim().toLowerCase();
+    if (!merchant || known.has(merchant) || seen.has(merchant)) continue;
+    const repeat = all.some((other) => {
+      if (other.id === latest.id || other.name.trim().toLowerCase() !== merchant) return false;
+      if (Math.abs(other.amount - latest.amount) > latest.amount * NEW_RECURRING_AMOUNT_FRACTION) return false;
+      const gap = calendarDaysBetween(other.occurredAt, latest.occurredAt);
+      return NEW_RECURRING_GAPS.some(([min, max]) => gap >= min && gap <= max);
+    });
+    if (!repeat) continue;
+    seen.add(merchant);
+    const key = `new-recurring:${merchant}`;
+    out.push({
+      rule: "new-recurring",
+      key,
+      fingerprint: "",
+      text: ctx.t.newRecurring(latest.name, formatCurrency(latest.amount)),
+      priority: PRIORITY.NEW_RECURRING,
+      ...withPrompt("/transactions", { kind: "new-recurring", key, target: latest.id }, { q: latest.name }),
+    });
+  }
+  return out;
+}
+
+/** In a cycle's last days, with Safe to spend left over and a goal to put it in: "Move it to a goal?" */
+function leftoverCandidates(ctx: RuleContext): Candidate[] {
+  const { phase, extras, current } = ctx;
+  if (phase.daysRemaining > LEFTOVER_LAST_DAYS || extras.goals.length === 0) return [];
+  const left = current.amountLeft - summarizeRecurringExpenses(extras.recurringExpenseCategories).pendingAmount;
+  if (left < LEFTOVER_MIN_DOLLARS) return [];
+  const key = `leftover:${extras.cycleId}`;
+  return [
+    {
+      rule: "leftover",
+      key,
+      fingerprint: "",
+      text: ctx.t.leftover(formatCurrency(left)),
+      priority: PRIORITY.LEFTOVER,
+      ...withPrompt("/plan", { kind: "leftover", key, amount: left.toFixed(2) }),
+    },
+  ];
 }

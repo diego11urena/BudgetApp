@@ -32,13 +32,19 @@ import { TransactionList } from "../_components/TransactionList";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
+import { parsePrompt } from "@/lib/insight-prompts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
   return { title: t.dashboard.metaTitle };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  /** An insight's follow-up prompt (see lib/insight-prompts.ts) -- Home hosts the uncategorized one. */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -133,9 +139,13 @@ export default async function DashboardPage() {
   // "September" -- the single close action names the month it closes.
   const periodName = formatMonthLabel(cycle.periodStart, locale);
 
+  const openNeedsAttention = parsePrompt(await searchParams)?.kind === "uncategorized";
+
   const insights = generateInsights(financials, previousClosedFinancials, {
     cycleId: cycle.id,
     memory: insightMemory,
+    needsCategoryCount: needsAttentionTransactions.filter((tx) => tx.needsCategory).length,
+    recurringExpenseNames: recurringOptions.map((o) => o.name),
     cycle: { periodStart: cycle.periodStart, periodEnd: cycle.periodEnd },
     recurringExpenseCategories,
     goals,
@@ -179,6 +189,9 @@ export default async function DashboardPage() {
             incomeCategoryNames={incomeCategoryNames}
             savingsCategoryNames={savingsCategoryNames}
             recurringOptions={recurringOptions}
+            initiallyOpen={openNeedsAttention}
+            // Remounts when the insight is tapped -- it links to Home itself.
+            key={openNeedsAttention ? "from-insight" : "banner"}
           />
         </div>
       )}

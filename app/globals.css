@@ -2409,6 +2409,11 @@ button.line-item--link {
   background: var(--color-recurring);
 }
 
+/* Orange means uncategorized and nothing else (see the note above). */
+.insights-dot--uncategorized {
+  background: var(--color-warning);
+}
+
 .insights-text {
   flex: 1;
   padding: 10px 0;

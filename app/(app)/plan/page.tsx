@@ -9,6 +9,8 @@ import { RecurringSection } from "./_components/RecurringSection";
 import { GoalsSection } from "./_components/GoalsSection";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { parsePrompt } from "@/lib/insight-prompts";
+import { InsightPromptHost } from "../_components/insights/InsightPromptHost";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -23,7 +25,12 @@ export async function generateMetadata(): Promise<Metadata> {
  * expenses, once for goals), and splitting them cost two of the app's
  * five nav slots for that low a change frequency.
  */
-export default async function PlanPage() {
+export default async function PlanPage({
+  searchParams,
+}: {
+  /** An insight's follow-up prompt (see lib/insight-prompts.ts). */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
@@ -54,6 +61,7 @@ export default async function PlanPage() {
           summary={summarizeRecurringExpenses(recurringExpenseCategories)}
         />
       </div>
+      <InsightPromptHost prompt={parsePrompt(await searchParams)} userId={userId} />
     </div>
   );
 }

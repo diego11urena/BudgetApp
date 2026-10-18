@@ -51,9 +51,13 @@ export default async function TransactionsPage({
   const params = await searchParams;
   const { q, type, category, cycleId } = params;
   const prompt = parsePrompt(params);
-  const highlightIds = prompt?.kind === "duplicate" ? prompt.ids : undefined;
+  // A duplicate prompt narrows the list to its two charges; a single-charge
+  // prompt keeps the list (filtered by its own link) and marks the charge.
+  const pairIds = prompt?.kind === "duplicate" ? prompt.ids : undefined;
+  const highlightIds =
+    pairIds ?? (prompt?.kind === "large" || prompt?.kind === "new-recurring" ? [prompt.target] : undefined);
 
-  const where: Prisma.CycleTransactionWhereInput = highlightIds ? { cycle: { userId }, id: { in: highlightIds } } : {
+  const where: Prisma.CycleTransactionWhereInput = pairIds ? { cycle: { userId }, id: { in: pairIds } } : {
     // cycleId alone would be enough to scope correctly (a transaction's
     // cycle either belongs to this user or it doesn't), but keeping
     // cycle: { userId } unconditionally here too means a tampered/foreign

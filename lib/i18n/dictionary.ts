@@ -770,6 +770,12 @@ export type Dictionary = {
     runOutOfCash: (date: string, days: number) => string;
     onTrackPace: string;
     savingsGoalClose: (amount: string, name: string) => string;
+    /** "2 transactions need a category". */
+    needCategory: (count: number) => string;
+    priceChanged: (name: string, from: string, to: string) => string;
+    largePurchase: (amount: string, name: string, category: string, usual: string) => string;
+    newRecurring: (name: string, amount: string) => string;
+    leftover: (amount: string) => string;
     goalContributionBehind: (vocab: PeriodVocab, planned: string, actual: string, name: string, days: number) => string;
   };
 
@@ -785,6 +791,35 @@ export type Dictionary = {
     /** One charge in the pick list; `n` tells two same-day charges apart. */
     chargeOption: (date: string, amount: string, n: 1 | 2 | null) => string;
     deleteThisCharge: string;
+    missedTitle: (name: string) => string;
+    missedDetail: (amount: string, date: string) => string;
+    markAsPaid: string;
+    remindTomorrow: string;
+    stopTracking: string;
+    markedPaid: (name: string) => string;
+    stoppedTracking: (name: string) => string;
+    priceTitle: (name: string) => string;
+    priceDetail: (charged: string, saved: string) => string;
+    updateAmount: string;
+    keepOldAmount: string;
+    amountUpdated: (name: string, amount: string) => string;
+    oneTimeTitle: string;
+    oneTimeDetail: (name: string, amount: string, date: string) => string;
+    oneTime: string;
+    normalForMe: string;
+    recurringTitle: string;
+    recurringDetail: (name: string, amount: string) => string;
+    addToRecurring: string;
+    notRecurring: string;
+    addedToRecurring: (name: string) => string;
+    leftoverTitle: string;
+    goalLabel: string;
+    amountLabel: string;
+    moveToGoal: string;
+    notNow: string;
+    movedToGoal: (amount: string, goal: string) => string;
+    categoryUpTitle: (category: string) => string;
+    dismissForCycle: string;
     deleteCharge: string;
   };
 
