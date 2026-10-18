@@ -7,8 +7,7 @@ import { Sheet } from "../../_components/Sheet";
 import { categorizeTransactionAction, describeTransactionAction } from "../../_actions/transactions";
 import { formatCurrency } from "@/lib/format";
 import type { NeedsAttentionTransaction } from "@/lib/needs-attention";
-import { CategoryNameInput } from "../../_components/CategoryNameInput";
-import { RecurringExpensePicker, type RecurringOption } from "../../_components/RecurringExpensePicker";
+import type { RecurringOption } from "../../_components/RecurringExpensePicker";
 import { useT } from "@/app/_components/LocaleProvider";
 
 /**
@@ -107,15 +106,13 @@ export function NeedsAttentionSheet({
       <div
         className="categorize-imports-list"
         // Tapping anything that isn't a text field dismisses the keyboard
-        // (iOS keeps it up otherwise). Dropdown options are left alone: they
-        // blur on select themselves, and blurring first would shift the
-        // layout under the finger before the tap lands.
+        // (iOS keeps it up otherwise).
         onPointerDown={(e) => {
           const target = e.target as HTMLElement;
           const active = document.activeElement as HTMLElement | null;
           if (
             active?.matches("input[type=text]") &&
-            !target.closest("input[type=text], .category-name-input-dropdown, .recurring-picker-dropdown")
+            !target.closest("input[type=text]")
           ) {
             active.blur();
           }
@@ -148,6 +145,8 @@ export function NeedsAttentionSheet({
   );
 }
 
+const NEW = "__new__";
+
 function NeedsAttentionRow({
   transaction,
   categoryNames,
@@ -161,35 +160,32 @@ function NeedsAttentionRow({
   onDone: () => void;
   registerSave: (save: (() => Promise<boolean>) | null) => void;
 }) {
-  const t = useT().dashboard;
+  const t = useT();
+  const td = t.dashboard;
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [categoryValue, setCategoryValue] = useState("");
+  // Native <select>s (iOS opens its own picker, no keyboard); NEW reveals a
+  // text field for a custom name -- the only path that opens the keyboard.
+  const [categoryChoice, setCategoryChoice] = useState("");
+  const [newCategory, setNewCategory] = useState("");
   const [recurring, setRecurring] = useState(false);
-  // Defaults to the row's own display name -- same
-  // create-a-new-one-with-this-name default RecurringExpensePicker/
-  // QuickAddSheet use, kept in sync here since this row builds its own
-  // FormData by hand rather than reading the native form on submit.
-  const [recurringSelection, setRecurringSelection] = useState<{
-    recurringExpenseId: string | null;
-    recurringExpenseName: string;
-  }>({
-    recurringExpenseId: null,
-    recurringExpenseName: transaction.name,
-  });
+  const [recurringChoice, setRecurringChoice] = useState(""); // a RecurringExpense id, NEW, or ""
+  const [newRecurringName, setNewRecurringName] = useState(transaction.name);
   const [description, setDescription] = useState("");
 
   const label =
     transaction.needsDescription
-      ? (transaction.direction === "sent" ? t.sentTo(transaction.name) : t.receivedFrom(transaction.name))
+      ? (transaction.direction === "sent" ? td.sentTo(transaction.name) : td.receivedFrom(transaction.name))
       : transaction.name;
 
   const formRef = useRef<HTMLFormElement>(null);
-  const category = categoryValue.trim();
+  const category = categoryChoice === NEW ? newCategory.trim() : categoryChoice;
   const desc = description.trim();
-  // The checkbox only exists while a category is entered.
-  const isRecurring = recurring && category !== "" && transaction.type === "EXPENSE";
+  const canRecur = transaction.needsCategory && transaction.type === "EXPENSE";
+  const isRecurring = canRecur && recurring;
+  const recurringIncomplete =
+    isRecurring && (recurringChoice === "" || (recurringChoice === NEW && !newRecurringName.trim()));
 
   /** Saves whichever of the two fields are filled in; returns an error message or null. */
   async function persist(): Promise<string | null> {
@@ -203,8 +199,12 @@ function NeedsAttentionRow({
       fd.set("category", category);
       if (isRecurring) {
         fd.set("recurring", "true");
-        if (recurringSelection.recurringExpenseId) fd.set("recurringExpenseId", recurringSelection.recurringExpenseId);
-        fd.set("recurringExpenseName", recurringSelection.recurringExpenseName);
+        if (recurringChoice === NEW) {
+          fd.set("recurringExpenseName", newRecurringName.trim());
+        } else {
+          fd.set("recurringExpenseId", recurringChoice);
+          fd.set("recurringExpenseName", recurringOptions.find((o) => o.id === recurringChoice)?.name ?? transaction.name);
+        }
       }
       const result = await categorizeTransactionAction(fd);
       if ("error" in result) return result.error;
@@ -221,14 +221,19 @@ function NeedsAttentionRow({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    (document.activeElement as HTMLElement | null)?.blur();
     setError(null);
 
     if (transaction.needsCategory && !category) {
-      setError(t.chooseCategoryError);
+      setError(td.chooseCategoryError);
+      return;
+    }
+    if (recurringIncomplete) {
+      setError(td.chooseRecurringError);
       return;
     }
     if (transaction.needsDescription && !desc) {
-      setError(t.tellUsWhatItWasForError);
+      setError(td.tellUsWhatItWasForError);
       return;
     }
 
@@ -244,11 +249,9 @@ function NeedsAttentionRow({
   }
 
   // For closing the sheet: save only if the user filled something in and
-  // nothing is half-done (recurring checked with no recurring expense named).
+  // nothing is half-done (recurring on with no recurring expense chosen).
   // Errors are swallowed -- closing is never blocked; the row just stays
   // "needs info". Re-registered every render so it sees the latest state.
-  const recurringIncomplete =
-    isRecurring && !recurringSelection.recurringExpenseId && !recurringSelection.recurringExpenseName.trim();
   const saveIfValid = async () => {
     if (pending || (!category && !desc) || recurringIncomplete) return false;
     return (await persist()) === null;
@@ -258,15 +261,13 @@ function NeedsAttentionRow({
   });
   useEffect(() => () => registerSave(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep the row's Save visible: after the keyboard has opened (or the
-  // recurring field has appeared), scroll Save into view, then the focused
-  // field and its dropdown -- "nearest", so nothing moves if already visible.
-  function revealRow(field?: HTMLElement) {
+  // Keep the row's Save visible once the keyboard has opened: scroll Save
+  // into view, then the focused field -- "nearest", so nothing moves if
+  // they're already visible.
+  function revealRow(field: HTMLElement) {
     setTimeout(() => {
       formRef.current?.querySelector("button[type=submit]")?.scrollIntoView({ block: "nearest" });
-      if (!field) return;
-      const dropdown = field.parentElement?.querySelector(".category-name-input-dropdown, .recurring-picker-dropdown");
-      (dropdown ?? field).scrollIntoView({ block: "nearest" });
+      field.scrollIntoView({ block: "nearest" });
     }, 300);
   }
 
@@ -286,51 +287,81 @@ function NeedsAttentionRow({
       </div>
 
       {transaction.needsCategory && (
-        <>
-          <div className="categorize-imports-row-input">
-            <CategoryNameInput
-              id={`needs-attention-category-${transaction.id}`}
-              name="category"
-              categoryNames={categoryNames}
-              placeholder={t.chooseCategoryPlaceholder}
-              showChips={false}
-              onValueChange={setCategoryValue}
+        <div className="categorize-imports-row-input">
+          <select
+            aria-label={t.quickAdd.categoryLabel}
+            value={categoryChoice}
+            onChange={(e) => setCategoryChoice(e.target.value)}
+          >
+            <option value="" disabled>
+              {t.quickAdd.chooseCategoryOption}
+            </option>
+            {categoryNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+            <option value={NEW}>{t.quickAdd.newCategoryOption}</option>
+          </select>
+          {categoryChoice === NEW && (
+            <input
+              type="text"
+              aria-label={t.quickAdd.newCategoryPlaceholder}
+              placeholder={t.quickAdd.newCategoryPlaceholder}
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              maxLength={60}
+              autoComplete="off"
+              autoFocus
             />
-          </div>
-          {transaction.type === "EXPENSE" && categoryValue.trim() && (
-            <>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                <input
-                  type="checkbox"
-                  checked={recurring}
-                  onChange={(e) => {
-                    setRecurring(e.target.checked);
-                    revealRow();
-                    // Reset to the row's own name each time the toggle
-                    // turns on -- a prior open/select shouldn't linger if
-                    // the user unchecked and re-checked it.
-                    if (e.target.checked) {
-                      setRecurringSelection({ recurringExpenseId: null, recurringExpenseName: transaction.name });
-                    }
-                  }}
-                />
-                {t.isRecurringExpense}
-              </label>
-              {recurring && (
-                <div className="categorize-imports-row-input">
-                  <label htmlFor={`needs-attention-recurring-${transaction.id}`} className="field-hint" style={{ display: "block", marginBottom: "0.25rem" }}>
-                    {t.whichRecurringExpenseLabel}
-                  </label>
-                  <RecurringExpensePicker
-                    id={`needs-attention-recurring-${transaction.id}`}
-                    options={recurringOptions}
-                    defaultValue={transaction.name}
-                    onSelectionChange={setRecurringSelection}
-                  />
-                </div>
-              )}
-            </>
           )}
+        </div>
+      )}
+
+      {/* Both always rendered for an expense (the picker just disabled while
+          the switch is off), so toggling never moves Save. */}
+      {canRecur && (
+        <>
+          <label className="needs-attention-switch">
+            <input
+              type="checkbox"
+              // Safari 17.4+ draws a native iOS switch; others fall back to a checkbox.
+              {...{ switch: "" }}
+              checked={recurring}
+              onChange={(e) => setRecurring(e.target.checked)}
+            />
+            {td.isRecurringExpense}
+          </label>
+          <div className="categorize-imports-row-input">
+            <select
+              aria-label={td.whichRecurringExpenseLabel}
+              value={recurringChoice}
+              onChange={(e) => setRecurringChoice(e.target.value)}
+              disabled={!recurring}
+            >
+              <option value="" disabled>
+                {td.whichRecurringExpenseLabel}
+              </option>
+              {recurringOptions.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {`${o.name} · ${formatCurrency(o.amount)}`}
+                </option>
+              ))}
+              <option value={NEW}>{td.otherRecurringOption}</option>
+            </select>
+            {recurring && recurringChoice === NEW && (
+              <input
+                type="text"
+                aria-label={td.newRecurringPlaceholder}
+                placeholder={td.newRecurringPlaceholder}
+                value={newRecurringName}
+                onChange={(e) => setNewRecurringName(e.target.value)}
+                maxLength={60}
+                autoComplete="off"
+                autoFocus
+              />
+            )}
+          </div>
         </>
       )}
 
@@ -338,7 +369,8 @@ function NeedsAttentionRow({
         <div className="categorize-imports-row-input">
           <input
             type="text"
-            placeholder={t.whatWasThisForPlaceholder}
+            aria-label={td.whatWasThisForPlaceholder}
+            placeholder={td.whatWasThisForPlaceholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             maxLength={200}
@@ -349,7 +381,7 @@ function NeedsAttentionRow({
 
       {error && <p className="error-text">{error}</p>}
       <button type="submit" className="button button--small" disabled={pending}>
-        {pending ? t.saving : t.save}
+        {pending ? td.saving : td.save}
       </button>
     </form>
   );
