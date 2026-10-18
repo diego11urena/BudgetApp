@@ -17,6 +17,8 @@ import { TransactionList } from "../_components/TransactionList";
 import { TransactionFilters } from "./_components/TransactionFilters";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { parsePrompt } from "@/lib/insight-prompts";
+import { InsightPromptHost } from "../_components/insights/InsightPromptHost";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getRequestLocale());
@@ -32,6 +34,10 @@ export default async function TransactionsPage({
     category?: string;
     /** Set by TransactionFilters' own quincena selector when viewing a past cycle -- absent means "the current cycle" (see cycle.id fallback below), not "every cycle ever." */
     cycleId?: string;
+    /** An insight's follow-up prompt (see lib/insight-prompts.ts); a duplicate prompt also narrows the list to its two charges. */
+    prompt?: string;
+    insight?: string;
+    ids?: string;
   }>;
 }) {
   const session = await auth();
@@ -42,9 +48,12 @@ export default async function TransactionsPage({
   const t = getDictionary(await getRequestLocale());
 
   const cycle = await getOrCreateDraftCycle(userId);
-  const { q, type, category, cycleId } = await searchParams;
+  const params = await searchParams;
+  const { q, type, category, cycleId } = params;
+  const prompt = parsePrompt(params);
+  const highlightIds = prompt?.kind === "duplicate" ? prompt.ids : undefined;
 
-  const where: Prisma.CycleTransactionWhereInput = {
+  const where: Prisma.CycleTransactionWhereInput = highlightIds ? { cycle: { userId }, id: { in: highlightIds } } : {
     // cycleId alone would be enough to scope correctly (a transaction's
     // cycle either belongs to this user or it doesn't), but keeping
     // cycle: { userId } unconditionally here too means a tampered/foreign
@@ -186,7 +195,9 @@ export default async function TransactionsPage({
             : t.transactions.noneYet
         }
         groupByDate
+        highlightIds={highlightIds}
       />
+      <InsightPromptHost prompt={prompt} userId={userId} />
     </div>
   );
 }

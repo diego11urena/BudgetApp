@@ -724,6 +724,19 @@ export const en: Dictionary = {
       `You planned ${planned} for ${name} ${vocab.thisPeriod} — only ${actual} logged so far, with ${days} ${plural(days, "day", "days")} left.`,
   },
 
+  insightPrompts: {
+    isDuplicate: "Is this a duplicate?",
+    chargedTwiceOn: (date) => `Charged twice on ${date}`,
+    chargedOnTwoDates: (first, second) => `Charged on ${first} and ${second}`,
+    yesRemoveOne: "Yes, remove one",
+    noBothReal: "No, both are real",
+    decideLater: "Decide later",
+    whichToRemove: "Which one should go?",
+    chargeOption: (date, amount, n) => `${date}${n ? (n === 1 ? " (first)" : " (second)") : ""} · ${amount}`,
+    deleteThisCharge: "Delete this charge?",
+    deleteCharge: "Delete charge",
+  },
+
   summary: {
     seeWhereItWent: "See where it went",
     headlinePrefix: (vocab, spent) => `You spent ${spent} and `,

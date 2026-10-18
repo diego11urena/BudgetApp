@@ -7,6 +7,7 @@ import { summarizeRecurringExpenses, type CategoryWithRecurringExpenses } from "
 import type { GoalWithProgress } from "@/lib/goals";
 import { computeGoalProjection } from "@/lib/goal-projection";
 import type { Dictionary, PeriodVocab } from "@/lib/i18n/dictionary";
+import { promptHref } from "@/lib/insight-prompts";
 
 type InsightsDictionary = Dictionary["insights"];
 
@@ -323,14 +324,16 @@ function duplicateChargeCandidates(ctx: RuleContext): Candidate[] {
         gap === 0
           ? t.duplicateSameDay(a.name, amount, formatShortDate(later.occurredAt, locale))
           : t.duplicateTwoDays(a.name, amount, formatShortDate(earlier.occurredAt, locale), formatShortDate(later.occurredAt, locale));
-      const ids = [earlier.id, later.id].sort();
+      const ids = [earlier.id, later.id].sort() as [string, string];
+      const key = `duplicate:${ids[0]}:${ids[1]}`;
       out.push({
         rule: "duplicate",
-        key: `duplicate:${ids[0]}:${ids[1]}`,
+        key,
         fingerprint: "",
         text,
         priority: PRIORITY.DUPLICATE_CHARGE,
-        href: `/transactions?q=${encodeURIComponent(a.name)}`,
+        href: promptHref("/transactions", { kind: "duplicate", key, ids }),
+        actionable: true,
       });
     }
   }

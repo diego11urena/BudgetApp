@@ -2440,6 +2440,25 @@ button.line-item--link {
   color: var(--color-chevron);
 }
 
+/* A row an insight prompt is about (both charges of a possible duplicate). */
+.transaction-row.is-highlighted {
+  background: var(--color-bg-secondary);
+  box-shadow: inset 3px 0 0 var(--color-recurring);
+}
+
+.insight-prompt-detail,
+.action-sheet-message {
+  text-align: center;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.action-sheet-options {
+  display: flex;
+  flex-direction: column;
+}
+
 /* 44px tap target around a small glyph, so it can't be hit by accident. */
 .insights-dismiss {
   display: flex;

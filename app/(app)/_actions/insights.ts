@@ -25,3 +25,24 @@ export const dismissInsightAction = withActionErrorHandling(async function dismi
   await rememberInsight(session.user.id, { key, fingerprint });
   revalidateAppPages();
 });
+
+/**
+ * Records a prompt button's answer -- "No, both are real" (fingerprint
+ * "*": never again), "Remind me tomorrow" (untilHours), and the like.
+ */
+export const rememberInsightAction = withActionErrorHandling(async function rememberInsightAction(input: {
+  key: string;
+  fingerprint: string;
+  response: string;
+  untilHours?: number;
+}): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  const { key, fingerprint, response, untilHours } = input;
+  if (!key || key.length > 200 || fingerprint.length > 500 || !/^[a-z-]{1,40}$/.test(response)) return;
+  const until = untilHours && untilHours > 0 && untilHours <= 24 * 60 ? new Date(Date.now() + untilHours * 3_600_000) : null;
+  await rememberInsight(session.user.id, { key, fingerprint, response, until });
+  revalidateAppPages();
+});

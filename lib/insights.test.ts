@@ -358,6 +358,13 @@ describe("possible duplicate charge", () => {
     }
   });
 
+  it("links to Transactions with the duplicate prompt for exactly this pair", () => {
+    const current = financials([gmail("2026-08-05", { id: "b" }), gmail("2026-08-06", { id: "a" })]);
+    const insight = find(current, [], extras({ now: day("2026-08-06") }), /duplicate/i)!;
+    expect(insight.key).toBe("duplicate:a:b");
+    expect(insight.href).toBe("/transactions?prompt=duplicate&insight=duplicate%3Aa%3Ab&ids=a%2Cb");
+  });
+
   it("matches merchants ignoring case", () => {
     const current = financials([gmail("2026-08-05"), gmail("2026-08-05", { name: "MCDONALD'S" })]);
     expect(find(current, [], extras({ now: day("2026-08-05") }), /duplicate/i)).toBeDefined();

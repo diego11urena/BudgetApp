@@ -112,10 +112,12 @@ function TransactionRowContent({
 function TransactionRow({
   tx,
   showCycleLabel,
+  highlighted,
   onEdit,
 }: {
   tx: CycleTransactionSummary;
   showCycleLabel: boolean;
+  highlighted: boolean;
   onEdit: (tx: CycleTransactionSummary, trigger: HTMLElement) => void;
 }) {
   // Every row opens the edit sheet, including a closed cycle's — a past
@@ -126,7 +128,7 @@ function TransactionRow({
   return (
     <button
       type="button"
-      className="transaction-row"
+      className={highlighted ? "transaction-row is-highlighted" : "transaction-row"}
       onClick={(e) => onEdit(tx, e.currentTarget)}
     >
       <TransactionRowContent tx={tx} showCycleLabel={showCycleLabel} />
@@ -143,6 +145,7 @@ export function TransactionList({
   cycleStartDate,
   emptyMessage,
   groupByDate = false,
+  highlightIds,
 }: {
   transactions: CycleTransactionSummary[];
   expenseCategoryNames: string[];
@@ -160,6 +163,8 @@ export function TransactionList({
    * same-day rows aren't contiguous.
    */
   groupByDate?: boolean;
+  /** Rows an insight prompt is about (e.g. both charges of a possible duplicate). */
+  highlightIds?: string[];
 }) {
   const [editing, setEditing] = useState<EditingTransaction | null>(null);
   const { sheetProps, setTrigger } = useSheet();
@@ -219,14 +224,14 @@ export function TransactionList({
                 </span>
               </div>
               {group.items.map((tx) => (
-                <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />
+                <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} highlighted={!!highlightIds?.includes(tx.id)} onEdit={handleEdit} />
               ))}
             </Fragment>
           );
         })
       ) : (
         transactions.map((tx) => (
-          <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} onEdit={handleEdit} />
+          <TransactionRow key={tx.id} tx={tx} showCycleLabel={showCycleLabel} highlighted={!!highlightIds?.includes(tx.id)} onEdit={handleEdit} />
         ))
       )}
 

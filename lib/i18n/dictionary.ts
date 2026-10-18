@@ -773,6 +773,21 @@ export type Dictionary = {
     goalContributionBehind: (vocab: PeriodVocab, planned: string, actual: string, name: string, days: number) => string;
   };
 
+  /** Follow-up prompts an insight opens on its destination screen (see lib/insight-prompts.ts). */
+  insightPrompts: {
+    isDuplicate: string;
+    chargedTwiceOn: (date: string) => string;
+    chargedOnTwoDates: (first: string, second: string) => string;
+    yesRemoveOne: string;
+    noBothReal: string;
+    decideLater: string;
+    whichToRemove: string;
+    /** One charge in the pick list; `n` tells two same-day charges apart. */
+    chargeOption: (date: string, amount: string, n: 1 | 2 | null) => string;
+    deleteThisCharge: string;
+    deleteCharge: string;
+  };
+
   summary: {
     /** Link to the closed cycle's breakdown -- shown only on the cycle summary. */
     seeWhereItWent: string;

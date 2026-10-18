@@ -1,3 +1,5 @@
+import { execFileSync } from "child_process";
+import path from "path";
 import type { Locator, Page } from "@playwright/test";
 
 /**
@@ -199,4 +201,12 @@ export async function dismissCycleSummary(page: Page): Promise<void> {
   await page.click(".summary-cta-primary");
   // Not /\/dashboard/ -- that matches the summary URL we're leaving.
   await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 60_000, waitUntil: "commit" });
+}
+
+/** Seeds data with no quick UI path (dated charges, Gmail imports, past cycles) -- see seed.ts for the payload. */
+export function seed(payload: Record<string, unknown> & { email: string }): void {
+  execFileSync("npx", ["tsx", path.join(__dirname, "seed.ts"), JSON.stringify(payload)], {
+    cwd: path.join(__dirname, "..", ".."),
+    stdio: "inherit",
+  });
 }
