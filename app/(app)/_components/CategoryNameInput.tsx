@@ -55,6 +55,7 @@ export function CategoryNameInput({
 }) {
   const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(defaultValue ?? "");
   const [open, setOpen] = useState(false);
   const topCategories = categoryNames.slice(0, TOP_CHIP_COUNT);
@@ -83,6 +84,8 @@ export function CategoryNameInput({
   function select(next: string) {
     setValue(next);
     setOpen(false);
+    // Picking an option is a finished choice: drop focus so the on-screen keyboard closes.
+    inputRef.current?.blur();
     onValueChange?.(next);
   }
 
@@ -104,6 +107,7 @@ export function CategoryNameInput({
       )}
       <div className="category-name-input-combobox">
         <input
+          ref={inputRef}
           id={id}
           name={name}
           type="text"

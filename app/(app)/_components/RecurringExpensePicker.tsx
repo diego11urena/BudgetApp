@@ -59,6 +59,7 @@ export function RecurringExpensePicker({
   onSelectionChange?: (selection: { recurringExpenseId: string | null; recurringExpenseName: string }) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(defaultValue);
   const [selectedId, setSelectedId] = useState<string | null>(defaultSelectedId);
   const [open, setOpen] = useState(false);
@@ -86,6 +87,8 @@ export function RecurringExpensePicker({
     setValue(option.name);
     setSelectedId(option.id);
     setOpen(false);
+    // Picking an option is a finished choice: drop focus so the on-screen keyboard closes.
+    inputRef.current?.blur();
     onSelectionChange?.({ recurringExpenseId: option.id, recurringExpenseName: option.name });
   }
 
@@ -93,6 +96,7 @@ export function RecurringExpensePicker({
     <div className="recurring-picker" ref={containerRef}>
       <div className="recurring-picker-combobox">
         <input
+          ref={inputRef}
           id={id}
           type="text"
           value={value}

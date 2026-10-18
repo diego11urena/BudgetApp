@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSheetVisibility } from "../../_components/useSheet";
 import { useRouter } from "next/navigation";
 import { Sheet } from "../../_components/Sheet";
@@ -48,10 +48,29 @@ export function NeedsAttentionSheet({
   }
   const t = useT().dashboard;
   const { visible, closeThen } = useSheetVisibility();
+  const router = useRouter();
   const [transactions, setTransactions] = useState(initialTransactions);
+  const [closing, setClosing] = useState(false);
+  // Each row registers a "save what I have, if it's valid" function, so
+  // closing can keep partial progress instead of throwing it away.
+  const rowSaves = useRef(new Map<string, () => Promise<boolean>>());
 
   function handleClose() {
     closeThen(onClose);
+  }
+
+  // Done for now, Escape, backdrop tap and drag-down all land here: save
+  // every row the user actually filled in (untouched and half-filled rows
+  // are skipped by the row itself), then close regardless.
+  async function handleCloseSavingProgress() {
+    if (closing) return;
+    setClosing(true);
+    let savedAny = false;
+    for (const save of [...rowSaves.current.values()]) {
+      if (await save()) savedAny = true;
+    }
+    if (savedAny) router.refresh();
+    handleClose();
   }
 
   function handleDone(transactionId: string) {
@@ -72,7 +91,8 @@ export function NeedsAttentionSheet({
       visible={visible}
       title={t.finishTransactionsTitle}
       titleStyle={{ marginBottom: "0.5rem" }}
-      onClose={handleClose}
+      onClose={handleCloseSavingProgress}
+      closeOnBackdropClick={!closing}
       returnFocusTo={returnFocusTo}
       // autoFocus off: this sheet should appear passively, with no field
       // grabbing the keyboard/cursor until the user deliberately taps one
@@ -84,7 +104,23 @@ export function NeedsAttentionSheet({
         {t.finishTransactionsBody}
       </p>
 
-      <div className="categorize-imports-list">
+      <div
+        className="categorize-imports-list"
+        // Tapping anything that isn't a text field dismisses the keyboard
+        // (iOS keeps it up otherwise). Dropdown options are left alone: they
+        // blur on select themselves, and blurring first would shift the
+        // layout under the finger before the tap lands.
+        onPointerDown={(e) => {
+          const target = e.target as HTMLElement;
+          const active = document.activeElement as HTMLElement | null;
+          if (
+            active?.matches("input[type=text]") &&
+            !target.closest("input[type=text], .category-name-input-dropdown, .recurring-picker-dropdown")
+          ) {
+            active.blur();
+          }
+        }}
+      >
         {transactions.map((transaction) => (
           <NeedsAttentionRow
             key={transaction.id}
@@ -92,12 +128,21 @@ export function NeedsAttentionSheet({
             categoryNames={categoryNamesForType(transaction.type)}
             recurringOptions={recurringOptions}
             onDone={() => handleDone(transaction.id)}
+            registerSave={(save) => {
+              if (save) rowSaves.current.set(transaction.id, save);
+              else rowSaves.current.delete(transaction.id);
+            }}
           />
         ))}
       </div>
 
-      <button type="button" className="button button--secondary sheet-submit" onClick={handleClose}>
-        {t.doneForNow}
+      <button
+        type="button"
+        className="button button--secondary sheet-submit"
+        onClick={handleCloseSavingProgress}
+        disabled={closing}
+      >
+        {closing ? t.saving : t.doneForNow}
       </button>
     </Sheet>
   );
@@ -108,11 +153,13 @@ function NeedsAttentionRow({
   categoryNames,
   recurringOptions,
   onDone,
+  registerSave,
 }: {
   transaction: NeedsAttentionTransaction;
   categoryNames: string[];
   recurringOptions: RecurringOption[];
   onDone: () => void;
+  registerSave: (save: (() => Promise<boolean>) | null) => void;
 }) {
   const t = useT().dashboard;
   const router = useRouter();
@@ -138,61 +185,101 @@ function NeedsAttentionRow({
       ? (transaction.direction === "sent" ? t.sentTo(transaction.name) : t.receivedFrom(transaction.name))
       : transaction.name;
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const category = categoryValue.trim();
+  const desc = description.trim();
+  // The checkbox only exists while a category is entered.
+  const isRecurring = recurring && category !== "" && transaction.type === "EXPENSE";
 
-    if (transaction.needsCategory && !categoryValue.trim()) {
-      setError(t.chooseCategoryError);
-      return;
-    }
-    if (transaction.needsDescription && !description.trim()) {
-      setError(t.tellUsWhatItWasForError);
-      return;
-    }
-
-    setPending(true);
-
+  /** Saves whichever of the two fields are filled in; returns an error message or null. */
+  async function persist(): Promise<string | null> {
     // Sequential, not parallel -- categorizeTransactionAction can create a
     // brand-new category (getOrCreateCategory) that the description update
-    // has no reason to race against; keeping these as two independent
-    // round trips to the two existing, already-battle-tested actions
-    // avoids duplicating either one's own validation/ownership logic here.
-    if (transaction.needsCategory) {
+    // has no reason to race against; two round trips to the two existing
+    // actions keep each one's own validation/ownership logic.
+    if (transaction.needsCategory && category) {
       const fd = new FormData();
       fd.set("transactionId", transaction.id);
-      fd.set("category", categoryValue.trim());
-      if (recurring) {
+      fd.set("category", category);
+      if (isRecurring) {
         fd.set("recurring", "true");
         if (recurringSelection.recurringExpenseId) fd.set("recurringExpenseId", recurringSelection.recurringExpenseId);
         fd.set("recurringExpenseName", recurringSelection.recurringExpenseName);
       }
       const result = await categorizeTransactionAction(fd);
-      if ("error" in result) {
-        setPending(false);
-        setError(result.error);
-        return;
-      }
+      if ("error" in result) return result.error;
     }
-
-    if (transaction.needsDescription) {
+    if (transaction.needsDescription && desc) {
       const fd = new FormData();
       fd.set("transactionId", transaction.id);
-      fd.set("description", description.trim());
+      fd.set("description", desc);
       const result = await describeTransactionAction(fd);
-      if ("error" in result) {
-        setPending(false);
-        setError(result.error);
-        return;
-      }
+      if ("error" in result) return result.error;
+    }
+    return null;
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    if (transaction.needsCategory && !category) {
+      setError(t.chooseCategoryError);
+      return;
+    }
+    if (transaction.needsDescription && !desc) {
+      setError(t.tellUsWhatItWasForError);
+      return;
     }
 
+    setPending(true);
+    const failure = await persist();
+    if (failure) {
+      setPending(false);
+      setError(failure);
+      return;
+    }
     router.refresh();
     onDone();
   }
 
+  // For closing the sheet: save only if the user filled something in and
+  // nothing is half-done (recurring checked with no recurring expense named).
+  // Errors are swallowed -- closing is never blocked; the row just stays
+  // "needs info". Re-registered every render so it sees the latest state.
+  const recurringIncomplete =
+    isRecurring && !recurringSelection.recurringExpenseId && !recurringSelection.recurringExpenseName.trim();
+  const saveIfValid = async () => {
+    if (pending || (!category && !desc) || recurringIncomplete) return false;
+    return (await persist()) === null;
+  };
+  useEffect(() => {
+    registerSave(saveIfValid);
+  });
+  useEffect(() => () => registerSave(null), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the row's Save visible: after the keyboard has opened (or the
+  // recurring field has appeared), scroll Save into view, then the focused
+  // field and its dropdown -- "nearest", so nothing moves if already visible.
+  function revealRow(field?: HTMLElement) {
+    setTimeout(() => {
+      formRef.current?.querySelector("button[type=submit]")?.scrollIntoView({ block: "nearest" });
+      if (!field) return;
+      const dropdown = field.parentElement?.querySelector(".category-name-input-dropdown, .recurring-picker-dropdown");
+      (dropdown ?? field).scrollIntoView({ block: "nearest" });
+    }, 300);
+  }
+
   return (
-    <form className="categorize-imports-row" onSubmit={handleSubmit} noValidate>
+    <form
+      ref={formRef}
+      className="categorize-imports-row"
+      onSubmit={handleSubmit}
+      noValidate
+      onFocus={(e) => {
+        if (e.target.matches("input[type=text]")) revealRow(e.target);
+      }}
+    >
       <div className="categorize-imports-row-header">
         <span className="categorize-imports-row-name">{label}</span>
         <span className="categorize-imports-row-amount">{formatCurrency(transaction.amount)}</span>
@@ -218,6 +305,7 @@ function NeedsAttentionRow({
                   checked={recurring}
                   onChange={(e) => {
                     setRecurring(e.target.checked);
+                    revealRow();
                     // Reset to the row's own name each time the toggle
                     // turns on -- a prior open/select shouldn't linger if
                     // the user unchecked and re-checked it.
