@@ -143,7 +143,6 @@ export const es: Dictionary = {
       continue: "Continuar",
       cadenceLabel: "¿Cómo quieres presupuestar?",
       payCadenceLabel: "¿Con qué frecuencia te pagan?",
-      monthlyPayLocksMonthlyBudget: "Como te pagan una vez al mes, tu ciclo de presupuesto también es mensual.",
     },
     expenses: {
       metaTitle: "Recurrentes",
@@ -352,7 +351,7 @@ export const es: Dictionary = {
   transactions: {
     metaTitle: "Actividad",
     title: "Actividad",
-    seeWhereItWent: "Mira a dónde se fue",
+    breakdownCta: "Desglose",
     count: (n) => `${n} ${plural(n, "transacción", "transacciones")}`,
     noMatch: "Ninguna transacción coincide con tu búsqueda.",
     noneYet: "Aún no hay transacciones registradas.",
@@ -545,7 +544,7 @@ export const es: Dictionary = {
     justUpdate: "No, solo actualizar la meta",
     cancel: "Cancelar",
     save: "Guardar",
-    goalNamePlaceholder: "Buscar o agregar una meta…",
+    goalNamePlaceholder: "p. ej. Fondo de emergencia",
     perCyclePlaceholder: "200.00",
     alreadySavedQuestion: "¿Ya tienes dinero ahorrado para esta meta?",
     alreadySavedPlaceholder: "450.00",
@@ -760,6 +759,7 @@ export const es: Dictionary = {
   },
 
   summary: {
+    seeWhereItWent: "Mira a dónde se fue",
     headlinePrefix: (vocab, spent) => `Gastaste ${spent} y `,
     headlineSavedFragment: (saved) => `ahorraste ${saved}.`,
     subcopyDelta: (vocab, amount, isLighter) =>

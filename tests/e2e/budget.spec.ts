@@ -34,7 +34,7 @@ async function createRecurringExpense(
   await nameField.waitFor();
   await nameField.fill(opts.name);
   await fillAmount(page.getByLabel("Amount (USD)"), opts.amount);
-  await page.getByLabel("Category").fill(opts.category);
+  await fillCategory(page, opts.category);
   if (opts.dueDay) {
     await page.getByLabel("Has a set date").check();
     await page.getByLabel("Due day (1–31)").fill(opts.dueDay);
@@ -157,7 +157,7 @@ test.describe("Plan screen (Recurring)", () => {
     await page.click('button:has-text("+ New")');
     await page.getByLabel("Name").fill("Car registration");
     await fillAmount(page.getByLabel("Amount (USD)"), "60.00");
-    await page.getByLabel("Category").fill("Car");
+    await fillCategory(page, "Car");
     // "Repeats" and "Has a set date" are independent (see
     // EditableRecurringExpense's own doc comment) -- unchecking Repeats
     // alone doesn't touch the due-day field, which is gated by "Has a set
@@ -328,13 +328,12 @@ test.describe("the 'This is a recurring expense' toggle on a transaction", () =>
     await page.getByLabel("This is a recurring expense").check();
 
     // The exact-name path would create a NEW recurring expense named "Anthropic" here --
-    // that's the bug. Search and pick the existing "Claude" recurring expense instead.
-    // Scoped to the dropdown itself -- the unscoped role/name alone also
-    // matches the "Claude" recurring expense's own row on /plan, still in the DOM behind
-    // this sheet.
-    await page.getByLabel("Which recurring expense?").fill("cla");
-    await page.locator(".recurring-picker-dropdown").getByRole("button", { name: /Claude/ }).click();
-    await expect(page.getByLabel("Which recurring expense?")).toHaveValue("Claude");
+    // that's the bug. Pick the existing "Claude" one from the native select instead.
+    const picker = page.getByLabel("Which recurring expense?");
+    await expect(picker).toHaveValue("__new__");
+    await expect(page.getByPlaceholder("Recurring expense name")).toHaveValue("Anthropic");
+    await picker.selectOption({ label: "Claude · $20.00" });
+    await expect(page.getByPlaceholder("Recurring expense name")).toHaveCount(0);
 
     await page.click('button:has-text("Log it")');
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });

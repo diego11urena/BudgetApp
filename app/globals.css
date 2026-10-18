@@ -624,15 +624,13 @@ textarea:focus-visible {
 }
 
 /* The box-shadow halo above gets silently clipped by any scrollable/
-   overflow-clipped ancestor -- these four are the only containers in the
+   overflow-clipped ancestor -- these two are the only containers in the
    app that both clip overflow AND hold focusable descendants close
    enough to their edge for that to matter. An outline (unlike
    box-shadow) isn't clipped by an ancestor's overflow, so it's a safe
    drop-in replacement scoped to just these. */
-.category-chips :focus-visible,
 .categorize-imports-list :focus-visible,
-.icon-picker-scroll :focus-visible,
-.category-name-input-dropdown :focus-visible {
+.icon-picker-scroll :focus-visible {
   outline: 2px solid var(--color-accent-green);
   outline-offset: 2px;
   box-shadow: none;
@@ -1161,9 +1159,8 @@ input[type="checkbox"]::before {
   border-radius: var(--radius-pill);
 }
 
-/* Activity's "See where it went" -- full-width navy pill directly below
-   the filter row (moved out of the header; see the design system
-   handoff's Activity spec, change 4b). */
+/* Breakdown link: Activity's "Breakdown" (directly below the filter row)
+   and the closed cycle summary's "See where it went". */
 .transaction-breakdown-cta {
   width: 100%;
   min-height: 46px;
@@ -1415,9 +1412,7 @@ button.line-item--link {
 }
 
 .theme-picker-option:disabled {
-  /* not-allowed, not `default` -- the disabled Biweekly option when pay
-     is monthly is a rule the user can act on (change pay frequency), so
-     it should read as blocked rather than inert. */
+  /* Briefly disabled while a frequency save is in flight. */
   cursor: not-allowed;
   color: var(--color-text-faint);
 }
@@ -2333,175 +2328,6 @@ button.line-item--link {
   border: none !important;
   background: transparent !important;
   padding: 0.25rem !important;
-}
-
-.category-chips {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-}
-
-.category-chips--compact {
-  margin-bottom: 0.5rem;
-}
-
-.category-chip {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  color: var(--foreground);
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.5rem 0.9rem;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.category-chip.is-active {
-  background: var(--color-button-bg);
-  border-color: var(--color-button-bg);
-  color: var(--color-on-accent);
-}
-
-.category-name-input {
-  width: 100%;
-  min-width: 0;
-}
-
-.category-name-input-combobox {
-  position: relative;
-  width: 100%;
-}
-
-.category-name-input-combobox input {
-  width: 100%;
-}
-
-.category-name-input-dropdown {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  left: 0;
-  right: 0;
-  z-index: var(--z-dropdown);
-  max-height: 12rem;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0.25rem;
-  list-style: none;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--elev-2);
-}
-
-.category-name-input-dropdown li + li {
-  margin-top: 0.125rem;
-}
-
-.category-name-input-dropdown button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.55rem 0.6rem;
-  min-height: 44px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--foreground);
-  font-family: inherit;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.category-name-input-dropdown button.is-active,
-.category-name-input-dropdown button:active {
-  background: var(--color-bg-secondary);
-}
-
-.category-name-input-create {
-  color: var(--color-button-bg);
-  font-weight: 600;
-}
-
-/* RecurringExpensePicker -- "Which recurring expense?" combobox on the
-   transaction sheet's "This is a recurring expense" toggle. Mirrors
-   .category-name-input's shape; adds a right-aligned amount on each option
-   since two entries can share similar names. */
-.recurring-picker {
-  width: 100%;
-  min-width: 0;
-}
-
-.recurring-picker-combobox {
-  position: relative;
-  width: 100%;
-}
-
-.recurring-picker-combobox input {
-  width: 100%;
-}
-
-.recurring-picker-dropdown {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  left: 0;
-  right: 0;
-  z-index: var(--z-dropdown);
-  max-height: 12rem;
-  overflow-y: auto;
-  margin: 0;
-  padding: 0.25rem;
-  list-style: none;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--elev-2);
-}
-
-.recurring-picker-dropdown li + li {
-  margin-top: 0.125rem;
-}
-
-.recurring-picker-dropdown button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  width: 100%;
-  text-align: left;
-  padding: 0.55rem 0.6rem;
-  min-height: 44px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--foreground);
-  font-family: inherit;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.recurring-picker-dropdown button.is-active,
-.recurring-picker-dropdown button:active {
-  background: var(--color-bg-secondary);
-}
-
-.recurring-picker-option-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.recurring-picker-option-amount {
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
-  font-variant-numeric: tabular-nums;
 }
 
 .sheet-submit {
@@ -5804,6 +5630,8 @@ button.line-item--link {
   align-self: center;
   width: 220px;
   max-width: 100%;
+  /* The centre text sizes itself in cqw so it scales with the ring. */
+  container-type: inline-size;
 }
 
 .category-donut-svg {
@@ -5836,31 +5664,46 @@ button.line-item--link {
   text-align: center;
 }
 
+/* Everything in the centre stays inside the hole (r 62 of 220, ~28cqw)
+   with ~8px of clear space to the ring: each line is capped at a width
+   whose corners sit inside that padded circle, long names truncate, the
+   amount scales down (centreValueFontSize), and the sub-line wraps to at
+   most two lines. */
+.category-donut-centre p {
+  max-width: 36cqw;
+  overflow: hidden;
+}
+
 .category-donut-centre-label {
-  font-size: 0.6875rem;
+  font-size: min(0.6875rem, 5cqw);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-secondary);
   font-family: var(--font-display);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.category-donut-centre-value {
+.category-donut-centre .category-donut-centre-value {
+  max-width: 44cqw;
   font-family: var(--font-display);
-  font-size: 1.625rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
-/* Capped so a long comparison ("36% · $38.00 over usual") wraps inside
-   the donut's hole instead of running under the ring. */
 .category-donut-centre-sub {
-  font-size: 0.75rem;
+  font-size: min(0.6875rem, 5cqw);
+  line-height: 1.25;
   color: var(--color-text-secondary);
-  max-width: 120px;
-  text-wrap: pretty;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .category-donut-legend {

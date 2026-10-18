@@ -21,9 +21,8 @@ export async function signUpAndOnboard(
     /**
      * Defaults to SEMIMONTHLY (every existing spec's own assumption --
      * "twice a month," the picker's default). MONTHLY picks "Once a
-     * month" -- which, per the pay/budget-frequency combination lock, also
-     * force-selects (and disables Quincenal on) the budget-frequency
-     * picker, so passing payFrequency: "MONTHLY" with budgetFrequency:
+     * month" -- which forces a monthly budget and hides the
+     * budget-frequency picker, so passing payFrequency: "MONTHLY" with budgetFrequency:
      * "QUINCENAL" (or omitted) still lands on a MONTHLY-budget account --
      * there's no way to onboard Monthly pay + Quincenal budget, by design.
      */
@@ -52,8 +51,8 @@ export async function signUpAndOnboard(
 
   // Pay frequency is asked first (its own picker), and choosing Monthly
   // pay force-selects Monthly budget frequency on its own -- clicking
-  // the budget picker's own "Monthly" button afterward would be redundant
-  // (and it's disabled there anyway once pay frequency is MONTHLY). Both
+  // the budget picker's own "Monthly" button afterward isn't possible
+  // (the picker is hidden once pay frequency is MONTHLY). Both
   // pickers have a "Monthly" button, so each click is scoped to its group.
   if (payFrequency === "MONTHLY") {
     await page.getByRole("group", { name: "How often do you get paid?" }).getByRole("button", { name: "Monthly" }).click();
@@ -160,7 +159,8 @@ export async function fillAmount(locator: Locator, dollars: string): Promise<voi
 }
 
 /**
- * Fills QuickAddSheet's category field — selects an existing category by
+ * Fills a "Category" field (QuickAddSheet or CategoryNameInput) — a plain
+ * text input when there are no categories yet; otherwise selects an existing category by
  * its exact name from the native <select>, or picks "+ New category…"
  * (revealing a free-text input) and types a brand-new one. An exact-string
  * check against the dropdown's own option labels, not a fuzzy one: typing
@@ -169,8 +169,12 @@ export async function fillAmount(locator: Locator, dollars: string): Promise<voi
  * free-text path too, since that's exactly how a categories.spec.ts test
  * exercises the server's own case-insensitive dedup on submit.
  */
-export async function fillCategory(page: Page, name: string): Promise<void> {
-  const select = page.getByLabel("Category");
+export async function fillCategory(page: Page, name: string, label = "Category"): Promise<void> {
+  const select = page.getByLabel(label, { exact: true });
+  if ((await select.evaluate((el) => el.tagName)) === "INPUT") {
+    await select.fill(name);
+    return;
+  }
   const optionLabels = await select.locator("option").allTextContents();
   if (optionLabels.includes(name)) {
     await select.selectOption({ label: name });

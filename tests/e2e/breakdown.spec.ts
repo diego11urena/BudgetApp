@@ -357,4 +357,88 @@ test.describe("Breakdown", () => {
     await page.waitForURL(/\/transactions\?cycleId=/, { timeout: 30_000 });
     await expect(page.locator(".transaction-filters")).toBeVisible();
   });
+
+  test("'Breakdown' while the cycle is open, 'See where it went' only on the closed cycle's summary", async ({ page }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "1500" });
+    await openQuickAdd(page, "Expense");
+    await fillAmount(page.getByLabel("Amount (USD)"), "75.00");
+    await fillCategory(page, "Groceries");
+    await page.click('button:has-text("Log it")');
+    await expect(page.locator(".transaction-row", { hasText: "Groceries" })).toBeVisible();
+
+    await page.goto("/transactions");
+    await expect(page.locator(".transaction-breakdown-cta")).toHaveText("Breakdown");
+    await expect(page.getByText("See where it went")).toHaveCount(0);
+
+    await page.goto("/dashboard");
+    await page.click('button:has-text("I just got paid")');
+    await page.click('button:has-text("Yes, I got paid")');
+    await page.waitForURL(/\/dashboard\/summary\//, { timeout: 60_000, waitUntil: "commit" });
+    await page.getByRole("link", { name: "See where it went" }).click();
+    await page.waitForURL(/\/transactions\/breakdown\?cycle=/, { waitUntil: "commit" });
+    await expect(page.locator(".breakdown-header-title")).toHaveText("Where it went");
+
+    await page.goto("/transactions");
+    await expect(page.locator(".transaction-breakdown-cta")).toHaveText("Breakdown");
+  });
+
+  test("the donut's centre text always fits inside the hole, clear of the ring", async ({ page }) => {
+    await signUpAndOnboard(page, { netQuincenaAmount: "2000" });
+    const longName = "Extraordinarily Long Category Name For Testing";
+    for (const [amount, category] of [
+      ["98765.43", longName],
+      ["12.00", "Coffee"],
+    ]) {
+      await openQuickAdd(page, "Expense");
+      await fillAmount(page.getByLabel("Amount (USD)"), amount);
+      await fillCategory(page, category);
+      await page.click('button:has-text("Log it")');
+      await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
+    }
+
+    // Every line of centre text must sit inside the hole (r 62 of the 220
+    // viewBox) minus 6 units of padding -- checked at each line box's corners.
+    const assertFits = () =>
+      page.evaluate(() => {
+        const svg = document.querySelector(".category-donut-svg")!.getBoundingClientRect();
+        const scale = svg.width / 220;
+        const cx = svg.left + svg.width / 2;
+        const cy = svg.top + svg.height / 2;
+        const limit = (62 - 6) * scale;
+        const lines = [...document.querySelectorAll<HTMLElement>(".category-donut-centre p")];
+        const bad = lines.flatMap((el) => {
+          const r = el.getBoundingClientRect();
+          // The text actually painted, not just the box: clipped content can't spill.
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const t = range.getBoundingClientRect();
+          const box = {
+            left: Math.max(r.left, t.left),
+            right: Math.min(r.right, t.right),
+            top: Math.max(r.top, t.top),
+            bottom: Math.min(r.bottom, t.bottom),
+          };
+          const corners = [
+            [box.left, box.top],
+            [box.right, box.top],
+            [box.left, box.bottom],
+            [box.right, box.bottom],
+          ];
+          return corners.some(([x, y]) => Math.hypot(x - cx, y - cy) > limit) ? [el.textContent] : [];
+        });
+        return bad;
+      });
+
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/transactions/breakdown");
+      await expect(page.locator(".category-donut-centre-value")).toHaveText("$98,777.43");
+      expect(await assertFits()).toEqual([]);
+
+      await page.locator(".category-donut-legend-row", { hasText: longName }).click();
+      await expect(page.locator(".category-donut-centre-value")).toHaveText("$98,765.43");
+      expect(await assertFits()).toEqual([]);
+      await page.screenshot({ path: `test-results/donut-${width}.png` });
+    }
+  });
 });

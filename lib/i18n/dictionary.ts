@@ -149,10 +149,8 @@ export type Dictionary = {
       continue: string;
       /** The budget-cadence picker's own label -- above the two budgetFrequency options (see common.budgetFrequency). Asks how the user wants to BUDGET, not how they get paid -- see payCadenceLabel below for the separate, genuinely-about-paychecks question. */
       cadenceLabel: string;
-      /** The pay-cadence picker's own label -- above the two payFrequency options (see common.payFrequency). Purely descriptive on its own, but constrains cadenceLabel's own picker: MONTHLY pay forces/locks MONTHLY budget (see monthlyPayLocksMonthlyBudget below). */
+      /** The pay-cadence picker's own label -- above the two payFrequency options (see common.payFrequency). Purely descriptive on its own, but constrains cadenceLabel's own picker: MONTHLY pay forces MONTHLY budget and hides that picker. */
       payCadenceLabel: string;
-      /** Shown under the budget-frequency picker only while payFrequency is MONTHLY -- explains why Quincenal is disabled there instead of just silently unclickable. */
-      monthlyPayLocksMonthlyBudget: string;
     };
     expenses: {
       metaTitle: string;
@@ -381,7 +379,8 @@ export type Dictionary = {
   transactions: {
     metaTitle: string;
     title: string;
-    seeWhereItWent: string;
+    /** The active cycle's link to its breakdown. A closed cycle's summary uses summary.seeWhereItWent instead. */
+    breakdownCta: string;
     count: (n: number) => string;
     noMatch: string;
     noneYet: string;
@@ -797,6 +796,8 @@ export type Dictionary = {
   };
 
   summary: {
+    /** Link to the closed cycle's breakdown -- shown only on the cycle summary. */
+    seeWhereItWent: string;
     /** "You spent $594 and " -- the caller wraps headlineSavedFragment's return in the gold span, see SummaryHeadline.tsx. Split in two (not one opaque sentence) so the gold coloring doesn't have to fight EN/ES word order. */
     headlinePrefix: (vocab: PeriodVocab, spent: string) => string;
     /** "saved $297." -- see headlinePrefix. */

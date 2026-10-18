@@ -44,6 +44,20 @@ const SELECTED_OFFSET = 6;
 /** Non-selected slices while something is selected. */
 const DIMMED_OPACITY = 0.28;
 
+/**
+ * Font size for the centre amount, in container-query units of the figure
+ * so it scales with the donut: as large as the spec's 1.625rem, shrunk so
+ * the whole string fits VALUE_MAX_CQW (the CSS max-width of that line,
+ * inside the hole with padding). Punctuation is about half a digit wide.
+ * ponytail: per-character estimate, not a measurement; the line also
+ * clips with overflow:hidden as a backstop.
+ */
+const VALUE_MAX_CQW = 44;
+function centreValueFontSize(text: string): string {
+  const em = [...text].reduce((sum, ch) => sum + (ch === "," || ch === "." ? 0.32 : 0.64), 0);
+  return `min(1.625rem, ${(VALUE_MAX_CQW / em).toFixed(2)}cqw)`;
+}
+
 function polar(radius: number, angle: number): [number, number] {
   // Rounded to 3 decimals: Node and the browser can disagree in the last
   // digit of Math.cos/Math.sin, which made the server-rendered path differ
@@ -198,13 +212,17 @@ export default function CategoryDonut({
           {selected ? (
             <>
               <p className="category-donut-centre-label">{selected.categoryName}</p>
-              <p className="category-donut-centre-value">{formatCurrency(selected.amount)}</p>
+              <p className="category-donut-centre-value" style={{ fontSize: centreValueFontSize(formatCurrency(selected.amount)) }}>
+                {formatCurrency(selected.amount)}
+              </p>
               <p className="category-donut-centre-sub">{centreCompare()}</p>
             </>
           ) : (
             <>
               <p className="category-donut-centre-label">{t.breakdown.donutCenterLabel}</p>
-              <p className="category-donut-centre-value">{formatCurrency(total)}</p>
+              <p className="category-donut-centre-value" style={{ fontSize: centreValueFontSize(formatCurrency(total)) }}>
+                {formatCurrency(total)}
+              </p>
               <p className="category-donut-centre-sub">
                 {t.breakdown.donutCategoryCount(slices.length, state)}
               </p>

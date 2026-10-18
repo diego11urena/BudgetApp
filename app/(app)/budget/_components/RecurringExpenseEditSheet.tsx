@@ -183,7 +183,6 @@ export function RecurringExpenseEditSheet({
               categoryNames={categoryNames}
               defaultValue={existing?.categoryName}
               placeholder={t.budget.recurringEdit.categoryPlaceholder}
-              showChips={false}
               invalid={errorField === "categoryName"}
               describedBy={errorId}
             />

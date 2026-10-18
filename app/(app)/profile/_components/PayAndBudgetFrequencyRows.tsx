@@ -54,7 +54,7 @@ export function PayAndBudgetFrequencyRows({
   }
 
   function handleBudgetFrequencySelect(value: BudgetFrequency) {
-    if (value === budgetFrequency || (value === "QUINCENAL" && payFrequency === "MONTHLY")) return;
+    if (value === budgetFrequency) return;
     setBudgetFrequency(value);
     const formData = new FormData();
     formData.set("budgetFrequency", value);
@@ -86,36 +86,29 @@ export function PayAndBudgetFrequencyRows({
         <span className="field-hint">{t.profile.payFrequencyHint}</span>
       </div>
 
-      <div className="line-item profile-theme-row">
-        <span className="line-item-title">{t.profile.budgetFrequency}</span>
-        <div className="theme-picker" role="group" aria-label={t.profile.budgetFrequency}>
-          {BUDGET_FREQUENCY_VALUES.map((value) => {
-            const disabled = pending || (value === "QUINCENAL" && payFrequency === "MONTHLY");
-            return (
+      {/* Monthly pay forces a monthly budget (setIncomeFrequencyAction
+          writes both), so there's no choice to show -- hidden rather than
+          shown with a disabled option, which read like a bug. */}
+      {payFrequency !== "MONTHLY" && (
+        <div className="line-item profile-theme-row">
+          <span className="line-item-title">{t.profile.budgetFrequency}</span>
+          <div className="theme-picker" role="group" aria-label={t.profile.budgetFrequency}>
+            {BUDGET_FREQUENCY_VALUES.map((value) => (
               <button
                 key={value}
                 type="button"
                 className={`theme-picker-option${budgetFrequency === value ? " is-active" : ""}`}
                 aria-pressed={budgetFrequency === value}
-                disabled={disabled}
+                disabled={pending}
                 onClick={() => handleBudgetFrequencySelect(value)}
               >
                 {value === "QUINCENAL" ? t.common.budgetFrequency.quincenal : t.common.budgetFrequency.monthly}
               </button>
-            );
-          })}
+            ))}
+          </div>
+          {budgetFrequency === "MONTHLY" && <span className="field-hint">{t.profile.budgetFrequencyMonthlyHint}</span>}
         </div>
-        {/* Two different hints, and which one applies depends on WHY the
-            user is looking. Monthly pay LOCKS the choice, so that message
-            wins -- it explains an unavailable control. Otherwise, when
-            Monthly is simply the current selection, explain what a
-            monthly cycle actually does. */}
-        {payFrequency === "MONTHLY" ? (
-          <span className="field-hint">{t.onboarding.income.monthlyPayLocksMonthlyBudget}</span>
-        ) : budgetFrequency === "MONTHLY" ? (
-          <span className="field-hint">{t.profile.budgetFrequencyMonthlyHint}</span>
-        ) : null}
-      </div>
+      )}
     </>
   );
 }
