@@ -50,6 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
       default: "Balboa",
     },
     description,
+    verification: { google: "-dj7BSLMhokgMXx2vubpvYWvp12I3HQK5UpY4_m-K28" },
     manifest: "/manifest.json",
     appleWebApp: {
       capable: true,
