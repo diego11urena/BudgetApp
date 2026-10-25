@@ -53,6 +53,10 @@ export function NeedsAttentionSheet({
   // Each row registers a "save what I have, if it's valid" function, so
   // closing can keep partial progress instead of throwing it away.
   const rowSaves = useRef(new Map<string, () => Promise<boolean>>());
+  // Rows that currently have everything they need; the button reads "Done"
+  // only when every remaining row is in here, "Done for now" otherwise.
+  const [completeIds, setCompleteIds] = useState<Set<string>>(new Set());
+  const allComplete = transactions.every((tx) => completeIds.has(tx.id));
 
   function handleClose() {
     closeThen(onClose);
@@ -125,6 +129,15 @@ export function NeedsAttentionSheet({
             categoryNames={categoryNamesForType(transaction.type)}
             recurringOptions={recurringOptions}
             onDone={() => handleDone(transaction.id)}
+            onCompleteChange={(complete) =>
+              setCompleteIds((prev) => {
+                if (prev.has(transaction.id) === complete) return prev;
+                const next = new Set(prev);
+                if (complete) next.add(transaction.id);
+                else next.delete(transaction.id);
+                return next;
+              })
+            }
             registerSave={(save) => {
               if (save) rowSaves.current.set(transaction.id, save);
               else rowSaves.current.delete(transaction.id);
@@ -135,11 +148,11 @@ export function NeedsAttentionSheet({
 
       <button
         type="button"
-        className="button button--secondary sheet-submit"
+        className="button sheet-submit"
         onClick={handleCloseSavingProgress}
         disabled={closing}
       >
-        {closing ? t.saving : t.doneForNow}
+        {closing ? t.saving : allComplete ? t.done : t.doneForNow}
       </button>
     </Sheet>
   );
@@ -152,12 +165,14 @@ function NeedsAttentionRow({
   categoryNames,
   recurringOptions,
   onDone,
+  onCompleteChange,
   registerSave,
 }: {
   transaction: NeedsAttentionTransaction;
   categoryNames: string[];
   recurringOptions: RecurringOption[];
   onDone: () => void;
+  onCompleteChange: (complete: boolean) => void;
   registerSave: (save: (() => Promise<boolean>) | null) => void;
 }) {
   const t = useT();
@@ -179,7 +194,6 @@ function NeedsAttentionRow({
       ? (transaction.direction === "sent" ? td.sentTo(transaction.name) : td.receivedFrom(transaction.name))
       : transaction.name;
 
-  const formRef = useRef<HTMLFormElement>(null);
   const category = categoryChoice === NEW ? newCategory.trim() : categoryChoice;
   const desc = description.trim();
   const canRecur = transaction.needsCategory && transaction.type === "EXPENSE";
@@ -259,21 +273,22 @@ function NeedsAttentionRow({
   useEffect(() => {
     registerSave(saveIfValid);
   });
+  const complete =
+    (!transaction.needsCategory || !!category) &&
+    (!transaction.needsDescription || !!desc) &&
+    !recurringIncomplete;
+  useEffect(() => {
+    onCompleteChange(complete);
+  });
   useEffect(() => () => registerSave(null), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep the row's Save visible once the keyboard has opened: scroll Save
-  // into view, then the focused field -- "nearest", so nothing moves if
-  // they're already visible.
+  // Keep the focused field visible once the keyboard has opened.
   function revealRow(field: HTMLElement) {
-    setTimeout(() => {
-      formRef.current?.querySelector("button[type=submit]")?.scrollIntoView({ block: "nearest" });
-      field.scrollIntoView({ block: "nearest" });
-    }, 300);
+    setTimeout(() => field.scrollIntoView({ block: "nearest" }), 300);
   }
 
   return (
     <form
-      ref={formRef}
       className="categorize-imports-row"
       onSubmit={handleSubmit}
       noValidate
@@ -319,7 +334,7 @@ function NeedsAttentionRow({
       )}
 
       {/* Both always rendered for an expense (the picker just disabled while
-          the switch is off), so toggling never moves Save. */}
+          the switch is off), so toggling never shifts the layout. */}
       {canRecur && (
         <>
           <label className="needs-attention-switch">
@@ -380,9 +395,6 @@ function NeedsAttentionRow({
       )}
 
       {error && <p className="error-text">{error}</p>}
-      <button type="submit" className="button button--small" disabled={pending}>
-        {pending ? td.saving : td.save}
-      </button>
     </form>
   );
 }

@@ -69,9 +69,10 @@ test.describe("dashboard 'needs attention' banner", () => {
 
     await setCategory(row, "Transportation");
     await row.locator('input[placeholder="Rent, lunch, gift…"]').fill("Taxi fare");
-    await row.getByRole("button", { name: "Save", exact: true }).click();
+    // Every row is filled in, so the sheet's one button reads "Done" (not "Done for now").
+    await page.getByRole("button", { name: "Done", exact: true }).click();
 
-    // Both fields saved in one submit -- sheet empties and closes, banner
+    // Both fields saved together -- sheet empties and closes, banner
     // disappears from the dashboard entirely.
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.locator(".banner--action")).toHaveCount(0);
@@ -130,7 +131,7 @@ test.describe("dashboard 'needs attention' banner", () => {
     );
   });
 
-  test("with the keyboard up and recurring toggled, Save stays visible; Done for now skips a half-filled row but saves the valid one", async ({
+  test("with the keyboard up and recurring toggled, the button stays visible; Done for now skips a half-filled row but saves the valid one", async ({
     page,
   }) => {
     // Short viewport stands in for a phone with the keyboard open.
@@ -148,28 +149,25 @@ test.describe("dashboard 'needs attention' banner", () => {
     await page.goto("/dashboard");
     await page.click(".banner--action");
     const electric = page.locator(".categorize-imports-row").filter({ hasText: "Electric Co" });
-    const electricSave = electric.getByRole("button", { name: "Save", exact: true });
+    const doneButton = page.locator(".sheet-submit");
 
     await setCategory(electric, "Utilities");
 
-    // Toggling recurring never moves Save.
+    // The row no longer has its own Save: the sheet's button is "Done for now" until every row is complete.
+    await expect(doneButton).toHaveText("Done for now");
     const recurringSwitch = electric.getByLabel("This is a recurring expense");
     const recurringSelect = electric.getByLabel("Which recurring expense?");
-    // Position within the row (not the viewport, which scrolls to reach the switch).
-    const saveY = () => electricSave.evaluate((el) => (el as HTMLElement).offsetTop);
-    const before = await saveY();
     await expect(recurringSelect).toBeDisabled();
     for (const checked of [true, false, true]) {
       await recurringSwitch.setChecked(checked);
-      expect(await saveY()).toBe(before);
     }
     await expect(recurringSelect).toBeEnabled();
 
-    // "Other…" is the only path to a text field (keyboard); Save stays in view while typing.
+    // "Other…" is the only path to a text field (keyboard); the button stays in view while typing.
     await recurringSelect.selectOption({ label: "Other…" });
     const recurringName = electric.getByPlaceholder("Recurring expense name");
     await expect(recurringName).toBeFocused();
-    await expect(electricSave).toBeInViewport();
+    await expect(doneButton).toBeInViewport();
 
     // Half-filled: recurring on but no recurring expense named -> not saved.
     await recurringName.fill("");
@@ -187,13 +185,14 @@ test.describe("dashboard 'needs attention' banner", () => {
       "Needs a category",
     );
 
-    // Reopen from Review and finish it with a picked recurring expense: Save closes the sheet.
+    // Reopen from Review and finish it with a picked recurring expense: every row is complete, so "Done" closes the sheet.
     await page.goto("/dashboard");
     await page.click(".banner--action");
     await setCategory(electric, "Utilities");
     await recurringSwitch.check();
     await recurringSelect.selectOption({ label: "Electricity · $40.00" });
-    await electricSave.click();
+    await expect(doneButton).toHaveText("Done");
+    await doneButton.click();
     await expect(page.locator(".sheet-backdrop")).toHaveCount(0, { timeout: 15_000 });
     await expect(page.locator(".banner--action")).toHaveCount(0);
     await page.waitForTimeout(1500);
