@@ -1,6 +1,6 @@
 import { decimalString } from "./validations/shared";
 
-export type ParsedPaymentMethod = "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY";
+export type ParsedPaymentMethod = "CREDIT_CARD" | "DEBIT_CARD" | "PREPAID_CARD" | "YAPPY";
 
 export interface ParsedTransaction {
   type: "EXPENSE" | "INCOME";
@@ -60,6 +60,9 @@ const PURCHASE_PATTERN =
  */
 const DEBIT_KEYWORD = /d[eé]bito/i;
 
+/** Banco General's prepaid product ("Visa 4you"); checked before débito, which its emails may also mention. */
+const PREPAID_KEYWORD = /visa\s*4\s*you/i;
+
 export const purchaseNotificationParser: EmailParser = {
   name: "banco-general-purchase",
   match(body) {
@@ -78,9 +81,11 @@ export const purchaseNotificationParser: EmailParser = {
     // never hand an unvalidated value to Decimal — skip the message instead.
     if (!decimalString.safeParse(amount).success) return null;
 
-    const paymentMethod: ParsedPaymentMethod = DEBIT_KEYWORD.test(normalized)
-      ? "DEBIT_CARD"
-      : "CREDIT_CARD";
+    const paymentMethod: ParsedPaymentMethod = PREPAID_KEYWORD.test(normalized)
+      ? "PREPAID_CARD"
+      : DEBIT_KEYWORD.test(normalized)
+        ? "DEBIT_CARD"
+        : "CREDIT_CARD";
 
     return { type: "EXPENSE", amount, merchant, paymentMethod, description: null };
   },
