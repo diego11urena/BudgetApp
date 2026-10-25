@@ -16,7 +16,7 @@ async function main() {
     name: string;
     amount: number;
     type?: "EXPENSE" | "INCOME" | "SAVINGS";
-    paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "YAPPY" | "ACH";
+    paymentMethod?: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "PREPAID_CARD" | "YAPPY" | "ACH";
     description?: string | null;
     /** Seeds an existing recurring expense (in a new "Utilities" category) alongside the transaction. */
     recurringExpense?: { name: string; amount: number };

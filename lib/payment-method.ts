@@ -12,12 +12,13 @@ export type { PaymentMethod };
  * (type-only, so it costs nothing in a client bundle) is the source of
  * truth for the *values*; this module owns their display order and labels.
  */
-export const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "YAPPY", "ACH"] as const satisfies readonly PaymentMethod[];
+export const PAYMENT_METHODS = ["CASH", "CREDIT_CARD", "DEBIT_CARD", "PREPAID_CARD", "YAPPY", "ACH"] as const satisfies readonly PaymentMethod[];
 
 const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Cash",
   CREDIT_CARD: "Credit Card",
   DEBIT_CARD: "Debit Card",
+  PREPAID_CARD: "Prepaid Card",
   YAPPY: "Yappy",
   ACH: "ACH",
 };
