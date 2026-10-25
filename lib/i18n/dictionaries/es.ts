@@ -834,7 +834,6 @@ export const es: Dictionary = {
     fixAction: "Arreglar",
     ctaStart: (vocab) => `Comenzar ${vocab.nextPeriod}`,
     ctaStartRange: (dateRange) => `Comenzar ${dateRange}`,
-    seeFullBreakdown: "Ver desglose completo",
   },
 
   recurringFulfillment: {
@@ -915,8 +914,7 @@ export const es: Dictionary = {
 
     noSpending: "Sin gastos",
     recurringTag: "Recurrente",
-    prevCycleAria: "Ciclo anterior",
-    nextCycleAria: "Próximo ciclo",
+    backToSummary: "Volver al resumen",
   },
 
   validations: {

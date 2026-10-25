@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth";
 import { getRequestLocale } from "@/lib/i18n/locale";
 import { prisma } from "@/lib/prisma";
 import {
-  getAdjacentClosedCycles,
   getClosedCycles,
   getOrCreateDraftCycle,
   getUserBudgetFrequency,
@@ -39,7 +38,7 @@ const HISTORY_DEPTH = 6;
 /**
  * Two states off one route, exactly as the design handoff specifies:
  * no `?cycle=` -> LIVE (the still-open draft cycle, with mid-cycle pacing),
- * `?cycle={id}` -> CLOSED (that historical cycle, with prev/next chevrons).
+ * `?cycle={id}` -> CLOSED (that historical cycle, with a back link to its summary).
  *
  * Everything handed to BreakdownScreenNew below is a plain string/number --
  * never the Dictionary itself. Its templated strings are real functions
@@ -189,13 +188,8 @@ export default async function BreakdownPage({
   });
 
   // ---- CLOSED-state comparison ----------------------------------------
-  let prevCycleId: string | null = null;
-  let nextCycleId: string | null = null;
   let comparisonAverage = 0;
   if (state === "CLOSED") {
-    const adjacent = await getAdjacentClosedCycles(userId, cycle);
-    prevCycleId = adjacent.previous?.id ?? null;
-    nextCycleId = adjacent.next?.id ?? null;
     comparisonAverage = computeSameDayIndexAverage(history, totalDays);
   }
 
@@ -211,8 +205,6 @@ export default async function BreakdownPage({
       totalDays={totalDays}
       comparisonAverage={comparisonAverage}
       comparisonCycleCount={history.length}
-      prevCycleId={prevCycleId}
-      nextCycleId={nextCycleId}
       heatmapDays={heatmapDays}
       selectedDayDefault={selectedDayDefault}
       transactionsByDay={transactionsByDay}

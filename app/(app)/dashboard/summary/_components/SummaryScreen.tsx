@@ -1,8 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChevronLeft, PieChart } from "lucide-react";
-import PageTransitionLink from "@/app/(app)/_components/PageTransitionLink";
+import { ChevronLeft } from "lucide-react";
 import type { CycleFinancials } from "@/lib/cycle-financials";
 import type { GoalWithProgress } from "@/lib/goals";
 import type { SpendComparison, UncategorizedWarning } from "@/lib/summary";
@@ -55,6 +54,10 @@ export default function SummaryScreen({
       .reduce((sum, tx) => sum + tx.amount, 0);
   }
 
+  // Money left over at close counts as saved -- it stays in the user's pocket
+  // rather than being spent. Never negative (an overspent cycle saves nothing extra).
+  const totalSaved = financials.totalSavings + Math.max(financials.amountLeft, 0);
+
   return (
     <div className="summary-screen">
       <header className="summary-header">
@@ -78,7 +81,7 @@ export default function SummaryScreen({
           the stat row just below, keeps its cents. */}
       <SummaryHeadline
         spent={formatWholeDollars(financials.totalExpenses)}
-        saved={formatWholeDollars(financials.totalSavings)}
+        saved={formatWholeDollars(totalSaved)}
         t={t}
         vocab={vocab}
       />
@@ -88,17 +91,9 @@ export default function SummaryScreen({
       <SummaryStatRow
         income={formatCurrency(financials.baseIncome + financials.extraIncome)}
         spent={formatCurrency(financials.totalExpenses)}
-        saved={formatCurrency(financials.totalSavings)}
+        saved={formatCurrency(totalSaved)}
         t={t}
       />
-
-      <PageTransitionLink
-        href={`/transactions/breakdown?cycle=${cycleId}`}
-        className="button transaction-breakdown-cta"
-      >
-        <PieChart size={17} aria-hidden="true" />
-        {t.summary.seeWhereItWent}
-      </PageTransitionLink>
 
       {/* Only drawn once there's actual history to draw -- a single closed
           cycle is a dot, and zero is nothing at all rather than an invented
