@@ -220,6 +220,7 @@ export const en: Dictionary = {
     finishTransactionsTitle: "Finish these transactions",
     finishTransactionsBody: "Add whatever's missing — category, description, or both — so your totals and history stay accurate.",
     doneForNow: "Done for now",
+    done: "Done",
     sentTo: (name) => `Sent to ${name}`,
     receivedFrom: (name) => `Received from ${name}`,
     chooseCategoryError: "Choose or enter a category",

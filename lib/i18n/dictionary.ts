@@ -238,6 +238,8 @@ export type Dictionary = {
     finishTransactionsTitle: string;
     finishTransactionsBody: string;
     doneForNow: string;
+    /** The same button once every row has what it needs. */
+    done: string;
     sentTo: (name: string) => string;
     receivedFrom: (name: string) => string;
     chooseCategoryError: string;

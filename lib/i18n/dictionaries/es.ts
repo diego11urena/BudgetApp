@@ -224,6 +224,7 @@ export const es: Dictionary = {
     finishTransactionsTitle: "Completa estas transacciones",
     finishTransactionsBody: "Agrega lo que falte — categoría, descripción o ambas — para que tus totales e historial se mantengan exactos.",
     doneForNow: "Listo por ahora",
+    done: "Listo",
     sentTo: (name) => `Enviado a ${name}`,
     receivedFrom: (name) => `Recibido de ${name}`,
     chooseCategoryError: "Elige o escribe una categoría",
