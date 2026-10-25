@@ -860,7 +860,6 @@ export type Dictionary = {
     ctaStart: (vocab: PeriodVocab) => string;
     /** Preferred over ctaStart whenever the next period's dates are known -- "Start Sep 1 - Sep 15". */
     ctaStartRange: (dateRange: string) => string;
-    seeFullBreakdown: string;
   };
 
   breakdown: {
@@ -950,8 +949,7 @@ export type Dictionary = {
     noSpending: string;
     /** Chapter 04's inline tag on a row linked to a recurring expense. */
     recurringTag: string;
-    prevCycleAria: string;
-    nextCycleAria: string;
+    backToSummary: string;
   };
 
   /** Shared by Summary's Recurring section and Breakdown's chapter 02 -- see lib/recurring-fulfillment.ts's own doc comment for why this is one function/copy source instead of two. */

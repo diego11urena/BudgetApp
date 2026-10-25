@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
+import PageTransitionLink from "@/app/(app)/_components/PageTransitionLink";
 import { formatCurrency, formatWholeDollars } from "@/lib/format";
 import { emphasize, emphasizeAmounts } from "@/lib/emphasize-amounts";
 import { useT, useVocab } from "@/app/_components/LocaleProvider";
@@ -25,8 +26,6 @@ interface BreakdownScreenNewProps {
   comparisonAverage: number;
   /** How many OTHER closed cycles fed comparisonAverage -- 0 means there's no history to compare against yet, so the CLOSED banner falls back to a plain spent line. */
   comparisonCycleCount: number;
-  prevCycleId: string | null;
-  nextCycleId: string | null;
   heatmapDays: HeatmapDayData[];
   selectedDayDefault: string | null;
   transactionsByDay: Record<string, DayTransaction[]>;
@@ -67,8 +66,6 @@ export default function BreakdownScreenNew({
   totalDays,
   comparisonAverage,
   comparisonCycleCount,
-  prevCycleId,
-  nextCycleId,
   heatmapDays,
   selectedDayDefault,
   transactionsByDay,
@@ -104,14 +101,27 @@ export default function BreakdownScreenNew({
   return (
     <div className="breakdown-screen-v2">
       <header className="breakdown-header">
-        <button
-          type="button"
-          className="breakdown-header-back"
-          onClick={() => router.back()}
-          aria-label={t.common.back}
-        >
-          <ChevronLeft size={22} aria-hidden="true" />
-        </button>
+        {/* A closed cycle's breakdown is only ever reached from that cycle's
+            summary, so "back" goes there explicitly -- no month-to-month
+            paging on this screen. */}
+        {state === "CLOSED" && activityCycleId ? (
+          <PageTransitionLink
+            href={`/dashboard/summary/${activityCycleId}`}
+            className="breakdown-header-back breakdown-header-back--labeled"
+          >
+            <ChevronLeft size={22} aria-hidden="true" />
+            {t.breakdown.backToSummary}
+          </PageTransitionLink>
+        ) : (
+          <button
+            type="button"
+            className="breakdown-header-back"
+            onClick={() => router.back()}
+            aria-label={t.common.back}
+          >
+            <ChevronLeft size={22} aria-hidden="true" />
+          </button>
+          )}
 
         <div className="breakdown-header-titles">
           {state === "CLOSED" && (
@@ -127,28 +137,6 @@ export default function BreakdownScreenNew({
           )}
         </div>
 
-        <div className="breakdown-header-nav">
-          {state === "CLOSED" && prevCycleId && (
-            <button
-              type="button"
-              className="breakdown-header-chevron"
-              onClick={() => router.push(`/transactions/breakdown?cycle=${prevCycleId}`)}
-              aria-label={t.breakdown.prevCycleAria}
-            >
-              <ChevronLeft size={20} aria-hidden="true" />
-            </button>
-          )}
-          {state === "CLOSED" && nextCycleId && (
-            <button
-              type="button"
-              className="breakdown-header-chevron"
-              onClick={() => router.push(`/transactions/breakdown?cycle=${nextCycleId}`)}
-              aria-label={t.breakdown.nextCycleAria}
-            >
-              <ChevronRight size={20} aria-hidden="true" />
-            </button>
-          )}
-        </div>
       </header>
 
       {/* LIVE's top section is exactly two things per the spec: this

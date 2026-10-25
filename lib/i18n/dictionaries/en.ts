@@ -800,7 +800,6 @@ export const en: Dictionary = {
     fixAction: "Fix",
     ctaStart: (vocab) => `Start ${vocab.nextPeriod}`,
     ctaStartRange: (dateRange) => `Start ${dateRange}`,
-    seeFullBreakdown: "See full breakdown",
   },
 
   recurringFulfillment: {
@@ -873,8 +872,7 @@ export const en: Dictionary = {
 
     noSpending: "No spending",
     recurringTag: "Recurring",
-    prevCycleAria: "Previous cycle",
-    nextCycleAria: "Next cycle",
+    backToSummary: "Back to summary",
   },
 
   validations: {

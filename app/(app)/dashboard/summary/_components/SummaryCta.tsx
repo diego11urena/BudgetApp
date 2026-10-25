@@ -21,6 +21,12 @@ export default function SummaryCta({
 
   return (
     <div className="summary-cta">
+      <PageTransitionLink
+        href={`/transactions/breakdown?cycle=${cycleId}`}
+        className="summary-cta-secondary"
+      >
+        {t.summary.seeWhereItWent}
+      </PageTransitionLink>
       <button
         type="button"
         className="button summary-cta-primary"
@@ -31,12 +37,6 @@ export default function SummaryCta({
             cycle to name (see the page's own comment). */}
         {nextCycleRangeText ? t.summary.ctaStartRange(nextCycleRangeText) : t.summary.ctaStart(vocab)}
       </button>
-      <PageTransitionLink
-        href={`/transactions/breakdown?cycle=${cycleId}`}
-        className="summary-cta-secondary"
-      >
-        {t.summary.seeFullBreakdown}
-      </PageTransitionLink>
     </div>
   );
 }
