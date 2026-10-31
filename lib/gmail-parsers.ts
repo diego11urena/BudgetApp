@@ -118,10 +118,11 @@ function extractYappyMessage(normalized: string): string | null {
   return raw ? raw : null;
 }
 
+// Yappy words it "por Yappy" in older emails and "con Yappy" in newer ones; both are live.
 // "Te enviaron por Yappy $1.00 Enviado por Isabella E.****-4820 Fecha ..."
 // — money received via Yappy. Group 1 = amount, group 2 = sender's name.
 const YAPPY_RECEIVED_PATTERN =
-  /Te enviaron por Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Enviado por\s*(.+?)Fecha/;
+  /Te enviaron (?:por|con) Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Enviado por\s*(.+?)Fecha/;
 
 export const yappyReceivedParser: EmailParser = {
   name: "yappy-received",
@@ -151,7 +152,7 @@ export const yappyReceivedParser: EmailParser = {
 // "Enviaste por Yappy $1.00 Enviado a Isabella Elias69264820 Fecha ..." —
 // money sent via Yappy. Group 1 = amount, group 2 = recipient's name.
 const YAPPY_SENT_PATTERN =
-  /Enviaste por Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Enviado a\s*(.+?)Fecha/;
+  /Enviaste (?:por|con) Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Enviado a\s*(.+?)Fecha/;
 
 export const yappySentParser: EmailParser = {
   name: "yappy-sent",
@@ -187,7 +188,7 @@ export const yappySentParser: EmailParser = {
 // yappySentParser above is untouched. Group 1 = amount, group 2 = payee's
 // name.
 const YAPPY_PAID_PATTERN =
-  /Pagaste por Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Pagado a\s*(.+?)Fecha/;
+  /Pagaste (?:por|con) Yappy\s*\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*Pagado a\s*(.+?)Fecha/;
 
 export const yappyPaidParser: EmailParser = {
   name: "yappy-paid",
