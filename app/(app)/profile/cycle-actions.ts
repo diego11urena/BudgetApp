@@ -16,6 +16,7 @@ import { revalidateAppPages } from "@/lib/revalidate";
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getRequestLocale } from "@/lib/i18n/locale";
+import { ignoreImportedMessages } from "@/lib/gmail-ignored";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 const ERASE_CYCLES_RATE_LIMIT = { max: 10, windowMs: 60_000 };
@@ -66,6 +67,7 @@ export const eraseAllCyclesAction = withActionErrorHandling(async function erase
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { budgetFrequency: true } });
 
+    await ignoreImportedMessages(tx, userId, {});
     await tx.budgetCycle.deleteMany({ where: { userId } });
 
     const now = nowInPanama();
@@ -115,7 +117,10 @@ export const deleteCycleAction = withActionErrorHandling(async function deleteCy
     return { error: t.common.tooManyAttempts(rateLimit.retryAfterSeconds) };
   }
 
-  const { count } = await prisma.budgetCycle.deleteMany({ where: { id: cycleId, userId, status: "CLOSED" } });
+  const count = await prisma.$transaction(async (tx) => {
+    await ignoreImportedMessages(tx, userId, { cycle: { id: cycleId, status: "CLOSED" } });
+    return (await tx.budgetCycle.deleteMany({ where: { id: cycleId, userId, status: "CLOSED" } })).count;
+  });
   if (count === 0) return { error: t.history.deleteCycle.notFound };
 
   revalidateAppPages();

@@ -74,6 +74,7 @@ model User {
   expenseCategories ExpenseCategory[]
   budgetCycles      BudgetCycle[]
   gmailConnection   GmailConnection?
+  gmailIgnored      GmailIgnoredMessage[]
   recurringExpenses RecurringExpense[]
   insightMemories   InsightMemory[]
 }
@@ -136,9 +137,25 @@ model GmailConnection {
   encryptedRefreshToken String
   googleEmail           String
   lastSyncedAt          DateTime?
+  // When the sync last re-scanned back to the start of the open cycle to
+  // recover emails the forward-only window missed (see gmail-sync.ts).
+  lastReconciledAt      DateTime?
   lastSyncError         String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+}
+
+// Gmail messages the user deleted the imported transaction for. The
+// reconcile re-scan skips these, so a deleted import (a duplicate, an
+// erased cycle) isn't resurrected by the next sync.
+model GmailIgnoredMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, messageId])
 }
 
 enum CycleStatus {

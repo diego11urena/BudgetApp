@@ -21,6 +21,7 @@ import { nowInPanama, panamaDateParts, parseDateOnly, parseTransactionDate } fro
 import { withActionErrorHandling, type ActionResult } from "@/lib/action-error";
 import type { PaymentMethod } from "@/lib/payment-method";
 import { getRequestLocale } from "@/lib/i18n/locale";
+import { unignoreMessage } from "@/lib/gmail-ignored";
 import { getDictionary, resolveVocab } from "@/lib/i18n/get-dictionary";
 import { translateValidationMessage } from "@/lib/i18n/translate-validation-message";
 import type { Dictionary } from "@/lib/i18n/dictionary";
@@ -567,7 +568,13 @@ export const deleteTransactionAction = withActionErrorHandling(async function de
   // fully correctable, not just editable. Recoverable via the toast's Undo
   // (restoreTransactionAction), which already has no closed-cycle guard.
 
-  await prisma.cycleTransaction.delete({ where: { id: transactionId } });
+  await prisma.$transaction([
+    prisma.gmailIgnoredMessage.createMany({
+      data: existing.sourceMessageId ? [{ userId, messageId: existing.sourceMessageId }] : [],
+      skipDuplicates: true,
+    }),
+    prisma.cycleTransaction.delete({ where: { id: transactionId } }),
+  ]);
 
   revalidateAppPages();
 
@@ -692,21 +699,24 @@ export const restoreTransactionAction = withActionErrorHandling(async function r
   // categories that happen to share a name after a rename), and would
   // silently drop the recurring-expense link and Gmail-import identity
   // entirely.
-  await prisma.cycleTransaction.create({
-    data: {
-      cycleId,
-      userId,
-      type,
-      name,
-      amount: signedAmount,
-      expenseCategoryId,
-      recurringExpenseId,
-      importSource,
-      sourceMessageId,
-      paymentMethod: type !== "SAVINGS" ? paymentMethod : null,
-      description: typeof description === "string" && description ? description : null,
-      occurredAt: parsedOccurredAt,
-    },
+  await prisma.$transaction(async (tx) => {
+    if (sourceMessageId) await unignoreMessage(tx, userId, sourceMessageId);
+    await tx.cycleTransaction.create({
+      data: {
+        cycleId,
+        userId,
+        type,
+        name,
+        amount: signedAmount,
+        expenseCategoryId,
+        recurringExpenseId,
+        importSource,
+        sourceMessageId,
+        paymentMethod: type !== "SAVINGS" ? paymentMethod : null,
+        description: typeof description === "string" && description ? description : null,
+        occurredAt: parsedOccurredAt,
+      },
+    });
   });
 
   revalidateAppPages();
