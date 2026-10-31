@@ -173,6 +173,41 @@ describe("yappySentParser", () => {
     });
   });
 
+  it("also handles the newer 'Enviaste con Yappy' wording (real email, multi-line, no message)", () => {
+    const body = `Enviaste con Yappy
+$22.00
+
+Enviado a
+
+
+Maria Lopez
+
+
+67008461
+
+Fecha
+30 oct 2026 08:30 p. m.
+   Mensaje
+   Confirmación
+JKRDP-94125199
+
+Estamos aquí para ayudarte.`;
+    expect(parseTransactionEmail(body)).toEqual({
+      type: "EXPENSE",
+      amount: "22.00",
+      merchant: "Maria Lopez",
+      paymentMethod: "YAPPY",
+      description: null,
+    });
+  });
+
+  it("accepts 'con Yappy' for received and paid emails too", () => {
+    expect(
+      parseTransactionEmail("Te enviaron con Yappy $5.00 Enviado por Ana R.****-1234 Fecha 1 sep 2026 Confirmación X")?.type,
+    ).toBe("INCOME");
+    expect(parseTransactionEmail("Pagaste con Yappy $10.50 Pagado a Cafe Uno Fecha 1 sep 2026")?.merchant).toBe("Cafe Uno");
+  });
+
   it("strips the raw phone-number digits that run into the name", () => {
     const result = yappySentParser.extract(YAPPY_SENT_BODY);
     expect(result?.merchant).not.toContain("6926");
