@@ -5,6 +5,7 @@ import {
   filterNewMessageIds,
   isGmailAuthError,
   mapWithConcurrency,
+  isReconcileDue,
   syncWindowStartMs,
 } from "./gmail-sync";
 
@@ -87,6 +88,29 @@ describe("syncWindowStartMs", () => {
   it("falls back to createdAt on the very first sync (lastSyncedAt null)", () => {
     const createdAt = new Date(2026, 0, 1);
     expect(syncWindowStartMs({ lastSyncedAt: null, createdAt })).toBe(createdAt.getTime());
+  });
+
+  it("on a reconcile run reaches back to the open cycle's start when that is earlier", () => {
+    const lastSyncedAt = new Date(2026, 6, 15);
+    const cycleStart = new Date(2026, 6, 1);
+    expect(syncWindowStartMs({ lastSyncedAt, createdAt: new Date(2026, 0, 1) }, cycleStart)).toBe(cycleStart.getTime());
+  });
+
+  it("on a reconcile run keeps the forward window when the cycle started later", () => {
+    const lastSyncedAt = new Date(2026, 6, 15);
+    const forward = lastSyncedAt.getTime() - 30 * 60 * 1000;
+    expect(syncWindowStartMs({ lastSyncedAt, createdAt: new Date(2026, 0, 1) }, new Date(2026, 6, 20))).toBe(forward);
+  });
+});
+
+describe("isReconcileDue", () => {
+  const now = new Date(2026, 6, 15, 12);
+  it("is due when never reconciled", () => {
+    expect(isReconcileDue(null, now)).toBe(true);
+  });
+  it("is not due within 6 hours, due after", () => {
+    expect(isReconcileDue(new Date(now.getTime() - 5 * 3600_000), now)).toBe(false);
+    expect(isReconcileDue(new Date(now.getTime() - 6 * 3600_000), now)).toBe(true);
   });
 });
 

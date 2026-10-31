@@ -149,9 +149,27 @@ async function findLearnedCategoryId(userId: string, merchant: string): Promise<
  * never backfills older mail. Pulled out as its own pure function so the
  * "which timestamp wins" rule is unit-testable without a database.
  */
-export function syncWindowStartMs(connection: { lastSyncedAt: Date | null; createdAt: Date }): number {
-  if (!connection.lastSyncedAt) return connection.createdAt.getTime();
-  return connection.lastSyncedAt.getTime() - SYNC_OVERLAP_MS;
+export function syncWindowStartMs(
+  connection: { lastSyncedAt: Date | null; createdAt: Date },
+  /** Set only on a reconcile run: also look back to when the open cycle began. */
+  reconcileFrom: Date | null = null,
+): number {
+  const forward = connection.lastSyncedAt
+    ? connection.lastSyncedAt.getTime() - SYNC_OVERLAP_MS
+    : connection.createdAt.getTime();
+  return reconcileFrom ? Math.min(forward, reconcileFrom.getTime()) : forward;
+}
+
+/**
+ * How often the sync re-scans back to the start of the open cycle. The
+ * forward-only window can permanently miss an email (a reconnect, Gmail
+ * lag, a parser added later); this catches it. Not every sync, because the
+ * wider scan re-downloads every non-transaction email from these senders.
+ */
+const RECONCILE_EVERY_MS = 6 * 60 * 60 * 1000;
+
+export function isReconcileDue(lastReconciledAt: Date | null, now: Date): boolean {
+  return !lastReconciledAt || now.getTime() - lastReconciledAt.getTime() >= RECONCILE_EVERY_MS;
 }
 
 /**
@@ -219,11 +237,20 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
 
     // So connecting Gmail doesn't suddenly dump old purchases into whatever
     // cycle happens to be open right now.
-    const sinceMs = syncWindowStartMs(connection);
     // Captured BEFORE listing, and saved as lastSyncedAt below -- stamping
     // the finish time instead would permanently skip any email that
     // arrived while this sync was still fetching/inserting.
     const listedAt = new Date();
+    // Periodically also re-scan from the open cycle's start; imports of
+    // emails already in the app (or deleted on purpose) are skipped below.
+    const reconcile = isReconcileDue(connection.lastReconciledAt, listedAt);
+    const openCycle = reconcile
+      ? await prisma.budgetCycle.findFirst({
+          where: { userId, status: { in: ["DRAFT", "ACTIVE"] } },
+          select: { periodStart: true },
+        })
+      : null;
+    const sinceMs = syncWindowStartMs(connection, openCycle?.periodStart ?? null);
     const candidateIds = await listMessageIds(client, Math.floor(sinceMs / 1000));
 
     // Tracks whether every candidate message was actually imported (or
@@ -243,9 +270,14 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
         where: { userId, sourceMessageId: { in: candidateIds } },
         select: { sourceMessageId: true },
       });
-      const knownIds = new Set(
-        existing.map((t) => t.sourceMessageId).filter((id): id is string => id !== null),
-      );
+      const ignored = await prisma.gmailIgnoredMessage.findMany({
+        where: { userId, messageId: { in: candidateIds } },
+        select: { messageId: true },
+      });
+      const knownIds = new Set([
+        ...existing.map((t) => t.sourceMessageId).filter((id): id is string => id !== null),
+        ...ignored.map((m) => m.messageId),
+      ]);
       const newIds = filterNewMessageIds(candidateIds, knownIds);
 
       if (newIds.length > 0) {
@@ -359,7 +391,7 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
     if (allProcessed) {
       await prisma.gmailConnection.update({
         where: { userId },
-        data: { lastSyncedAt: listedAt, lastSyncError: null },
+        data: { lastSyncedAt: listedAt, lastSyncError: null, ...(reconcile && { lastReconciledAt: listedAt }) },
       });
     }
   } catch (error) {
