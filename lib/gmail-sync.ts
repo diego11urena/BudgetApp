@@ -150,8 +150,19 @@ async function findLearnedCategoryId(userId: string, merchant: string): Promise<
  * "which timestamp wins" rule is unit-testable without a database.
  */
 export function syncWindowStartMs(connection: { lastSyncedAt: Date | null; createdAt: Date }): number {
-  return (connection.lastSyncedAt ?? connection.createdAt).getTime();
+  if (!connection.lastSyncedAt) return connection.createdAt.getTime();
+  return connection.lastSyncedAt.getTime() - SYNC_OVERLAP_MS;
 }
+
+/**
+ * Gmail's search index can lag delivery by seconds to minutes, so a message
+ * that arrived just before a sync ran may not be listable yet; with a
+ * strict `after:lastSyncedAt` window the next sync would then start past it
+ * and the transaction would never import. Re-scanning this much of the
+ * previous window is free of duplicates (sourceMessageId dedup) and closes
+ * that gap.
+ */
+const SYNC_OVERLAP_MS = 30 * 60 * 1000;
 
 /**
  * Recognizes the handful of well-known Google OAuth error shapes that mean
@@ -275,7 +286,12 @@ export async function syncGmailTransactions(userId: string): Promise<void> {
           try {
             const body = extractBodyText(message.payload);
             const parsed = body ? parseTransactionEmail(body) : null;
-            if (!parsed) continue;
+            if (!parsed) {
+              // Id only (no content): lets a missed template be found in Gmail
+              // (mail.google.com/mail/#all/<id>) and a parser added for it.
+              console.warn(`[gmail-sync] no parser matched message ${message.id}${body ? "" : " (no body)"}`);
+              continue;
+            }
 
             // Category and source are independent: category is "what it
             // was for" (left null -- never a fake stand-in -- until a real

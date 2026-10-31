@@ -78,10 +78,10 @@ describe("extractBodyText", () => {
 });
 
 describe("syncWindowStartMs", () => {
-  it("uses lastSyncedAt when present, ignoring createdAt", () => {
+  it("starts 30 minutes before lastSyncedAt (Gmail index lag), ignoring createdAt", () => {
     const lastSyncedAt = new Date(2026, 6, 15);
     const createdAt = new Date(2026, 0, 1);
-    expect(syncWindowStartMs({ lastSyncedAt, createdAt })).toBe(lastSyncedAt.getTime());
+    expect(syncWindowStartMs({ lastSyncedAt, createdAt })).toBe(lastSyncedAt.getTime() - 30 * 60 * 1000);
   });
 
   it("falls back to createdAt on the very first sync (lastSyncedAt null)", () => {
