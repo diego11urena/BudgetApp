@@ -596,6 +596,7 @@ export const es: Dictionary = {
       "Mensual: un presupuesto por mes; ambos pagos entran en él y tú lo cierras.",
     pastQuincenas: (vocab) => `${capitalize(vocab.nounPlural)} ${vocab.noun === "mes" ? "pasados" : "pasadas"}`,
     manageCategories: "Administrar categorías",
+    exportData: "Exportar últimos 6 ciclos (CSV)",
     dangerZone: "Zona de peligro",
     signOut: "Cerrar sesión",
     developerTools: "Herramientas de desarrollo",
