@@ -99,7 +99,7 @@ describe("purchaseNotificationParser", () => {
   });
 
   it("detects PREPAID_CARD when the email names Visa 4you, even if it also says débito", () => {
-    for (const card of ["Visa 4you", "VISA 4YOU", "tarjeta de débito Visa 4you"]) {
+    for (const card of ["Visa 4you", "VISA 4YOU", "VISA FOR YOU", "Visa For You", "tarjeta de débito Visa 4you"]) {
       const body = `La tarjeta ${card} a nombre de X, terminación 1234 pagó $15.00 en PREPAID STORE.`;
       expect(purchaseNotificationParser.extract(body)?.paymentMethod).toBe("PREPAID_CARD");
     }
