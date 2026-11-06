@@ -109,6 +109,11 @@ export default async function ProfilePage({
             <span>{t.profile.manageCategories}</span>
             <ChevronRight size={18} aria-hidden="true" />
           </Link>
+          {/* Plain <a>: a file download, not a page navigation. */}
+          <a href="/api/export" download className="line-item line-item--link">
+            <span>{t.profile.exportData}</span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </a>
         </div>
       </section>
 

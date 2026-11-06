@@ -578,6 +578,7 @@ export const en: Dictionary = {
       "Monthly: one budget per month; both paychecks land in it and you close it yourself.",
     pastQuincenas: (vocab) => `Past ${vocab.nounPlural}`,
     manageCategories: "Manage categories",
+    exportData: "Export last 6 cycles (CSV)",
     dangerZone: "Danger zone",
     signOut: "Sign out",
     developerTools: "Developer tools",

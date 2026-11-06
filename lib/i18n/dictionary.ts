@@ -623,6 +623,7 @@ export type Dictionary = {
     budgetFrequencyMonthlyHint: string;
     pastQuincenas: (vocab: PeriodVocab) => string;
     manageCategories: string;
+    exportData: string;
     dangerZone: string;
     signOut: string;
     developerTools: string;
