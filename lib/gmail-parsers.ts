@@ -61,7 +61,7 @@ const PURCHASE_PATTERN =
 const DEBIT_KEYWORD = /d[eé]bito/i;
 
 /** Banco General's prepaid product ("Visa 4you"); checked before débito, which its emails may also mention. */
-const PREPAID_KEYWORD = /visa\s*4\s*you/i;
+const PREPAID_KEYWORD = /visa\s*(?:4\s*you|for\s*you)/i;
 
 export const purchaseNotificationParser: EmailParser = {
   name: "banco-general-purchase",
